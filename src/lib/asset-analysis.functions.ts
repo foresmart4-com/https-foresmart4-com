@@ -77,9 +77,6 @@ export const analyzeAsset = createServerFn({ method: "POST" })
 - Sentiment: fear & greed, ETF flows, leverage, COT positioning.
 - Technicals: trend, MAs, RSI, S/R, volume.
 Always set uncertaintyLevel (low/medium/high) and list 2-3 current marketFears. If uncertainty is high, reduce position size or recommend watch. arabicSummary must always be in Arabic. Always call asset_verdict.`;
-- Technicals: trend, 50/200 MAs, RSI, support/resistance, volume, gaps.
-- Sentiment: fear & greed, ETF flows, leverage ratios, COT positioning.
-Be specific with concrete price levels. In drivers list the 4-6 most active factors right now (including any climate/solar/seasonal one if relevant); in risks list 3-5. Always call asset_verdict. arabicSummary must always be in Arabic.`;
 
     const user = `Asset: ${data.name ?? data.symbol} (${data.symbol})
 Category: ${data.category}
