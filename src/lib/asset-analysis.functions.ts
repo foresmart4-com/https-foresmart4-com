@@ -59,8 +59,26 @@ export const analyzeAsset = createServerFn({ method: "POST" })
     if (!apiKey) return { verdict: null as AssetVerdict | null, error: "ai_not_configured" };
 
     const sys = data.language === "ar"
-      ? `أنت محلل أسواق محترف. أعطِ توصية شراء/بيع/احتفاظ/مراقبة لأصل واحد محدد بناءً على بياناته الحالية والعوامل الكلية (الجيوسياسة، أسعار الفائدة، الدولار، الطلب الموسمي، أخبار الشركة/القطاع). كن صريحاً ومحدداً بالأرقام، واكتب جميع الحقول النصية بالعربية الفصحى الواضحة. استخدم دائماً الأداة asset_verdict.`
-      : `You are a professional markets analyst. Give a buy/sell/hold/watch verdict for ONE specific asset based on its current quote and macro factors (geopolitics, rates, USD, seasonality, company/sector news). Be specific with numbers. Always call the asset_verdict tool. arabicSummary must always be in Arabic.`;
+      ? `أنت محلل أسواق محترف شامل. أعطِ توصية شراء/بيع/احتفاظ/مراقبة لأصل واحد بناءً على جميع المتغيرات الممكنة:
+- الاقتصاد الكلي: أسعار الفائدة (الفيدرالي، ساما، البنوك المركزية)، التضخم، قوة الدولار DXY، السندات، السيولة العالمية.
+- الجيوسياسة: الحروب، العقوبات، اتفاقيات أوبك+، التوترات في الخليج وبحر الصين والشرق الأوسط، الانتخابات.
+- العوامل القطاعية والشركة: الأرباح، التوجيهات، الاندماجات، أخبار المنتجات، سلاسل الإمداد.
+- الموسمية والدورات: نهاية/بداية السنة المالية، موسم الحج والعمرة، رمضان، الصيف، عطلات الأعياد، دورة الأرباح ربع السنوية، دورة Halving للبيتكوين، دورة الذهب الموسمية (الطلب الهندي/الصيني، موسم الزفاف).
+- المناخ والطبيعة: موجات الحر والبرد (تؤثر على الطاقة والغاز والقمح)، الأعاصير والفيضانات (النفط والتأمين والزراعة)، الجفاف (السلع الزراعية)، ظاهرة النينيو/النينيا.
+- النشاط الشمسي ودورة الشمس: التوهجات الشمسية والعواصف المغناطيسية (تأثيرها على الأقمار والاتصالات وشبكات الكهرباء وبالتالي شركات التكنولوجيا والطاقة).
+- الفنّي: الاتجاه، المتوسطات (50/200)، RSI، الدعم/المقاومة، الحجم، فجوات السعر.
+- معنويات السوق: مؤشر الخوف والطمع، تدفقات ETF، نسب الرافعة، تموضع المضاربين (COT).
+كن صريحاً ومحدداً بالأرقام (مستويات دخول، وقف، أهداف بعملة الأصل). اذكر في drivers أهم 4-6 عوامل فعّالة الآن (بما فيها أي عامل مناخي/شمسي/موسمي ذو صلة)، وفي risks 3-5 مخاطر. اكتب كل النصوص بالعربية الفصحى. استخدم دائماً الأداة asset_verdict.`
+      : `You are a comprehensive markets analyst. Give a buy/sell/hold/watch verdict for ONE asset using ALL relevant variables:
+- Macro: rates (Fed/ECB/SAMA), inflation, DXY, bond yields, global liquidity.
+- Geopolitics: wars, sanctions, OPEC+, Gulf/Middle East/South China Sea tensions, elections.
+- Sector/company: earnings, guidance, M&A, product news, supply chain.
+- Seasonality & cycles: fiscal year-end, Hajj/Umrah, Ramadan, summer, holiday seasons, quarterly earnings cycle, Bitcoin halving cycle, gold seasonal demand (Indian/Chinese wedding seasons).
+- Climate & nature: heat/cold waves (energy, gas, wheat), hurricanes & floods (oil, insurance, agri), droughts (soft commodities), El Niño/La Niña.
+- Solar activity: solar flares & geomagnetic storms (satellites, comms, power grids → tech & utilities).
+- Technicals: trend, 50/200 MAs, RSI, support/resistance, volume, gaps.
+- Sentiment: fear & greed, ETF flows, leverage ratios, COT positioning.
+Be specific with concrete price levels. In drivers list the 4-6 most active factors right now (including any climate/solar/seasonal one if relevant); in risks list 3-5. Always call asset_verdict. arabicSummary must always be in Arabic.`;
 
     const user = `Asset: ${data.name ?? data.symbol} (${data.symbol})
 Category: ${data.category}
