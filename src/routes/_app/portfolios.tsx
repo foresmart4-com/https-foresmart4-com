@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { getPortfolios, createPortfolio } from "@/lib/wallet.functions";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,26 +17,37 @@ export const Route = createFileRoute("/_app/portfolios")({
 
 function PortfoliosPage() {
   const { lang } = useI18n();
-  const qc = useQueryClient();
-
-  const { data: portfolios = [] } = useQuery({
-    queryKey: ["portfolios"],
-    queryFn: () => getPortfolios(),
-  });
-
+  const { user } = useAuth();
+  const [portfolios, setPortfolios] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [strategy, setStrategy] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const createMut = useMutation({
-    mutationFn: () => createPortfolio({ data: { name, strategy } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["portfolios"] });
-      toast.success(lang === "ar" ? "تم إنشاء المحفظة" : "Portfolio created");
-      setOpen(false); setName(""); setStrategy("");
-    },
-    onError: (e: any) => toast.error(e?.message || "Error"),
-  });
+  const load = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("portfolios")
+      .select("*, portfolio_holdings(*)")
+      .order("created_at", { ascending: false });
+    if (error) { toast.error(error.message); return; }
+    setPortfolios(data ?? []);
+  };
+
+  useEffect(() => { load(); }, [user]);
+
+  const create = async () => {
+    if (!user || !name) return;
+    setBusy(true);
+    const { error } = await supabase.from("portfolios").insert({
+      user_id: user.id, name, strategy: strategy || null,
+    });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(lang === "ar" ? "تم إنشاء المحفظة" : "Portfolio created");
+    setOpen(false); setName(""); setStrategy("");
+    load();
+  };
 
   return (
     <div className="container mx-auto max-w-6xl space-y-6 p-6">
@@ -64,8 +75,8 @@ function PortfoliosPage() {
                 <Label className="text-xs">{lang === "ar" ? "الاستراتيجية" : "Strategy"}</Label>
                 <Input value={strategy} onChange={(e) => setStrategy(e.target.value)} placeholder={lang === "ar" ? "أسهم تكنولوجيا طويلة الأمد" : "Long-term US tech"} />
               </div>
-              <Button className="w-full" disabled={!name || createMut.isPending} onClick={() => createMut.mutate()}>
-                {createMut.isPending ? "..." : (lang === "ar" ? "إنشاء" : "Create")}
+              <Button className="w-full" disabled={!name || busy} onClick={create}>
+                {busy ? "..." : (lang === "ar" ? "إنشاء" : "Create")}
               </Button>
             </div>
           </DialogContent>
@@ -102,7 +113,7 @@ function PortfoliosPage() {
                 <div className="border-t border-border">
                   {holdings.length === 0 ? (
                     <div className="p-5 text-center text-xs text-muted-foreground">
-                      {lang === "ar" ? "لا أصول بعد. نفّذ أمر شراء من صفحة الأسواق." : "No holdings yet."}
+                      {lang === "ar" ? "لا أصول بعد." : "No holdings yet."}
                     </div>
                   ) : (
                     <table className="w-full text-sm">
