@@ -13,6 +13,8 @@ export interface AssetVerdict {
   drivers: string[];
   risks: string[];
   arabicSummary: string;
+  uncertaintyLevel?: "low" | "medium" | "high";
+  marketFears?: string[];
 }
 
 const AssetInput = z.object({
@@ -45,6 +47,8 @@ const verdictTool = {
         drivers: { type: "array", items: { type: "string" } },
         risks: { type: "array", items: { type: "string" } },
         arabicSummary: { type: "string", description: "One-paragraph Arabic summary, even when language is English." },
+        uncertaintyLevel: { type: "string", enum: ["low", "medium", "high"], description: "Overall market uncertainty level right now." },
+        marketFears: { type: "array", items: { type: "string" }, description: "2-3 current market fears / sources of uncertainty." },
       },
       required: ["action", "confidence", "horizon", "rationale", "drivers", "risks", "arabicSummary"],
       additionalProperties: false,
@@ -68,17 +72,15 @@ export const analyzeAsset = createServerFn({ method: "POST" })
 - النشاط الشمسي ودورة الشمس: التوهجات الشمسية والعواصف المغناطيسية (تأثيرها على الأقمار والاتصالات وشبكات الكهرباء وبالتالي شركات التكنولوجيا والطاقة).
 - الفنّي: الاتجاه، المتوسطات (50/200)، RSI، الدعم/المقاومة، الحجم، فجوات السعر.
 - معنويات السوق: مؤشر الخوف والطمع، تدفقات ETF، نسب الرافعة، تموضع المضاربين (COT).
-كن صريحاً ومحدداً بالأرقام (مستويات دخول، وقف، أهداف بعملة الأصل). اذكر في drivers أهم 4-6 عوامل فعّالة الآن (بما فيها أي عامل مناخي/شمسي/موسمي ذو صلة)، وفي risks 3-5 مخاطر. اكتب كل النصوص بالعربية الفصحى. استخدم دائماً الأداة asset_verdict.`
+- مخاوف السوق وعدم اليقين: مؤشر التقلب VIX و MOVE، فروقات ائتمان السندات، مخاوف الركود، أزمات بنكية أو سيولة، عدم وضوح سياسة الفيدرالي، مخاطر تخلف الديون السيادية، الحرب التجارية والتعريفات، عدم اليقين السياسي/الانتخابي، تقلبات العملات، صدمات غير متوقعة (Black Swans).
+- الفنّي: الاتجاه، المتوسطات (50/200)، RSI، الدعم/المقاومة، الحجم، فجوات السعر.
+اذكر دائماً مستوى عدم اليقين العام في السوق (منخفض/متوسط/مرتفع) في الحقل uncertaintyLevel، وأبرز 2-3 من المخاوف الحالية في marketFears. كن صريحاً: إذا كان عدم اليقين مرتفعاً جداً قلّل حجم الصفقة المقترح أو أوصِ بالمراقبة. اذكر في drivers أهم 4-6 عوامل فعّالة الآن، وفي risks 3-5 مخاطر. اكتب كل النصوص بالعربية الفصحى. استخدم دائماً الأداة asset_verdict.`
       : `You are a comprehensive markets analyst. Give a buy/sell/hold/watch verdict for ONE asset using ALL relevant variables:
-- Macro: rates (Fed/ECB/SAMA), inflation, DXY, bond yields, global liquidity.
-- Geopolitics: wars, sanctions, OPEC+, Gulf/Middle East/South China Sea tensions, elections.
-- Sector/company: earnings, guidance, M&A, product news, supply chain.
-- Seasonality & cycles: fiscal year-end, Hajj/Umrah, Ramadan, summer, holiday seasons, quarterly earnings cycle, Bitcoin halving cycle, gold seasonal demand (Indian/Chinese wedding seasons).
-- Climate & nature: heat/cold waves (energy, gas, wheat), hurricanes & floods (oil, insurance, agri), droughts (soft commodities), El Niño/La Niña.
-- Solar activity: solar flares & geomagnetic storms (satellites, comms, power grids → tech & utilities).
-- Technicals: trend, 50/200 MAs, RSI, support/resistance, volume, gaps.
-- Sentiment: fear & greed, ETF flows, leverage ratios, COT positioning.
-Be specific with concrete price levels. In drivers list the 4-6 most active factors right now (including any climate/solar/seasonal one if relevant); in risks list 3-5. Always call asset_verdict. arabicSummary must always be in Arabic.`;
+- Macro, Geopolitics, Sector/company, Seasonality & cycles, Climate, Solar activity (as before).
+- Market fears & uncertainty: VIX, MOVE index, credit spreads, recession fears, bank/liquidity crises, Fed policy ambiguity, sovereign default risk, trade wars & tariffs, political/election uncertainty, FX volatility, black-swan shocks.
+- Sentiment: fear & greed, ETF flows, leverage, COT positioning.
+- Technicals: trend, MAs, RSI, S/R, volume.
+Always set uncertaintyLevel (low/medium/high) and list 2-3 current marketFears. If uncertainty is high, reduce position size or recommend watch. arabicSummary must always be in Arabic. Always call asset_verdict.`;
 
     const user = `Asset: ${data.name ?? data.symbol} (${data.symbol})
 Category: ${data.category}

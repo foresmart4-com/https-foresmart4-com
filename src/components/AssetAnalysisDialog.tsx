@@ -127,6 +127,24 @@ export function AssetAnalysisDialog({ open, onOpenChange, asset }: Props) {
             {verdict.drivers?.length > 0 && (
               <Section title={lang === "ar" ? "المحركات" : "Drivers"} items={verdict.drivers} />
             )}
+            {verdict.marketFears && verdict.marketFears.length > 0 && (
+              <div className="rounded-lg border border-warning/30 bg-warning/5 p-3">
+                <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-warning">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {lang === "ar" ? "مخاوف السوق وعدم اليقين" : "Market Fears & Uncertainty"}
+                  {verdict.uncertaintyLevel && (
+                    <span className="ms-auto rounded-md bg-warning/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wide ring-1 ring-warning/30">
+                      {lang === "ar"
+                        ? (verdict.uncertaintyLevel === "high" ? "مرتفع" : verdict.uncertaintyLevel === "medium" ? "متوسط" : "منخفض")
+                        : verdict.uncertaintyLevel}
+                    </span>
+                  )}
+                </div>
+                <ul className="ms-4 space-y-1 text-sm text-foreground/90">
+                  {verdict.marketFears.map((it, i) => <li key={i} className="list-disc">{it}</li>)}
+                </ul>
+              </div>
+            )}
             {verdict.risks?.length > 0 && (
               <Section title={lang === "ar" ? "المخاطر" : "Risks"} items={verdict.risks} tone="warning" />
             )}
