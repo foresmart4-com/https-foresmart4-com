@@ -87,7 +87,7 @@ function ExternalAccountsPage() {
               provider={p}
               accounts={grouped(p)}
               onAdd={async (payload) => {
-                await add({ data: { provider: p, ...payload } });
+                await addExternalAccount({ data: { provider: p, ...payload } });
                 qc.invalidateQueries({ queryKey: ["external_accounts"] });
                 toast.success(lang === "ar" ? "تمت الإضافة" : "Added");
               }}
