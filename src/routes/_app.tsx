@@ -7,7 +7,7 @@ import { AccessGate } from "@/components/AccessGate";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, LineChart, Bell, Archive, User as UserIcon,
-  Brain, LogOut, Globe2, Menu, TrendingUp, Users, Building2,
+  Brain, LogOut, Globe2, Menu, TrendingUp, Users, Wallet, Building,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +29,8 @@ function AppLayout() {
   const items = [
     { to: "/dashboard", icon: LayoutDashboard, label: t("dashboard") },
     { to: "/markets", icon: LineChart, label: t("markets") },
-    { to: "/stocks", icon: Building2, label: t("stocks") },
+    { to: "/wallet", icon: Wallet, label: lang === "ar" ? "المحفظة" : "Wallet" },
+    { to: "/bank-accounts", icon: Building, label: lang === "ar" ? "البنوك" : "Banks" },
     { to: "/advisor", icon: Brain, label: t("advisor") },
     { to: "/alerts", icon: Bell, label: t("alerts") },
     { to: "/archive", icon: Archive, label: t("archive") },
