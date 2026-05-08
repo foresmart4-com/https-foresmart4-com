@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { listExternalAccounts, addExternalAccount, removeExternalAccount } from "@/lib/external-accounts.functions";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,16 +35,47 @@ const PROVIDER_META: Record<Provider, { ar: string; en: string; icon: any; desc:
 
 function ExternalAccountsPage() {
   const { lang } = useI18n();
-  const qc = useQueryClient();
+  const { user } = useAuth();
+  const [accounts, setAccounts] = useState<any[]>([]);
 
-  const { data: accounts = [] } = useQuery({ queryKey: ["external_accounts"], queryFn: () => listExternalAccounts() });
+  const load = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("external_accounts")
+      .select("*")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false });
+    if (error) { toast.error(error.message); return; }
+    setAccounts(data ?? []);
+  };
 
-  const removeMut = useMutation({
-    mutationFn: (id: string) => removeExternalAccount({ data: { id } }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["external_accounts"] }); toast.success(lang === "ar" ? "تم الحذف" : "Removed"); },
-  });
+  useEffect(() => { load(); }, [user]);
 
-  const grouped = (p: Provider) => accounts.filter((a: any) => a.provider === p);
+  const remove = async (id: string) => {
+    const { error } = await supabase.from("external_accounts").update({ is_active: false }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(lang === "ar" ? "تم الحذف" : "Removed");
+    load();
+  };
+
+  const add = async (provider: Provider, payload: any) => {
+    if (!user) return;
+    const { error } = await supabase.from("external_accounts").insert({
+      user_id: user.id,
+      provider,
+      label: payload.label ?? null,
+      address: payload.address ?? null,
+      network: payload.network ?? null,
+      currency: payload.currency ?? null,
+      external_id: payload.external_id ?? null,
+      metadata: payload.metadata ?? {},
+    });
+    if (error) { toast.error(error.message); throw error; }
+    toast.success(lang === "ar" ? "تمت الإضافة" : "Added");
+    load();
+  };
+
+  const grouped = (p: Provider) => accounts.filter((a) => a.provider === p);
 
   return (
     <div className="container mx-auto max-w-6xl space-y-6 p-6">
@@ -86,12 +117,8 @@ function ExternalAccountsPage() {
             <ProviderPanel
               provider={p}
               accounts={grouped(p)}
-              onAdd={async (payload) => {
-                await addExternalAccount({ data: { provider: p, ...payload } });
-                qc.invalidateQueries({ queryKey: ["external_accounts"] });
-                toast.success(lang === "ar" ? "تمت الإضافة" : "Added");
-              }}
-              onRemove={(id) => removeMut.mutate(id)}
+              onAdd={(payload) => add(p, payload)}
+              onRemove={remove}
             />
           </TabsContent>
         ))}
@@ -182,7 +209,7 @@ function CryptoForm({ onAdd }: { onAdd: (p: any) => Promise<void> }) {
     try {
       await onAdd({ label: label || `${network} wallet`, address, network });
       setLabel(""); setAddress("");
-    } finally { setBusy(false); }
+    } catch {} finally { setBusy(false); }
   };
 
   return (
@@ -237,7 +264,7 @@ function ManualForm({ provider, onAdd }: { provider: Provider; onAdd: (p: any) =
     try {
       await onAdd({ label, external_id: externalId || undefined });
       setLabel(""); setExternalId("");
-    } finally { setBusy(false); }
+    } catch {} finally { setBusy(false); }
   };
 
   return (
@@ -245,8 +272,8 @@ function ManualForm({ provider, onAdd }: { provider: Provider; onAdd: (p: any) =
       <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-xs text-muted-foreground">
         {isLean
           ? (lang === "ar"
-              ? "لتفعيل الربط الفعلي عبر Lean Open Banking نحتاج LEAN_APP_TOKEN و LEAN_APP_ID. أخبرنا عند جاهزيتك."
-              : "Real Lean Open Banking linking needs LEAN_APP_TOKEN and LEAN_APP_ID. Let us know when ready.")
+              ? "لتفعيل الربط الفعلي عبر Lean Open Banking نحتاج LEAN_APP_TOKEN و LEAN_APP_ID."
+              : "Real Lean Open Banking linking needs LEAN_APP_TOKEN and LEAN_APP_ID.")
           : (lang === "ar"
               ? "لتفعيل ربط الوسطاء فعلياً نحتاج SNAPTRADE_CLIENT_ID و SNAPTRADE_CONSUMER_KEY."
               : "Real broker linking via SnapTrade needs SNAPTRADE_CLIENT_ID and SNAPTRADE_CONSUMER_KEY.")}
