@@ -14,7 +14,132 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      alerts: {
+        Row: {
+          active: boolean
+          asset_name: string
+          condition: string
+          created_at: string
+          id: string
+          symbol: string
+          target_price: number
+          triggered_at: string | null
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          asset_name: string
+          condition: string
+          created_at?: string
+          id?: string
+          symbol: string
+          target_price: number
+          triggered_at?: string | null
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          asset_name?: string
+          condition?: string
+          created_at?: string
+          id?: string
+          symbol?: string
+          target_price?: number
+          triggered_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      market_archive: {
+        Row: {
+          asset_name: string
+          captured_at: string
+          change_pct: number | null
+          high: number | null
+          id: string
+          low: number | null
+          price: number
+          symbol: string
+          user_id: string
+          volume: number | null
+        }
+        Insert: {
+          asset_name: string
+          captured_at?: string
+          change_pct?: number | null
+          high?: number | null
+          id?: string
+          low?: number | null
+          price: number
+          symbol: string
+          user_id: string
+          volume?: number | null
+        }
+        Update: {
+          asset_name?: string
+          captured_at?: string
+          change_pct?: number | null
+          high?: number | null
+          id?: string
+          low?: number | null
+          price?: number
+          symbol?: string
+          user_id?: string
+          volume?: number | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          language: string
+          preferred_currency: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id: string
+          language?: string
+          preferred_currency?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          language?: string
+          preferred_currency?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_api_keys: {
+        Row: {
+          api_key: string
+          created_at: string
+          id: string
+          provider: string
+          user_id: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          id?: string
+          provider: string
+          user_id: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          id?: string
+          provider?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
