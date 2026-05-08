@@ -47,6 +47,8 @@ const verdictTool = {
         drivers: { type: "array", items: { type: "string" } },
         risks: { type: "array", items: { type: "string" } },
         arabicSummary: { type: "string", description: "One-paragraph Arabic summary, even when language is English." },
+        uncertaintyLevel: { type: "string", enum: ["low", "medium", "high"], description: "Overall market uncertainty level right now." },
+        marketFears: { type: "array", items: { type: "string" }, description: "2-3 current market fears / sources of uncertainty." },
       },
       required: ["action", "confidence", "horizon", "rationale", "drivers", "risks", "arabicSummary"],
       additionalProperties: false,
