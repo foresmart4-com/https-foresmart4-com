@@ -50,6 +50,54 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_accounts: {
+        Row: {
+          account_id: string | null
+          account_mask: string | null
+          account_name: string | null
+          account_type: string | null
+          created_at: string
+          currency: string | null
+          id: string
+          institution_name: string | null
+          is_active: boolean
+          plaid_access_token: string | null
+          plaid_item_id: string | null
+          provider: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          account_mask?: string | null
+          account_name?: string | null
+          account_type?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          institution_name?: string | null
+          is_active?: boolean
+          plaid_access_token?: string | null
+          plaid_item_id?: string | null
+          provider?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          account_mask?: string | null
+          account_name?: string | null
+          account_type?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          institution_name?: string | null
+          is_active?: boolean
+          plaid_access_token?: string | null
+          plaid_item_id?: string | null
+          provider?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       disclaimer_acceptances: {
         Row: {
           accepted_at: string
@@ -113,6 +161,83 @@ export type Database = {
           symbol?: string
           user_id?: string
           volume?: number | null
+        }
+        Relationships: []
+      }
+      portfolio_holdings: {
+        Row: {
+          asset_name: string | null
+          avg_price: number
+          created_at: string
+          currency: string
+          id: string
+          market: string | null
+          portfolio_id: string
+          quantity: number
+          symbol: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asset_name?: string | null
+          avg_price?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          market?: string | null
+          portfolio_id: string
+          quantity?: number
+          symbol: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asset_name?: string | null
+          avg_price?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          market?: string | null
+          portfolio_id?: string
+          quantity?: number
+          symbol?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_holdings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portfolios: {
+        Row: {
+          base_currency: string
+          created_at: string
+          id: string
+          name: string
+          strategy: string | null
+          user_id: string
+        }
+        Insert: {
+          base_currency?: string
+          created_at?: string
+          id?: string
+          name: string
+          strategy?: string | null
+          user_id: string
+        }
+        Update: {
+          base_currency?: string
+          created_at?: string
+          id?: string
+          name?: string
+          strategy?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -184,6 +309,80 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          metadata: Json | null
+          reference: string | null
+          status: string
+          type: string
+          user_id: string
+          wallet_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          id?: string
+          metadata?: Json | null
+          reference?: string | null
+          status?: string
+          type: string
+          user_id: string
+          wallet_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          metadata?: Json | null
+          reference?: string | null
+          status?: string
+          type?: string
+          user_id?: string
+          wallet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          currency: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
