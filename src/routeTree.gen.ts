@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppStocksRouteImport } from './routes/_app/stocks'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppMarketsRouteImport } from './routes/_app/markets'
@@ -33,6 +34,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppStocksRoute = AppStocksRouteImport.update({
+  id: '/stocks',
+  path: '/stocks',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/markets': typeof AppMarketsRoute
   '/members': typeof AppMembersRoute
   '/profile': typeof AppProfileRoute
+  '/stocks': typeof AppStocksRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/markets': typeof AppMarketsRoute
   '/members': typeof AppMembersRoute
   '/profile': typeof AppProfileRoute
+  '/stocks': typeof AppStocksRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/_app/markets': typeof AppMarketsRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/profile': typeof AppProfileRoute
+  '/_app/stocks': typeof AppStocksRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/markets'
     | '/members'
     | '/profile'
+    | '/stocks'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/markets'
     | '/members'
     | '/profile'
+    | '/stocks'
   id:
     | '__root__'
     | '/'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/_app/markets'
     | '/_app/members'
     | '/_app/profile'
+    | '/_app/stocks'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -170,6 +182,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/stocks': {
+      id: '/_app/stocks'
+      path: '/stocks'
+      fullPath: '/stocks'
+      preLoaderRoute: typeof AppStocksRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/profile': {
       id: '/_app/profile'
@@ -231,6 +250,7 @@ interface AppRouteChildren {
   AppMarketsRoute: typeof AppMarketsRoute
   AppMembersRoute: typeof AppMembersRoute
   AppProfileRoute: typeof AppProfileRoute
+  AppStocksRoute: typeof AppStocksRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -241,6 +261,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppMarketsRoute: AppMarketsRoute,
   AppMembersRoute: AppMembersRoute,
   AppProfileRoute: AppProfileRoute,
+  AppStocksRoute: AppStocksRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -253,3 +274,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
