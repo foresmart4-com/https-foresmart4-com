@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { listExternalAccounts, addExternalAccount, removeExternalAccount } from "@/lib/external-accounts.functions";
 import { useI18n } from "@/lib/i18n";
@@ -37,14 +36,11 @@ const PROVIDER_META: Record<Provider, { ar: string; en: string; icon: any; desc:
 function ExternalAccountsPage() {
   const { lang } = useI18n();
   const qc = useQueryClient();
-  const list = useServerFn(listExternalAccounts);
-  const add = useServerFn(addExternalAccount);
-  const remove = useServerFn(removeExternalAccount);
 
-  const { data: accounts = [] } = useQuery({ queryKey: ["external_accounts"], queryFn: () => list() });
+  const { data: accounts = [] } = useQuery({ queryKey: ["external_accounts"], queryFn: () => listExternalAccounts() });
 
   const removeMut = useMutation({
-    mutationFn: (id: string) => remove({ data: { id } }),
+    mutationFn: (id: string) => removeExternalAccount({ data: { id } }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["external_accounts"] }); toast.success(lang === "ar" ? "تم الحذف" : "Removed"); },
   });
 
@@ -91,7 +87,7 @@ function ExternalAccountsPage() {
               provider={p}
               accounts={grouped(p)}
               onAdd={async (payload) => {
-                await add({ data: { provider: p, ...payload } });
+                await addExternalAccount({ data: { provider: p, ...payload } });
                 qc.invalidateQueries({ queryKey: ["external_accounts"] });
                 toast.success(lang === "ar" ? "تمت الإضافة" : "Added");
               }}

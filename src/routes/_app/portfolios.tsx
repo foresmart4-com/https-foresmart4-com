@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { getPortfolios, createPortfolio } from "@/lib/wallet.functions";
 import { useI18n } from "@/lib/i18n";
@@ -9,8 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Briefcase, Plus, TrendingUp, TrendingDown, Wallet } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Briefcase, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/portfolios")({
@@ -20,23 +18,24 @@ export const Route = createFileRoute("/_app/portfolios")({
 function PortfoliosPage() {
   const { lang } = useI18n();
   const qc = useQueryClient();
-  const list = useServerFn(getPortfolios);
-  const create = useServerFn(createPortfolio);
 
-  const { data: portfolios = [] } = useQuery({ queryKey: ["portfolios"], queryFn: () => list() });
+  const { data: portfolios = [] } = useQuery({
+    queryKey: ["portfolios"],
+    queryFn: () => getPortfolios(),
+  });
 
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [strategy, setStrategy] = useState("");
 
   const createMut = useMutation({
-    mutationFn: () => create({ data: { name, strategy } }),
+    mutationFn: () => createPortfolio({ data: { name, strategy } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["portfolios"] });
       toast.success(lang === "ar" ? "تم إنشاء المحفظة" : "Portfolio created");
       setOpen(false); setName(""); setStrategy("");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e?.message || "Error"),
   });
 
   return (
@@ -45,7 +44,7 @@ function PortfoliosPage() {
         <div>
           <h1 className="font-display text-3xl font-bold">{lang === "ar" ? "المحافظ الاستثمارية" : "Investment Portfolios"}</h1>
           <p className="text-sm text-muted-foreground">
-            {lang === "ar" ? "أنشئ محافظ متعددة بحسب استراتيجيتك (نمو، دخل، مضاربة...)." : "Create multiple portfolios per strategy (growth, income, swing…)."}
+            {lang === "ar" ? "أنشئ محافظ متعددة بحسب استراتيجيتك (نمو، دخل، مضاربة...)." : "Create multiple portfolios per strategy."}
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -63,7 +62,7 @@ function PortfoliosPage() {
               </div>
               <div>
                 <Label className="text-xs">{lang === "ar" ? "الاستراتيجية" : "Strategy"}</Label>
-                <Input value={strategy} onChange={(e) => setStrategy(e.target.value)} placeholder={lang === "ar" ? "مثال: أسهم تكنولوجيا أمريكية طويلة الأمد" : "e.g. Long-term US tech stocks"} />
+                <Input value={strategy} onChange={(e) => setStrategy(e.target.value)} placeholder={lang === "ar" ? "أسهم تكنولوجيا طويلة الأمد" : "Long-term US tech"} />
               </div>
               <Button className="w-full" disabled={!name || createMut.isPending} onClick={() => createMut.mutate()}>
                 {createMut.isPending ? "..." : (lang === "ar" ? "إنشاء" : "Create")}
@@ -77,7 +76,7 @@ function PortfoliosPage() {
         <Card className="p-12 text-center">
           <Briefcase className="mx-auto mb-3 h-12 w-12 text-muted-foreground/40" />
           <p className="text-muted-foreground">
-            {lang === "ar" ? "لا توجد محافظ بعد. أنشئ أول محفظة لتبدأ." : "No portfolios yet. Create your first one to get started."}
+            {lang === "ar" ? "لا توجد محافظ بعد. أنشئ أول محفظة لتبدأ." : "No portfolios yet. Create your first one."}
           </p>
         </Card>
       ) : (
@@ -100,11 +99,10 @@ function PortfoliosPage() {
                     <div className="font-display text-2xl font-bold">${totalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
                   </div>
                 </div>
-
                 <div className="border-t border-border">
                   {holdings.length === 0 ? (
                     <div className="p-5 text-center text-xs text-muted-foreground">
-                      {lang === "ar" ? "لا أصول بعد. نفّذ أمر شراء من صفحة الأسواق." : "No holdings yet. Place a buy from Markets."}
+                      {lang === "ar" ? "لا أصول بعد. نفّذ أمر شراء من صفحة الأسواق." : "No holdings yet."}
                     </div>
                   ) : (
                     <table className="w-full text-sm">
