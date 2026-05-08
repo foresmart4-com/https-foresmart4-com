@@ -13,6 +13,8 @@ export interface AssetVerdict {
   drivers: string[];
   risks: string[];
   arabicSummary: string;
+  uncertaintyLevel?: "low" | "medium" | "high";
+  marketFears?: string[];
 }
 
 const AssetInput = z.object({
