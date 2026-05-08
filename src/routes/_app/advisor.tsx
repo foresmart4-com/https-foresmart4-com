@@ -223,7 +223,7 @@ function TimelineCard({ section, lang }: { section: TimelineSection; lang: "ar" 
   const Icon = meta.icon;
   return (
     <article className="relative overflow-hidden rounded-2xl border border-border gradient-card p-5 shadow-card">
-      <div className={cn("absolute inset-x-0 top-0 h-1", meta.horizon === "short" ? "bg-warning" : meta.horizon === "medium" ? "bg-primary" : "bg-accent")} />
+      <div className={cn("absolute inset-x-0 top-0 h-1", section.horizon === "short" ? "bg-warning" : section.horizon === "medium" ? "bg-primary" : "bg-accent")} />
       <header className="flex items-start justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-wider text-muted-foreground">{lang === "ar" ? meta.sub.ar : meta.sub.en}</div>
