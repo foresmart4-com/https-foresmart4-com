@@ -17,6 +17,7 @@ import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppPortfoliosRouteImport } from './routes/_app/portfolios'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppMarketsRouteImport } from './routes/_app/markets'
+import { Route as AppGrowthPlanRouteImport } from './routes/_app/growth-plan'
 import { Route as AppExternalAccountsRouteImport } from './routes/_app/external-accounts'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppBankAccountsRouteImport } from './routes/_app/bank-accounts'
@@ -62,6 +63,11 @@ const AppMembersRoute = AppMembersRouteImport.update({
 const AppMarketsRoute = AppMarketsRouteImport.update({
   id: '/markets',
   path: '/markets',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGrowthPlanRoute = AppGrowthPlanRouteImport.update({
+  id: '/growth-plan',
+  path: '/growth-plan',
   getParentRoute: () => AppRoute,
 } as any)
 const AppExternalAccountsRoute = AppExternalAccountsRouteImport.update({
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/bank-accounts': typeof AppBankAccountsRoute
   '/dashboard': typeof AppDashboardRoute
   '/external-accounts': typeof AppExternalAccountsRoute
+  '/growth-plan': typeof AppGrowthPlanRoute
   '/markets': typeof AppMarketsRoute
   '/members': typeof AppMembersRoute
   '/portfolios': typeof AppPortfoliosRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByTo {
   '/bank-accounts': typeof AppBankAccountsRoute
   '/dashboard': typeof AppDashboardRoute
   '/external-accounts': typeof AppExternalAccountsRoute
+  '/growth-plan': typeof AppGrowthPlanRoute
   '/markets': typeof AppMarketsRoute
   '/members': typeof AppMembersRoute
   '/portfolios': typeof AppPortfoliosRoute
@@ -144,6 +152,7 @@ export interface FileRoutesById {
   '/_app/bank-accounts': typeof AppBankAccountsRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/external-accounts': typeof AppExternalAccountsRoute
+  '/_app/growth-plan': typeof AppGrowthPlanRoute
   '/_app/markets': typeof AppMarketsRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/portfolios': typeof AppPortfoliosRoute
@@ -162,6 +171,7 @@ export interface FileRouteTypes {
     | '/bank-accounts'
     | '/dashboard'
     | '/external-accounts'
+    | '/growth-plan'
     | '/markets'
     | '/members'
     | '/portfolios'
@@ -178,6 +188,7 @@ export interface FileRouteTypes {
     | '/bank-accounts'
     | '/dashboard'
     | '/external-accounts'
+    | '/growth-plan'
     | '/markets'
     | '/members'
     | '/portfolios'
@@ -195,6 +206,7 @@ export interface FileRouteTypes {
     | '/_app/bank-accounts'
     | '/_app/dashboard'
     | '/_app/external-accounts'
+    | '/_app/growth-plan'
     | '/_app/markets'
     | '/_app/members'
     | '/_app/portfolios'
@@ -268,6 +280,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMarketsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/growth-plan': {
+      id: '/_app/growth-plan'
+      path: '/growth-plan'
+      fullPath: '/growth-plan'
+      preLoaderRoute: typeof AppGrowthPlanRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/external-accounts': {
       id: '/_app/external-accounts'
       path: '/external-accounts'
@@ -327,6 +346,7 @@ interface AppRouteChildren {
   AppBankAccountsRoute: typeof AppBankAccountsRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppExternalAccountsRoute: typeof AppExternalAccountsRoute
+  AppGrowthPlanRoute: typeof AppGrowthPlanRoute
   AppMarketsRoute: typeof AppMarketsRoute
   AppMembersRoute: typeof AppMembersRoute
   AppPortfoliosRoute: typeof AppPortfoliosRoute
@@ -341,6 +361,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppBankAccountsRoute: AppBankAccountsRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppExternalAccountsRoute: AppExternalAccountsRoute,
+  AppGrowthPlanRoute: AppGrowthPlanRoute,
   AppMarketsRoute: AppMarketsRoute,
   AppMembersRoute: AppMembersRoute,
   AppPortfoliosRoute: AppPortfoliosRoute,
@@ -359,3 +380,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
