@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { AssetAnalysisDialog } from "@/components/AssetAnalysisDialog";
-import { Building2, Coins, DollarSign, Brain } from "lucide-react";
+import { Building2, Coins, DollarSign, Brain, Gem } from "lucide-react";
 
 interface SelectedAsset {
   symbol: string;
@@ -28,7 +28,7 @@ const REGION_ORDER: StockRegion[] = ["us", "eu", "uk", "japan", "china", "uae", 
 
 function MarketsPage() {
   const { t, lang } = useI18n();
-  const [tab, setTab] = useState<"stocks" | "crypto" | "fx">("stocks");
+  const [tab, setTab] = useState<"stocks" | "crypto" | "metals" | "fx">("stocks");
   const [selected, setSelected] = useState<SelectedAsset | null>(null);
   const [open, setOpen] = useState(false);
   const analyze = (a: SelectedAsset) => { setSelected(a); setOpen(true); };
@@ -43,14 +43,16 @@ function MarketsPage() {
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-        <TabsList className="grid w-full max-w-2xl grid-cols-3">
+        <TabsList className="grid w-full max-w-3xl grid-cols-4">
           <TabsTrigger value="stocks" className="gap-2"><Building2 className="h-4 w-4" />{lang === "ar" ? "الأسهم" : "Stocks"}</TabsTrigger>
           <TabsTrigger value="crypto" className="gap-2"><Coins className="h-4 w-4" />{lang === "ar" ? "العملات الرقمية" : "Crypto"}</TabsTrigger>
+          <TabsTrigger value="metals" className="gap-2"><Gem className="h-4 w-4" />{lang === "ar" ? "المعادن" : "Metals"}</TabsTrigger>
           <TabsTrigger value="fx" className="gap-2"><DollarSign className="h-4 w-4" />{lang === "ar" ? "العملات العالمية" : "Forex"}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="stocks" className="mt-6 space-y-6"><StocksTab onAnalyze={analyze} /></TabsContent>
         <TabsContent value="crypto" className="mt-6 space-y-6"><AssetsTab category="crypto" onAnalyze={analyze} /></TabsContent>
+        <TabsContent value="metals" className="mt-6 space-y-6"><AssetsTab category="metals" onAnalyze={analyze} /></TabsContent>
         <TabsContent value="fx" className="mt-6 space-y-6"><AssetsTab category="currencies" onAnalyze={analyze} /></TabsContent>
       </Tabs>
 
@@ -142,7 +144,7 @@ function RegionSection({ region, items, onAnalyze }: { region: StockRegion; item
   );
 }
 
-function AssetsTab({ category, onAnalyze }: { category: "crypto" | "currencies"; onAnalyze: (a: SelectedAsset) => void }) {
+function AssetsTab({ category, onAnalyze }: { category: "crypto" | "currencies" | "metals"; onAnalyze: (a: SelectedAsset) => void }) {
   const { t } = useI18n();
   const { data, isLoading } = useQuery({ queryKey: ["market"], queryFn: () => getMarketData(), refetchInterval: 60000 });
   const items = (data?.assets ?? []).filter((a) => a.category === category);
