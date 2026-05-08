@@ -59,7 +59,7 @@ function MarketsPage() {
   );
 }
 
-function StocksTab() {
+function StocksTab({ onAnalyze }: { onAnalyze: (a: SelectedAsset) => void }) {
   const { t, lang } = useI18n();
   const { data, isLoading } = useQuery({ queryKey: ["stocks"], queryFn: () => getStocksData(), refetchInterval: 120000 });
   const stocks = data?.stocks ?? [];
@@ -69,13 +69,13 @@ function StocksTab() {
       {REGION_ORDER.map((r) => {
         const items = stocks.filter((s) => s.region === r);
         if (items.length === 0) return null;
-        return <RegionSection key={r} region={r} items={items} />;
+        return <RegionSection key={r} region={r} items={items} onAnalyze={onAnalyze} />;
       })}
     </>
   );
 }
 
-function RegionSection({ region, items }: { region: StockRegion; items: StockQuote[] }) {
+function RegionSection({ region, items, onAnalyze }: { region: StockRegion; items: StockQuote[]; onAnalyze: (a: SelectedAsset) => void }) {
   const { t, lang } = useI18n();
   const meta = REGION_LABELS[region];
   const avg = items.reduce((s, a) => s + a.changePct, 0) / items.length;
@@ -106,6 +106,7 @@ function RegionSection({ region, items }: { region: StockRegion; items: StockQuo
               <th className="px-4 py-3 text-end">{t("price")}</th>
               <th className="px-4 py-3 text-end">{t("change")}</th>
               <th className="px-4 py-3 text-end">{lang === "ar" ? "التوصية" : "Signal"}</th>
+              <th className="px-4 py-3 text-end">{lang === "ar" ? "تحليل ذكي" : "AI"}</th>
             </tr>
           </thead>
           <tbody>
@@ -123,6 +124,14 @@ function RegionSection({ region, items }: { region: StockRegion; items: StockQuo
                       sig.signal === "sell" && "bg-danger/15 text-danger",
                       sig.signal === "hold" && "bg-warning/15 text-warning")}>{t(sig.signal)}</span>
                   </td>
+                  <td className="px-4 py-3 text-end">
+                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => onAnalyze({
+                      symbol: s.symbol, name: s.name, category: `stock-${s.sector ?? ""}`,
+                      price: s.price, changePct: s.changePct,
+                    })}>
+                      <Brain className="me-1 h-3.5 w-3.5" />{lang === "ar" ? "تحليل" : "Analyze"}
+                    </Button>
+                  </td>
                 </tr>
               );
             })}
@@ -133,16 +142,16 @@ function RegionSection({ region, items }: { region: StockRegion; items: StockQuo
   );
 }
 
-function AssetsTab({ category }: { category: "crypto" | "currencies" }) {
+function AssetsTab({ category, onAnalyze }: { category: "crypto" | "currencies"; onAnalyze: (a: SelectedAsset) => void }) {
   const { t } = useI18n();
   const { data, isLoading } = useQuery({ queryKey: ["market"], queryFn: () => getMarketData(), refetchInterval: 60000 });
   const items = (data?.assets ?? []).filter((a) => a.category === category);
   if (isLoading) return <p className="text-muted-foreground">{t("loading")}</p>;
-  return <AssetTable items={items} />;
+  return <AssetTable items={items} onAnalyze={onAnalyze} />;
 }
 
-function AssetTable({ items }: { items: AssetQuote[] }) {
-  const { t } = useI18n();
+function AssetTable({ items, onAnalyze }: { items: AssetQuote[]; onAnalyze: (a: SelectedAsset) => void }) {
+  const { t, lang } = useI18n();
   const avg = items.length ? items.reduce((s, a) => s + a.changePct, 0) / items.length : 0;
   return (
     <section className="overflow-hidden rounded-xl gradient-card border border-border shadow-card">
@@ -160,6 +169,7 @@ function AssetTable({ items }: { items: AssetQuote[] }) {
               <th className="px-4 py-3 text-end">{t("highToday")}</th>
               <th className="px-4 py-3 text-end">{t("lowToday")}</th>
               <th className="px-4 py-3 text-end">{t("signal")}</th>
+              <th className="px-4 py-3 text-end">{lang === "ar" ? "تحليل ذكي" : "AI"}</th>
             </tr>
           </thead>
           <tbody>
@@ -177,6 +187,14 @@ function AssetTable({ items }: { items: AssetQuote[] }) {
                       s.signal === "buy" && "bg-success/15 text-success",
                       s.signal === "sell" && "bg-danger/15 text-danger",
                       s.signal === "hold" && "bg-warning/15 text-warning")}>{t(s.signal)}</span>
+                  </td>
+                  <td className="px-4 py-3 text-end">
+                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => onAnalyze({
+                      symbol: a.symbol, name: a.name, category: a.category,
+                      price: a.price, changePct: a.changePct, high24h: a.high24h, low24h: a.low24h,
+                    })}>
+                      <Brain className="me-1 h-3.5 w-3.5" />{lang === "ar" ? "تحليل" : "Analyze"}
+                    </Button>
                   </td>
                 </tr>
               );
