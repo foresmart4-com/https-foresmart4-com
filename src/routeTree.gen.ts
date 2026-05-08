@@ -12,14 +12,17 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppWalletRouteImport } from './routes/_app/wallet'
 import { Route as AppStocksRouteImport } from './routes/_app/stocks'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppMarketsRouteImport } from './routes/_app/markets'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppBankAccountsRouteImport } from './routes/_app/bank-accounts'
 import { Route as AppArchiveRouteImport } from './routes/_app/archive'
 import { Route as AppAlertsRouteImport } from './routes/_app/alerts'
 import { Route as AppAdvisorRouteImport } from './routes/_app/advisor'
+import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -34,6 +37,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppWalletRoute = AppWalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppStocksRoute = AppStocksRouteImport.update({
   id: '/stocks',
@@ -60,6 +68,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBankAccountsRoute = AppBankAccountsRouteImport.update({
+  id: '/bank-accounts',
+  path: '/bank-accounts',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppArchiveRoute = AppArchiveRouteImport.update({
   id: '/archive',
   path: '/archive',
@@ -75,6 +88,12 @@ const AppAdvisorRoute = AppAdvisorRouteImport.update({
   path: '/advisor',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiPublicPaymentsWebhookRoute =
+  ApiPublicPaymentsWebhookRouteImport.update({
+    id: '/api/public/payments/webhook',
+    path: '/api/public/payments/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -82,11 +101,14 @@ export interface FileRoutesByFullPath {
   '/advisor': typeof AppAdvisorRoute
   '/alerts': typeof AppAlertsRoute
   '/archive': typeof AppArchiveRoute
+  '/bank-accounts': typeof AppBankAccountsRoute
   '/dashboard': typeof AppDashboardRoute
   '/markets': typeof AppMarketsRoute
   '/members': typeof AppMembersRoute
   '/profile': typeof AppProfileRoute
   '/stocks': typeof AppStocksRoute
+  '/wallet': typeof AppWalletRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -94,11 +116,14 @@ export interface FileRoutesByTo {
   '/advisor': typeof AppAdvisorRoute
   '/alerts': typeof AppAlertsRoute
   '/archive': typeof AppArchiveRoute
+  '/bank-accounts': typeof AppBankAccountsRoute
   '/dashboard': typeof AppDashboardRoute
   '/markets': typeof AppMarketsRoute
   '/members': typeof AppMembersRoute
   '/profile': typeof AppProfileRoute
   '/stocks': typeof AppStocksRoute
+  '/wallet': typeof AppWalletRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -108,11 +133,14 @@ export interface FileRoutesById {
   '/_app/advisor': typeof AppAdvisorRoute
   '/_app/alerts': typeof AppAlertsRoute
   '/_app/archive': typeof AppArchiveRoute
+  '/_app/bank-accounts': typeof AppBankAccountsRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/markets': typeof AppMarketsRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/stocks': typeof AppStocksRoute
+  '/_app/wallet': typeof AppWalletRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -122,11 +150,14 @@ export interface FileRouteTypes {
     | '/advisor'
     | '/alerts'
     | '/archive'
+    | '/bank-accounts'
     | '/dashboard'
     | '/markets'
     | '/members'
     | '/profile'
     | '/stocks'
+    | '/wallet'
+    | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -134,11 +165,14 @@ export interface FileRouteTypes {
     | '/advisor'
     | '/alerts'
     | '/archive'
+    | '/bank-accounts'
     | '/dashboard'
     | '/markets'
     | '/members'
     | '/profile'
     | '/stocks'
+    | '/wallet'
+    | '/api/public/payments/webhook'
   id:
     | '__root__'
     | '/'
@@ -147,17 +181,21 @@ export interface FileRouteTypes {
     | '/_app/advisor'
     | '/_app/alerts'
     | '/_app/archive'
+    | '/_app/bank-accounts'
     | '/_app/dashboard'
     | '/_app/markets'
     | '/_app/members'
     | '/_app/profile'
     | '/_app/stocks'
+    | '/_app/wallet'
+    | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -182,6 +220,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/wallet': {
+      id: '/_app/wallet'
+      path: '/wallet'
+      fullPath: '/wallet'
+      preLoaderRoute: typeof AppWalletRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/stocks': {
       id: '/_app/stocks'
@@ -218,6 +263,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/bank-accounts': {
+      id: '/_app/bank-accounts'
+      path: '/bank-accounts'
+      fullPath: '/bank-accounts'
+      preLoaderRoute: typeof AppBankAccountsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/archive': {
       id: '/_app/archive'
       path: '/archive'
@@ -239,6 +291,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdvisorRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/public/payments/webhook': {
+      id: '/api/public/payments/webhook'
+      path: '/api/public/payments/webhook'
+      fullPath: '/api/public/payments/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -246,22 +305,26 @@ interface AppRouteChildren {
   AppAdvisorRoute: typeof AppAdvisorRoute
   AppAlertsRoute: typeof AppAlertsRoute
   AppArchiveRoute: typeof AppArchiveRoute
+  AppBankAccountsRoute: typeof AppBankAccountsRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppMarketsRoute: typeof AppMarketsRoute
   AppMembersRoute: typeof AppMembersRoute
   AppProfileRoute: typeof AppProfileRoute
   AppStocksRoute: typeof AppStocksRoute
+  AppWalletRoute: typeof AppWalletRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdvisorRoute: AppAdvisorRoute,
   AppAlertsRoute: AppAlertsRoute,
   AppArchiveRoute: AppArchiveRoute,
+  AppBankAccountsRoute: AppBankAccountsRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppMarketsRoute: AppMarketsRoute,
   AppMembersRoute: AppMembersRoute,
   AppProfileRoute: AppProfileRoute,
   AppStocksRoute: AppStocksRoute,
+  AppWalletRoute: AppWalletRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -270,7 +333,18 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
