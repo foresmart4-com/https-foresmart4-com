@@ -14,8 +14,10 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppWalletRouteImport } from './routes/_app/wallet'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
+import { Route as AppPortfoliosRouteImport } from './routes/_app/portfolios'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppMarketsRouteImport } from './routes/_app/markets'
+import { Route as AppExternalAccountsRouteImport } from './routes/_app/external-accounts'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppBankAccountsRouteImport } from './routes/_app/bank-accounts'
 import { Route as AppArchiveRouteImport } from './routes/_app/archive'
@@ -47,6 +49,11 @@ const AppProfileRoute = AppProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPortfoliosRoute = AppPortfoliosRouteImport.update({
+  id: '/portfolios',
+  path: '/portfolios',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMembersRoute = AppMembersRouteImport.update({
   id: '/members',
   path: '/members',
@@ -55,6 +62,11 @@ const AppMembersRoute = AppMembersRouteImport.update({
 const AppMarketsRoute = AppMarketsRouteImport.update({
   id: '/markets',
   path: '/markets',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExternalAccountsRoute = AppExternalAccountsRouteImport.update({
+  id: '/external-accounts',
+  path: '/external-accounts',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
@@ -97,8 +109,10 @@ export interface FileRoutesByFullPath {
   '/archive': typeof AppArchiveRoute
   '/bank-accounts': typeof AppBankAccountsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/external-accounts': typeof AppExternalAccountsRoute
   '/markets': typeof AppMarketsRoute
   '/members': typeof AppMembersRoute
+  '/portfolios': typeof AppPortfoliosRoute
   '/profile': typeof AppProfileRoute
   '/wallet': typeof AppWalletRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -111,8 +125,10 @@ export interface FileRoutesByTo {
   '/archive': typeof AppArchiveRoute
   '/bank-accounts': typeof AppBankAccountsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/external-accounts': typeof AppExternalAccountsRoute
   '/markets': typeof AppMarketsRoute
   '/members': typeof AppMembersRoute
+  '/portfolios': typeof AppPortfoliosRoute
   '/profile': typeof AppProfileRoute
   '/wallet': typeof AppWalletRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -127,8 +143,10 @@ export interface FileRoutesById {
   '/_app/archive': typeof AppArchiveRoute
   '/_app/bank-accounts': typeof AppBankAccountsRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/external-accounts': typeof AppExternalAccountsRoute
   '/_app/markets': typeof AppMarketsRoute
   '/_app/members': typeof AppMembersRoute
+  '/_app/portfolios': typeof AppPortfoliosRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/wallet': typeof AppWalletRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -143,8 +161,10 @@ export interface FileRouteTypes {
     | '/archive'
     | '/bank-accounts'
     | '/dashboard'
+    | '/external-accounts'
     | '/markets'
     | '/members'
+    | '/portfolios'
     | '/profile'
     | '/wallet'
     | '/api/public/payments/webhook'
@@ -157,8 +177,10 @@ export interface FileRouteTypes {
     | '/archive'
     | '/bank-accounts'
     | '/dashboard'
+    | '/external-accounts'
     | '/markets'
     | '/members'
+    | '/portfolios'
     | '/profile'
     | '/wallet'
     | '/api/public/payments/webhook'
@@ -172,8 +194,10 @@ export interface FileRouteTypes {
     | '/_app/archive'
     | '/_app/bank-accounts'
     | '/_app/dashboard'
+    | '/_app/external-accounts'
     | '/_app/markets'
     | '/_app/members'
+    | '/_app/portfolios'
     | '/_app/profile'
     | '/_app/wallet'
     | '/api/public/payments/webhook'
@@ -223,6 +247,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/portfolios': {
+      id: '/_app/portfolios'
+      path: '/portfolios'
+      fullPath: '/portfolios'
+      preLoaderRoute: typeof AppPortfoliosRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/members': {
       id: '/_app/members'
       path: '/members'
@@ -235,6 +266,13 @@ declare module '@tanstack/react-router' {
       path: '/markets'
       fullPath: '/markets'
       preLoaderRoute: typeof AppMarketsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/external-accounts': {
+      id: '/_app/external-accounts'
+      path: '/external-accounts'
+      fullPath: '/external-accounts'
+      preLoaderRoute: typeof AppExternalAccountsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/dashboard': {
@@ -288,8 +326,10 @@ interface AppRouteChildren {
   AppArchiveRoute: typeof AppArchiveRoute
   AppBankAccountsRoute: typeof AppBankAccountsRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppExternalAccountsRoute: typeof AppExternalAccountsRoute
   AppMarketsRoute: typeof AppMarketsRoute
   AppMembersRoute: typeof AppMembersRoute
+  AppPortfoliosRoute: typeof AppPortfoliosRoute
   AppProfileRoute: typeof AppProfileRoute
   AppWalletRoute: typeof AppWalletRoute
 }
@@ -300,8 +340,10 @@ const AppRouteChildren: AppRouteChildren = {
   AppArchiveRoute: AppArchiveRoute,
   AppBankAccountsRoute: AppBankAccountsRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppExternalAccountsRoute: AppExternalAccountsRoute,
   AppMarketsRoute: AppMarketsRoute,
   AppMembersRoute: AppMembersRoute,
+  AppPortfoliosRoute: AppPortfoliosRoute,
   AppProfileRoute: AppProfileRoute,
   AppWalletRoute: AppWalletRoute,
 }
