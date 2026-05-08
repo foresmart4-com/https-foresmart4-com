@@ -24,7 +24,7 @@ export const addExternalAccount = createServerFn({ method: "POST" })
       network: z.string().max(40).optional(),
       currency: z.string().max(10).optional(),
       external_id: z.string().max(200).optional(),
-      metadata: z.record(z.string(), z.any()).optional(),
+      metadata: z.record(z.any()).optional(),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
