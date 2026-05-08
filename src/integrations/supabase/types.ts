@@ -125,6 +125,51 @@ export type Database = {
         }
         Relationships: []
       }
+      external_accounts: {
+        Row: {
+          address: string | null
+          created_at: string
+          currency: string | null
+          external_id: string | null
+          id: string
+          is_active: boolean
+          label: string | null
+          metadata: Json | null
+          network: string | null
+          provider: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          currency?: string | null
+          external_id?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          metadata?: Json | null
+          network?: string | null
+          provider: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          currency?: string | null
+          external_id?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          metadata?: Json | null
+          network?: string | null
+          provider?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       market_archive: {
         Row: {
           asset_name: string
