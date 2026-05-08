@@ -51,6 +51,10 @@ function AuthPage() {
           <span className="font-display text-2xl font-bold">{t("appName")}</span>
         </Link>
 
+        <div className="mb-4 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-center text-xs">
+          🔒 {t("privateNotice")}
+        </div>
+
         <div className="rounded-2xl gradient-card border border-border p-6 shadow-card">
           <Tabs defaultValue="login">
             <TabsList className="grid w-full grid-cols-2">
