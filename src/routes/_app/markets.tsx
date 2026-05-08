@@ -29,13 +29,16 @@ const REGION_ORDER: StockRegion[] = ["us", "eu", "uk", "japan", "china", "uae", 
 function MarketsPage() {
   const { t, lang } = useI18n();
   const [tab, setTab] = useState<"stocks" | "crypto" | "fx">("stocks");
+  const [selected, setSelected] = useState<SelectedAsset | null>(null);
+  const [open, setOpen] = useState(false);
+  const analyze = (a: SelectedAsset) => { setSelected(a); setOpen(true); };
 
   return (
     <div className="container mx-auto max-w-7xl space-y-6 p-6">
       <div>
         <h1 className="font-display text-3xl font-bold">{t("markets")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {lang === "ar" ? "ثلاثة أسواق رئيسية، كل منها مفصول لقراءة وتقرير أسهل." : "Three main markets, separated for clearer analysis."}
+          {lang === "ar" ? "اضغط على \"تحليل ذكي\" بجانب أي أصل لمعرفة هل الشراء أم البيع الآن." : "Tap \"AI analysis\" next to any asset to see buy/sell verdict."}
         </p>
       </div>
 
@@ -46,10 +49,12 @@ function MarketsPage() {
           <TabsTrigger value="fx" className="gap-2"><DollarSign className="h-4 w-4" />{lang === "ar" ? "العملات العالمية" : "Forex"}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="stocks" className="mt-6 space-y-6"><StocksTab /></TabsContent>
-        <TabsContent value="crypto" className="mt-6 space-y-6"><AssetsTab category="crypto" /></TabsContent>
-        <TabsContent value="fx" className="mt-6 space-y-6"><AssetsTab category="currencies" /></TabsContent>
+        <TabsContent value="stocks" className="mt-6 space-y-6"><StocksTab onAnalyze={analyze} /></TabsContent>
+        <TabsContent value="crypto" className="mt-6 space-y-6"><AssetsTab category="crypto" onAnalyze={analyze} /></TabsContent>
+        <TabsContent value="fx" className="mt-6 space-y-6"><AssetsTab category="currencies" onAnalyze={analyze} /></TabsContent>
       </Tabs>
+
+      <AssetAnalysisDialog open={open} onOpenChange={setOpen} asset={selected} />
     </div>
   );
 }
