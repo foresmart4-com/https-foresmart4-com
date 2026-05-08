@@ -2,10 +2,12 @@ import { createFileRoute, Outlet, Link, useRouterState, Navigate, useNavigate } 
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
+import { useAccess } from "@/lib/use-access";
+import { AccessGate } from "@/components/AccessGate";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, LineChart, Bell, Archive, User as UserIcon,
-  Brain, LogOut, Globe2, Menu, TrendingUp,
+  Brain, LogOut, Globe2, Menu, TrendingUp, Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +18,7 @@ export const Route = createFileRoute("/_app")({
 function AppLayout() {
   const { user, loading, signOut } = useAuth();
   const { t, lang, setLang, dir } = useI18n();
+  const { isAdmin } = useAccess();
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [collapsed, setCollapsed] = useState(false);
@@ -29,6 +32,7 @@ function AppLayout() {
     { to: "/advisor", icon: Brain, label: t("advisor") },
     { to: "/alerts", icon: Bell, label: t("alerts") },
     { to: "/archive", icon: Archive, label: t("archive") },
+    ...(isAdmin ? [{ to: "/members", icon: Users, label: t("members") }] : []),
     { to: "/profile", icon: UserIcon, label: t("profile") },
   ];
 
@@ -97,7 +101,12 @@ function AppLayout() {
       </aside>
 
       <main className="flex-1 overflow-x-hidden">
-        <Outlet />
+        <AccessGate>
+          <Outlet />
+          <footer className="border-t border-border px-6 py-4 text-center text-[11px] text-muted-foreground">
+            ⚠ {t("disclaimerTitle")} — {t("disclaimerBody").slice(0, 140)}…
+          </footer>
+        </AccessGate>
       </main>
     </div>
   );
