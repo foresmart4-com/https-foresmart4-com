@@ -4,8 +4,8 @@ type Lang = "ar" | "en";
 
 const dict = {
   ar: {
-    appName: "كابيتال إيه آي",
-    tagline: "نصائح استثمارية ذكية لتنمية رأس المال",
+    appName: "ForeSmart",
+    tagline: "تنبؤ ذكي • قرارات أوضح • نمو حقيقي",
     dashboard: "لوحة التحكم",
     markets: "الأسواق",
     alerts: "التنبيهات",
@@ -83,8 +83,8 @@ const dict = {
     privateNotice: "موقع خاص — التسجيل بدعوة وموافقة المالك",
   },
   en: {
-    appName: "Capital AI",
-    tagline: "Smart investment advice to grow your capital",
+    appName: "ForeSmart",
+    tagline: "Foresee the markets • Trade smarter • Grow faster",
     dashboard: "Dashboard",
     markets: "Markets",
     alerts: "Alerts",
