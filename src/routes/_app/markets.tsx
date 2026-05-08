@@ -6,7 +6,19 @@ import { getStocksData, REGION_LABELS, type StockQuote, type StockRegion } from 
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Building2, Coins, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AssetAnalysisDialog } from "@/components/AssetAnalysisDialog";
+import { Building2, Coins, DollarSign, Brain } from "lucide-react";
+
+interface SelectedAsset {
+  symbol: string;
+  name?: string;
+  category: string;
+  price: number;
+  changePct: number;
+  high24h?: number;
+  low24h?: number;
+}
 
 export const Route = createFileRoute("/_app/markets")({
   component: MarketsPage,
