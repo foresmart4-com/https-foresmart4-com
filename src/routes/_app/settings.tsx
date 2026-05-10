@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Settings as SettingsIcon, Globe2, User as UserIcon, Key, Crown, Wallet,
-  Building, Link2, Bell, LogOut, ChevronRight,
+  Building, Link2, Bell, LogOut, ChevronRight, Globe, ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 
