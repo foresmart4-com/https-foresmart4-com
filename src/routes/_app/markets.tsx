@@ -8,7 +8,8 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { AssetAnalysisDialog } from "@/components/AssetAnalysisDialog";
-import { Building2, Coins, DollarSign, Brain, Gem } from "lucide-react";
+import { BuyAssetDialog } from "@/components/BuyAssetDialog";
+import { Building2, Coins, DollarSign, Brain, Gem, ShoppingCart } from "lucide-react";
 
 interface SelectedAsset {
   symbol: string;
@@ -18,6 +19,8 @@ interface SelectedAsset {
   changePct: number;
   high24h?: number;
   low24h?: number;
+  market?: string;
+  currency?: string;
 }
 
 export const Route = createFileRoute("/_app/markets")({
@@ -31,7 +34,10 @@ function MarketsPage() {
   const [tab, setTab] = useState<"stocks" | "crypto" | "metals" | "fx">("stocks");
   const [selected, setSelected] = useState<SelectedAsset | null>(null);
   const [open, setOpen] = useState(false);
+  const [buyTarget, setBuyTarget] = useState<SelectedAsset | null>(null);
+  const [buyOpen, setBuyOpen] = useState(false);
   const analyze = (a: SelectedAsset) => { setSelected(a); setOpen(true); };
+  const buy = (a: SelectedAsset) => { setBuyTarget(a); setBuyOpen(true); };
 
   return (
     <div className="container mx-auto max-w-7xl space-y-6 p-6">
@@ -50,19 +56,20 @@ function MarketsPage() {
           <TabsTrigger value="fx" className="gap-2"><DollarSign className="h-4 w-4" />{lang === "ar" ? "العملات العالمية" : "Forex"}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="stocks" className="mt-6 space-y-6"><StocksTab onAnalyze={analyze} /></TabsContent>
-        <TabsContent value="crypto" className="mt-6 space-y-6"><AssetsTab category="crypto" onAnalyze={analyze} /></TabsContent>
-        <TabsContent value="metals" className="mt-6 space-y-6"><AssetsTab category="metals" onAnalyze={analyze} /></TabsContent>
-        <TabsContent value="fx" className="mt-6 space-y-6"><AssetsTab category="currencies" onAnalyze={analyze} /></TabsContent>
+        <TabsContent value="stocks" className="mt-6 space-y-6"><StocksTab onAnalyze={analyze} onBuy={buy} /></TabsContent>
+        <TabsContent value="crypto" className="mt-6 space-y-6"><AssetsTab category="crypto" onAnalyze={analyze} onBuy={buy} /></TabsContent>
+        <TabsContent value="metals" className="mt-6 space-y-6"><AssetsTab category="metals" onAnalyze={analyze} onBuy={buy} /></TabsContent>
+        <TabsContent value="fx" className="mt-6 space-y-6"><AssetsTab category="currencies" onAnalyze={analyze} onBuy={buy} /></TabsContent>
       </Tabs>
 
       <AssetAnalysisDialog open={open} onOpenChange={setOpen} asset={selected} />
+      <BuyAssetDialog open={buyOpen} onOpenChange={setBuyOpen} asset={buyTarget} />
     </div>
   );
 }
 
-function StocksTab({ onAnalyze }: { onAnalyze: (a: SelectedAsset) => void }) {
-  const { t, lang } = useI18n();
+function StocksTab({ onAnalyze, onBuy }: { onAnalyze: (a: SelectedAsset) => void; onBuy: (a: SelectedAsset) => void }) {
+  const { t } = useI18n();
   const { data, isLoading } = useQuery({ queryKey: ["stocks"], queryFn: () => getStocksData(), refetchInterval: 120000 });
   const stocks = data?.stocks ?? [];
   if (isLoading) return <p className="text-muted-foreground">{t("loading")}</p>;
@@ -71,13 +78,13 @@ function StocksTab({ onAnalyze }: { onAnalyze: (a: SelectedAsset) => void }) {
       {REGION_ORDER.map((r) => {
         const items = stocks.filter((s) => s.region === r);
         if (items.length === 0) return null;
-        return <RegionSection key={r} region={r} items={items} onAnalyze={onAnalyze} />;
+        return <RegionSection key={r} region={r} items={items} onAnalyze={onAnalyze} onBuy={onBuy} />;
       })}
     </>
   );
 }
 
-function RegionSection({ region, items, onAnalyze }: { region: StockRegion; items: StockQuote[]; onAnalyze: (a: SelectedAsset) => void }) {
+function RegionSection({ region, items, onAnalyze, onBuy }: { region: StockRegion; items: StockQuote[]; onAnalyze: (a: SelectedAsset) => void; onBuy: (a: SelectedAsset) => void }) {
   const { t, lang } = useI18n();
   const meta = REGION_LABELS[region];
   const avg = items.reduce((s, a) => s + a.changePct, 0) / items.length;
@@ -109,6 +116,7 @@ function RegionSection({ region, items, onAnalyze }: { region: StockRegion; item
               <th className="px-4 py-3 text-end">{t("change")}</th>
               <th className="px-4 py-3 text-end">{lang === "ar" ? "التوصية" : "Signal"}</th>
               <th className="px-4 py-3 text-end">{lang === "ar" ? "تحليل ذكي" : "AI"}</th>
+              <th className="px-4 py-3 text-end">{lang === "ar" ? "تداول" : "Trade"}</th>
             </tr>
           </thead>
           <tbody>
@@ -134,6 +142,14 @@ function RegionSection({ region, items, onAnalyze }: { region: StockRegion; item
                       <Brain className="me-1 h-3.5 w-3.5" />{lang === "ar" ? "تحليل" : "Analyze"}
                     </Button>
                   </td>
+                  <td className="px-4 py-3 text-end">
+                    <Button size="sm" className="h-7 px-2 text-xs" onClick={() => onBuy({
+                      symbol: s.symbol, name: s.name, category: "stock",
+                      price: s.price, changePct: s.changePct, market: s.region, currency: s.currency,
+                    })}>
+                      <ShoppingCart className="me-1 h-3.5 w-3.5" />{lang === "ar" ? "شراء" : "Buy"}
+                    </Button>
+                  </td>
                 </tr>
               );
             })}
@@ -144,15 +160,15 @@ function RegionSection({ region, items, onAnalyze }: { region: StockRegion; item
   );
 }
 
-function AssetsTab({ category, onAnalyze }: { category: "crypto" | "currencies" | "metals"; onAnalyze: (a: SelectedAsset) => void }) {
+function AssetsTab({ category, onAnalyze, onBuy }: { category: "crypto" | "currencies" | "metals"; onAnalyze: (a: SelectedAsset) => void; onBuy: (a: SelectedAsset) => void }) {
   const { t } = useI18n();
   const { data, isLoading } = useQuery({ queryKey: ["market"], queryFn: () => getMarketData(), refetchInterval: 60000 });
   const items = (data?.assets ?? []).filter((a) => a.category === category);
   if (isLoading) return <p className="text-muted-foreground">{t("loading")}</p>;
-  return <AssetTable items={items} onAnalyze={onAnalyze} />;
+  return <AssetTable items={items} onAnalyze={onAnalyze} onBuy={onBuy} />;
 }
 
-function AssetTable({ items, onAnalyze }: { items: AssetQuote[]; onAnalyze: (a: SelectedAsset) => void }) {
+function AssetTable({ items, onAnalyze, onBuy }: { items: AssetQuote[]; onAnalyze: (a: SelectedAsset) => void; onBuy: (a: SelectedAsset) => void }) {
   const { t, lang } = useI18n();
   const avg = items.length ? items.reduce((s, a) => s + a.changePct, 0) / items.length : 0;
   return (
@@ -172,6 +188,7 @@ function AssetTable({ items, onAnalyze }: { items: AssetQuote[]; onAnalyze: (a: 
               <th className="px-4 py-3 text-end">{t("lowToday")}</th>
               <th className="px-4 py-3 text-end">{t("signal")}</th>
               <th className="px-4 py-3 text-end">{lang === "ar" ? "تحليل ذكي" : "AI"}</th>
+              <th className="px-4 py-3 text-end">{lang === "ar" ? "تداول" : "Trade"}</th>
             </tr>
           </thead>
           <tbody>
@@ -196,6 +213,14 @@ function AssetTable({ items, onAnalyze }: { items: AssetQuote[]; onAnalyze: (a: 
                       price: a.price, changePct: a.changePct, high24h: a.high24h, low24h: a.low24h,
                     })}>
                       <Brain className="me-1 h-3.5 w-3.5" />{lang === "ar" ? "تحليل" : "Analyze"}
+                    </Button>
+                  </td>
+                  <td className="px-4 py-3 text-end">
+                    <Button size="sm" className="h-7 px-2 text-xs" onClick={() => onBuy({
+                      symbol: a.symbol, name: a.name, category: a.category,
+                      price: a.price, changePct: a.changePct, market: a.category, currency: "USD",
+                    })}>
+                      <ShoppingCart className="me-1 h-3.5 w-3.5" />{lang === "ar" ? "شراء" : "Buy"}
                     </Button>
                   </td>
                 </tr>

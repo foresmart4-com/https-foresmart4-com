@@ -52,6 +52,27 @@ export const getPortfolios = createServerFn({ method: "GET" })
     return portfolios ?? [];
   });
 
+export const ensureDefaultPortfolio = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: existing } = await supabase
+      .from("portfolios")
+      .select("id, name")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (existing) return existing;
+    const { data: created, error } = await supabase
+      .from("portfolios")
+      .insert({ user_id: userId, name: "محفظتي الرئيسية", strategy: "تداول مباشر من البرنامج" })
+      .select("id, name")
+      .single();
+    if (error) throw new Error(error.message);
+    return created;
+  });
+
 export const createPortfolio = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ name: z.string().min(1).max(80), strategy: z.string().max(200).optional() }).parse(d))
