@@ -91,7 +91,7 @@ function SubscriptionPage() {
               </div>
               <div className="text-xs text-muted-foreground">
                 {lang === "ar" ? "ينتهي في" : "Ends on"}{" "}
-                {new Date(sub.current_period_end ?? sub.trial_ends_at).toLocaleDateString()}
+                {new Date(sub.current_period_end ?? sub.trial_ends_at ?? Date.now()).toLocaleDateString()}
               </div>
             </div>
           </div>
@@ -127,7 +127,7 @@ function SubscriptionPage() {
               <Button
                 className="mt-6 w-full"
                 variant={isAnnual ? "default" : "outline"}
-                disabled={init.isPending || isActive}
+                disabled={init.isPending || !!isActive}
                 onClick={() => init.mutate(p.code)}
               >
                 {isActive ? (lang === "ar" ? "مشترك حالياً" : "Already subscribed")
