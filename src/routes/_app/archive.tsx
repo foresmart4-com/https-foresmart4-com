@@ -100,6 +100,99 @@ function ArchivePage() {
   );
 }
 
+function TopGainersView() {
+  const { lang } = useI18n();
+  const { data, isLoading, isError, isFetching, error, refetch } = useQuery<TopGainer[], Error>({
+    queryKey: ["top-gainers", 20],
+    queryFn: () => getTopGainers({ data: { limit: 20 } }),
+    retry: 1,
+    staleTime: 60_000,
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
+        <div>
+          <div className="flex items-center gap-2 font-semibold">
+            <Flame className="h-4 w-4 text-warning" />
+            {lang === "ar" ? "أعلى العملات ارتفاعًا (24 ساعة)" : "Top gaining coins (24h)"}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {lang === "ar" ? "بيانات مباشرة من سوق العملات الرقمية" : "Live data from the crypto market"}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium hover:bg-muted/40"
+          disabled={isFetching}
+        >
+          <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
+          {lang === "ar" ? "تحديث" : "Refresh"}
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
+          {lang === "ar" ? "جارٍ التحميل..." : "Loading..."}
+        </div>
+      ) : isError || !data || data.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
+          <AlertTriangle className="h-6 w-6 text-warning" />
+          <div className="text-sm">
+            {isError
+              ? (lang === "ar" ? "تعذّر تحميل عملات الارتفاع. حاول مجددًا." : "Could not load top gainers. Try again.")
+              : (lang === "ar" ? "لا توجد بيانات حاليًا." : "No data available right now.")}
+          </div>
+          {isError && <div className="text-xs">{error?.message}</div>}
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3 text-start">#</th>
+                <th className="px-4 py-3 text-start">{lang === "ar" ? "العملة" : "Coin"}</th>
+                <th className="px-4 py-3 text-end">{lang === "ar" ? "السعر" : "Price"}</th>
+                <th className="px-4 py-3 text-end">{lang === "ar" ? "التغير 24س" : "24h change"}</th>
+                <th className="px-4 py-3 text-end">{lang === "ar" ? "القيمة السوقية" : "Market cap"}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((c, i) => (
+                <tr key={c.symbol + i} className="border-t border-border hover:bg-muted/30">
+                  <td className="px-4 py-3 text-muted-foreground">{i + 1}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      {c.image && <img src={c.image} alt={c.name} className="h-6 w-6 rounded-full" loading="lazy" />}
+                      <div>
+                        <div className="font-semibold">{c.symbol}</div>
+                        <div className="text-xs text-muted-foreground">{c.name}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-end font-medium">
+                    ${c.price.toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                  </td>
+                  <td className={cn("px-4 py-3 text-end font-semibold", c.changePct24h >= 0 ? "text-success" : "text-danger")}>
+                    <span className="inline-flex items-center gap-1">
+                      {c.changePct24h >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                      {c.changePct24h >= 0 ? "+" : ""}{c.changePct24h.toFixed(2)}%
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-end text-xs text-muted-foreground">
+                    {c.marketCap ? `$${c.marketCap.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HistoryView() {
   const { lang } = useI18n();
   const [category, setCategory] = useState<Category>("crypto");
