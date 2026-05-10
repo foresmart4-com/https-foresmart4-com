@@ -21,6 +21,7 @@ import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppMarketsRouteImport } from './routes/_app/markets'
 import { Route as AppGrowthPlanRouteImport } from './routes/_app/growth-plan'
 import { Route as AppExternalAccountsRouteImport } from './routes/_app/external-accounts'
+import { Route as AppDomainRouteImport } from './routes/_app/domain'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppBankAccountsRouteImport } from './routes/_app/bank-accounts'
 import { Route as AppArchiveRouteImport } from './routes/_app/archive'
@@ -88,6 +89,11 @@ const AppExternalAccountsRoute = AppExternalAccountsRouteImport.update({
   path: '/external-accounts',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDomainRoute = AppDomainRouteImport.update({
+  id: '/domain',
+  path: '/domain',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/archive': typeof AppArchiveRoute
   '/bank-accounts': typeof AppBankAccountsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/domain': typeof AppDomainRoute
   '/external-accounts': typeof AppExternalAccountsRoute
   '/growth-plan': typeof AppGrowthPlanRoute
   '/markets': typeof AppMarketsRoute
@@ -153,6 +160,7 @@ export interface FileRoutesByTo {
   '/archive': typeof AppArchiveRoute
   '/bank-accounts': typeof AppBankAccountsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/domain': typeof AppDomainRoute
   '/external-accounts': typeof AppExternalAccountsRoute
   '/growth-plan': typeof AppGrowthPlanRoute
   '/markets': typeof AppMarketsRoute
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   '/_app/archive': typeof AppArchiveRoute
   '/_app/bank-accounts': typeof AppBankAccountsRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/domain': typeof AppDomainRoute
   '/_app/external-accounts': typeof AppExternalAccountsRoute
   '/_app/growth-plan': typeof AppGrowthPlanRoute
   '/_app/markets': typeof AppMarketsRoute
@@ -197,6 +206,7 @@ export interface FileRouteTypes {
     | '/archive'
     | '/bank-accounts'
     | '/dashboard'
+    | '/domain'
     | '/external-accounts'
     | '/growth-plan'
     | '/markets'
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/archive'
     | '/bank-accounts'
     | '/dashboard'
+    | '/domain'
     | '/external-accounts'
     | '/growth-plan'
     | '/markets'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/_app/archive'
     | '/_app/bank-accounts'
     | '/_app/dashboard'
+    | '/_app/domain'
     | '/_app/external-accounts'
     | '/_app/growth-plan'
     | '/_app/markets'
@@ -345,6 +357,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppExternalAccountsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/domain': {
+      id: '/_app/domain'
+      path: '/domain'
+      fullPath: '/domain'
+      preLoaderRoute: typeof AppDomainRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -403,6 +422,7 @@ interface AppRouteChildren {
   AppArchiveRoute: typeof AppArchiveRoute
   AppBankAccountsRoute: typeof AppBankAccountsRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppDomainRoute: typeof AppDomainRoute
   AppExternalAccountsRoute: typeof AppExternalAccountsRoute
   AppGrowthPlanRoute: typeof AppGrowthPlanRoute
   AppMarketsRoute: typeof AppMarketsRoute
@@ -420,6 +440,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppArchiveRoute: AppArchiveRoute,
   AppBankAccountsRoute: AppBankAccountsRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppDomainRoute: AppDomainRoute,
   AppExternalAccountsRoute: AppExternalAccountsRoute,
   AppGrowthPlanRoute: AppGrowthPlanRoute,
   AppMarketsRoute: AppMarketsRoute,

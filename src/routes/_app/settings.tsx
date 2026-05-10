@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Settings as SettingsIcon, Globe2, User as UserIcon, Key, Crown, Wallet,
-  Building, Link2, Bell, LogOut, ChevronRight,
+  Building, Link2, Bell, LogOut, ChevronRight, Globe, ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -131,6 +131,32 @@ function SettingsPage() {
               </li>
             )}
           </ul>
+
+          {isAdmin && (
+            <div className="mt-5 border-t border-border pt-4">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <ShieldAlert className="h-3.5 w-3.5" />
+                {lang === "ar" ? "خاص بالمطور" : "Developer only"}
+              </div>
+              <Link
+                to="/domain"
+                className="flex items-center gap-3 py-3 transition-colors hover:bg-muted/40 rounded-md px-2 -mx-2"
+              >
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                  <Globe className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium">
+                    {lang === "ar" ? "ضبط الدومين" : "Domain Settings"}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {lang === "ar" ? "ربط وإدارة دومين الموقع المخصص" : "Connect and manage the custom site domain"}
+                  </div>
+                </div>
+                <ChevronRight className={`h-4 w-4 text-muted-foreground ${dir === "rtl" ? "rotate-180" : ""}`} />
+              </Link>
+            </div>
+          )}
         </section>
 
         {/* Danger zone */}
