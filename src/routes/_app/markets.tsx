@@ -19,6 +19,8 @@ interface SelectedAsset {
   changePct: number;
   high24h?: number;
   low24h?: number;
+  market?: string;
+  currency?: string;
 }
 
 export const Route = createFileRoute("/_app/markets")({
