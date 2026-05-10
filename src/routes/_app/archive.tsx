@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
-import { Archive, History, TrendingDown, TrendingUp } from "lucide-react";
+import { AlertTriangle, Archive, History, RefreshCw, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -103,9 +103,10 @@ function HistoryView() {
     setSymbol(ASSET_OPTIONS[category][0].symbol);
   }, [category]);
 
-  const { data, isLoading } = useQuery<AssetHistory>({
+  const { data, isLoading, isFetching, isError, error, refetch } = useQuery<AssetHistory, Error>({
     queryKey: ["asset-history", category, symbol, days],
     queryFn: () => getAssetHistory({ data: { category, symbol, days } }),
+    retry: 1,
     staleTime: 5 * 60_000,
   });
 
@@ -199,8 +200,25 @@ function HistoryView() {
             <div className="flex h-full items-center justify-center text-muted-foreground">
               {lang === "ar" ? "جارٍ التحميل..." : "Loading..."}
             </div>
-          ) : chartData.length === 0 ? (
-            <div className="flex h-full items-center justify-center text-muted-foreground">—</div>
+          ) : isError || chartData.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-muted-foreground">
+              <AlertTriangle className="h-6 w-6 text-warning" />
+              <div className="max-w-md text-sm">
+                {isError
+                  ? (lang === "ar" ? "تعذّر تحميل بيانات السوق الآن. أعد المحاولة أو اختر أصلًا آخر." : "Market data could not be loaded. Try again or choose another asset.")
+                  : (lang === "ar" ? "لا توجد قيم تاريخية متاحة لهذا الاختيار حاليًا." : "No historical values are available for this selection yet.")}
+              </div>
+              {isError && <div className="text-xs text-muted-foreground/80">{error.message}</div>}
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted/40"
+                disabled={isFetching}
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
+                {lang === "ar" ? "إعادة المحاولة" : "Retry"}
+              </button>
+            </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
