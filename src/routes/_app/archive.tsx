@@ -84,8 +84,9 @@ function ArchivePage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="gainers">
+        <TabsContent value="gainers" className="space-y-6">
           <TopGainersView />
+          <TopStockGainersView />
         </TabsContent>
 
         <TabsContent value="history">
