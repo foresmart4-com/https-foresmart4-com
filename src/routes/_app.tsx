@@ -7,7 +7,7 @@ import { AccessGate } from "@/components/AccessGate";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, LineChart, Bell, Archive, User as UserIcon,
-  Brain, LogOut, Globe2, Menu, TrendingUp, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown,
+  Brain, LogOut, Globe2, Menu, TrendingUp, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +40,7 @@ function AppLayout() {
     { to: "/archive", icon: Archive, label: t("archive") },
     ...(isAdmin ? [{ to: "/members", icon: Users, label: t("members") }] : []),
     { to: "/profile", icon: UserIcon, label: t("profile") },
+    { to: "/settings", icon: Settings, label: lang === "ar" ? "الضبط" : "Settings" },
   ];
 
   const handleSignOut = async () => { await signOut(); navigate({ to: "/" }); };
