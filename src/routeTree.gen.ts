@@ -24,6 +24,7 @@ import { Route as AppBankAccountsRouteImport } from './routes/_app/bank-accounts
 import { Route as AppArchiveRouteImport } from './routes/_app/archive'
 import { Route as AppAlertsRouteImport } from './routes/_app/alerts'
 import { Route as AppAdvisorRouteImport } from './routes/_app/advisor'
+import { Route as ApiPublicMoyasarWebhookRouteImport } from './routes/api/public/moyasar-webhook'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const AuthRoute = AuthRouteImport.update({
@@ -100,6 +101,11 @@ const AppAdvisorRoute = AppAdvisorRouteImport.update({
   path: '/advisor',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiPublicMoyasarWebhookRoute = ApiPublicMoyasarWebhookRouteImport.update({
+  id: '/api/public/moyasar-webhook',
+  path: '/api/public/moyasar-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/portfolios': typeof AppPortfoliosRoute
   '/profile': typeof AppProfileRoute
   '/wallet': typeof AppWalletRoute
+  '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/portfolios': typeof AppPortfoliosRoute
   '/profile': typeof AppProfileRoute
   '/wallet': typeof AppWalletRoute
+  '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/_app/portfolios': typeof AppPortfoliosRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/wallet': typeof AppWalletRoute
+  '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/portfolios'
     | '/profile'
     | '/wallet'
+    | '/api/public/moyasar-webhook'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/portfolios'
     | '/profile'
     | '/wallet'
+    | '/api/public/moyasar-webhook'
     | '/api/public/payments/webhook'
   id:
     | '__root__'
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | '/_app/portfolios'
     | '/_app/profile'
     | '/_app/wallet'
+    | '/api/public/moyasar-webhook'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -219,6 +231,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicMoyasarWebhookRoute: typeof ApiPublicMoyasarWebhookRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
@@ -329,6 +342,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdvisorRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/public/moyasar-webhook': {
+      id: '/api/public/moyasar-webhook'
+      path: '/api/public/moyasar-webhook'
+      fullPath: '/api/public/moyasar-webhook'
+      preLoaderRoute: typeof ApiPublicMoyasarWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -375,8 +395,19 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicMoyasarWebhookRoute: ApiPublicMoyasarWebhookRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
