@@ -161,7 +161,7 @@ const METAL_FUNDS = [
 ];
 
 async function fetchMetalFunds(): Promise<AssetQuote[]> {
-  const tasks = METAL_FUNDS.map(async (f) => {
+  const tasks: Promise<AssetQuote | null>[] = METAL_FUNDS.map(async (f): Promise<AssetQuote | null> => {
     try {
       const r = await fetch(
         `https://query1.finance.yahoo.com/v8/finance/chart/${f.symbol}?interval=1d&range=5d`,
