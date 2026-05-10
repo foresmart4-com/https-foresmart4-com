@@ -313,6 +313,104 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_plans: {
+        Row: {
+          code: string
+          created_at: string
+          duration_months: number
+          features: Json
+          id: string
+          is_active: boolean
+          name_ar: string
+          name_en: string
+          price_sar: number
+          sort_order: number
+          trial_days: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          duration_months: number
+          features?: Json
+          id?: string
+          is_active?: boolean
+          name_ar: string
+          name_en: string
+          price_sar: number
+          sort_order?: number
+          trial_days?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          duration_months?: number
+          features?: Json
+          id?: string
+          is_active?: boolean
+          name_ar?: string
+          name_en?: string
+          price_sar?: number
+          sort_order?: number
+          trial_days?: number
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          amount_paid: number | null
+          cancel_at_period_end: boolean
+          created_at: string
+          currency: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          moyasar_payment_id: string | null
+          plan_id: string
+          status: string
+          trial_ends_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_paid?: number | null
+          cancel_at_period_end?: boolean
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          moyasar_payment_id?: string | null
+          plan_id: string
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_paid?: number | null
+          cancel_at_period_end?: boolean
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          moyasar_payment_id?: string | null
+          plan_id?: string
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_api_keys: {
         Row: {
           api_key: string
@@ -354,6 +452,51 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallet_topups: {
+        Row: {
+          amount_sar: number
+          created_at: string
+          id: string
+          metadata: Json | null
+          moyasar_fee_sar: number
+          moyasar_payment_id: string | null
+          net_credit_sar: number
+          payment_method: string | null
+          service_fee_sar: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_sar: number
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          moyasar_fee_sar?: number
+          moyasar_payment_id?: string | null
+          net_credit_sar: number
+          payment_method?: string | null
+          service_fee_sar?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_sar?: number
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          moyasar_fee_sar?: number
+          moyasar_payment_id?: string | null
+          net_credit_sar?: number
+          payment_method?: string | null
+          service_fee_sar?: number
+          status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -441,6 +584,7 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      has_active_subscription: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
