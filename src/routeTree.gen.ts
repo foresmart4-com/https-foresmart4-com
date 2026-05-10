@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppWalletRouteImport } from './routes/_app/wallet'
 import { Route as AppSubscriptionRouteImport } from './routes/_app/subscription'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppPortfoliosRouteImport } from './routes/_app/portfolios'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
@@ -50,6 +51,11 @@ const AppWalletRoute = AppWalletRouteImport.update({
 const AppSubscriptionRoute = AppSubscriptionRouteImport.update({
   id: '/subscription',
   path: '/subscription',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
 const AppProfileRoute = AppProfileRouteImport.update({
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/members': typeof AppMembersRoute
   '/portfolios': typeof AppPortfoliosRoute
   '/profile': typeof AppProfileRoute
+  '/settings': typeof AppSettingsRoute
   '/subscription': typeof AppSubscriptionRoute
   '/wallet': typeof AppWalletRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/members': typeof AppMembersRoute
   '/portfolios': typeof AppPortfoliosRoute
   '/profile': typeof AppProfileRoute
+  '/settings': typeof AppSettingsRoute
   '/subscription': typeof AppSubscriptionRoute
   '/wallet': typeof AppWalletRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/_app/members': typeof AppMembersRoute
   '/_app/portfolios': typeof AppPortfoliosRoute
   '/_app/profile': typeof AppProfileRoute
+  '/_app/settings': typeof AppSettingsRoute
   '/_app/subscription': typeof AppSubscriptionRoute
   '/_app/wallet': typeof AppWalletRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
@@ -194,6 +203,7 @@ export interface FileRouteTypes {
     | '/members'
     | '/portfolios'
     | '/profile'
+    | '/settings'
     | '/subscription'
     | '/wallet'
     | '/api/public/moyasar-webhook'
@@ -213,6 +223,7 @@ export interface FileRouteTypes {
     | '/members'
     | '/portfolios'
     | '/profile'
+    | '/settings'
     | '/subscription'
     | '/wallet'
     | '/api/public/moyasar-webhook'
@@ -233,6 +244,7 @@ export interface FileRouteTypes {
     | '/_app/members'
     | '/_app/portfolios'
     | '/_app/profile'
+    | '/_app/settings'
     | '/_app/subscription'
     | '/_app/wallet'
     | '/api/public/moyasar-webhook'
@@ -282,6 +294,13 @@ declare module '@tanstack/react-router' {
       path: '/subscription'
       fullPath: '/subscription'
       preLoaderRoute: typeof AppSubscriptionRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/profile': {
@@ -390,6 +409,7 @@ interface AppRouteChildren {
   AppMembersRoute: typeof AppMembersRoute
   AppPortfoliosRoute: typeof AppPortfoliosRoute
   AppProfileRoute: typeof AppProfileRoute
+  AppSettingsRoute: typeof AppSettingsRoute
   AppSubscriptionRoute: typeof AppSubscriptionRoute
   AppWalletRoute: typeof AppWalletRoute
 }
@@ -406,6 +426,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppMembersRoute: AppMembersRoute,
   AppPortfoliosRoute: AppPortfoliosRoute,
   AppProfileRoute: AppProfileRoute,
+  AppSettingsRoute: AppSettingsRoute,
   AppSubscriptionRoute: AppSubscriptionRoute,
   AppWalletRoute: AppWalletRoute,
 }
@@ -422,3 +443,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
