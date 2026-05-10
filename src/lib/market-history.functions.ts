@@ -140,6 +140,14 @@ export const getAssetHistory = createServerFn({ method: "GET" })
   )
   .handler(async ({ data }): Promise<AssetHistory> => {
     const { symbol, category, days } = data;
+    const yahooMeta = YAHOO_MAP[category]?.[symbol];
+    if (yahooMeta) {
+      const yahoo = await fetchYahooHistory(yahooMeta.ticker, days);
+      if (yahoo.points.length > 0) {
+        return { symbol, name: yahooMeta.name, category, currency: yahoo.currency, points: yahoo.points };
+      }
+    }
+
     if (category === "crypto" || category === "metals") {
       const meta = CRYPTO_MAP[symbol];
       if (!meta) return { symbol, name: symbol, category, currency: "USD", points: [] };
