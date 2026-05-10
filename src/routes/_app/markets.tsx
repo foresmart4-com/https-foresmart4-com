@@ -56,13 +56,14 @@ function MarketsPage() {
           <TabsTrigger value="fx" className="gap-2"><DollarSign className="h-4 w-4" />{lang === "ar" ? "العملات العالمية" : "Forex"}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="stocks" className="mt-6 space-y-6"><StocksTab onAnalyze={analyze} /></TabsContent>
-        <TabsContent value="crypto" className="mt-6 space-y-6"><AssetsTab category="crypto" onAnalyze={analyze} /></TabsContent>
-        <TabsContent value="metals" className="mt-6 space-y-6"><AssetsTab category="metals" onAnalyze={analyze} /></TabsContent>
-        <TabsContent value="fx" className="mt-6 space-y-6"><AssetsTab category="currencies" onAnalyze={analyze} /></TabsContent>
+        <TabsContent value="stocks" className="mt-6 space-y-6"><StocksTab onAnalyze={analyze} onBuy={buy} /></TabsContent>
+        <TabsContent value="crypto" className="mt-6 space-y-6"><AssetsTab category="crypto" onAnalyze={analyze} onBuy={buy} /></TabsContent>
+        <TabsContent value="metals" className="mt-6 space-y-6"><AssetsTab category="metals" onAnalyze={analyze} onBuy={buy} /></TabsContent>
+        <TabsContent value="fx" className="mt-6 space-y-6"><AssetsTab category="currencies" onAnalyze={analyze} onBuy={buy} /></TabsContent>
       </Tabs>
 
       <AssetAnalysisDialog open={open} onOpenChange={setOpen} asset={selected} />
+      <BuyAssetDialog open={buyOpen} onOpenChange={setBuyOpen} asset={buyTarget} />
     </div>
   );
 }
