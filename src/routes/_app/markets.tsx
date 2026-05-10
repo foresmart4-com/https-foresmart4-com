@@ -116,6 +116,7 @@ function RegionSection({ region, items, onAnalyze, onBuy }: { region: StockRegio
               <th className="px-4 py-3 text-end">{t("change")}</th>
               <th className="px-4 py-3 text-end">{lang === "ar" ? "التوصية" : "Signal"}</th>
               <th className="px-4 py-3 text-end">{lang === "ar" ? "تحليل ذكي" : "AI"}</th>
+              <th className="px-4 py-3 text-end">{lang === "ar" ? "تداول" : "Trade"}</th>
             </tr>
           </thead>
           <tbody>
