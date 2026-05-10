@@ -171,6 +171,9 @@ export const getAssetHistory = createServerFn({ method: "GET" })
       return { symbol, name: meta.name, category, currency: meta.to, points };
     }
     // stocks
-    const r = await fetchYahooHistory(symbol, days);
+    const r = await fetchYahooHistory(symbol, days).catch((error) => {
+      console.error("Stock history failed", error);
+      return { name: symbol, currency: "USD", points: [] };
+    });
     return { symbol, name: r.name, category, currency: r.currency, points: r.points };
   });
