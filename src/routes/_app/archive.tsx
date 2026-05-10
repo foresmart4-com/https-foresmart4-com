@@ -523,6 +523,10 @@ function HistoryView() {
                   <th className="px-4 py-2 text-end">{lang === "ar" ? "أعلى" : "High"}</th>
                   <th className="px-4 py-2 text-end">{lang === "ar" ? "أدنى" : "Low"}</th>
                   <th className="px-4 py-2 text-end">{lang === "ar" ? "إغلاق" : "Close"}</th>
+                  <th className="px-4 py-2 text-end">
+                    {lang === "ar" ? `تغير القيمة (${displayCurrency === "USD" ? "دولار" : "ريال"})` : `Value change (${displayCurrency})`}
+                  </th>
+                  <th className="px-4 py-2 text-end">{lang === "ar" ? "نسبة التغير" : "Change %"}</th>
                   <th className="px-4 py-2 text-end">{lang === "ar" ? "حجم" : "Volume"}</th>
                 </tr>
               </thead>
