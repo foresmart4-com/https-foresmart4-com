@@ -7,7 +7,7 @@ import { AccessGate } from "@/components/AccessGate";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, LineChart, Bell, Archive, User as UserIcon,
-  Brain, LogOut, Globe2, Menu, TrendingUp, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown,
+  Brain, LogOut, Globe2, Menu, TrendingUp, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
