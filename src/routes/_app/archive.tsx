@@ -8,7 +8,7 @@ import { AlertTriangle, Archive, Flame, History, RefreshCw, TrendingDown, Trendi
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getAssetHistory, getTopGainers, type AssetHistory, type TopGainer } from "@/lib/market-history.functions";
+import { getAssetHistory, getTopGainers, getTopStockGainers, type AssetHistory, type TopGainer, type TopStockGainer } from "@/lib/market-history.functions";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 export const Route = createFileRoute("/_app/archive")({
