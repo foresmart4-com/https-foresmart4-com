@@ -215,6 +215,14 @@ function AssetTable({ items, onAnalyze, onBuy }: { items: AssetQuote[]; onAnalyz
                       <Brain className="me-1 h-3.5 w-3.5" />{lang === "ar" ? "تحليل" : "Analyze"}
                     </Button>
                   </td>
+                  <td className="px-4 py-3 text-end">
+                    <Button size="sm" className="h-7 px-2 text-xs" onClick={() => onBuy({
+                      symbol: a.symbol, name: a.name, category: a.category,
+                      price: a.price, changePct: a.changePct, market: a.category, currency: "USD",
+                    })}>
+                      <ShoppingCart className="me-1 h-3.5 w-3.5" />{lang === "ar" ? "شراء" : "Buy"}
+                    </Button>
+                  </td>
                 </tr>
               );
             })}
