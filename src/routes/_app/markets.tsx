@@ -68,8 +68,8 @@ function MarketsPage() {
   );
 }
 
-function StocksTab({ onAnalyze }: { onAnalyze: (a: SelectedAsset) => void }) {
-  const { t, lang } = useI18n();
+function StocksTab({ onAnalyze, onBuy }: { onAnalyze: (a: SelectedAsset) => void; onBuy: (a: SelectedAsset) => void }) {
+  const { t } = useI18n();
   const { data, isLoading } = useQuery({ queryKey: ["stocks"], queryFn: () => getStocksData(), refetchInterval: 120000 });
   const stocks = data?.stocks ?? [];
   if (isLoading) return <p className="text-muted-foreground">{t("loading")}</p>;
@@ -78,13 +78,13 @@ function StocksTab({ onAnalyze }: { onAnalyze: (a: SelectedAsset) => void }) {
       {REGION_ORDER.map((r) => {
         const items = stocks.filter((s) => s.region === r);
         if (items.length === 0) return null;
-        return <RegionSection key={r} region={r} items={items} onAnalyze={onAnalyze} />;
+        return <RegionSection key={r} region={r} items={items} onAnalyze={onAnalyze} onBuy={onBuy} />;
       })}
     </>
   );
 }
 
-function RegionSection({ region, items, onAnalyze }: { region: StockRegion; items: StockQuote[]; onAnalyze: (a: SelectedAsset) => void }) {
+function RegionSection({ region, items, onAnalyze, onBuy }: { region: StockRegion; items: StockQuote[]; onAnalyze: (a: SelectedAsset) => void; onBuy: (a: SelectedAsset) => void }) {
   const { t, lang } = useI18n();
   const meta = REGION_LABELS[region];
   const avg = items.reduce((s, a) => s + a.changePct, 0) / items.length;
