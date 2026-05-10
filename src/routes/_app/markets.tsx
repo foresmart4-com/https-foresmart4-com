@@ -34,7 +34,10 @@ function MarketsPage() {
   const [tab, setTab] = useState<"stocks" | "crypto" | "metals" | "fx">("stocks");
   const [selected, setSelected] = useState<SelectedAsset | null>(null);
   const [open, setOpen] = useState(false);
+  const [buyTarget, setBuyTarget] = useState<SelectedAsset | null>(null);
+  const [buyOpen, setBuyOpen] = useState(false);
   const analyze = (a: SelectedAsset) => { setSelected(a); setOpen(true); };
+  const buy = (a: SelectedAsset) => { setBuyTarget(a); setBuyOpen(true); };
 
   return (
     <div className="container mx-auto max-w-7xl space-y-6 p-6">
