@@ -40,6 +40,7 @@ function AppLayout() {
     { to: "/archive", icon: Archive, label: t("archive") },
     ...(isAdmin ? [{ to: "/members", icon: Users, label: t("members") }] : []),
     { to: "/profile", icon: UserIcon, label: t("profile") },
+    { to: "/settings", icon: Settings, label: lang === "ar" ? "الضبط" : "Settings" },
   ];
 
   const handleSignOut = async () => { await signOut(); navigate({ to: "/" }); };
