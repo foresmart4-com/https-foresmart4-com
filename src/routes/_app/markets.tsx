@@ -8,7 +8,8 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { AssetAnalysisDialog } from "@/components/AssetAnalysisDialog";
-import { Building2, Coins, DollarSign, Brain, Gem } from "lucide-react";
+import { BuyAssetDialog } from "@/components/BuyAssetDialog";
+import { Building2, Coins, DollarSign, Brain, Gem, ShoppingCart } from "lucide-react";
 
 interface SelectedAsset {
   symbol: string;
