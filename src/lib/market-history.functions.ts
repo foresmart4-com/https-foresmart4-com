@@ -165,6 +165,74 @@ export const getTopGainers = createServerFn({ method: "GET" })
     }
   });
 
+export interface TopStockGainer {
+  symbol: string;
+  name: string;
+  price: number;
+  changePct: number;
+  currency: string;
+  market: "us" | "saudi";
+}
+
+const STOCK_UNIVERSE: { symbol: string; name: string; market: "us" | "saudi" }[] = [
+  { symbol: "AAPL", name: "Apple", market: "us" },
+  { symbol: "MSFT", name: "Microsoft", market: "us" },
+  { symbol: "NVDA", name: "NVIDIA", market: "us" },
+  { symbol: "GOOGL", name: "Alphabet", market: "us" },
+  { symbol: "AMZN", name: "Amazon", market: "us" },
+  { symbol: "TSLA", name: "Tesla", market: "us" },
+  { symbol: "META", name: "Meta", market: "us" },
+  { symbol: "JPM", name: "JPMorgan", market: "us" },
+  { symbol: "XOM", name: "ExxonMobil", market: "us" },
+  { symbol: "LMT", name: "Lockheed Martin", market: "us" },
+  { symbol: "2222.SR", name: "Saudi Aramco", market: "saudi" },
+  { symbol: "1120.SR", name: "Al Rajhi Bank", market: "saudi" },
+  { symbol: "2010.SR", name: "SABIC", market: "saudi" },
+  { symbol: "7010.SR", name: "STC", market: "saudi" },
+  { symbol: "1180.SR", name: "Saudi National Bank", market: "saudi" },
+  { symbol: "2280.SR", name: "Almarai", market: "saudi" },
+];
+
+async function fetchStockQuote(symbol: string): Promise<{ price: number; changePct: number; currency: string } | null> {
+  try {
+    const r = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d`,
+      { headers: { "User-Agent": "Mozilla/5.0" } },
+    );
+    if (!r.ok) return null;
+    const j = (await r.json()) as { chart: { result?: Array<{ meta: { regularMarketPrice: number; chartPreviousClose: number; currency: string } }> } };
+    const m = j.chart.result?.[0]?.meta;
+    if (!m) return null;
+    const price = m.regularMarketPrice;
+    const prev = m.chartPreviousClose || price;
+    return { price, changePct: prev ? ((price - prev) / prev) * 100 : 0, currency: m.currency || "USD" };
+  } catch {
+    return null;
+  }
+}
+
+export const getTopStockGainers = createServerFn({ method: "GET" })
+  .inputValidator((data) =>
+    z.object({
+      market: z.enum(["all", "us", "saudi"]).default("all"),
+      limit: z.number().int().min(1).max(30).default(10),
+    }).parse(data ?? {}),
+  )
+  .handler(async ({ data }): Promise<TopStockGainer[]> => {
+    const list = data.market === "all" ? STOCK_UNIVERSE : STOCK_UNIVERSE.filter((s) => s.market === data.market);
+    const results = await Promise.all(
+      list.map(async (s) => {
+        const q = await fetchStockQuote(s.symbol);
+        if (!q) return null;
+        return { symbol: s.symbol, name: s.name, market: s.market, price: q.price, changePct: q.changePct, currency: q.currency };
+      }),
+    );
+    return results
+      .filter((x): x is TopStockGainer => x !== null)
+      .sort((a, b) => b.changePct - a.changePct)
+      .slice(0, data.limit);
+  });
+
 export const getAssetHistory = createServerFn({ method: "GET" })
   .inputValidator((data) =>
     z.object({
