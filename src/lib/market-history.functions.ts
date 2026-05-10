@@ -19,6 +19,36 @@ export interface AssetHistory {
   points: HistoryPoint[];
 }
 
+type Category = AssetHistory["category"];
+
+const YAHOO_MAP: Record<Category, Record<string, { ticker: string; name: string }>> = {
+  crypto: {
+    BTC: { ticker: "BTC-USD", name: "Bitcoin" },
+    ETH: { ticker: "ETH-USD", name: "Ethereum" },
+    SOL: { ticker: "SOL-USD", name: "Solana" },
+    BNB: { ticker: "BNB-USD", name: "BNB" },
+  },
+  metals: {
+    XAU: { ticker: "GC=F", name: "Gold Futures" },
+    XAG: { ticker: "SI=F", name: "Silver Futures" },
+  },
+  currencies: {
+    "EUR/USD": { ticker: "EURUSD=X", name: "Euro / US Dollar" },
+    "GBP/USD": { ticker: "GBPUSD=X", name: "Pound / US Dollar" },
+    "USD/JPY": { ticker: "JPY=X", name: "Dollar / Yen" },
+    "USD/SAR": { ticker: "SAR=X", name: "Dollar / Saudi Riyal" },
+  },
+  stocks: {
+    AAPL: { ticker: "AAPL", name: "Apple" },
+    MSFT: { ticker: "MSFT", name: "Microsoft" },
+    NVDA: { ticker: "NVDA", name: "NVIDIA" },
+    TSLA: { ticker: "TSLA", name: "Tesla" },
+    "2222.SR": { ticker: "2222.SR", name: "Saudi Aramco" },
+    "1120.SR": { ticker: "1120.SR", name: "Al Rajhi Bank" },
+    "2010.SR": { ticker: "2010.SR", name: "SABIC" },
+  },
+};
+
 const CRYPTO_MAP: Record<string, { id: string; name: string }> = {
   BTC: { id: "bitcoin", name: "Bitcoin" },
   ETH: { id: "ethereum", name: "Ethereum" },
@@ -110,19 +140,40 @@ export const getAssetHistory = createServerFn({ method: "GET" })
   )
   .handler(async ({ data }): Promise<AssetHistory> => {
     const { symbol, category, days } = data;
+    const yahooMeta = YAHOO_MAP[category]?.[symbol];
+    if (yahooMeta) {
+      try {
+        const yahoo = await fetchYahooHistory(yahooMeta.ticker, days);
+        if (yahoo.points.length > 0) {
+          return { symbol, name: yahooMeta.name, category, currency: yahoo.currency, points: yahoo.points };
+        }
+      } catch (error) {
+        console.error("Yahoo history fallback failed", error);
+      }
+    }
+
     if (category === "crypto" || category === "metals") {
       const meta = CRYPTO_MAP[symbol];
       if (!meta) return { symbol, name: symbol, category, currency: "USD", points: [] };
-      const points = await fetchCryptoHistory(meta.id, days);
+      const points = await fetchCryptoHistory(meta.id, days).catch((error) => {
+        console.error("CoinGecko history failed", error);
+        return [];
+      });
       return { symbol, name: meta.name, category, currency: "USD", points };
     }
     if (category === "currencies") {
       const meta = FX_MAP[symbol];
       if (!meta) return { symbol, name: symbol, category, currency: "USD", points: [] };
-      const points = await fetchFxHistory(meta.from, meta.to, days);
+      const points = await fetchFxHistory(meta.from, meta.to, days).catch((error) => {
+        console.error("FX history failed", error);
+        return [];
+      });
       return { symbol, name: meta.name, category, currency: meta.to, points };
     }
     // stocks
-    const r = await fetchYahooHistory(symbol, days);
+    const r = await fetchYahooHistory(symbol, days).catch((error) => {
+      console.error("Stock history failed", error);
+      return { name: symbol, currency: "USD", points: [] };
+    });
     return { symbol, name: r.name, category, currency: r.currency, points: r.points };
   });
