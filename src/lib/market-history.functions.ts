@@ -130,6 +130,41 @@ async function fetchYahooHistory(symbol: string, days: number): Promise<{ name: 
   };
 }
 
+export interface TopGainer {
+  symbol: string;
+  name: string;
+  image?: string;
+  price: number;
+  changePct24h: number;
+  marketCap?: number;
+}
+
+export const getTopGainers = createServerFn({ method: "GET" })
+  .inputValidator((data) => z.object({ limit: z.number().int().min(1).max(50).default(10) }).parse(data ?? {}))
+  .handler(async ({ data }): Promise<TopGainer[]> => {
+    try {
+      const r = await fetch(
+        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=price_change_percentage_24h_desc&per_page=${data.limit}&page=1&price_change_percentage=24h`,
+      );
+      if (!r.ok) return [];
+      const arr = (await r.json()) as Array<{
+        symbol: string; name: string; image: string; current_price: number;
+        price_change_percentage_24h: number; market_cap: number;
+      }>;
+      return arr.map((c) => ({
+        symbol: c.symbol.toUpperCase(),
+        name: c.name,
+        image: c.image,
+        price: c.current_price,
+        changePct24h: c.price_change_percentage_24h ?? 0,
+        marketCap: c.market_cap,
+      }));
+    } catch (error) {
+      console.error("Top gainers fetch failed", error);
+      return [];
+    }
+  });
+
 export const getAssetHistory = createServerFn({ method: "GET" })
   .inputValidator((data) =>
     z.object({
