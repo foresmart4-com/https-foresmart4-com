@@ -142,22 +142,32 @@ export const getAssetHistory = createServerFn({ method: "GET" })
     const { symbol, category, days } = data;
     const yahooMeta = YAHOO_MAP[category]?.[symbol];
     if (yahooMeta) {
-      const yahoo = await fetchYahooHistory(yahooMeta.ticker, days);
-      if (yahoo.points.length > 0) {
-        return { symbol, name: yahooMeta.name, category, currency: yahoo.currency, points: yahoo.points };
+      try {
+        const yahoo = await fetchYahooHistory(yahooMeta.ticker, days);
+        if (yahoo.points.length > 0) {
+          return { symbol, name: yahooMeta.name, category, currency: yahoo.currency, points: yahoo.points };
+        }
+      } catch (error) {
+        console.error("Yahoo history fallback failed", error);
       }
     }
 
     if (category === "crypto" || category === "metals") {
       const meta = CRYPTO_MAP[symbol];
       if (!meta) return { symbol, name: symbol, category, currency: "USD", points: [] };
-      const points = await fetchCryptoHistory(meta.id, days);
+      const points = await fetchCryptoHistory(meta.id, days).catch((error) => {
+        console.error("CoinGecko history failed", error);
+        return [];
+      });
       return { symbol, name: meta.name, category, currency: "USD", points };
     }
     if (category === "currencies") {
       const meta = FX_MAP[symbol];
       if (!meta) return { symbol, name: symbol, category, currency: "USD", points: [] };
-      const points = await fetchFxHistory(meta.from, meta.to, days);
+      const points = await fetchFxHistory(meta.from, meta.to, days).catch((error) => {
+        console.error("FX history failed", error);
+        return [];
+      });
       return { symbol, name: meta.name, category, currency: meta.to, points };
     }
     // stocks
