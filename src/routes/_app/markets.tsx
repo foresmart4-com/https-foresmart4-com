@@ -160,15 +160,15 @@ function RegionSection({ region, items, onAnalyze, onBuy }: { region: StockRegio
   );
 }
 
-function AssetsTab({ category, onAnalyze }: { category: "crypto" | "currencies" | "metals"; onAnalyze: (a: SelectedAsset) => void }) {
+function AssetsTab({ category, onAnalyze, onBuy }: { category: "crypto" | "currencies" | "metals"; onAnalyze: (a: SelectedAsset) => void; onBuy: (a: SelectedAsset) => void }) {
   const { t } = useI18n();
   const { data, isLoading } = useQuery({ queryKey: ["market"], queryFn: () => getMarketData(), refetchInterval: 60000 });
   const items = (data?.assets ?? []).filter((a) => a.category === category);
   if (isLoading) return <p className="text-muted-foreground">{t("loading")}</p>;
-  return <AssetTable items={items} onAnalyze={onAnalyze} />;
+  return <AssetTable items={items} onAnalyze={onAnalyze} onBuy={onBuy} />;
 }
 
-function AssetTable({ items, onAnalyze }: { items: AssetQuote[]; onAnalyze: (a: SelectedAsset) => void }) {
+function AssetTable({ items, onAnalyze, onBuy }: { items: AssetQuote[]; onAnalyze: (a: SelectedAsset) => void; onBuy: (a: SelectedAsset) => void }) {
   const { t, lang } = useI18n();
   const avg = items.length ? items.reduce((s, a) => s + a.changePct, 0) / items.length : 0;
   return (
