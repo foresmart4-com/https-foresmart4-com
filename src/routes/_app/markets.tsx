@@ -188,6 +188,7 @@ function AssetTable({ items, onAnalyze, onBuy }: { items: AssetQuote[]; onAnalyz
               <th className="px-4 py-3 text-end">{t("lowToday")}</th>
               <th className="px-4 py-3 text-end">{t("signal")}</th>
               <th className="px-4 py-3 text-end">{lang === "ar" ? "تحليل ذكي" : "AI"}</th>
+              <th className="px-4 py-3 text-end">{lang === "ar" ? "تداول" : "Trade"}</th>
             </tr>
           </thead>
           <tbody>
