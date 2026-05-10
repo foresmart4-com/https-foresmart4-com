@@ -19,6 +19,36 @@ export interface AssetHistory {
   points: HistoryPoint[];
 }
 
+type Category = AssetHistory["category"];
+
+const YAHOO_MAP: Record<Category, Record<string, { ticker: string; name: string }>> = {
+  crypto: {
+    BTC: { ticker: "BTC-USD", name: "Bitcoin" },
+    ETH: { ticker: "ETH-USD", name: "Ethereum" },
+    SOL: { ticker: "SOL-USD", name: "Solana" },
+    BNB: { ticker: "BNB-USD", name: "BNB" },
+  },
+  metals: {
+    XAU: { ticker: "GC=F", name: "Gold Futures" },
+    XAG: { ticker: "SI=F", name: "Silver Futures" },
+  },
+  currencies: {
+    "EUR/USD": { ticker: "EURUSD=X", name: "Euro / US Dollar" },
+    "GBP/USD": { ticker: "GBPUSD=X", name: "Pound / US Dollar" },
+    "USD/JPY": { ticker: "JPY=X", name: "Dollar / Yen" },
+    "USD/SAR": { ticker: "SAR=X", name: "Dollar / Saudi Riyal" },
+  },
+  stocks: {
+    AAPL: { ticker: "AAPL", name: "Apple" },
+    MSFT: { ticker: "MSFT", name: "Microsoft" },
+    NVDA: { ticker: "NVDA", name: "NVIDIA" },
+    TSLA: { ticker: "TSLA", name: "Tesla" },
+    "2222.SR": { ticker: "2222.SR", name: "Saudi Aramco" },
+    "1120.SR": { ticker: "1120.SR", name: "Al Rajhi Bank" },
+    "2010.SR": { ticker: "2010.SR", name: "SABIC" },
+  },
+};
+
 const CRYPTO_MAP: Record<string, { id: string; name: string }> = {
   BTC: { id: "bitcoin", name: "Bitcoin" },
   ETH: { id: "ethereum", name: "Ethereum" },
