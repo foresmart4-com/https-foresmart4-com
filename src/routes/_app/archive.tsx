@@ -22,6 +22,27 @@ interface Row {
 }
 
 type Category = "crypto" | "metals" | "currencies" | "stocks";
+type DisplayCurrency = "USD" | "SAR";
+
+const USD_SAR_RATE = 3.75;
+
+function convertToDisplayCurrency(value: number, sourceCurrency: string, targetCurrency: DisplayCurrency, referenceRate?: number) {
+  const source = sourceCurrency.toUpperCase();
+  if (source === targetCurrency) return value;
+  if (source === "USD" && targetCurrency === "SAR") return value * USD_SAR_RATE;
+  if (source === "SAR" && targetCurrency === "USD") return value / USD_SAR_RATE;
+  if (source === "JPY") {
+    const usdValue = value / (referenceRate || 150);
+    return targetCurrency === "USD" ? usdValue : usdValue * USD_SAR_RATE;
+  }
+  return targetCurrency === "SAR" ? value * USD_SAR_RATE : value;
+}
+
+function formatDisplayMoney(value: number, currency: DisplayCurrency) {
+  const abs = Math.abs(value).toLocaleString(undefined, { maximumFractionDigits: 4 });
+  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
+  return currency === "USD" ? `${sign}$${abs}` : `${sign}${abs} ﷼`;
+}
 
 const ASSET_OPTIONS: Record<Category, { symbol: string; name: string }[]> = {
   crypto: [
@@ -304,6 +325,7 @@ function HistoryView() {
   const [category, setCategory] = useState<Category>("crypto");
   const [symbol, setSymbol] = useState<string>("BTC");
   const [days, setDays] = useState<number>(30);
+  const [displayCurrency, setDisplayCurrency] = useState<DisplayCurrency>("USD");
 
   // Reset symbol when category changes
   useEffect(() => {
@@ -317,9 +339,25 @@ function HistoryView() {
     staleTime: 5 * 60_000,
   });
 
+  const sourceCurrency = data?.currency ?? "USD";
+  const referenceRate = data?.points.at(-1)?.close;
+
   const chartData = useMemo(
     () => (data?.points ?? []).map((p) => ({ date: p.date, close: p.close })),
     [data],
+  );
+
+  const historyRows = useMemo(
+    () => (data?.points ?? []).map((p, index, points) => {
+      const previous = points[index - 1];
+      const rawChange = previous ? p.close - previous.close : null;
+      const changePct = previous?.close ? (rawChange! / previous.close) * 100 : null;
+      const convertedChange = rawChange === null
+        ? null
+        : convertToDisplayCurrency(rawChange, sourceCurrency, displayCurrency, p.close || referenceRate);
+      return { ...p, convertedChange, changePct };
+    }).reverse(),
+    [data, displayCurrency, referenceRate, sourceCurrency],
   );
 
   const stats = useMemo(() => {
@@ -330,13 +368,15 @@ function HistoryView() {
     const last = closes[closes.length - 1];
     const high = Math.max(...closes);
     const low = Math.min(...closes);
+    const rawChange = last - first;
+    const changeValue = convertToDisplayCurrency(rawChange, data?.currency ?? "USD", displayCurrency, last || referenceRate);
     const changePct = first ? ((last - first) / first) * 100 : 0;
-    return { first, last, high, low, changePct };
-  }, [data]);
+    return { first, last, high, low, changePct, changeValue };
+  }, [data, displayCurrency, referenceRate]);
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 rounded-xl border border-border bg-card p-4 md:grid-cols-3">
+      <div className="grid gap-3 rounded-xl border border-border bg-card p-4 md:grid-cols-4">
         <div>
           <label className="mb-1 block text-xs text-muted-foreground">
             {lang === "ar" ? "السوق" : "Market"}
@@ -379,13 +419,31 @@ function HistoryView() {
             </SelectContent>
           </Select>
         </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted-foreground">
+            {lang === "ar" ? "عملة تغير القيمة" : "Change currency"}
+          </label>
+          <Select value={displayCurrency} onValueChange={(v) => setDisplayCurrency(v as DisplayCurrency)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="USD">{lang === "ar" ? "بالدولار ($)" : "US Dollar ($)"}</SelectItem>
+              <SelectItem value="SAR">{lang === "ar" ? "بالريال (﷼)" : "Saudi Riyal (﷼)"}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {stats && (
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-5">
           <StatCard label={lang === "ar" ? "أعلى" : "High"} value={stats.high} />
           <StatCard label={lang === "ar" ? "أدنى" : "Low"} value={stats.low} />
           <StatCard label={lang === "ar" ? "البداية" : "Start"} value={stats.first} />
+          <StatCard
+            label={lang === "ar" ? `تغير القيمة (${displayCurrency === "USD" ? "دولار" : "ريال"})` : `Value change (${displayCurrency})`}
+            value={formatDisplayMoney(stats.changeValue, displayCurrency)}
+            accent={stats.changeValue >= 0 ? "success" : "danger"}
+            icon={stats.changeValue >= 0 ? TrendingUp : TrendingDown}
+          />
           <StatCard
             label={lang === "ar" ? "التغير" : "Change"}
             value={`${stats.changePct >= 0 ? "+" : ""}${stats.changePct.toFixed(2)}%`}
@@ -469,13 +527,19 @@ function HistoryView() {
                 </tr>
               </thead>
               <tbody>
-                {[...(data?.points ?? [])].reverse().map((p) => (
+                {historyRows.map((p) => (
                   <tr key={p.date} className="border-t border-border hover:bg-muted/30">
                     <td className="px-4 py-2 font-medium">{p.date}</td>
                     <td className="px-4 py-2 text-end text-muted-foreground">{p.open?.toLocaleString(undefined, { maximumFractionDigits: 4 }) ?? "—"}</td>
                     <td className="px-4 py-2 text-end text-success">{p.high?.toLocaleString(undefined, { maximumFractionDigits: 4 }) ?? "—"}</td>
                     <td className="px-4 py-2 text-end text-danger">{p.low?.toLocaleString(undefined, { maximumFractionDigits: 4 }) ?? "—"}</td>
                     <td className="px-4 py-2 text-end font-semibold">{p.close.toLocaleString(undefined, { maximumFractionDigits: 4 })}</td>
+                    <td className={cn("px-4 py-2 text-end font-semibold", (p.convertedChange ?? 0) >= 0 ? "text-success" : "text-danger")}>
+                      {p.convertedChange === null ? "—" : formatDisplayMoney(p.convertedChange, displayCurrency)}
+                    </td>
+                    <td className={cn("px-4 py-2 text-end", (p.changePct ?? 0) >= 0 ? "text-success" : "text-danger")}>
+                      {p.changePct === null ? "—" : `${p.changePct >= 0 ? "+" : ""}${p.changePct.toFixed(2)}%`}
+                    </td>
                     <td className="px-4 py-2 text-end text-xs text-muted-foreground">
                       {p.volume ? p.volume.toLocaleString(undefined, { maximumFractionDigits: 0 }) : "—"}
                     </td>
