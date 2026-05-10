@@ -194,6 +194,111 @@ function TopGainersView() {
   );
 }
 
+
+function TopStockGainersView() {
+  const { lang } = useI18n();
+  const [market, setMarket] = useState<"all" | "us" | "saudi">("all");
+  const { data, isLoading, isError, isFetching, error, refetch } = useQuery<TopStockGainer[], Error>({
+    queryKey: ["top-stock-gainers", market],
+    queryFn: () => getTopStockGainers({ data: { market, limit: 15 } }),
+    retry: 1,
+    staleTime: 60_000,
+  });
+
+  const fmtPrice = (p: number, ccy: string) => {
+    const sign = ccy === "USD" ? "$" : ccy === "SAR" ? "﷼" : "";
+    return `${sign}${p.toLocaleString(undefined, { maximumFractionDigits: 2 })}${sign ? "" : ` ${ccy}`}`;
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
+        <div>
+          <div className="flex items-center gap-2 font-semibold">
+            <Flame className="h-4 w-4 text-warning" />
+            {lang === "ar" ? "أعلى الأسهم ارتفاعًا" : "Top gaining stocks"}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {lang === "ar" ? "بالدولار للأسهم الأمريكية وبالريال للأسهم السعودية" : "USD for US stocks, SAR for Saudi stocks"}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Select value={market} onValueChange={(v) => setMarket(v as "all" | "us" | "saudi")}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{lang === "ar" ? "كل الأسواق" : "All markets"}</SelectItem>
+              <SelectItem value="us">{lang === "ar" ? "السوق الأمريكي ($)" : "US Market ($)"}</SelectItem>
+              <SelectItem value="saudi">{lang === "ar" ? "السوق السعودي (﷼)" : "Saudi Market (﷼)"}</SelectItem>
+            </SelectContent>
+          </Select>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium hover:bg-muted/40"
+            disabled={isFetching}
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
+            {lang === "ar" ? "تحديث" : "Refresh"}
+          </button>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
+          {lang === "ar" ? "جارٍ التحميل..." : "Loading..."}
+        </div>
+      ) : isError || !data || data.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
+          <AlertTriangle className="h-6 w-6 text-warning" />
+          <div className="text-sm">
+            {isError
+              ? (lang === "ar" ? "تعذّر تحميل الأسهم. حاول مجددًا." : "Could not load stocks. Try again.")
+              : (lang === "ar" ? "لا توجد بيانات حاليًا." : "No data available right now.")}
+          </div>
+          {isError && <div className="text-xs">{error?.message}</div>}
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3 text-start">#</th>
+                <th className="px-4 py-3 text-start">{lang === "ar" ? "السهم" : "Stock"}</th>
+                <th className="px-4 py-3 text-start">{lang === "ar" ? "السوق" : "Market"}</th>
+                <th className="px-4 py-3 text-end">{lang === "ar" ? "السعر" : "Price"}</th>
+                <th className="px-4 py-3 text-end">{lang === "ar" ? "العملة" : "Currency"}</th>
+                <th className="px-4 py-3 text-end">{lang === "ar" ? "التغير اليومي" : "Daily change"}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((s, i) => (
+                <tr key={s.symbol} className="border-t border-border hover:bg-muted/30">
+                  <td className="px-4 py-3 text-muted-foreground">{i + 1}</td>
+                  <td className="px-4 py-3">
+                    <div className="font-semibold">{s.symbol}</div>
+                    <div className="text-xs text-muted-foreground">{s.name}</div>
+                  </td>
+                  <td className="px-4 py-3 text-xs">
+                    {s.market === "us" ? (lang === "ar" ? "🇺🇸 أمريكي" : "🇺🇸 US") : (lang === "ar" ? "🇸🇦 سعودي" : "🇸🇦 Saudi")}
+                  </td>
+                  <td className="px-4 py-3 text-end font-medium">{fmtPrice(s.price, s.currency)}</td>
+                  <td className="px-4 py-3 text-end text-xs text-muted-foreground">{s.currency}</td>
+                  <td className={cn("px-4 py-3 text-end font-semibold", s.changePct >= 0 ? "text-success" : "text-danger")}>
+                    <span className="inline-flex items-center gap-1">
+                      {s.changePct >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                      {s.changePct >= 0 ? "+" : ""}{s.changePct.toFixed(2)}%
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HistoryView() {
   const { lang } = useI18n();
   const [category, setCategory] = useState<Category>("crypto");
