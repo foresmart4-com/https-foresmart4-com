@@ -68,8 +68,12 @@ function ArchivePage() {
         <Archive className="h-7 w-7 text-primary" /> {t("archiveTitle")}
       </h1>
 
-      <Tabs defaultValue="history" className="w-full">
+      <Tabs defaultValue="gainers" className="w-full">
         <TabsList className="mb-4">
+          <TabsTrigger value="gainers" className="gap-2">
+            <Flame className="h-4 w-4" />
+            {lang === "ar" ? "عملات الارتفاع" : "Top gainers"}
+          </TabsTrigger>
           <TabsTrigger value="history" className="gap-2">
             <History className="h-4 w-4" />
             {lang === "ar" ? "تاريخ الأسواق" : "Market history"}
@@ -79,6 +83,10 @@ function ArchivePage() {
             {lang === "ar" ? "اللقطات المحفوظة" : "Saved snapshots"}
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="gainers">
+          <TopGainersView />
+        </TabsContent>
 
         <TabsContent value="history">
           <HistoryView />
