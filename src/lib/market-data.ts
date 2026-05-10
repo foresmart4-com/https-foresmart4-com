@@ -151,9 +151,63 @@ async function fetchMetals(): Promise<AssetQuote[]> {
   }
 }
 
+// Metal investment funds via Yahoo Finance (real ETFs)
+const METAL_FUNDS = [
+  { symbol: "GLD", name: "SPDR Gold Shares (صندوق الذهب)" },
+  { symbol: "IAU", name: "iShares Gold Trust (صندوق الذهب)" },
+  { symbol: "GLDM", name: "SPDR Gold MiniShares (صندوق الذهب الصغير)" },
+  { symbol: "SLV", name: "iShares Silver Trust (صندوق الفضة)" },
+  { symbol: "SIVR", name: "abrdn Physical Silver (صندوق الفضة)" },
+];
+
+async function fetchMetalFunds(): Promise<AssetQuote[]> {
+  const tasks = METAL_FUNDS.map(async (f) => {
+    try {
+      const r = await fetch(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${f.symbol}?interval=1d&range=5d`,
+        { headers: { "User-Agent": "Mozilla/5.0" } },
+      );
+      if (!r.ok) return null;
+      const j = (await r.json()) as {
+        chart: { result?: Array<{
+          meta: { regularMarketPrice: number; chartPreviousClose: number; regularMarketDayHigh?: number; regularMarketDayLow?: number; regularMarketVolume?: number };
+          timestamp?: number[];
+          indicators: { quote: Array<{ close: (number | null)[] }> };
+        }> };
+      };
+      const res = j.chart.result?.[0];
+      if (!res) return null;
+      const closes = (res.indicators.quote[0]?.close ?? []).filter((x): x is number => x != null);
+      const ts = res.timestamp ?? [];
+      const price = res.meta.regularMarketPrice;
+      const prev = res.meta.chartPreviousClose || closes[0] || price;
+      const history = closes.map((p, i) => ({ t: (ts[i] ?? Date.now() / 1000) * 1000, p }));
+      return {
+        symbol: f.symbol,
+        name: f.name,
+        category: "metals" as const,
+        price,
+        changePct: prev ? ((price - prev) / prev) * 100 : 0,
+        high24h: res.meta.regularMarketDayHigh ?? price,
+        low24h: res.meta.regularMarketDayLow ?? price,
+        volume: res.meta.regularMarketVolume ?? 0,
+        history,
+      };
+    } catch {
+      return null;
+    }
+  });
+  return (await Promise.all(tasks)).filter((x): x is AssetQuote => x !== null);
+}
+
 export const getMarketData = createServerFn({ method: "GET" }).handler(async () => {
-  const [crypto, fx, metals] = await Promise.all([fetchCrypto(), fetchFX(), fetchMetals()]);
-  return { assets: [...crypto, ...metals, ...fx], fetchedAt: Date.now() };
+  const [crypto, fx, metals, metalFunds] = await Promise.all([
+    fetchCrypto(),
+    fetchFX(),
+    fetchMetals(),
+    fetchMetalFunds(),
+  ]);
+  return { assets: [...crypto, ...metals, ...metalFunds, ...fx], fetchedAt: Date.now() };
 });
 
 // ===== Technical indicators =====
