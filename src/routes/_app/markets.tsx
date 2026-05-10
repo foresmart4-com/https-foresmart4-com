@@ -142,6 +142,14 @@ function RegionSection({ region, items, onAnalyze, onBuy }: { region: StockRegio
                       <Brain className="me-1 h-3.5 w-3.5" />{lang === "ar" ? "تحليل" : "Analyze"}
                     </Button>
                   </td>
+                  <td className="px-4 py-3 text-end">
+                    <Button size="sm" className="h-7 px-2 text-xs" onClick={() => onBuy({
+                      symbol: s.symbol, name: s.name, category: "stock",
+                      price: s.price, changePct: s.changePct, market: s.region, currency: s.currency,
+                    })}>
+                      <ShoppingCart className="me-1 h-3.5 w-3.5" />{lang === "ar" ? "شراء" : "Buy"}
+                    </Button>
+                  </td>
                 </tr>
               );
             })}
