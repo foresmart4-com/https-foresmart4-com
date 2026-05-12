@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export const getWallet = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -119,9 +120,9 @@ export const placeOrder = createServerFn({ method: "POST" })
       ? Number(wallet.balance) - total
       : Number(wallet.balance) + total;
 
-    await supabase.from("wallets").update({ balance: newBal, updated_at: new Date().toISOString() }).eq("id", wallet.id);
+    await supabaseAdmin.from("wallets").update({ balance: newBal, updated_at: new Date().toISOString() }).eq("id", wallet.id);
 
-    await supabase.from("wallet_transactions").insert({
+    await supabaseAdmin.from("wallet_transactions").insert({
       user_id: userId,
       wallet_id: wallet.id,
       type: data.side,
