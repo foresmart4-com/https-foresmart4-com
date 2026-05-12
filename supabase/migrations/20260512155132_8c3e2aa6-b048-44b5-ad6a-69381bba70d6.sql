@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.has_accepted_disclaimer(text) FROM anon, public;
