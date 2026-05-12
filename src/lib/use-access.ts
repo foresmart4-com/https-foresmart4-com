@@ -39,5 +39,6 @@ export function useAccess() {
     return { error: error?.message ?? null };
   };
 
-  return { role, accepted, loading, refresh, acceptDisclaimer, isAdmin: role === "admin", canAccess: role === "admin" || role === "subscriber" };
+  // Payment gate temporarily disabled — any authenticated user can access the app.
+  return { role, accepted, loading, refresh, acceptDisclaimer, isAdmin: role === "admin", canAccess: !!user };
 }
