@@ -1,7 +1,7 @@
 // Free market data aggregator. Runs server-side via TanStack server functions.
 import { createServerFn } from "@tanstack/react-start";
 
-export type AssetCategory = "currencies" | "metals" | "oil" | "crypto" | "stocks";
+export type AssetCategory = "currencies" | "metals" | "oil" | "crypto" | "stocks" | "bonds";
 
 export interface AssetQuote {
   symbol: string;
@@ -200,14 +200,68 @@ async function fetchMetalFunds(): Promise<AssetQuote[]> {
   return (await Promise.all(tasks)).filter((x): x is AssetQuote => x !== null);
 }
 
+// ===== Bonds (via Yahoo Finance bond ETFs) =====
+const BOND_FUNDS = [
+  { symbol: "TLT", name: "iShares 20+ Year Treasury (سندات أمريكية طويلة الأجل)" },
+  { symbol: "IEF", name: "iShares 7-10 Year Treasury (سندات أمريكية متوسطة)" },
+  { symbol: "SHY", name: "iShares 1-3 Year Treasury (سندات أمريكية قصيرة)" },
+  { symbol: "BND", name: "Vanguard Total Bond Market (سوق السندات الكلي)" },
+  { symbol: "AGG", name: "iShares Core US Aggregate (مجمع السندات)" },
+  { symbol: "LQD", name: "iShares Investment Grade Corp (سندات شركات)" },
+  { symbol: "HYG", name: "iShares High Yield Corp (سندات عالية العائد)" },
+  { symbol: "TIP", name: "iShares TIPS Bond (سندات محمية من التضخم)" },
+  { symbol: "EMB", name: "iShares Emerging Markets Bond (سندات الأسواق الناشئة)" },
+];
+
+async function fetchBonds(): Promise<AssetQuote[]> {
+  const tasks: Promise<AssetQuote | null>[] = BOND_FUNDS.map(async (f): Promise<AssetQuote | null> => {
+    try {
+      const r = await fetch(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${f.symbol}?interval=1d&range=5d`,
+        { headers: { "User-Agent": "Mozilla/5.0" } },
+      );
+      if (!r.ok) return null;
+      const j = (await r.json()) as {
+        chart: { result?: Array<{
+          meta: { regularMarketPrice: number; chartPreviousClose: number; regularMarketDayHigh?: number; regularMarketDayLow?: number; regularMarketVolume?: number };
+          timestamp?: number[];
+          indicators: { quote: Array<{ close: (number | null)[] }> };
+        }> };
+      };
+      const res = j.chart.result?.[0];
+      if (!res) return null;
+      const closes = (res.indicators.quote[0]?.close ?? []).filter((x): x is number => x != null);
+      const ts = res.timestamp ?? [];
+      const price = res.meta.regularMarketPrice;
+      const prev = res.meta.chartPreviousClose || closes[0] || price;
+      const history = closes.map((p, i) => ({ t: (ts[i] ?? Date.now() / 1000) * 1000, p }));
+      return {
+        symbol: f.symbol,
+        name: f.name,
+        category: "bonds" as const,
+        price,
+        changePct: prev ? ((price - prev) / prev) * 100 : 0,
+        high24h: res.meta.regularMarketDayHigh ?? price,
+        low24h: res.meta.regularMarketDayLow ?? price,
+        volume: res.meta.regularMarketVolume ?? 0,
+        history,
+      };
+    } catch {
+      return null;
+    }
+  });
+  return (await Promise.all(tasks)).filter((x): x is AssetQuote => x !== null);
+}
+
 export const getMarketData = createServerFn({ method: "GET" }).handler(async () => {
-  const [crypto, fx, metals, metalFunds] = await Promise.all([
+  const [crypto, fx, metals, metalFunds, bonds] = await Promise.all([
     fetchCrypto(),
     fetchFX(),
     fetchMetals(),
     fetchMetalFunds(),
+    fetchBonds(),
   ]);
-  return { assets: [...crypto, ...metals, ...metalFunds, ...fx], fetchedAt: Date.now() };
+  return { assets: [...crypto, ...metals, ...metalFunds, ...fx, ...bonds], fetchedAt: Date.now() };
 });
 
 // ===== Technical indicators =====
