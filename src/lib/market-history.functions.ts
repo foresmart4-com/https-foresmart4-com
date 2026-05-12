@@ -237,6 +237,7 @@ export const getTopStockGainers = createServerFn({ method: "GET" })
   });
 
 export const getAssetHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data) =>
     z.object({
       symbol: z.string().min(1),
