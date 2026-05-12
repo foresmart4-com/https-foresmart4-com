@@ -1,166 +1,169 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listPlans, getMySubscription, initiateSubscription } from "@/lib/payments.functions";
+import { listPlans, getMySubscription, createBillingPortalSession } from "@/lib/payments.functions";
+import { getStripeEnvironment } from "@/lib/stripe";
 import { useI18n } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Sparkles, AlertCircle } from "lucide-react";
+import { Check, Crown, Sparkles, Settings } from "lucide-react";
 import { toast } from "sonner";
+import { StripeSubscriptionCheckout } from "@/components/StripeSubscriptionCheckout";
 
 export const Route = createFileRoute("/_app/subscription")({ component: SubscriptionPage });
 
+const PRICE_MAP: Record<string, "quarterly_sar" | "annual_sar"> = {
+  quarterly: "quarterly_sar",
+  annual: "annual_sar",
+};
+
 function SubscriptionPage() {
   const { lang, dir } = useI18n();
-  const navigate = useNavigate();
   const plansFn = useServerFn(listPlans);
   const subFn = useServerFn(getMySubscription);
-  const initFn = useServerFn(initiateSubscription);
+  const portalFn = useServerFn(createBillingPortalSession);
 
   const { data: plans } = useQuery({ queryKey: ["plans"], queryFn: () => plansFn() });
-  const { data: sub } = useQuery({ queryKey: ["my-sub"], queryFn: () => subFn() });
+  const { data: sub, refetch } = useQuery({ queryKey: ["my-sub"], queryFn: () => subFn() });
 
-  const [activeForm, setActiveForm] = useState<{ planCode: "quarterly" | "annual"; pk: string | null; subId: string; price: number } | null>(null);
-  const formRef = useRef<HTMLDivElement>(null);
+  const [selectedPrice, setSelectedPrice] = useState<"quarterly_sar" | "annual_sar" | null>(null);
 
-  const init = useMutation({
-    mutationFn: (code: "quarterly" | "annual") => initFn({ data: { planCode: code } }),
-    onSuccess: (res, code) => {
-      setActiveForm({ planCode: code, pk: res.publishableKey, subId: res.subscriptionId, price: Number(res.plan.price_sar) });
-      setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+  const portal = useMutation({
+    mutationFn: () =>
+      portalFn({
+        data: {
+          returnUrl: `${window.location.origin}/subscription`,
+          environment: getStripeEnvironment(),
+        },
+      }),
+    onSuccess: (url) => {
+      if (typeof url === "string") window.open(url, "_blank");
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Inject Moyasar.js once when form is shown
-  useEffect(() => {
-    if (!activeForm) return;
-    if (document.getElementById("moyasar-css")) return;
-    const link = document.createElement("link");
-    link.id = "moyasar-css";
-    link.rel = "stylesheet";
-    link.href = "https://cdn.moyasar.com/mpf/1.15.1/moyasar.css";
-    document.head.appendChild(link);
-    const s = document.createElement("script");
-    s.src = "https://cdn.moyasar.com/mpf/1.15.1/moyasar.js";
-    s.async = true;
-    s.onload = () => mountForm();
-    document.body.appendChild(s);
-  }, [activeForm]);
-
-  useEffect(() => { if (activeForm && (window as any).Moyasar) mountForm(); }, [activeForm]);
-
-  const mountForm = () => {
-    if (!activeForm || !activeForm.pk) return;
-    const M = (window as any).Moyasar;
-    if (!M) return;
-    M.init({
-      element: ".mysr-form",
-      amount: Math.round(activeForm.price * 100),
-      currency: "SAR",
-      description: lang === "ar" ? `اشتراك ${activeForm.planCode === "annual" ? "سنوي" : "فصلي"}` : `${activeForm.planCode} subscription`,
-      publishable_api_key: activeForm.pk,
-      callback_url: `${window.location.origin}/subscription?status=success`,
-      methods: ["creditcard", "applepay", "stcpay"],
-      metadata: { purpose: "subscription", subscription_id: activeForm.subId },
-    });
-  };
-
-  const isActive = sub && ["active", "trialing"].includes(sub.status);
+  const isActive =
+    sub && ["active", "trialing", "past_due"].includes(sub.status as string);
+  const hasStripeCustomer = !!(sub as any)?.stripe_customer_id;
 
   return (
     <div className="container mx-auto max-w-5xl space-y-6 p-6" dir={dir}>
       <div>
-        <h1 className="font-display text-3xl font-bold">{lang === "ar" ? "خطط الاشتراك" : "Subscription Plans"}</h1>
+        <h1 className="font-display text-3xl font-bold">
+          {lang === "ar" ? "خطط الاشتراك" : "Subscription Plans"}
+        </h1>
         <p className="text-sm text-muted-foreground">
-          {lang === "ar" ? "ابدأ بتجربة مجانية 14 يوماً، ثم اختر الخطة المناسبة لك." : "Start with a 14-day free trial, then pick the plan that fits you."}
+          {lang === "ar"
+            ? "تجربة مجانية 14 يوم بدون أي خصم. يمكنك إلغاء الاشتراك في أي وقت."
+            : "Free 14-day trial. No charge during trial. Cancel anytime."}
         </p>
       </div>
 
       {isActive && (
-        <Card className="gradient-card border-success/40 p-4">
+        <Card className="gradient-card border-success/40 p-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Crown className="h-6 w-6 text-success" />
             <div>
               <div className="font-semibold">
                 {sub.status === "trialing"
-                  ? (lang === "ar" ? "أنت في فترة التجربة المجانية" : "You're on free trial")
-                  : (lang === "ar" ? "اشتراكك نشط" : "Subscription active")}
+                  ? lang === "ar" ? "أنت في فترة التجربة المجانية" : "You're on free trial"
+                  : sub.status === "past_due"
+                  ? lang === "ar" ? "تأخر في الدفع - يحاول النظام التجديد" : "Payment past due - retrying"
+                  : lang === "ar" ? "اشتراكك نشط" : "Subscription active"}
               </div>
               <div className="text-xs text-muted-foreground">
                 {lang === "ar" ? "ينتهي في" : "Ends on"}{" "}
-                {new Date(sub.current_period_end ?? sub.trial_ends_at ?? Date.now()).toLocaleDateString()}
+                {new Date(
+                  (sub.current_period_end as string) ?? (sub.trial_ends_at as string) ?? Date.now(),
+                ).toLocaleDateString()}
               </div>
             </div>
           </div>
+          {hasStripeCustomer && (
+            <Button variant="outline" size="sm" onClick={() => portal.mutate()} disabled={portal.isPending}>
+              <Settings className="me-2 h-4 w-4" />
+              {lang === "ar" ? "إدارة الاشتراك" : "Manage Subscription"}
+            </Button>
+          )}
         </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {(plans ?? []).map((p: any) => {
-          const monthly = (Number(p.price_sar) / p.duration_months).toFixed(0);
-          const isAnnual = p.code === "annual";
-          return (
-            <Card key={p.id} className={`relative p-6 ${isAnnual ? "border-primary shadow-glow" : ""}`}>
-              {isAnnual && (
-                <Badge className="absolute -top-2 right-4 gap-1"><Sparkles className="h-3 w-3" />{lang === "ar" ? "الأكثر توفيراً" : "Best value"}</Badge>
-              )}
-              <h3 className="font-display text-xl font-bold">{lang === "ar" ? p.name_ar : p.name_en}</h3>
-              <div className="mt-4 flex items-baseline gap-2">
-                <span className="font-display text-4xl font-bold">{p.price_sar}</span>
-                <span className="text-muted-foreground">{lang === "ar" ? "ريال" : "SAR"}</span>
-                <span className="text-xs text-muted-foreground">/ {p.duration_months} {lang === "ar" ? "شهر" : "mo"}</span>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                ≈ {monthly} {lang === "ar" ? "ريال/شهر" : "SAR/month"}
-              </p>
-              <ul className="mt-4 space-y-2 text-sm">
-                {(p.features as string[]).map((f, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <Button
-                className="mt-6 w-full"
-                variant={isAnnual ? "default" : "outline"}
-                disabled={init.isPending || !!isActive}
-                onClick={() => init.mutate(p.code)}
+      {selectedPrice ? (
+        <Card className="p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="font-display text-lg font-bold">
+              {lang === "ar" ? "إتمام الاشتراك" : "Complete Subscription"}
+            </h3>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedPrice(null)}>
+              {lang === "ar" ? "رجوع" : "Back"}
+            </Button>
+          </div>
+          <p className="mb-4 text-sm text-muted-foreground">
+            {lang === "ar"
+              ? "لن يتم خصم أي مبلغ خلال الـ 14 يوماً الأولى. يتم التجديد تلقائياً بعدها ما لم تلغِ."
+              : "No charge for 14 days. Auto-renews after the trial unless cancelled."}
+          </p>
+          <StripeSubscriptionCheckout
+            priceId={selectedPrice}
+            returnUrl={`${window.location.origin}/subscription?checkout=success`}
+          />
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {(plans ?? []).map((p: any) => {
+            const priceId = PRICE_MAP[p.code as string];
+            const monthly = (Number(p.price_sar) / p.duration_months).toFixed(0);
+            const isAnnual = p.code === "annual";
+            return (
+              <Card
+                key={p.id}
+                className={`relative p-6 ${isAnnual ? "border-primary shadow-glow" : ""}`}
               >
-                {isActive ? (lang === "ar" ? "مشترك حالياً" : "Already subscribed")
-                  : init.isPending ? "..." : (lang === "ar" ? "ابدأ التجربة المجانية" : "Start free trial")}
-              </Button>
-            </Card>
-          );
-        })}
-      </div>
-
-      {activeForm && !activeForm.pk && (
-        <Card className="border-warning/40 bg-warning/5 p-4">
-          <div className="flex gap-3">
-            <AlertCircle className="h-5 w-5 shrink-0 text-warning" />
-            <div className="text-sm">
-              <p className="font-semibold">{lang === "ar" ? "بوابة الدفع غير مفعّلة بعد" : "Payment gateway not configured yet"}</p>
-              <p className="mt-1 text-muted-foreground">
-                {lang === "ar"
-                  ? "لتفعيل الدفع: أنشئ حساب Moyasar من moyasar.com، ثم أضف مفاتيح API من خلال إعدادات المشروع."
-                  : "To enable payments: create a Moyasar account at moyasar.com, then add API keys in project settings."}
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {activeForm && activeForm.pk && (
-        <Card ref={formRef as any} className="p-6">
-          <h3 className="mb-4 font-display text-lg font-bold">
-            {lang === "ar" ? "إتمام الدفع" : "Complete payment"}
-          </h3>
-          <div className="mysr-form" />
-        </Card>
+                {isAnnual && (
+                  <Badge className="absolute -top-2 right-4 gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    {lang === "ar" ? "الأكثر توفيراً" : "Best value"}
+                  </Badge>
+                )}
+                <h3 className="font-display text-xl font-bold">
+                  {lang === "ar" ? p.name_ar : p.name_en}
+                </h3>
+                <div className="mt-4 flex items-baseline gap-2">
+                  <span className="font-display text-4xl font-bold">{p.price_sar}</span>
+                  <span className="text-muted-foreground">{lang === "ar" ? "ريال" : "SAR"}</span>
+                  <span className="text-xs text-muted-foreground">
+                    / {p.duration_months} {lang === "ar" ? "شهر" : "mo"}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  ≈ {monthly} {lang === "ar" ? "ريال/شهر" : "SAR/month"}
+                </p>
+                <ul className="mt-4 space-y-2 text-sm">
+                  {((p.features as string[]) ?? []).map((f, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  className="mt-6 w-full"
+                  variant={isAnnual ? "default" : "outline"}
+                  disabled={!priceId || !!(isActive && hasStripeCustomer)}
+                  onClick={() => priceId && setSelectedPrice(priceId)}
+                >
+                  {isActive && hasStripeCustomer
+                    ? lang === "ar" ? "مشترك حالياً" : "Already subscribed"
+                    : lang === "ar"
+                    ? "ابدأ التجربة المجانية 14 يوم"
+                    : "Start 14-day free trial"}
+                </Button>
+              </Card>
+            );
+          })}
+        </div>
       )}
     </div>
   );
