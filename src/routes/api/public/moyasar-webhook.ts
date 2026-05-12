@@ -46,6 +46,13 @@ export const Route = createFileRoute("/api/public/moyasar-webhook")({
               .eq("id", meta.topup_id).maybeSingle();
 
             if (topup && topup.status === "pending") {
+              // Use the authoritative user_id from the topup record, not the webhook payload
+              if (userId && topup.user_id !== userId) {
+                console.error("user_id mismatch in webhook", { expected: topup.user_id, got: userId });
+                return new Response("user mismatch", { status: 400 });
+              }
+              const ownerId = topup.user_id;
+
               await supabaseAdmin.from("wallet_topups").update({
                 status: "paid",
                 moyasar_payment_id: paymentId,
@@ -53,9 +60,9 @@ export const Route = createFileRoute("/api/public/moyasar-webhook")({
               }).eq("id", topup.id);
 
               const { data: w } = await supabaseAdmin
-                .from("wallets").select("*").eq("user_id", userId).maybeSingle();
+                .from("wallets").select("*").eq("user_id", ownerId).maybeSingle();
               const wallet = w ?? (await supabaseAdmin.from("wallets")
-                .insert({ user_id: userId, currency: "SAR" }).select().single()).data;
+                .insert({ user_id: ownerId, currency: "SAR" }).select().single()).data;
 
               if (wallet) {
                 await supabaseAdmin.from("wallets").update({
