@@ -210,6 +210,7 @@ const planTool = {
 };
 
 export const microCapitalPlan = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d) => PlanInput.parse(d))
   .handler(async ({ data }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
