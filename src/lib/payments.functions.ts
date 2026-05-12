@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { computeTopupFees } from "./moyasar.server";
+import { type StripeEnv, createStripeClient, resolveOrCreateCustomer } from "./stripe.server";
 
 const MIN_TOPUP_SAR = 150;
 
@@ -29,40 +30,82 @@ export const getMySubscription = createServerFn({ method: "GET" })
     return data;
   });
 
-// Initiate a subscription: creates a pending row, returns plan + publishable key
-// so the client can render the Moyasar.js form. Webhook will activate.
-export const initiateSubscription = createServerFn({ method: "POST" })
+// Stripe checkout session for subscription with 14-day trial
+export const createSubscriptionCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ planCode: z.enum(["quarterly", "annual"]) }).parse(d))
+  .inputValidator((d) =>
+    z.object({
+      priceId: z.enum(["quarterly_sar", "annual_sar"]),
+      returnUrl: z.string().url(),
+      environment: z.enum(["sandbox", "live"]),
+    }).parse(d),
+  )
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = context;
-    const { data: plan, error: pErr } = await supabase
-      .from("subscription_plans").select("*").eq("code", data.planCode).single();
-    if (pErr || !plan) throw new Error("Plan not found");
+    const { userId } = context;
+    const env = data.environment as StripeEnv;
+    const stripe = createStripeClient(env);
 
-    const trialEnd = new Date(Date.now() + plan.trial_days * 86400_000);
-    const periodEnd = new Date(trialEnd.getTime() + plan.duration_months * 30 * 86400_000);
+    const prices = await stripe.prices.list({ lookup_keys: [data.priceId] });
+    if (!prices.data.length) throw new Error("Price not found in Stripe");
+    const stripePrice = prices.data[0];
 
-    const { data: sub, error } = await supabase.from("subscriptions").insert({
-      user_id: userId,
-      plan_id: plan.id,
-      status: "pending",
-      trial_ends_at: trialEnd.toISOString(),
-      current_period_start: new Date().toISOString(),
-      current_period_end: periodEnd.toISOString(),
-      amount_paid: plan.price_sar,
-      currency: "SAR",
-    }).select().single();
-    if (error) throw new Error(error.message);
+    // Get user email for customer
+    const { data: { user } } = await context.supabase.auth.getUser();
+    const customerId = await resolveOrCreateCustomer(stripe, {
+      email: user?.email,
+      userId,
+    });
 
-    return {
-      subscriptionId: sub.id,
-      plan,
-      publishableKey: process.env.MOYASAR_PUBLISHABLE_KEY ?? null,
-    };
+    const session = await stripe.checkout.sessions.create({
+      line_items: [{ price: stripePrice.id, quantity: 1 }],
+      mode: "subscription",
+      ui_mode: "embedded_page",
+      return_url: data.returnUrl,
+      customer: customerId,
+      subscription_data: {
+        trial_period_days: 14,
+        metadata: { userId },
+      },
+      metadata: { userId },
+    });
+
+    return session.client_secret;
   });
 
-// Initiate a wallet top-up
+export const createBillingPortalSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      returnUrl: z.string().url(),
+      environment: z.enum(["sandbox", "live"]),
+    }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const env = data.environment as StripeEnv;
+    const { data: sub } = await context.supabase
+      .from("subscriptions")
+      .select("stripe_customer_id")
+      .eq("user_id", context.userId)
+      .eq("environment", env)
+      .not("stripe_customer_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!sub?.stripe_customer_id) {
+      throw new Error("No Stripe customer found. Please complete a subscription first.");
+    }
+
+    const stripe = createStripeClient(env);
+    const portal = await stripe.billingPortal.sessions.create({
+      customer: sub.stripe_customer_id,
+      return_url: data.returnUrl,
+    });
+    return portal.url;
+  });
+
+// ----- Wallet top-up (Moyasar) -----
+
 export const initiateTopup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({
@@ -92,7 +135,6 @@ export const initiateTopup = createServerFn({ method: "POST" })
     };
   });
 
-// Compute fees for UI preview without inserting
 export const previewTopupFees = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({
     amountSar: z.number().min(1).max(500000),
