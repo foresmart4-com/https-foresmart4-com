@@ -1,6 +1,7 @@
 // Multi-day historical market data for the Archive page.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export interface HistoryPoint {
   date: string; // YYYY-MM-DD
