@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { AssetAnalysisDialog } from "@/components/AssetAnalysisDialog";
 import { BuyAssetDialog } from "@/components/BuyAssetDialog";
-import { Building2, Coins, DollarSign, Brain, Gem, ShoppingCart } from "lucide-react";
+import { Building2, Coins, DollarSign, Brain, Gem, ShoppingCart, Landmark } from "lucide-react";
 
 interface SelectedAsset {
   symbol: string;
@@ -31,7 +31,7 @@ const REGION_ORDER: StockRegion[] = ["us", "eu", "uk", "japan", "china", "uae", 
 
 function MarketsPage() {
   const { t, lang } = useI18n();
-  const [tab, setTab] = useState<"stocks" | "crypto" | "metals" | "fx">("stocks");
+  const [tab, setTab] = useState<"stocks" | "crypto" | "metals" | "fx" | "bonds">("stocks");
   const [selected, setSelected] = useState<SelectedAsset | null>(null);
   const [open, setOpen] = useState(false);
   const [buyTarget, setBuyTarget] = useState<SelectedAsset | null>(null);
@@ -49,15 +49,17 @@ function MarketsPage() {
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-        <TabsList className="grid w-full max-w-3xl grid-cols-4">
+        <TabsList className="grid w-full max-w-4xl grid-cols-5">
           <TabsTrigger value="stocks" className="gap-2"><Building2 className="h-4 w-4" />{lang === "ar" ? "الأسهم" : "Stocks"}</TabsTrigger>
           <TabsTrigger value="crypto" className="gap-2"><Coins className="h-4 w-4" />{lang === "ar" ? "العملات الرقمية" : "Crypto"}</TabsTrigger>
+          <TabsTrigger value="bonds" className="gap-2"><Landmark className="h-4 w-4" />{lang === "ar" ? "السندات" : "Bonds"}</TabsTrigger>
           <TabsTrigger value="metals" className="gap-2"><Gem className="h-4 w-4" />{lang === "ar" ? "المعادن" : "Metals"}</TabsTrigger>
           <TabsTrigger value="fx" className="gap-2"><DollarSign className="h-4 w-4" />{lang === "ar" ? "العملات العالمية" : "Forex"}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="stocks" className="mt-6 space-y-6"><StocksTab onAnalyze={analyze} onBuy={buy} /></TabsContent>
         <TabsContent value="crypto" className="mt-6 space-y-6"><AssetsTab category="crypto" onAnalyze={analyze} onBuy={buy} /></TabsContent>
+        <TabsContent value="bonds" className="mt-6 space-y-6"><AssetsTab category="bonds" onAnalyze={analyze} onBuy={buy} /></TabsContent>
         <TabsContent value="metals" className="mt-6 space-y-6"><AssetsTab category="metals" onAnalyze={analyze} onBuy={buy} /></TabsContent>
         <TabsContent value="fx" className="mt-6 space-y-6"><AssetsTab category="currencies" onAnalyze={analyze} onBuy={buy} /></TabsContent>
       </Tabs>
@@ -160,7 +162,7 @@ function RegionSection({ region, items, onAnalyze, onBuy }: { region: StockRegio
   );
 }
 
-function AssetsTab({ category, onAnalyze, onBuy }: { category: "crypto" | "currencies" | "metals"; onAnalyze: (a: SelectedAsset) => void; onBuy: (a: SelectedAsset) => void }) {
+function AssetsTab({ category, onAnalyze, onBuy }: { category: "crypto" | "currencies" | "metals" | "bonds"; onAnalyze: (a: SelectedAsset) => void; onBuy: (a: SelectedAsset) => void }) {
   const { t } = useI18n();
   const { data, isLoading } = useQuery({ queryKey: ["market"], queryFn: () => getMarketData(), refetchInterval: 60000 });
   const items = (data?.assets ?? []).filter((a) => a.category === category);
