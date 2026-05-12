@@ -17,12 +17,12 @@ export function useAccess() {
     setLoading(true);
     const [{ data: roles }, { data: acc }] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", user.id),
-      supabase.from("disclaimer_acceptances").select("id").eq("user_id", user.id).eq("version", DISCLAIMER_VERSION).limit(1),
+      supabase.rpc("has_accepted_disclaimer", { _version: DISCLAIMER_VERSION }),
     ]);
     const rs = (roles ?? []).map((r) => r.role as AppRole);
     const primary: AppRole = rs.includes("admin") ? "admin" : rs.includes("subscriber") ? "subscriber" : "pending";
     setRole(primary);
-    setAccepted((acc?.length ?? 0) > 0);
+    setAccepted(acc === true);
     setLoading(false);
   }, [user]);
 
