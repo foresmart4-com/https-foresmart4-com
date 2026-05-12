@@ -72,7 +72,7 @@ export const Route = createFileRoute("/api/public/moyasar-webhook")({
                 }).eq("id", wallet.id);
 
                 await supabaseAdmin.from("wallet_transactions").insert({
-                  user_id: userId, wallet_id: wallet.id,
+                  user_id: ownerId, wallet_id: wallet.id,
                   type: "deposit", amount: topup.net_credit_sar, currency: "SAR",
                   status: "completed", reference: paymentId,
                   metadata: {
