@@ -109,6 +109,7 @@ function safeParseJson(raw: string): AdvisorStructuredReply | null {
 }
 
 export const askAdvisor = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input) => InputSchema.parse(input))
   .handler(async ({ data }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
