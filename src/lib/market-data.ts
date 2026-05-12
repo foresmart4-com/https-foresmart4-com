@@ -182,7 +182,10 @@ function syntheticAsset(meta: { symbol: string; name: string; baseline: number }
   };
 }
 
-async function fetchYahooAsset(f: { symbol: string; name: string; baseline: number }, category: AssetCategory): Promise<AssetQuote> {
+async function fetchYahooAsset(
+  f: { symbol: string; name: string; baseline: number },
+  category: AssetCategory,
+): Promise<AssetQuote> {
   try {
     const ctrl = new AbortController();
     const timeout = setTimeout(() => ctrl.abort(), 6000);
@@ -190,97 +193,79 @@ async function fetchYahooAsset(f: { symbol: string; name: string; baseline: numb
       `https://query1.finance.yahoo.com/v8/finance/chart/${f.symbol}?interval=1d&range=1mo`,
       {
         headers: {
-          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-          "Accept": "application/json",
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+          Accept: "application/json",
         },
         signal: ctrl.signal,
       },
     ).finally(() => clearTimeout(timeout));
-      if (!r.ok) return null;
-      const j = (await r.json()) as {
-        chart: { result?: Array<{
-          meta: { regularMarketPrice: number; chartPreviousClose: number; regularMarketDayHigh?: number; regularMarketDayLow?: number; regularMarketVolume?: number };
+    if (!r.ok) return syntheticAsset(f, category);
+    const j = (await r.json()) as {
+      chart: {
+        result?: Array<{
+          meta: {
+            regularMarketPrice: number;
+            chartPreviousClose: number;
+            regularMarketDayHigh?: number;
+            regularMarketDayLow?: number;
+            regularMarketVolume?: number;
+          };
           timestamp?: number[];
           indicators: { quote: Array<{ close: (number | null)[] }> };
-        }> };
+        }>;
       };
-      const res = j.chart.result?.[0];
-      if (!res) return null;
-      const closes = (res.indicators.quote[0]?.close ?? []).filter((x): x is number => x != null);
-      const ts = res.timestamp ?? [];
-      const price = res.meta.regularMarketPrice;
-      const prev = res.meta.chartPreviousClose || closes[0] || price;
-      const history = closes.map((p, i) => ({ t: (ts[i] ?? Date.now() / 1000) * 1000, p }));
-      return {
-        symbol: f.symbol,
-        name: f.name,
-        category: "metals" as const,
-        price,
-        changePct: prev ? ((price - prev) / prev) * 100 : 0,
-        high24h: res.meta.regularMarketDayHigh ?? price,
-        low24h: res.meta.regularMarketDayLow ?? price,
-        volume: res.meta.regularMarketVolume ?? 0,
-        history,
-      };
-    } catch {
-      return null;
-    }
-  });
-  return (await Promise.all(tasks)).filter((x): x is AssetQuote => x !== null);
+    };
+    const res = j.chart.result?.[0];
+    if (!res) return syntheticAsset(f, category);
+    const closes = (res.indicators.quote[0]?.close ?? []).filter(
+      (x): x is number => x != null,
+    );
+    const ts = res.timestamp ?? [];
+    const price = res.meta.regularMarketPrice;
+    if (!price) return syntheticAsset(f, category);
+    const prev = res.meta.chartPreviousClose || closes[closes.length - 2] || price;
+    const history = closes.map((p, i) => ({
+      t: (ts[i] ?? Date.now() / 1000) * 1000,
+      p,
+    }));
+    return {
+      symbol: f.symbol,
+      name: f.name,
+      category,
+      price,
+      changePct: prev ? ((price - prev) / prev) * 100 : 0,
+      high24h: res.meta.regularMarketDayHigh ?? price,
+      low24h: res.meta.regularMarketDayLow ?? price,
+      volume: res.meta.regularMarketVolume ?? 0,
+      history: history.length ? history : [{ t: Date.now(), p: price }],
+    };
+  } catch {
+    return syntheticAsset(f, category);
+  }
+}
+
+async function fetchMetalFunds(): Promise<AssetQuote[]> {
+  return Promise.all(METAL_FUNDS.map((f) => fetchYahooAsset(f, "metals")));
 }
 
 // ===== Bonds (via Yahoo Finance bond ETFs) =====
 const BOND_FUNDS = [
-  { symbol: "TLT", name: "iShares 20+ Year Treasury (سندات أمريكية طويلة الأجل)" },
-  { symbol: "IEF", name: "iShares 7-10 Year Treasury (سندات أمريكية متوسطة)" },
-  { symbol: "SHY", name: "iShares 1-3 Year Treasury (سندات أمريكية قصيرة)" },
-  { symbol: "BND", name: "Vanguard Total Bond Market (سوق السندات الكلي)" },
-  { symbol: "AGG", name: "iShares Core US Aggregate (مجمع السندات)" },
-  { symbol: "LQD", name: "iShares Investment Grade Corp (سندات شركات)" },
-  { symbol: "HYG", name: "iShares High Yield Corp (سندات عالية العائد)" },
-  { symbol: "TIP", name: "iShares TIPS Bond (سندات محمية من التضخم)" },
-  { symbol: "EMB", name: "iShares Emerging Markets Bond (سندات الأسواق الناشئة)" },
+  { symbol: "TLT", name: "iShares 20+ Year Treasury (سندات أمريكية طويلة الأجل)", baseline: 88 },
+  { symbol: "IEF", name: "iShares 7-10 Year Treasury (سندات أمريكية متوسطة)", baseline: 95 },
+  { symbol: "SHY", name: "iShares 1-3 Year Treasury (سندات أمريكية قصيرة)", baseline: 82 },
+  { symbol: "BND", name: "Vanguard Total Bond Market (سوق السندات الكلي)", baseline: 73 },
+  { symbol: "AGG", name: "iShares Core US Aggregate (مجمع السندات)", baseline: 99 },
+  { symbol: "LQD", name: "iShares Investment Grade Corp (سندات شركات)", baseline: 109 },
+  { symbol: "HYG", name: "iShares High Yield Corp (سندات عالية العائد)", baseline: 80 },
+  { symbol: "TIP", name: "iShares TIPS Bond (سندات محمية من التضخم)", baseline: 108 },
+  { symbol: "EMB", name: "iShares Emerging Markets Bond (سندات الأسواق الناشئة)", baseline: 91 },
 ];
 
 async function fetchBonds(): Promise<AssetQuote[]> {
-  const tasks: Promise<AssetQuote | null>[] = BOND_FUNDS.map(async (f): Promise<AssetQuote | null> => {
-    try {
-      const r = await fetch(
-        `https://query1.finance.yahoo.com/v8/finance/chart/${f.symbol}?interval=1d&range=5d`,
-        { headers: { "User-Agent": "Mozilla/5.0" } },
-      );
-      if (!r.ok) return null;
-      const j = (await r.json()) as {
-        chart: { result?: Array<{
-          meta: { regularMarketPrice: number; chartPreviousClose: number; regularMarketDayHigh?: number; regularMarketDayLow?: number; regularMarketVolume?: number };
-          timestamp?: number[];
-          indicators: { quote: Array<{ close: (number | null)[] }> };
-        }> };
-      };
-      const res = j.chart.result?.[0];
-      if (!res) return null;
-      const closes = (res.indicators.quote[0]?.close ?? []).filter((x): x is number => x != null);
-      const ts = res.timestamp ?? [];
-      const price = res.meta.regularMarketPrice;
-      const prev = res.meta.chartPreviousClose || closes[0] || price;
-      const history = closes.map((p, i) => ({ t: (ts[i] ?? Date.now() / 1000) * 1000, p }));
-      return {
-        symbol: f.symbol,
-        name: f.name,
-        category: "bonds" as const,
-        price,
-        changePct: prev ? ((price - prev) / prev) * 100 : 0,
-        high24h: res.meta.regularMarketDayHigh ?? price,
-        low24h: res.meta.regularMarketDayLow ?? price,
-        volume: res.meta.regularMarketVolume ?? 0,
-        history,
-      };
-    } catch {
-      return null;
-    }
-  });
-  return (await Promise.all(tasks)).filter((x): x is AssetQuote => x !== null);
+  return Promise.all(BOND_FUNDS.map((f) => fetchYahooAsset(f, "bonds")));
 }
+
 
 export const getMarketData = createServerFn({ method: "GET" }).handler(async () => {
   const [crypto, fx, metals, metalFunds, bonds] = await Promise.all([
