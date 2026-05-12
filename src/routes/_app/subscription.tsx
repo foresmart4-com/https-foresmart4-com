@@ -151,7 +151,7 @@ function SubscriptionPage() {
                 <Button
                   className="mt-6 w-full"
                   variant={isAnnual ? "default" : "outline"}
-                  disabled={!priceId || (isActive && hasStripeCustomer)}
+                  disabled={!priceId || !!(isActive && hasStripeCustomer)}
                   onClick={() => priceId && setSelectedPrice(priceId)}
                 >
                   {isActive && hasStripeCustomer
