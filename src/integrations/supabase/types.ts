@@ -363,10 +363,15 @@ export type Database = {
           currency: string
           current_period_end: string | null
           current_period_start: string | null
+          environment: string
           id: string
           moyasar_payment_id: string | null
           plan_id: string
+          price_id: string | null
+          product_id: string | null
           status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           trial_ends_at: string | null
           updated_at: string
           user_id: string
@@ -378,10 +383,15 @@ export type Database = {
           currency?: string
           current_period_end?: string | null
           current_period_start?: string | null
+          environment?: string
           id?: string
           moyasar_payment_id?: string | null
           plan_id: string
+          price_id?: string | null
+          product_id?: string | null
           status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           trial_ends_at?: string | null
           updated_at?: string
           user_id: string
@@ -393,10 +403,15 @@ export type Database = {
           currency?: string
           current_period_end?: string | null
           current_period_start?: string | null
+          environment?: string
           id?: string
           moyasar_payment_id?: string | null
           plan_id?: string
+          price_id?: string | null
+          product_id?: string | null
           status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           trial_ends_at?: string | null
           updated_at?: string
           user_id?: string
