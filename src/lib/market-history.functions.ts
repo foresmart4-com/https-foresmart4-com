@@ -214,6 +214,7 @@ async function fetchStockQuote(symbol: string): Promise<{ price: number; changeP
 }
 
 export const getTopStockGainers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data) =>
     z.object({
       market: z.enum(["all", "us", "saudi"]).default("all"),
