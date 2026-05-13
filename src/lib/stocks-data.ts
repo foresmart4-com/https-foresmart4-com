@@ -2,6 +2,7 @@
 // If Yahoo is unreachable from the edge runtime, we synthesize a quote around a
 // baseline reference price so the UI always renders meaningful data.
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export type StockRegion =
   | "us"
