@@ -14,8 +14,10 @@ import { StripeSubscriptionCheckout } from "@/components/StripeSubscriptionCheck
 
 export const Route = createFileRoute("/_app/subscription")({ component: SubscriptionPage });
 
-const PRICE_MAP: Record<string, "quarterly_sar" | "annual_sar"> = {
+type SubPriceId = "quarterly_sar" | "semi_annual_sar" | "annual_sar";
+const PRICE_MAP: Record<string, SubPriceId> = {
   quarterly: "quarterly_sar",
+  semi_annual: "semi_annual_sar",
   annual: "annual_sar",
 };
 
@@ -28,7 +30,7 @@ function SubscriptionPage() {
   const { data: plans } = useQuery({ queryKey: ["plans"], queryFn: () => plansFn() });
   const { data: sub, refetch } = useQuery({ queryKey: ["my-sub"], queryFn: () => subFn() });
 
-  const [selectedPrice, setSelectedPrice] = useState<"quarterly_sar" | "annual_sar" | null>(null);
+  const [selectedPrice, setSelectedPrice] = useState<SubPriceId | null>(null);
 
   const portal = useMutation({
     mutationFn: () =>
@@ -111,7 +113,7 @@ function SubscriptionPage() {
           />
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
           {(plans ?? []).map((p: any) => {
             const priceId = PRICE_MAP[p.code as string];
             const monthly = (Number(p.price_sar) / p.duration_months).toFixed(0);
