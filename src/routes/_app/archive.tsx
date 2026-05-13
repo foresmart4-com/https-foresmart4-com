@@ -206,7 +206,7 @@ function TopGainersView() {
         <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
           {lang === "ar" ? "جارٍ التحميل..." : "Loading..."}
         </div>
-      ) : isError || !data || data.length === 0 ? (
+      ) : isError || !Array.isArray(data) || data.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
           <AlertTriangle className="h-6 w-6 text-warning" />
           <div className="text-sm">
