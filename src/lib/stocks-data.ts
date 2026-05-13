@@ -178,7 +178,9 @@ async function fetchYahooQuote(c: CompanyDef, region: StockRegion): Promise<Stoc
   }
 }
 
-export const getStocksData = createServerFn({ method: "GET" }).handler(async () => {
+export const getStocksData = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
   const all: Array<{ region: StockRegion; def: CompanyDef }> = [];
   (Object.keys(COMPANIES) as StockRegion[]).forEach((region) => {
     COMPANIES[region].forEach((def) => all.push({ region, def }));
