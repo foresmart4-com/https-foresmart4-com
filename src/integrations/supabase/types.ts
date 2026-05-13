@@ -561,6 +561,63 @@ export type Database = {
         }
         Relationships: []
       }
+      trade_signals: {
+        Row: {
+          action: string
+          asset_name: string
+          category: string | null
+          confidence: number
+          entry_price: number | null
+          expires_at: string
+          generated_at: string
+          horizon: string
+          id: string
+          indicators: Json | null
+          rationale: string | null
+          sentiment_score: number | null
+          stop_loss: number | null
+          symbol: string
+          targets: Json | null
+          technical_score: number | null
+        }
+        Insert: {
+          action: string
+          asset_name: string
+          category?: string | null
+          confidence?: number
+          entry_price?: number | null
+          expires_at?: string
+          generated_at?: string
+          horizon?: string
+          id?: string
+          indicators?: Json | null
+          rationale?: string | null
+          sentiment_score?: number | null
+          stop_loss?: number | null
+          symbol: string
+          targets?: Json | null
+          technical_score?: number | null
+        }
+        Update: {
+          action?: string
+          asset_name?: string
+          category?: string | null
+          confidence?: number
+          entry_price?: number | null
+          expires_at?: string
+          generated_at?: string
+          horizon?: string
+          id?: string
+          indicators?: Json | null
+          rationale?: string | null
+          sentiment_score?: number | null
+          stop_loss?: number | null
+          symbol?: string
+          targets?: Json | null
+          technical_score?: number | null
+        }
+        Relationships: []
+      }
       user_api_keys: {
         Row: {
           api_key: string
