@@ -258,7 +258,7 @@ function PaperTradingPage() {
             </thead>
             <tbody>
               {openTrades.map((t) => {
-                const cur = quotes[t.symbol] ?? Number(t.price);
+                const cur = priceOf(t.symbol, Number(t.price));
                 const pnl = (cur - Number(t.price)) * Number(t.quantity) * (t.side === "buy" ? 1 : -1);
                 return (
                   <tr key={t.id} className="border-t border-border">
