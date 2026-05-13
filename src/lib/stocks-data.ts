@@ -2,7 +2,6 @@
 // If Yahoo is unreachable from the edge runtime, we synthesize a quote around a
 // baseline reference price so the UI always renders meaningful data.
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export type StockRegion =
   | "us"
@@ -179,18 +178,22 @@ async function fetchYahooQuote(c: CompanyDef, region: StockRegion): Promise<Stoc
 }
 
 export const getStocksData = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
   .handler(async () => {
-  const all: Array<{ region: StockRegion; def: CompanyDef }> = [];
-  (Object.keys(COMPANIES) as StockRegion[]).forEach((region) => {
-    COMPANIES[region].forEach((def) => all.push({ region, def }));
+    const all: Array<{ region: StockRegion; def: CompanyDef }> = [];
+    (Object.keys(COMPANIES) as StockRegion[]).forEach((region) => {
+      COMPANIES[region].forEach((def) => all.push({ region, def }));
+    });
+    const tasks = all.map(async ({ region, def }) => {
+      try {
+        return (await fetchYahooQuote(def, region)) ?? syntheticQuote(def, region);
+      } catch (error) {
+        console.error(`Stock loader failed: ${def.symbol}`, error);
+        return syntheticQuote(def, region);
+      }
+    });
+    const results = await Promise.all(tasks);
+    return { stocks: results, fetchedAt: Date.now() };
   });
-  const tasks = all.map(({ region, def }) =>
-    fetchYahooQuote(def, region).then((q) => q ?? syntheticQuote(def, region)),
-  );
-  const results = await Promise.all(tasks);
-  return { stocks: results, fetchedAt: Date.now() };
-});
 
 export const REGION_LABELS: Record<StockRegion, { ar: string; en: string; flag: string }> = {
   us: { ar: "السوق الأمريكي", en: "United States", flag: "🇺🇸" },
