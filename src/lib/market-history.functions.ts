@@ -1,7 +1,6 @@
 // Multi-day historical market data for the Archive page.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export interface HistoryPoint {
   date: string; // YYYY-MM-DD
@@ -213,7 +212,6 @@ async function fetchStockQuote(symbol: string): Promise<{ price: number; changeP
 }
 
 export const getTopStockGainers = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((data) =>
     z.object({
       market: z.enum(["all", "us", "saudi"]).default("all"),
@@ -236,7 +234,6 @@ export const getTopStockGainers = createServerFn({ method: "GET" })
   });
 
 export const getAssetHistory = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((data) =>
     z.object({
       symbol: z.string().min(1),
