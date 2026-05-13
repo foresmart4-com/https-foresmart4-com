@@ -320,6 +320,72 @@ export type Database = {
         }
         Relationships: []
       }
+      paper_balances: {
+        Row: {
+          cash_usd: number
+          created_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cash_usd?: number
+          created_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cash_usd?: number
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      paper_trades: {
+        Row: {
+          asset_name: string
+          closed_at: string | null
+          closed_price: number | null
+          id: string
+          opened_at: string
+          pnl: number | null
+          price: number
+          quantity: number
+          side: string
+          status: string
+          symbol: string
+          user_id: string
+        }
+        Insert: {
+          asset_name: string
+          closed_at?: string | null
+          closed_price?: number | null
+          id?: string
+          opened_at?: string
+          pnl?: number | null
+          price: number
+          quantity: number
+          side: string
+          status?: string
+          symbol: string
+          user_id: string
+        }
+        Update: {
+          asset_name?: string
+          closed_at?: string | null
+          closed_price?: number | null
+          id?: string
+          opened_at?: string
+          pnl?: number | null
+          price?: number
+          quantity?: number
+          side?: string
+          status?: string
+          symbol?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       portfolio_holdings: {
         Row: {
           asset_name: string | null
