@@ -148,7 +148,7 @@ function ProfilePage() {
                   <div className="font-semibold">{k.provider}</div>
                   <div className="text-xs text-muted-foreground font-mono">{mask(k.api_key)}</div>
                 </div>
-                <Button size="icon" variant="ghost" onClick={() => removeKey(k.id)}>
+                <Button size="icon" variant="ghost" aria-label={lang === "ar" ? "حذف المفتاح" : "Delete API key"} onClick={() => removeKey(k.id)}>
                   <Trash2 className="h-4 w-4 text-danger" />
                 </Button>
               </li>
