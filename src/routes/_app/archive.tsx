@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -168,9 +169,10 @@ function ArchivePage() {
 
 function TopGainersView() {
   const { lang } = useI18n();
+  const fn = useServerFn(getTopGainers);
   const { data, isLoading, isError, isFetching, error, refetch } = useQuery<TopGainer[], Error>({
     queryKey: ["top-gainers", 20],
-    queryFn: () => getTopGainers({ data: { limit: 20 } }),
+    queryFn: () => fn({ data: { limit: 20 } }),
     retry: 1,
     staleTime: 60_000,
   });
@@ -204,7 +206,7 @@ function TopGainersView() {
         <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
           {lang === "ar" ? "جارٍ التحميل..." : "Loading..."}
         </div>
-      ) : isError || !data || data.length === 0 ? (
+      ) : isError || !Array.isArray(data) || data.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
           <AlertTriangle className="h-6 w-6 text-warning" />
           <div className="text-sm">
@@ -291,12 +293,13 @@ function TopGainersView() {
 function TopStockGainersView() {
   const { lang } = useI18n();
   const [market, setMarket] = useState<"all" | "us" | "saudi">("all");
+  const fn = useServerFn(getTopStockGainers);
   const { data, isLoading, isError, isFetching, error, refetch } = useQuery<
     TopStockGainer[],
     Error
   >({
     queryKey: ["top-stock-gainers", market],
-    queryFn: () => getTopStockGainers({ data: { market, limit: 15 } }),
+    queryFn: () => fn({ data: { market, limit: 15 } }),
     retry: 1,
     staleTime: 60_000,
   });
@@ -351,7 +354,7 @@ function TopStockGainersView() {
         <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
           {lang === "ar" ? "جارٍ التحميل..." : "Loading..."}
         </div>
-      ) : isError || !data || data.length === 0 ? (
+      ) : isError || !Array.isArray(data) || data.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
           <AlertTriangle className="h-6 w-6 text-warning" />
           <div className="text-sm">
@@ -439,9 +442,10 @@ function HistoryView() {
     setSymbol(ASSET_OPTIONS[category][0].symbol);
   }, [category]);
 
+  const fn = useServerFn(getAssetHistory);
   const { data, isLoading, isFetching, isError, error, refetch } = useQuery<AssetHistory, Error>({
     queryKey: ["asset-history", category, symbol, days],
-    queryFn: () => getAssetHistory({ data: { category, symbol, days } }),
+    queryFn: () => fn({ data: { category, symbol, days } }),
     retry: 1,
     staleTime: 5 * 60_000,
   });
