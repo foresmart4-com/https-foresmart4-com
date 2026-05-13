@@ -442,9 +442,10 @@ function HistoryView() {
     setSymbol(ASSET_OPTIONS[category][0].symbol);
   }, [category]);
 
+  const fn = useServerFn(getAssetHistory);
   const { data, isLoading, isFetching, isError, error, refetch } = useQuery<AssetHistory, Error>({
     queryKey: ["asset-history", category, symbol, days],
-    queryFn: () => getAssetHistory({ data: { category, symbol, days } }),
+    queryFn: () => fn({ data: { category, symbol, days } }),
     retry: 1,
     staleTime: 5 * 60_000,
   });
