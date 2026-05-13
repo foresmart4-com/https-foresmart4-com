@@ -169,9 +169,10 @@ function ArchivePage() {
 
 function TopGainersView() {
   const { lang } = useI18n();
+  const fn = useServerFn(getTopGainers);
   const { data, isLoading, isError, isFetching, error, refetch } = useQuery<TopGainer[], Error>({
     queryKey: ["top-gainers", 20],
-    queryFn: () => getTopGainers({ data: { limit: 20 } }),
+    queryFn: () => fn({ data: { limit: 20 } }),
     retry: 1,
     staleTime: 60_000,
   });
