@@ -292,27 +292,5 @@ Build a comprehensive plan. Allocations percentages must sum to ~100% and reflec
       return { plan: null, error: "parse_error", detail: String(e) };
     }
 
-    // Second pass: critique + refine for realism, risk balance, and clarity.
-    try {
-      const critiqueSys = data.language === "ar"
-        ? `أنت مراجع استثمار صارم. خذ الخطة المقدمة وحسّنها: تأكد أن نسب التوزيع تساوي 100%، أن الأهداف الشهرية واقعية لمستوى المخاطرة، أن الخطوات الأسبوعية محددة بأرقام بالريال، أن قواعد إدارة المخاطر صارمة، وأن هناك خطة للخروج عند الخسارة. أعد الخطة المحسّنة عبر الأداة micro_plan فقط. لا تخفض الجودة، فقط حسّن.`
-        : `You are a strict investment reviewer. Improve the given plan: ensure allocations sum to 100%, monthly targets are realistic for the risk level, weekly steps have concrete SAR amounts, risk rules are tight, and exit conditions are explicit. Return the improved plan via the micro_plan tool only.`;
-
-      const r2 = await callPlanModel(apiKey, "google/gemini-2.5-flash", [
-        { role: "system", content: critiqueSys },
-        { role: "user", content: `Inputs:\nCapital: ${data.capitalSar} SAR\nRisk: ${data.riskAppetite}\nHorizon: ${data.monthsHorizon}m\nFocus: ${data.focus.join(", ")}\n\nDraft plan to refine:\n${JSON.stringify(firstPlan)}` },
-      ]);
-      if (r2.ok) {
-        const d2 = await r2.json();
-        const call2 = d2.choices?.[0]?.message?.tool_calls?.[0];
-        if (call2?.function?.arguments) {
-          const refined = JSON.parse(call2.function.arguments) as MicroCapitalPlan;
-          return { plan: refined, error: null as string | null, detail: null as string | null };
-        }
-      }
-    } catch (e) {
-      console.warn("refinement skipped:", e);
-    }
-
     return { plan: firstPlan, error: null as string | null, detail: null as string | null };
   });
