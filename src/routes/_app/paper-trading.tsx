@@ -82,28 +82,38 @@ function PaperTradingPage() {
   const openTrades = trades.filter((t) => t.status === "open");
   const closedTrades = trades.filter((t) => t.status === "closed");
 
+  const priceOf = (sym: string, fallback: number) => quotes[sym]?.price ?? fallback;
+
   const portfolioValue = useMemo(() => {
-    return openTrades.reduce((sum, t) => sum + (quotes[t.symbol] ?? t.price) * Number(t.quantity), 0);
+    return openTrades.reduce((sum, t) => sum + priceOf(t.symbol, Number(t.price)) * Number(t.quantity), 0);
   }, [openTrades, quotes]);
 
   const realizedPnl = closedTrades.reduce((s, t) => s + Number(t.pnl ?? 0), 0);
   const unrealizedPnl = openTrades.reduce((s, t) => {
-    const cur = quotes[t.symbol] ?? t.price;
+    const cur = priceOf(t.symbol, Number(t.price));
     return s + (cur - Number(t.price)) * Number(t.quantity) * (t.side === "buy" ? 1 : -1);
   }, 0);
   const totalEquity = cash + portfolioValue;
   const totalReturnPct = ((totalEquity + realizedPnl - STARTING_CASH) / STARTING_CASH) * 100;
 
+  const currentOptions = useMemo(() => {
+    if (kind === "stocks") return stockAssets.filter((a) => a.region === region).map((a) => ({ symbol: a.symbol, name: a.name, price: a.price }));
+    const cat = kind === "currencies" ? "currencies" : kind;
+    return marketAssets.filter((a) => a.category === cat).map((a) => ({ symbol: a.symbol, name: a.name, price: a.price }));
+  }, [kind, region, stockAssets, marketAssets]);
+
+  const selectedAsset = currentOptions.find((o) => o.symbol === symbol) ?? currentOptions[0];
+
   const placeTrade = async (side: "buy" | "sell") => {
     if (!user) return;
-    const qty = parseFloat(form.quantity);
-    const price = quotes[form.symbol.toUpperCase()];
-    if (!qty || !price) { toast.error(lang === "ar" ? "رمز غير معروف" : "Unknown symbol"); return; }
-    const cost = qty * price;
+    const qtyNum = parseFloat(qty);
+    if (!selectedAsset || !qtyNum) { toast.error(lang === "ar" ? "اختر أصلاً وكمية" : "Pick an asset and quantity"); return; }
+    const price = selectedAsset.price;
+    const cost = qtyNum * price;
     if (side === "buy" && cost > cash) { toast.error(lang === "ar" ? "رصيد غير كافٍ" : "Insufficient balance"); return; }
     const { error } = await supabase.from("paper_trades").insert({
-      user_id: user.id, symbol: form.symbol.toUpperCase(), asset_name: form.asset_name,
-      side, quantity: qty, price, status: "open",
+      user_id: user.id, symbol: selectedAsset.symbol, asset_name: selectedAsset.name,
+      side, quantity: qtyNum, price, status: "open",
     });
     if (error) { toast.error(error.message); return; }
     await supabase.from("paper_balances").update({ cash_usd: cash - (side === "buy" ? cost : -cost), updated_at: new Date().toISOString() }).eq("user_id", user.id);
@@ -113,7 +123,7 @@ function PaperTradingPage() {
 
   const closeTrade = async (t: Trade) => {
     if (!user) return;
-    const cur = quotes[t.symbol] ?? t.price;
+    const cur = priceOf(t.symbol, Number(t.price));
     const pnl = (cur - Number(t.price)) * Number(t.quantity) * (t.side === "buy" ? 1 : -1);
     const proceeds = cur * Number(t.quantity) * (t.side === "buy" ? 1 : -1);
     await supabase.from("paper_trades").update({
