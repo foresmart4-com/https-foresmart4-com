@@ -18,8 +18,12 @@ export const Route = createFileRoute("/_app/signals")({
   head: () => ({
     meta: [
       { title: "Trading Signals — ForeSmart" },
-      { name: "description", content: "AI-powered trading signals combining technical analysis (RSI, MACD, Bollinger) with market sentiment for short, medium and long-term horizons." },
+      { name: "description", content: "AI trading signals combining RSI, MACD and Bollinger with sentiment for short, medium and long-term horizons." },
+      { property: "og:title", content: "Trading Signals — ForeSmart" },
+      { property: "og:description", content: "AI signals across short, medium and long-term horizons." },
+      { property: "og:url", content: "https://foresmart4.store/signals" },
     ],
+    links: [{ rel: "canonical", href: "https://foresmart4.store/signals" }],
   }),
 });
 
