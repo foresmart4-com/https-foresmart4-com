@@ -50,7 +50,7 @@ function MarketsPage() {
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
         <TabsList className="grid w-full max-w-4xl grid-cols-5">
-          <TabsTrigger value="stocks" className="gap-2"><Building2 className="h-4 w-4" />{lang === "ar" ? "الأسهم" : "Stocks"}</TabsTrigger>
+          <TabsTrigger value="stocks" className="gap-2"><Building2 className="h-4 w-4" />{lang === "ar" ? "الأسواق العالمية" : "Global Markets"}</TabsTrigger>
           <TabsTrigger value="crypto" className="gap-2"><Coins className="h-4 w-4" />{lang === "ar" ? "العملات الرقمية" : "Crypto"}</TabsTrigger>
           <TabsTrigger value="bonds" className="gap-2"><Landmark className="h-4 w-4" />{lang === "ar" ? "السندات" : "Bonds"}</TabsTrigger>
           <TabsTrigger value="metals" className="gap-2"><Gem className="h-4 w-4" />{lang === "ar" ? "المعادن" : "Metals"}</TabsTrigger>
@@ -71,13 +71,63 @@ function MarketsPage() {
 }
 
 function StocksTab({ onAnalyze, onBuy }: { onAnalyze: (a: SelectedAsset) => void; onBuy: (a: SelectedAsset) => void }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { data, isLoading } = useQuery({ queryKey: ["stocks"], queryFn: () => getStocksData(), refetchInterval: 120000 });
+  const [selectedRegions, setSelectedRegions] = useState<StockRegion[]>([...REGION_ORDER]);
   const stocks = data?.stocks ?? [];
+  const toggle = (r: StockRegion) =>
+    setSelectedRegions((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
+  const allOn = selectedRegions.length === REGION_ORDER.length;
   if (isLoading) return <p className="text-muted-foreground">{t("loading")}</p>;
   return (
     <>
-      {REGION_ORDER.map((r) => {
+      <div className="rounded-xl gradient-card border border-border p-4 shadow-card">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-lg font-semibold">
+              {lang === "ar" ? "الأسواق العالمية" : "Global Markets"}
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              {lang === "ar" ? "اختر سوقاً واحداً أو أكثر لعرضه" : "Pick one or more markets to display"}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="h-7 text-xs"
+              onClick={() => setSelectedRegions(allOn ? [] : [...REGION_ORDER])}>
+              {allOn
+                ? (lang === "ar" ? "إلغاء الكل" : "Clear all")
+                : (lang === "ar" ? "تحديد الكل" : "Select all")}
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {REGION_ORDER.map((r) => {
+            const meta = REGION_LABELS[r];
+            const on = selectedRegions.includes(r);
+            return (
+              <button
+                key={r}
+                onClick={() => toggle(r)}
+                className={cn(
+                  "flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                  on
+                    ? "border-primary bg-primary/15 text-primary"
+                    : "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <span>{meta.flag}</span>
+                <span>{meta[lang]}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {selectedRegions.length === 0 && (
+        <p className="text-center text-sm text-muted-foreground">
+          {lang === "ar" ? "اختر سوقاً واحداً على الأقل لعرض الأسهم" : "Select at least one market"}
+        </p>
+      )}
+      {REGION_ORDER.filter((r) => selectedRegions.includes(r)).map((r) => {
         const items = stocks.filter((s) => s.region === r);
         if (items.length === 0) return null;
         return <RegionSection key={r} region={r} items={items} onAnalyze={onAnalyze} onBuy={onBuy} />;
