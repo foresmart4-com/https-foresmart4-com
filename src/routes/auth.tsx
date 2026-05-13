@@ -106,6 +106,7 @@ function AuthPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-md">
+        <h1 className="sr-only">{lang === "ar" ? "تسجيل الدخول إلى ForeSmart" : "Sign in to ForeSmart"}</h1>
         <Link to="/" className="mb-8 flex items-center justify-center gap-2">
           <div className="grid h-10 w-10 place-items-center rounded-lg gradient-primary shadow-glow">
             <TrendingUp className="h-5 w-5 text-primary-foreground" />
