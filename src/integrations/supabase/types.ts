@@ -608,6 +608,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      wallet_apply_order: {
+        Args: { _amount: number; _side: string; _user_id: string }
+        Returns: {
+          balance: number
+          currency: string
+          id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "subscriber" | "pending"
