@@ -210,17 +210,62 @@ const planTool = {
 };
 
 async function callPlanModel(apiKey: string, model: string, messages: any[]) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 22000);
   const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    signal: controller.signal,
     body: JSON.stringify({
       model,
       messages,
       tools: [planTool],
       tool_choice: { type: "function", function: { name: "micro_plan" } },
     }),
-  });
+  }).finally(() => clearTimeout(timeout));
   return r;
+}
+
+function buildDeterministicMicroPlan(data: z.infer<typeof PlanInput>): MicroCapitalPlan {
+  const isAr = data.language === "ar";
+  const safe = data.riskAppetite === "conservative" ? 45 : data.riskAppetite === "balanced" ? 30 : 18;
+  const etfs = data.riskAppetite === "conservative" ? 30 : data.riskAppetite === "balanced" ? 35 : 32;
+  const growth = data.riskAppetite === "conservative" ? 15 : data.riskAppetite === "balanced" ? 22 : 30;
+  const metals = data.focus.includes("metals") ? (data.riskAppetite === "aggressive" ? 10 : 15) : 8;
+  const crypto = data.focus.includes("crypto") ? Math.max(0, 100 - safe - etfs - growth - metals) : 0;
+  const cash = data.capitalSar;
+  const sar = (pct: number) => Math.round((cash * pct) / 100);
+
+  return {
+    headline: isAr
+      ? `خطة نمو عملية لرأس مال ${cash} ريال خلال ${data.monthsHorizon} أشهر مع ضبط المخاطر`
+      : `Practical ${cash} SAR growth plan for ${data.monthsHorizon} months with strict risk control`,
+    monthlyTargetPct: data.riskAppetite === "conservative" ? "1–3%" : data.riskAppetite === "balanced" ? "3–6%" : "5–10% مع تذبذب عالٍ",
+    yearlyTargetPct: data.riskAppetite === "conservative" ? "12–25%" : data.riskAppetite === "balanced" ? "25–55%" : "50%+ غير مضمون وعالي المخاطر",
+    allocations: [
+      { bucket: isAr ? "سيولة وأدوات منخفضة المخاطر" : "Cash and low-risk sleeve", pct: `${safe}%`, examples: [`${sar(safe)} SAR نقداً`, "صندوق مرابحة/صكوك قصير الأجل", "SGOV"], why: isAr ? "يحمي رأس المال ويمنحك قدرة شراء عند الهبوط." : "Protects capital and gives buying power during pullbacks." },
+      { bucket: isAr ? "مؤشرات عالمية منخفضة التكلفة" : "Low-cost global ETFs", pct: `${etfs}%`, examples: [`${sar(etfs)} SAR VWRA/VT`, "Wahed", "S&P 500 ETF"], why: isAr ? "قاعدة متنوعة تقلل خطأ اختيار سهم واحد." : "Diversified core that reduces single-name risk." },
+      { bucket: isAr ? "أسهم قيادية ونمو معقول" : "Quality stocks and GARP", pct: `${growth}%`, examples: [`${sar(growth)} SAR تداول/قياديات`, "Apple/Microsoft عبر وسيط منظم", "أسهم توزيعات"], why: isAr ? "تعرض للنمو مع اشتراط جودة الأرباح وهامش أمان." : "Growth exposure with earnings quality and margin of safety." },
+      { bucket: isAr ? "ذهب وتحوط" : "Gold and hedges", pct: `${metals}%`, examples: [`${sar(metals)} SAR ذهب`, "GLD/IAU", "ذهب فعلي"], why: isAr ? "يخفف أثر التضخم والتوترات الجيوسياسية." : "Offsets inflation and geopolitical shocks." },
+      ...(crypto > 0 ? [{ bucket: isAr ? "رهان ابتكاري محدود" : "Limited innovation bet", pct: `${crypto}%`, examples: [`${sar(crypto)} SAR BTC/ETH`, "Rain/Binance مرخص حسب بلدك"], why: isAr ? "مخصص صغير لعائد مرتفع محتمل دون تهديد الخطة." : "Small upside sleeve without threatening the plan." }] : []),
+    ],
+    weeklySteps: [
+      { week: isAr ? "الأسبوع 1" : "Week 1", goal: isAr ? "تثبيت قاعدة الأمان" : "Build the safety base", action: isAr ? `احتفظ بـ ${sar(safe)} ريال كسيولة، واشترِ تدريجياً بـ ${Math.max(50, sar(etfs) / 2).toFixed(0)} ريال من ETF عالمي.` : `Keep ${sar(safe)} SAR liquid and start with about ${Math.max(50, sar(etfs) / 2).toFixed(0)} SAR in a global ETF.`, expectedReturn: "0–2%", risk: "low" },
+      { week: isAr ? "الأسبوع 2" : "Week 2", goal: isAr ? "إضافة النمو المنضبط" : "Add controlled growth", action: isAr ? `وزّع ${sar(growth)} ريال على سهم/صندوق عالي الجودة، ولا تدخل دفعة واحدة إذا كان السوق مرتفعاً.` : `Allocate ${sar(growth)} SAR to quality stocks/funds, without entering all at once if markets are extended.`, expectedReturn: "1–4%", risk: "medium" },
+      { week: isAr ? "الأسبوع 3" : "Week 3", goal: isAr ? "تحوط ضد الصدمات" : "Add shock protection", action: isAr ? `اشترِ ذهباً أو صندوق ذهب بقيمة تقارب ${sar(metals)} ريال، واتركه للتحوط لا للمضاربة اليومية.` : `Buy about ${sar(metals)} SAR of gold or a gold ETF as a hedge, not as a day trade.`, expectedReturn: "0–3%", risk: "low" },
+      { week: isAr ? "الأسبوع 4" : "Week 4", goal: isAr ? "رهان صغير محسوب" : "Small calculated bet", action: isAr ? crypto > 0 ? `إن رغبت، خصص ${sar(crypto)} ريال فقط لـ BTC/ETH، ولا تستخدم رافعة.` : "لا تضف كريبتو حالياً؛ ركّز على المؤشرات والسيولة." : crypto > 0 ? `If desired, allocate only ${sar(crypto)} SAR to BTC/ETH; no leverage.` : "Skip crypto for now; focus on ETFs and liquidity.", expectedReturn: crypto > 0 ? "-10% إلى +15%" : "1–3%", risk: crypto > 0 ? "high" : "medium" },
+      { week: isAr ? "شهرياً" : "Monthly", goal: isAr ? "إعادة موازنة" : "Rebalance", action: isAr ? "أعد النسب للأهداف الأصلية، وخفّض أي أصل زاد كثيراً بعد صعود سريع." : "Rebalance to target weights and trim assets that rallied too quickly.", expectedReturn: "حسب السوق", risk: "medium" },
+    ],
+    rules: isAr
+      ? ["لا تخاطر بأكثر من 2% من رأس المال في صفقة واحدة.", "ادخل على دفعات أسبوعية لا دفعة واحدة.", "احتفظ بسيولة 10–20% دائماً.", "راجع الخطة شهرياً لا يومياً.", "استخدم وقف خسارة للأصول المتذبذبة فقط."]
+      : ["Risk no more than 2% of capital per trade.", "Enter weekly in tranches, not all at once.", "Keep 10–20% liquidity at all times.", "Review monthly, not hourly.", "Use stop-losses for volatile assets only."],
+    warnings: isAr
+      ? ["العوائد ليست مضمونة وقد تخسر جزءاً من رأس المال.", "تجنب الرافعة والقروض تماماً.", "لا تلاحق الشموع الخضراء بعد صعود قوي.", "الكريبتو مناسب كنسبة صغيرة فقط."]
+      : ["Returns are not guaranteed and capital can decline.", "Avoid leverage and borrowing completely.", "Do not chase strong green candles.", "Crypto belongs in a small sleeve only."],
+    exitConditions: isAr
+      ? ["اخرج من أي أصل إذا كسر سبب الاستثمار الأساسي.", "خفّض المخاطر إذا خسرت الخطة 8–12% من القمة.", "خذ جزءاً من الربح عند تحقق هدف شهرين مبكراً.", "أوقف الشراء مؤقتاً عند أخبار نظامية/سيولة خطيرة."]
+      : ["Exit any asset when the original thesis breaks.", "Reduce risk if the plan drops 8–12% from peak.", "Take partial profit if two-month targets arrive early.", "Pause buying during severe regulatory or liquidity shocks."],
+  };
 }
 
 export const microCapitalPlan = createServerFn({ method: "POST" })
