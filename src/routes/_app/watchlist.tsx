@@ -104,7 +104,7 @@ function WatchlistPage() {
                   <div className="font-semibold">{it.symbol}</div>
                   <div className="text-xs text-muted-foreground">{it.asset_name}</div>
                 </div>
-                <Button size="icon" variant="ghost" onClick={() => remove(it.id)}><Trash2 className="h-4 w-4" /></Button>
+                <Button size="icon" variant="ghost" aria-label={lang === "ar" ? "حذف" : "Delete"} onClick={() => remove(it.id)}><Trash2 className="h-4 w-4" /></Button>
               </div>
               {q ? (
                 <div className="flex items-baseline gap-2">
