@@ -31,6 +31,7 @@ function GrowthPlanPage() {
   const [focus, setFocus] = useState<("crypto" | "stocks" | "metals" | "fx" | "savings")[]>(["crypto", "stocks", "metals"]);
   const [busy, setBusy] = useState(false);
   const [plan, setPlan] = useState<MicroCapitalPlan | null>(null);
+  const buildPlan = useServerFn(microCapitalPlan);
 
   const run = async () => {
     if (capital < 50) {
@@ -43,13 +44,21 @@ function GrowthPlanPage() {
     }
     setBusy(true); setPlan(null);
     try {
-      const res = await microCapitalPlan({
+      const res = await buildPlan({
         data: { capitalSar: capital, riskAppetite: risk, monthsHorizon: months, focus, language: lang },
       });
-      if (res.error === "rate_limited") toast.error(lang === "ar" ? "تم تجاوز الحد، حاول لاحقاً" : "Rate limit");
-      else if (res.error === "payment_required") toast.error(lang === "ar" ? "أضف رصيداً في Lovable AI" : "Add credits");
-      else if (res.error || !res.plan) toast.error(lang === "ar" ? "تعذر إنشاء الخطة" : "Failed to build plan");
-      else setPlan(res.plan);
+      if (res.error === "rate_limited") toast.error(lang === "ar" ? "تم تجاوز الحد، حاول بعد قليل" : "Rate limited, try again shortly");
+      else if (res.error === "payment_required") toast.error(lang === "ar" ? "أضف رصيداً في Lovable AI" : "Add Lovable AI credits");
+      else if (res.error || !res.plan) {
+        const detail = (res as any).detail ? ` — ${(res as any).detail}` : "";
+        toast.error((lang === "ar" ? "تعذر إنشاء الخطة" : "Failed to build plan") + detail);
+      } else {
+        setPlan(res.plan);
+        toast.success(lang === "ar" ? "تم إعداد خطة محسّنة بالذكاء الاصطناعي" : "AI-refined plan ready");
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast.error((lang === "ar" ? "خطأ غير متوقع: " : "Unexpected error: ") + (e?.message ?? String(e)));
     } finally { setBusy(false); }
   };
 
