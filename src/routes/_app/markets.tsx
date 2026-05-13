@@ -50,7 +50,7 @@ function MarketsPage() {
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
         <TabsList className="grid w-full max-w-4xl grid-cols-5">
-          <TabsTrigger value="stocks" className="gap-2"><Building2 className="h-4 w-4" />{lang === "ar" ? "الأسهم" : "Stocks"}</TabsTrigger>
+          <TabsTrigger value="stocks" className="gap-2"><Building2 className="h-4 w-4" />{lang === "ar" ? "الأسواق العالمية" : "Global Markets"}</TabsTrigger>
           <TabsTrigger value="crypto" className="gap-2"><Coins className="h-4 w-4" />{lang === "ar" ? "العملات الرقمية" : "Crypto"}</TabsTrigger>
           <TabsTrigger value="bonds" className="gap-2"><Landmark className="h-4 w-4" />{lang === "ar" ? "السندات" : "Bonds"}</TabsTrigger>
           <TabsTrigger value="metals" className="gap-2"><Gem className="h-4 w-4" />{lang === "ar" ? "المعادن" : "Metals"}</TabsTrigger>
