@@ -12,6 +12,16 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/profile")({
   component: ProfilePage,
+  head: () => ({
+    meta: [
+      { title: "Profile & Settings — ForeSmart" },
+      { name: "description", content: "Manage your ForeSmart profile, language, preferred currency and personal API keys." },
+      { property: "og:title", content: "Profile — ForeSmart" },
+      { property: "og:description", content: "Manage your ForeSmart account preferences and API keys." },
+      { property: "og:url", content: "https://foresmart4.store/profile" },
+    ],
+    links: [{ rel: "canonical", href: "https://foresmart4.store/profile" }],
+  }),
 });
 
 interface Profile { display_name: string | null; language: string; preferred_currency: string }
