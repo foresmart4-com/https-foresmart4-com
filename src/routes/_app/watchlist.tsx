@@ -11,7 +11,19 @@ import { toast } from "sonner";
 import { getMarketData } from "@/lib/market-data";
 import { getStocksData } from "@/lib/stocks-data";
 
-export const Route = createFileRoute("/_app/watchlist")({ component: WatchlistPage });
+export const Route = createFileRoute("/_app/watchlist")({
+  component: WatchlistPage,
+  head: () => ({
+    meta: [
+      { title: "Watchlist — ForeSmart" },
+      { name: "description", content: "Follow your favorite assets in real time and create one-click price alerts on ForeSmart." },
+      { property: "og:title", content: "Watchlist — ForeSmart" },
+      { property: "og:description", content: "Track favorite assets live and create alerts in one click." },
+      { property: "og:url", content: "https://foresmart4.store/watchlist" },
+    ],
+    links: [{ rel: "canonical", href: "https://foresmart4.store/watchlist" }],
+  }),
+});
 
 interface Item { id: string; symbol: string; asset_name: string; category: string | null; notes: string | null; }
 
@@ -92,7 +104,7 @@ function WatchlistPage() {
                   <div className="font-semibold">{it.symbol}</div>
                   <div className="text-xs text-muted-foreground">{it.asset_name}</div>
                 </div>
-                <Button size="icon" variant="ghost" onClick={() => remove(it.id)}><Trash2 className="h-4 w-4" /></Button>
+                <Button size="icon" variant="ghost" aria-label={lang === "ar" ? "حذف" : "Delete"} onClick={() => remove(it.id)}><Trash2 className="h-4 w-4" /></Button>
               </div>
               {q ? (
                 <div className="flex items-baseline gap-2">

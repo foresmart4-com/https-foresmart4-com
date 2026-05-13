@@ -12,6 +12,16 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/profile")({
   component: ProfilePage,
+  head: () => ({
+    meta: [
+      { title: "Profile & Settings — ForeSmart" },
+      { name: "description", content: "Manage your ForeSmart profile, language, preferred currency and personal API keys." },
+      { property: "og:title", content: "Profile — ForeSmart" },
+      { property: "og:description", content: "Manage your ForeSmart account preferences and API keys." },
+      { property: "og:url", content: "https://foresmart4.store/profile" },
+    ],
+    links: [{ rel: "canonical", href: "https://foresmart4.store/profile" }],
+  }),
 });
 
 interface Profile { display_name: string | null; language: string; preferred_currency: string }
@@ -138,7 +148,7 @@ function ProfilePage() {
                   <div className="font-semibold">{k.provider}</div>
                   <div className="text-xs text-muted-foreground font-mono">{mask(k.api_key)}</div>
                 </div>
-                <Button size="icon" variant="ghost" onClick={() => removeKey(k.id)}>
+                <Button size="icon" variant="ghost" aria-label={lang === "ar" ? "حذف المفتاح" : "Delete API key"} onClick={() => removeKey(k.id)}>
                   <Trash2 className="h-4 w-4 text-danger" />
                 </Button>
               </li>

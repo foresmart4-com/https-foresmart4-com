@@ -15,6 +15,16 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: DashboardPage,
+  head: () => ({
+    meta: [
+      { title: "Dashboard — ForeSmart" },
+      { name: "description", content: "Live market dashboard: prices, KPIs, charts and AI buy/sell signals across crypto, metals and currencies." },
+      { property: "og:title", content: "ForeSmart Dashboard" },
+      { property: "og:description", content: "Live KPIs, charts and AI signals across global markets." },
+      { property: "og:url", content: "https://foresmart4.store/dashboard" },
+    ],
+    links: [{ rel: "canonical", href: "https://foresmart4.store/dashboard" }],
+  }),
 });
 
 function DashboardPage() {

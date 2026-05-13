@@ -13,6 +13,16 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/alerts")({
   component: AlertsPage,
+  head: () => ({
+    meta: [
+      { title: "Price Alerts — ForeSmart" },
+      { name: "description", content: "Create smart price alerts for stocks, crypto, FX and metals. Get notified when assets cross your target price." },
+      { property: "og:title", content: "Price Alerts — ForeSmart" },
+      { property: "og:description", content: "Smart price alerts across global markets." },
+      { property: "og:url", content: "https://foresmart4.store/alerts" },
+    ],
+    links: [{ rel: "canonical", href: "https://foresmart4.store/alerts" }],
+  }),
 });
 
 interface Alert {
@@ -111,7 +121,7 @@ function AlertsPage() {
                     <span className={cn("rounded px-2 py-0.5 text-xs", a.active ? "bg-success/15 text-success" : "bg-muted text-muted-foreground")}>
                       {a.active ? (lang === "ar" ? "نشط" : "active") : (lang === "ar" ? "خامل" : "inactive")}
                     </span>
-                    <Button size="icon" variant="ghost" onClick={() => remove(a.id)}>
+                    <Button size="icon" variant="ghost" aria-label={lang === "ar" ? "حذف التنبيه" : "Delete alert"} onClick={() => remove(a.id)}>
                       <Trash2 className="h-4 w-4 text-danger" />
                     </Button>
                   </div>

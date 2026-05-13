@@ -31,8 +31,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ForeSmart — AI Market Intelligence & Investment Signals" },
-      { name: "description", content: "ForeSmart: AI-driven market intelligence across global stocks, crypto, FX, metals and oil. Live signals, smart alerts and a paper-trading wallet." },
       { name: "author", content: "ForeSmart" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "ForeSmart" },
