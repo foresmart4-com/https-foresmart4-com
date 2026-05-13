@@ -35,7 +35,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
     z.object({
-      priceId: z.enum(["quarterly_sar", "annual_sar"]),
+      priceId: z.enum(["quarterly_sar", "semi_annual_sar", "annual_sar"]),
       returnUrl: z.string().url(),
       environment: z.enum(["sandbox", "live"]),
     }).parse(d),
