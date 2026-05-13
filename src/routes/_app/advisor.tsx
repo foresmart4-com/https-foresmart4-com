@@ -31,17 +31,23 @@ function AdvisorPage() {
   const send = async () => {
     if (!q.trim()) return;
     setBusy(true); setReply(null); setRawFallback("");
-    const ctx = (market?.assets ?? [])
-      .slice(0, 12)
-      .map((a) => `${a.symbol}: ${a.price} (${a.changePct.toFixed(2)}%)`)
-      .join("\n");
-    const res = await ask({ data: { question: q, language: lang, context: ctx } });
-    setBusy(false);
-    if (res.error === "rate_limited") return toast.error(lang === "ar" ? "تم تجاوز الحد، حاول لاحقاً" : "Rate limit, try again");
-    if (res.error === "payment_required") return toast.error(lang === "ar" ? "أضف رصيداً في إعدادات Lovable AI" : "Add credits in Lovable AI settings");
-    if (res.error) return toast.error(res.error);
-    if (res.structured) setReply(res.structured);
-    else setRawFallback(res.raw);
+    try {
+      const ctx = (market?.assets ?? [])
+        .slice(0, 12)
+        .map((a) => `${a.symbol}: ${a.price} (${a.changePct.toFixed(2)}%)`)
+        .join("\n");
+      const res = await ask({ data: { question: q, language: lang, context: ctx } });
+      if (res.error === "rate_limited") return toast.error(lang === "ar" ? "تم تجاوز الحد، حاول لاحقاً" : "Rate limit, try again");
+      if (res.error === "payment_required") return toast.error(lang === "ar" ? "أضف رصيداً في إعدادات Lovable AI" : "Add credits in Lovable AI settings");
+      if (res.error) return toast.error(res.error);
+      if (res.structured) setReply(res.structured);
+      else setRawFallback(res.raw);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(lang === "ar" ? "تعذر الاتصال بالمستشار" : "Could not reach advisor");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const suggestions = lang === "ar"
