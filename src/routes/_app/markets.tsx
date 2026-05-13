@@ -72,6 +72,31 @@ function MarketsPage() {
   );
 }
 
+function BondsExternalLinks() {
+  const { lang } = useI18n();
+  return (
+    <section className="rounded-xl gradient-card border border-border p-5 shadow-card">
+      <h2 className="font-display text-lg font-semibold mb-1">
+        {lang === "ar" ? "شراء السندات الأمريكية مباشرة" : "Buy US Bonds directly"}
+      </h2>
+      <p className="text-xs text-muted-foreground mb-3">
+        {lang === "ar" ? "روابط رسمية لشراء السندات من المُصدر أو وسطاء معتمدين." : "Official links to buy bonds from issuer or licensed brokers."}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {TREASURY_DIRECT_LINKS.map((l) => (
+          <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer"
+             className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20">
+            <ExternalLink className="h-3.5 w-3.5" /> {l.label}
+          </a>
+        ))}
+      </div>
+      <p className="mt-3 text-[11px] text-muted-foreground">
+        {lang === "ar" ? "بعد الشراء يمكنك إضافة الأصل لقائمة المراقبة لمتابعته داخل البرنامج." : "After purchase, add the asset to your watchlist to track it inside the app."}
+      </p>
+    </section>
+  );
+}
+
 function StocksTab({ onAnalyze, onBuy }: { onAnalyze: (a: SelectedAsset) => void; onBuy: (a: SelectedAsset) => void }) {
   const { t, lang } = useI18n();
   const { data, isLoading } = useQuery({ queryKey: ["stocks"], queryFn: () => getStocksData(), refetchInterval: 120000 });
