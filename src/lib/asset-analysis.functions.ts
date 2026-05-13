@@ -326,7 +326,7 @@ Build a comprehensive plan. Allocations percentages must sum to ~100% and reflec
     if (!r.ok) {
       const txt = await r.text();
       console.error("microCapitalPlan error", r.status, txt);
-      return { plan: null, error: "ai_error", detail: `${r.status}: ${txt.slice(0, 200)}` };
+      return { plan: buildDeterministicMicroPlan(data), error: null as string | null, detail: "fallback_plan" };
     }
 
     let firstPlan: MicroCapitalPlan;
