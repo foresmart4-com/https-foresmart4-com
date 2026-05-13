@@ -269,7 +269,6 @@ async function fetchBonds(): Promise<AssetQuote[]> {
 
 
 export const getMarketData = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
   .handler(async () => {
   const [crypto, fx, metals, metalFunds, bonds] = await Promise.all([
     fetchCrypto(),
