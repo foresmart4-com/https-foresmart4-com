@@ -228,11 +228,12 @@ async function callPlanModel(apiKey: string, model: string, messages: any[]) {
 
 function buildDeterministicMicroPlan(data: z.infer<typeof PlanInput>): MicroCapitalPlan {
   const isAr = data.language === "ar";
-  const safe = data.riskAppetite === "conservative" ? 45 : data.riskAppetite === "balanced" ? 30 : 18;
-  const etfs = data.riskAppetite === "conservative" ? 30 : data.riskAppetite === "balanced" ? 35 : 32;
-  const growth = data.riskAppetite === "conservative" ? 15 : data.riskAppetite === "balanced" ? 22 : 30;
-  const metals = data.focus.includes("metals") ? (data.riskAppetite === "aggressive" ? 10 : 15) : 8;
-  const crypto = data.focus.includes("crypto") ? Math.max(0, 100 - safe - etfs - growth - metals) : 0;
+  const metals = data.focus.includes("metals") ? (data.riskAppetite === "aggressive" ? 10 : 15) : 0;
+  const crypto = data.focus.includes("crypto") ? (data.riskAppetite === "conservative" ? 5 : data.riskAppetite === "balanced" ? 10 : 15) : 0;
+  const core = 100 - metals - crypto;
+  const safe = Math.round(core * (data.riskAppetite === "conservative" ? 0.5 : data.riskAppetite === "balanced" ? 0.35 : 0.25));
+  const etfs = Math.round(core * (data.riskAppetite === "conservative" ? 0.35 : data.riskAppetite === "balanced" ? 0.4 : 0.35));
+  const growth = 100 - metals - crypto - safe - etfs;
   const cash = data.capitalSar;
   const sar = (pct: number) => Math.round((cash * pct) / 100);
 
@@ -240,8 +241,8 @@ function buildDeterministicMicroPlan(data: z.infer<typeof PlanInput>): MicroCapi
     headline: isAr
       ? `خطة نمو عملية لرأس مال ${cash} ريال خلال ${data.monthsHorizon} أشهر مع ضبط المخاطر`
       : `Practical ${cash} SAR growth plan for ${data.monthsHorizon} months with strict risk control`,
-    monthlyTargetPct: data.riskAppetite === "conservative" ? "1–3%" : data.riskAppetite === "balanced" ? "3–6%" : "5–10% مع تذبذب عالٍ",
-    yearlyTargetPct: data.riskAppetite === "conservative" ? "12–25%" : data.riskAppetite === "balanced" ? "25–55%" : "50%+ غير مضمون وعالي المخاطر",
+    monthlyTargetPct: data.riskAppetite === "conservative" ? "1–3%" : data.riskAppetite === "balanced" ? "3–6%" : isAr ? "5–10% مع تذبذب عالٍ" : "5–10% with high volatility",
+    yearlyTargetPct: data.riskAppetite === "conservative" ? "12–25%" : data.riskAppetite === "balanced" ? "25–55%" : isAr ? "50%+ غير مضمون وعالي المخاطر" : "50%+ not guaranteed, high risk",
     allocations: [
       { bucket: isAr ? "سيولة وأدوات منخفضة المخاطر" : "Cash and low-risk sleeve", pct: `${safe}%`, examples: [`${sar(safe)} SAR نقداً`, "صندوق مرابحة/صكوك قصير الأجل", "SGOV"], why: isAr ? "يحمي رأس المال ويمنحك قدرة شراء عند الهبوط." : "Protects capital and gives buying power during pullbacks." },
       { bucket: isAr ? "مؤشرات عالمية منخفضة التكلفة" : "Low-cost global ETFs", pct: `${etfs}%`, examples: [`${sar(etfs)} SAR VWRA/VT`, "Wahed", "S&P 500 ETF"], why: isAr ? "قاعدة متنوعة تقلل خطأ اختيار سهم واحد." : "Diversified core that reduces single-name risk." },
