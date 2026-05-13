@@ -61,7 +61,7 @@ function MarketsPage() {
 
         <TabsContent value="stocks" className="mt-6 space-y-6"><StocksTab onAnalyze={analyze} onBuy={buy} /></TabsContent>
         <TabsContent value="crypto" className="mt-6 space-y-6"><AssetsTab category="crypto" onAnalyze={analyze} onBuy={buy} /></TabsContent>
-        <TabsContent value="bonds" className="mt-6 space-y-6"><AssetsTab category="bonds" onAnalyze={analyze} onBuy={buy} /></TabsContent>
+        <TabsContent value="bonds" className="mt-6 space-y-6"><BondsExternalLinks /><AssetsTab category="bonds" onAnalyze={analyze} onBuy={buy} /></TabsContent>
         <TabsContent value="metals" className="mt-6 space-y-6"><AssetsTab category="metals" onAnalyze={analyze} onBuy={buy} /></TabsContent>
         <TabsContent value="fx" className="mt-6 space-y-6"><AssetsTab category="currencies" onAnalyze={analyze} onBuy={buy} /></TabsContent>
       </Tabs>
