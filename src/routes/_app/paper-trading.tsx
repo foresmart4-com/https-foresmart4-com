@@ -39,8 +39,14 @@ function PaperTradingPage() {
   const { lang } = useI18n();
   const [cash, setCash] = useState<number>(STARTING_CASH);
   const [trades, setTrades] = useState<Trade[]>([]);
-  const [quotes, setQuotes] = useState<Record<string, number>>({});
-  const [form, setForm] = useState({ symbol: "AAPL", asset_name: "Apple", quantity: "10" });
+  const [quotes, setQuotes] = useState<Record<string, { price: number; name: string }>>({});
+  const [kind, setKind] = useState<Kind>("stocks");
+  const [region, setRegion] = useState<StockRegion>("us");
+  const [symbol, setSymbol] = useState<string>("AAPL");
+  const [qty, setQty] = useState("10");
+  const [marketAssets, setMarketAssets] = useState<{ symbol: string; name: string; price: number; category: string }[]>([]);
+  const [stockAssets, setStockAssets] = useState<{ symbol: string; name: string; price: number; region: StockRegion }[]>([]);
+
 
   const ensureBalance = async () => {
     if (!user) return;
