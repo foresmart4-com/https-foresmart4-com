@@ -50,6 +50,36 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_account_secrets: {
+        Row: {
+          bank_account_id: string
+          created_at: string
+          id: string
+          plaid_access_token: string | null
+          plaid_item_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bank_account_id: string
+          created_at?: string
+          id?: string
+          plaid_access_token?: string | null
+          plaid_item_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bank_account_id?: string
+          created_at?: string
+          id?: string
+          plaid_access_token?: string | null
+          plaid_item_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bank_accounts: {
         Row: {
           account_id: string | null
@@ -61,8 +91,6 @@ export type Database = {
           id: string
           institution_name: string | null
           is_active: boolean
-          plaid_access_token: string | null
-          plaid_item_id: string | null
           provider: string
           user_id: string
         }
@@ -76,8 +104,6 @@ export type Database = {
           id?: string
           institution_name?: string | null
           is_active?: boolean
-          plaid_access_token?: string | null
-          plaid_item_id?: string | null
           provider?: string
           user_id: string
         }
@@ -91,8 +117,6 @@ export type Database = {
           id?: string
           institution_name?: string | null
           is_active?: boolean
-          plaid_access_token?: string | null
-          plaid_item_id?: string | null
           provider?: string
           user_id?: string
         }
