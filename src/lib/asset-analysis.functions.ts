@@ -314,10 +314,7 @@ Build a comprehensive plan. Allocations percentages must sum to ~100% and reflec
       // Default to the current fast AI Gateway model, then fall back to lite.
       r = await callPlanModel(apiKey, "google/gemini-3-flash-preview", messages);
       if (r.status === 429 || r.status === 503) {
-        r = await callPlanModel(apiKey, "google/gemini-2.5-flash-lite", [
-        { role: "system", content: sys },
-        { role: "user", content: user },
-        ]);
+        r = await callPlanModel(apiKey, "google/gemini-2.5-flash-lite", messages);
       }
     } catch (e) {
       console.error("microCapitalPlan timeout/network fallback", e);
