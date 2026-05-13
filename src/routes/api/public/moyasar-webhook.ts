@@ -39,49 +39,32 @@ export const Route = createFileRoute("/api/public/moyasar-webhook")({
 
           if (!paymentId || !userId) return new Response("missing fields", { status: 200 });
 
-          // Wallet top-up: credit net amount to wallet
+          // Wallet top-up: credit net amount to wallet atomically.
+          // wallet_credit_topup() guards on status='pending' in a single UPDATE,
+          // so concurrent webhook retries cannot double-credit.
           if (purpose === "wallet_topup" && status === "paid") {
-            const { data: topup } = await supabaseAdmin
-              .from("wallet_topups").select("*")
-              .eq("id", meta.topup_id).maybeSingle();
+            if (!meta.topup_id) return new Response("missing topup_id", { status: 200 });
 
-            if (topup && topup.status === "pending") {
-              // Use the authoritative user_id from the topup record, not the webhook payload
-              if (userId && topup.user_id !== userId) {
-                console.error("user_id mismatch in webhook", { expected: topup.user_id, got: userId });
-                return new Response("user mismatch", { status: 400 });
-              }
-              const ownerId = topup.user_id;
+            const { data: result, error } = await supabaseAdmin.rpc("wallet_credit_topup", {
+              _topup_id: meta.topup_id,
+              _payment_id: paymentId,
+              _payment_method: data.source?.type ?? null,
+            });
 
-              await supabaseAdmin.from("wallet_topups").update({
-                status: "paid",
-                moyasar_payment_id: paymentId,
-                payment_method: data.source?.type ?? null,
-              }).eq("id", topup.id);
+            if (error) {
+              console.error("wallet_credit_topup failed", error);
+              return new Response("error", { status: 500 });
+            }
 
-              const { data: w } = await supabaseAdmin
-                .from("wallets").select("*").eq("user_id", ownerId).maybeSingle();
-              const wallet = w ?? (await supabaseAdmin.from("wallets")
-                .insert({ user_id: ownerId, currency: "SAR" }).select().single()).data;
+            const row = Array.isArray(result) ? result[0] : result;
+            if (!row?.credited) {
+              // Already processed (idempotent retry) or topup missing.
+              return new Response("already processed", { status: 200 });
+            }
 
-              if (wallet) {
-                await supabaseAdmin.from("wallets").update({
-                  balance: Number(wallet.balance) + Number(topup.net_credit_sar),
-                  currency: "SAR",
-                  updated_at: new Date().toISOString(),
-                }).eq("id", wallet.id);
-
-                await supabaseAdmin.from("wallet_transactions").insert({
-                  user_id: ownerId, wallet_id: wallet.id,
-                  type: "deposit", amount: topup.net_credit_sar, currency: "SAR",
-                  status: "completed", reference: paymentId,
-                  metadata: {
-                    gross: topup.amount_sar,
-                    moyasar_fee: topup.moyasar_fee_sar,
-                    service_fee: topup.service_fee_sar,
-                  },
-                });
-              }
+            // Verify the user_id from the webhook payload matches the topup record.
+            if (userId && row.user_id !== userId) {
+              console.error("user_id mismatch in webhook", { expected: row.user_id, got: userId });
             }
           }
 
