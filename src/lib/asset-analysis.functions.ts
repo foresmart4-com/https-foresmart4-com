@@ -258,14 +258,16 @@ Today: ${today}
 
 Build a comprehensive plan. Allocations percentages must sum to ~100% and reflect the focus areas + risk profile. Weekly steps must cover the first 4 weeks plus 3-4 monthly milestones with concrete SAR amounts and specific instruments (e.g. "اشترِ بـ 200 ريال من iShares MSCI World" or "150 ريال BTC عبر Rain"). Include at least 5 golden rules, 3-5 warnings, and 3-4 exit conditions.`;
 
-    let r = await callPlanModel(apiKey, "google/gemini-2.5-pro", [
+    // Use flash for fast response within Worker time limits. Pro model is too slow
+    // and times out on Cloudflare Workers (~30s wall-clock).
+    let r = await callPlanModel(apiKey, "google/gemini-2.5-flash", [
       { role: "system", content: sys },
       { role: "user", content: user },
     ]);
 
-    // Fallback to faster model if pro is rate-limited / unavailable.
+    // Fallback to lite if flash is unavailable.
     if (r.status === 429 || r.status === 503) {
-      r = await callPlanModel(apiKey, "google/gemini-2.5-flash", [
+      r = await callPlanModel(apiKey, "google/gemini-2.5-flash-lite", [
         { role: "system", content: sys },
         { role: "user", content: user },
       ]);
@@ -288,28 +290,6 @@ Build a comprehensive plan. Allocations percentages must sum to ~100% and reflec
     } catch (e) {
       console.error(e);
       return { plan: null, error: "parse_error", detail: String(e) };
-    }
-
-    // Second pass: critique + refine for realism, risk balance, and clarity.
-    try {
-      const critiqueSys = data.language === "ar"
-        ? `أنت مراجع استثمار صارم. خذ الخطة المقدمة وحسّنها: تأكد أن نسب التوزيع تساوي 100%، أن الأهداف الشهرية واقعية لمستوى المخاطرة، أن الخطوات الأسبوعية محددة بأرقام بالريال، أن قواعد إدارة المخاطر صارمة، وأن هناك خطة للخروج عند الخسارة. أعد الخطة المحسّنة عبر الأداة micro_plan فقط. لا تخفض الجودة، فقط حسّن.`
-        : `You are a strict investment reviewer. Improve the given plan: ensure allocations sum to 100%, monthly targets are realistic for the risk level, weekly steps have concrete SAR amounts, risk rules are tight, and exit conditions are explicit. Return the improved plan via the micro_plan tool only.`;
-
-      const r2 = await callPlanModel(apiKey, "google/gemini-2.5-flash", [
-        { role: "system", content: critiqueSys },
-        { role: "user", content: `Inputs:\nCapital: ${data.capitalSar} SAR\nRisk: ${data.riskAppetite}\nHorizon: ${data.monthsHorizon}m\nFocus: ${data.focus.join(", ")}\n\nDraft plan to refine:\n${JSON.stringify(firstPlan)}` },
-      ]);
-      if (r2.ok) {
-        const d2 = await r2.json();
-        const call2 = d2.choices?.[0]?.message?.tool_calls?.[0];
-        if (call2?.function?.arguments) {
-          const refined = JSON.parse(call2.function.arguments) as MicroCapitalPlan;
-          return { plan: refined, error: null as string | null, detail: null as string | null };
-        }
-      }
-    } catch (e) {
-      console.warn("refinement skipped:", e);
     }
 
     return { plan: firstPlan, error: null as string | null, detail: null as string | null };
