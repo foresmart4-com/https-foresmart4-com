@@ -1,106 +1,48 @@
-# خطة إصلاح منظومة الدفع والاشتراكات
+# خطة التحسينات الكبرى — ForeSmart
 
-## القرار المعماري
-- **Stripe (المدمجة في Lovable)** = الاشتراكات بالريال SAR، مع تجربة 14 يوم تتطلب بطاقة، وتجديد تلقائي.
-- **Moyasar** = شحن المحفظة بالريال فقط (mada/Apple Pay/STC Pay).
-- نُلغي صفحة Moyasar في الاشتراك، ونُلغي `createDepositSession` (Stripe USD للمحفظة) لأنها كود ميت.
+سأنفذ التحسينات الأربعة على مراحل (دفعة لكل مرحلة لضمان الجودة).
 
----
+## المرحلة 1 — محرك الإشارات الذكي (Signals Engine)
+**الصفحة الجديدة:** `/_app/signals`
 
-## 1. تعديلات قاعدة البيانات (migration)
+- جدول DB جديد `trade_signals`: symbol, action (buy/sell/hold), confidence (0-100), entry, stop, targets[], rationale, technical_score, sentiment_score, generated_at, expires_at
+- Server function `generateSignals` تجمع:
+  - مؤشرات فنية محسوبة محلياً من market history: RSI(14), MACD, Bollinger Bands, MA50/MA200 cross, Momentum
+  - تحليل معنويات أخبار عبر Lovable AI (gemini-3-flash) لكل أصل
+  - دمج الإشارات بصيغة وزنية → درجة ثقة نهائية
+- UI: شبكة بطاقات إشارات مع شريط ثقة، فلتر حسب القوة/المدى الزمني، أزرار سريعة (إضافة لـ Watchlist، إنشاء تنبيه، شراء)
+- Cron job كل 30 دقيقة لتحديث الإشارات تلقائياً
 
-**أ. تعديل `subscriptions`:**
-- إضافة: `stripe_subscription_id text unique`, `stripe_customer_id text`, `environment text default 'sandbox'`, `product_id text`, `price_id text`.
-- إبقاء حقول Moyasar الحالية للتوافق (لكنها لن تُستخدم).
+## المرحلة 2 — Watchlist + تنبيهات لحظية
+**الصفحة:** `/_app/watchlist` + تعزيز `/alerts`
 
-**ب. تعديل دالة `has_active_subscription`:**
-- إضافة فلترة `environment` + قبول `trialing` (موجود) + شرط `canceled مع period_end مستقبلي` (وصول حتى نهاية الفترة).
+- جدول `watchlist_items`: user_id, symbol, asset_name, market, added_at, target_price?, notes?
+- بطاقات حية بسعر متغير ولون تغير + sparkline مصغّر
+- تنبيهات متقدمة: شروط متعددة (price-above/below, change_pct, RSI overbought/oversold, MA cross)
+- إرسال إشعار بريدي عند تفعيل التنبيه (يستخدم البنية الموجودة)
+- زر "+" في كل بطاقة سوق/أصل لإضافته للقائمة
 
-**ج. تعديل دالة `handle_new_user_role`:**
-- المستخدم الجديد يحصل على دور `subscriber` تلقائياً (بدلاً من `pending`) لتمكين التجربة.
-- أول مستخدم يبقى `admin`.
+## المرحلة 3 — تحليلات أداء المحفظة
+**تعزيز:** `/_app/portfolios`
 
-**د. إضافة trigger يعتمد على `has_active_subscription`:**
-- عند تحديث `subscriptions.status` إلى `canceled/unpaid/incomplete_expired` ومرور `current_period_end` → حذف دور `subscriber`.
+- حساب: Sharpe ratio, max drawdown, total return, volatility, beta vs benchmark
+- مخطط أداء تاريخي مقابل S&P500/المؤشر السعودي
+- توصيات إعادة توازن AI: "محفظتك مركّزة 65% في التقنية، يُنصح بتنويع نحو الطاقة"
+- تحليل التنويع: pie chart بالقطاعات والأسواق
 
-**هـ. تفعيل realtime على `subscriptions`** ليُحدّث UI فوراً بعد دفع.
+## المرحلة 4 — سكانر فرص استثمارية
+**الصفحة:** `/_app/scanner`
 
-## 2. كتالوج المنتجات (Stripe)
+- فلاتر مرنة: نطاق سعر، تغير %، RSI، حجم تداول، رسملة سوقية
+- presets جاهزة: "Momentum stocks", "Oversold value", "Breakout candidates", "Dividend kings"
+- نتائج مرتبة بدرجة فرصة محسوبة AI
+- زر إضافة مباشر لـ Watchlist أو إنشاء تنبيه
 
-إنشاء منتج واحد بسعرين عبر `payments--batch_create_product`:
-- `id: stratagem_subscription`
-- السعر `quarterly_sar`: 29900 هللة، SAR، تكرار شهري كل 3 أشهر (`recurring_interval=month, interval_count=3` — أو نستخدم `month` ونحتسب كم شهر في كل دفعة).
-- السعر `annual_sar`: 89900 هللة، SAR، سنوياً.
+## المرحلة 5 — تحسينات شاملة
+- إضافة روابط Sidebar للصفحات الجديدة
+- ترجمات i18n عربي/إنجليزي كاملة
+- SEO meta لكل صفحة جديدة
+- تحسينات وصف ميتا للموقع (foresmart4.store)
 
-> ملاحظة: سنحدّد فترة التجربة 14 يوم على Checkout Session لا على المنتج (`subscription_data.trial_period_days = 14`).
-
-## 3. كود الخادم (Stripe)
-
-**أ. `src/lib/stripe.server.ts`** — نسخ utility الموحّد (`createStripeClient` + `verifyWebhook`) كما في knowledge.
-
-**ب. `src/lib/payments.functions.ts`** — استبدال `initiateSubscription` بـ:
-- `createSubscriptionCheckout({ priceId, environment })`: ينشئ Stripe Checkout Session بـ `mode=subscription`, `subscription_data.trial_period_days=14`, `metadata.userId`, نجاح/إلغاء يعودان إلى `/subscription`.
-- `createBillingPortalSession({ environment })`: لإدارة الاشتراك/إلغائه/تحديث البطاقة.
-- إبقاء `previewTopupFees` و `initiateTopup` (Moyasar).
-
-**ج. `src/routes/api/public/payments/webhook.ts`** — استبدال الموجود بمعالج Stripe الكامل من knowledge:
-- يستقبل `customer.subscription.created/updated/deleted`.
-- `upsert` على `subscriptions` بمفتاح `stripe_subscription_id`.
-- يقرأ `?env=sandbox|live`.
-- يتحقق من التوقيع HMAC.
-
-## 4. كود الخادم (Moyasar — تنظيف وأمان)
-
-**أ. `src/routes/api/public/moyasar-webhook.ts`:**
-- إزالة منطق `subscription` (لم نعد نستخدم Moyasar للاشتراك).
-- إبقاء `wallet_topup` فقط.
-- تحسين تحقق `secret_token` ليكون مقارنة ثابتة (timing-safe).
-
-**ب. حذف `createDepositSession` من `checkout.functions.ts`** (كود ميت).
-
-## 5. الواجهة (UI)
-
-**أ. `/subscription`:**
-- إزالة Moyasar.js بالكامل.
-- زر "ابدأ التجربة المجانية 14 يوم" → يستدعي `createSubscriptionCheckout` ويعيد التوجيه إلى Stripe Checkout.
-- إذا اشتراك نشط: عرض حالة التجربة/التجديد + زر "إدارة الاشتراك" يفتح Customer Portal في تبويب جديد.
-- زر "إلغاء الاشتراك" داخل البورتل (Stripe يديره).
-
-**ب. `/wallet`:** بدون تغيير وظيفي (Moyasar كما هي).
-
-**ج. `AccessGate`:**
-- إزالة شاشة "pending" نهائياً.
-- استبدالها بـ: إذا `!has_active_subscription` → عرض شاشة ترويج تدفع لصفحة `/subscription` فقط (بدلاً من قفل كامل).
-- الأدمن يتجاوز.
-
-**د. `useAccess.ts`:**
-- إضافة `hasActiveSubscription` (استعلام `subscriptions` مع فلترة `environment`).
-- `canAccess = isAdmin || hasActiveSubscription`.
-
-## 6. أسرار مطلوبة من المستخدم
-
-- **`MOYASAR_PUBLISHABLE_KEY`** و **`MOYASAR_SECRET_KEY`** و **`MOYASAR_WEBHOOK_SECRET`** (بعد إنشاء حساب على moyasar.com وتفعيل وضع الاختبار). بدونها: شحن المحفظة لا يعمل، لكن الاشتراك (Stripe) يعمل.
-
-## 7. خطة الاختبار في المعاينة
-
-**اختبار الاشتراك (Stripe Sandbox):**
-1. سجّل مستخدم جديد → ينبغي أن تُفتح كل الصفحات (دون شاشة pending).
-2. ادخل `/subscription` واضغط "ابدأ التجربة" على الخطة الفصلية.
-3. في صفحة Stripe، استخدم بطاقة الاختبار: **`4242 4242 4242 4242`**, تاريخ مستقبلي، CVC `123`, الرمز البريدي `12345`.
-4. عند العودة → يجب رؤية "أنت في تجربة 14 يوم" وزر "إدارة الاشتراك".
-5. اختبار الإلغاء عبر Customer Portal → الحالة تتحول إلى `canceled` لكن الوصول يبقى حتى نهاية الفترة.
-6. اختبار فشل الدفع: بطاقة `4000 0000 0000 0341`.
-
-**اختبار شحن المحفظة (Moyasar):**
-- لن يعمل قبل إضافة المفاتيح. بعد إضافتها: بطاقة اختبار Moyasar `4111 1111 1111 1111`, OTP `12345`.
-
-**اختبار سيناريو نهاية التجربة:**
-- داخل Stripe Sandbox، يمكن تقديم وقت التجربة من Customer Portal أو من لوحة Stripe لتشغيل تجديد فوري.
-
-## التفاصيل التقنية
-
-- جميع نداءات Stripe تمر عبر `createStripeClient(env)` (gateway proxy، لا SDK مباشر).
-- Webhook URL: `https://project--5a68377c-93dc-42f4-9999-fc0850af1ae2.lovable.app/api/public/payments/webhook?env=sandbox` — مسجَّل تلقائياً.
-- العملة في Stripe: SAR مدعومة طبيعياً.
-- لا تغييرات على ملف `routeTree.gen.ts` (auto-generated).
-- جدول `subscription_plans` يبقى للعرض فقط (الأسعار الحقيقية في Stripe).
+## ابدأ بالمرحلة 1
+بسبب الحجم، سأنفذ المرحلة 1 (محرك الإشارات) بالكامل في هذه الجولة، ثم ننتقل تباعاً للمراحل التالية في رسائل قادمة.
