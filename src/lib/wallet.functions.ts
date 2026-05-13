@@ -105,22 +105,28 @@ export const placeOrder = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const total = data.quantity * data.price;
 
-    const { data: wallet } = await supabase
-      .from("wallets")
-      .select("*")
+    // Verify the portfolio belongs to the authenticated user before any wallet movement.
+    const { data: portfolio } = await supabase
+      .from("portfolios")
+      .select("id")
+      .eq("id", data.portfolioId)
       .eq("user_id", userId)
-      .single();
-    if (!wallet) throw new Error("Wallet not found");
+      .maybeSingle();
+    if (!portfolio) throw new Error("Portfolio not found");
 
-    if (data.side === "buy" && Number(wallet.balance) < total) {
-      throw new Error("Insufficient balance");
+    // Atomic conditional balance update — prevents race conditions / double-spend.
+    const { data: rpcRows, error: rpcErr } = await supabaseAdmin.rpc("wallet_apply_order", {
+      _user_id: userId,
+      _amount: total,
+      _side: data.side,
+    });
+    if (rpcErr) throw new Error(rpcErr.message);
+    const updated = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
+    if (!updated) {
+      throw new Error(data.side === "buy" ? "Insufficient balance" : "Wallet not found");
     }
-
-    const newBal = data.side === "buy"
-      ? Number(wallet.balance) - total
-      : Number(wallet.balance) + total;
-
-    await supabaseAdmin.from("wallets").update({ balance: newBal, updated_at: new Date().toISOString() }).eq("id", wallet.id);
+    const wallet = updated as { id: string; balance: number; currency: string };
+    const newBal = Number(wallet.balance);
 
     await supabaseAdmin.from("wallet_transactions").insert({
       user_id: userId,
