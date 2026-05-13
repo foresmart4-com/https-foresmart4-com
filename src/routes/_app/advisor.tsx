@@ -21,7 +21,8 @@ export const Route = createFileRoute("/_app/advisor")({
 function AdvisorPage() {
   const { t, lang } = useI18n();
   const ask = useServerFn(askAdvisor);
-  const { data: market } = useQuery({ queryKey: ["market"], queryFn: () => getMarketData() });
+  const marketFn = useServerFn(getMarketData);
+  const { data: market } = useQuery({ queryKey: ["market"], queryFn: () => marketFn() });
   const [q, setQ] = useState("");
   const [reply, setReply] = useState<AdvisorStructuredReply | null>(null);
   const [rawFallback, setRawFallback] = useState<string>("");
