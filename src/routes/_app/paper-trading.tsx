@@ -12,7 +12,19 @@ import { toast } from "sonner";
 import { getMarketData } from "@/lib/market-data";
 import { getStocksData } from "@/lib/stocks-data";
 
-export const Route = createFileRoute("/_app/paper-trading")({ component: PaperTradingPage });
+export const Route = createFileRoute("/_app/paper-trading")({
+  component: PaperTradingPage,
+  head: () => ({
+    meta: [
+      { title: "Paper Trading — ForeSmart" },
+      { name: "description", content: "Practice trading risk-free with $100,000 in virtual cash. Track open positions, P&L and history on ForeSmart." },
+      { property: "og:title", content: "Paper Trading — ForeSmart" },
+      { property: "og:description", content: "Risk-free trading simulator with virtual cash." },
+      { property: "og:url", content: "https://foresmart4.store/paper-trading" },
+    ],
+    links: [{ rel: "canonical", href: "https://foresmart4.store/paper-trading" }],
+  }),
+});
 
 const STARTING_CASH = 100000;
 
