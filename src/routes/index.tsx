@@ -2,6 +2,7 @@ import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
+import { InterestForm } from "@/components/InterestForm";
 import { TrendingUp, Brain, Bell, Globe2, ShieldCheck, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -72,7 +73,7 @@ function Landing() {
           </div>
         </section>
 
-        <section className="grid gap-6 pb-20 md:grid-cols-3">
+        <section className="grid gap-6 pb-12 md:grid-cols-3">
           {[
             { icon: Brain, title: lang === "ar" ? "ذكاء اصطناعي" : "AI Insights", desc: lang === "ar" ? "نصائح بناءً على بيانات السوق والأخبار" : "Advice from real-time market & news data" },
             { icon: Bell, title: lang === "ar" ? "تنبيهات ذكية" : "Smart Alerts", desc: lang === "ar" ? "اعرف متى تشتري ومتى تبيع" : "Know when to buy and when to sell" },
@@ -84,6 +85,10 @@ function Landing() {
               <p className="text-sm text-muted-foreground">{f.desc}</p>
             </div>
           ))}
+        </section>
+
+        <section id="interest" className="mx-auto max-w-2xl pb-20">
+          <InterestForm />
         </section>
       </main>
     </div>

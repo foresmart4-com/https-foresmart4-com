@@ -281,6 +281,39 @@ export type Database = {
         }
         Relationships: []
       }
+      interest_leads: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          interested_plan: string | null
+          notes: string | null
+          phone: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          interested_plan?: string | null
+          notes?: string | null
+          phone?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          interested_plan?: string | null
+          notes?: string | null
+          phone?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       market_archive: {
         Row: {
           asset_name: string

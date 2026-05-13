@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useCallback } from "react";
 
 interface Props {
-  priceId: "quarterly_sar" | "annual_sar";
+  priceId: "quarterly_sar" | "semi_annual_sar" | "annual_sar";
   returnUrl: string;
 }
 
