@@ -115,6 +115,7 @@ function ResetPasswordPage() {
                     onClick={() => setShow((s) => !s)}
                     className="absolute end-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
                     tabIndex={-1}
+                    aria-label={show ? (lang === "ar" ? "إخفاء كلمة المرور" : "Hide password") : (lang === "ar" ? "إظهار كلمة المرور" : "Show password")}
                   >
                     {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
