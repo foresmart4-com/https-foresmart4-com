@@ -32,6 +32,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "author", content: "ForeSmart" },
+      { name: "google-site-verification", content: "81pqRJlRgVXh9wi5nQ7YtUbkx45HkypGz_t2soHC9b8" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "ForeSmart" },
       { name: "twitter:card", content: "summary_large_image" },
