@@ -1,6 +1,6 @@
 // Free market data aggregator. Runs server-side via TanStack server functions.
 import { createServerFn } from "@tanstack/react-start";
-// Public market data — no auth required.
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export type AssetCategory = "currencies" | "metals" | "oil" | "crypto" | "stocks" | "bonds";
 
@@ -269,6 +269,7 @@ async function fetchBonds(): Promise<AssetQuote[]> {
 
 
 export const getMarketData = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
   .handler(async () => {
   const [crypto, fx, metals, metalFunds, bonds] = await Promise.all([
     fetchCrypto(),

@@ -2,6 +2,7 @@
 // If Yahoo is unreachable from the edge runtime, we synthesize a quote around a
 // baseline reference price so the UI always renders meaningful data.
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export type StockRegion =
   | "us"
@@ -178,6 +179,7 @@ async function fetchYahooQuote(c: CompanyDef, region: StockRegion): Promise<Stoc
 }
 
 export const getStocksData = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
   .handler(async () => {
   const all: Array<{ region: StockRegion; def: CompanyDef }> = [];
   (Object.keys(COMPANIES) as StockRegion[]).forEach((region) => {
