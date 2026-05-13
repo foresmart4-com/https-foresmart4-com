@@ -43,6 +43,16 @@ import {
 
 export const Route = createFileRoute("/_app/archive")({
   component: ArchivePage,
+  head: () => ({
+    meta: [
+      { title: "Archive & Top Gainers — ForeSmart" },
+      { name: "description", content: "Browse top-gaining coins and stocks, market history charts and your saved snapshots from ForeSmart." },
+      { property: "og:title", content: "Archive — ForeSmart" },
+      { property: "og:description", content: "Top gainers, market history and saved snapshots." },
+      { property: "og:url", content: "https://foresmart4.store/archive" },
+    ],
+    links: [{ rel: "canonical", href: "https://foresmart4.store/archive" }],
+  }),
 });
 
 interface Row {
