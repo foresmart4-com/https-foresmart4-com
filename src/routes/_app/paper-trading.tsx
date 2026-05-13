@@ -7,10 +7,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GraduationCap, TrendingUp, TrendingDown, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { getMarketData } from "@/lib/market-data";
-import { getStocksData } from "@/lib/stocks-data";
+import { getStocksData, REGION_LABELS, type StockRegion } from "@/lib/stocks-data";
+
+type Kind = "stocks" | "crypto" | "metals" | "bonds" | "currencies";
+
 
 export const Route = createFileRoute("/_app/paper-trading")({
   component: PaperTradingPage,
@@ -35,8 +39,14 @@ function PaperTradingPage() {
   const { lang } = useI18n();
   const [cash, setCash] = useState<number>(STARTING_CASH);
   const [trades, setTrades] = useState<Trade[]>([]);
-  const [quotes, setQuotes] = useState<Record<string, number>>({});
-  const [form, setForm] = useState({ symbol: "AAPL", asset_name: "Apple", quantity: "10" });
+  const [quotes, setQuotes] = useState<Record<string, { price: number; name: string }>>({});
+  const [kind, setKind] = useState<Kind>("stocks");
+  const [region, setRegion] = useState<StockRegion>("us");
+  const [symbol, setSymbol] = useState<string>("AAPL");
+  const [qty, setQty] = useState("10");
+  const [marketAssets, setMarketAssets] = useState<{ symbol: string; name: string; price: number; category: string }[]>([]);
+  const [stockAssets, setStockAssets] = useState<{ symbol: string; name: string; price: number; region: StockRegion }[]>([]);
+
 
   const ensureBalance = async () => {
     if (!user) return;
@@ -58,10 +68,12 @@ function PaperTradingPage() {
   const loadQuotes = async () => {
     try {
       const [m, s] = await Promise.all([getMarketData(), getStocksData()]);
-      const q: Record<string, number> = {};
-      m.assets.forEach((a) => (q[a.symbol] = a.price));
-      s.stocks.forEach((a) => (q[a.symbol] = a.price));
+      const q: Record<string, { price: number; name: string }> = {};
+      m.assets.forEach((a) => (q[a.symbol] = { price: a.price, name: a.name }));
+      s.stocks.forEach((a) => (q[a.symbol] = { price: a.price, name: a.name }));
       setQuotes(q);
+      setMarketAssets(m.assets.map((a) => ({ symbol: a.symbol, name: a.name, price: a.price, category: a.category })));
+      setStockAssets(s.stocks.map((a) => ({ symbol: a.symbol, name: a.name, price: a.price, region: a.region })));
     } catch { /* ignore */ }
   };
 
@@ -70,28 +82,38 @@ function PaperTradingPage() {
   const openTrades = trades.filter((t) => t.status === "open");
   const closedTrades = trades.filter((t) => t.status === "closed");
 
+  const priceOf = (sym: string, fallback: number) => quotes[sym]?.price ?? fallback;
+
   const portfolioValue = useMemo(() => {
-    return openTrades.reduce((sum, t) => sum + (quotes[t.symbol] ?? t.price) * Number(t.quantity), 0);
+    return openTrades.reduce((sum, t) => sum + priceOf(t.symbol, Number(t.price)) * Number(t.quantity), 0);
   }, [openTrades, quotes]);
 
   const realizedPnl = closedTrades.reduce((s, t) => s + Number(t.pnl ?? 0), 0);
   const unrealizedPnl = openTrades.reduce((s, t) => {
-    const cur = quotes[t.symbol] ?? t.price;
+    const cur = priceOf(t.symbol, Number(t.price));
     return s + (cur - Number(t.price)) * Number(t.quantity) * (t.side === "buy" ? 1 : -1);
   }, 0);
   const totalEquity = cash + portfolioValue;
   const totalReturnPct = ((totalEquity + realizedPnl - STARTING_CASH) / STARTING_CASH) * 100;
 
+  const currentOptions = useMemo(() => {
+    if (kind === "stocks") return stockAssets.filter((a) => a.region === region).map((a) => ({ symbol: a.symbol, name: a.name, price: a.price }));
+    const cat = kind === "currencies" ? "currencies" : kind;
+    return marketAssets.filter((a) => a.category === cat).map((a) => ({ symbol: a.symbol, name: a.name, price: a.price }));
+  }, [kind, region, stockAssets, marketAssets]);
+
+  const selectedAsset = currentOptions.find((o) => o.symbol === symbol) ?? currentOptions[0];
+
   const placeTrade = async (side: "buy" | "sell") => {
     if (!user) return;
-    const qty = parseFloat(form.quantity);
-    const price = quotes[form.symbol.toUpperCase()];
-    if (!qty || !price) { toast.error(lang === "ar" ? "رمز غير معروف" : "Unknown symbol"); return; }
-    const cost = qty * price;
+    const qtyNum = parseFloat(qty);
+    if (!selectedAsset || !qtyNum) { toast.error(lang === "ar" ? "اختر أصلاً وكمية" : "Pick an asset and quantity"); return; }
+    const price = selectedAsset.price;
+    const cost = qtyNum * price;
     if (side === "buy" && cost > cash) { toast.error(lang === "ar" ? "رصيد غير كافٍ" : "Insufficient balance"); return; }
     const { error } = await supabase.from("paper_trades").insert({
-      user_id: user.id, symbol: form.symbol.toUpperCase(), asset_name: form.asset_name,
-      side, quantity: qty, price, status: "open",
+      user_id: user.id, symbol: selectedAsset.symbol, asset_name: selectedAsset.name,
+      side, quantity: qtyNum, price, status: "open",
     });
     if (error) { toast.error(error.message); return; }
     await supabase.from("paper_balances").update({ cash_usd: cash - (side === "buy" ? cost : -cost), updated_at: new Date().toISOString() }).eq("user_id", user.id);
@@ -101,7 +123,7 @@ function PaperTradingPage() {
 
   const closeTrade = async (t: Trade) => {
     if (!user) return;
-    const cur = quotes[t.symbol] ?? t.price;
+    const cur = priceOf(t.symbol, Number(t.price));
     const pnl = (cur - Number(t.price)) * Number(t.quantity) * (t.side === "buy" ? 1 : -1);
     const proceeds = cur * Number(t.quantity) * (t.side === "buy" ? 1 : -1);
     await supabase.from("paper_trades").update({
@@ -156,25 +178,65 @@ function PaperTradingPage() {
         </Card>
       </div>
 
-      <Card className="p-4 grid gap-3 md:grid-cols-[1fr_2fr_1fr_auto_auto] items-end">
-        <div>
-          <label className="text-xs text-muted-foreground">{lang === "ar" ? "الرمز" : "Symbol"}</label>
-          <Input value={form.symbol} onChange={(e) => setForm({ ...form, symbol: e.target.value.toUpperCase() })} />
+      <Card className="p-4 space-y-3">
+        <div className="grid gap-3 md:grid-cols-4">
+          <div>
+            <label className="text-xs text-muted-foreground">{lang === "ar" ? "النوع" : "Type"}</label>
+            <Select value={kind} onValueChange={(v) => { setKind(v as Kind); setSymbol(""); }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="stocks">{lang === "ar" ? "أسهم وشركات" : "Companies / Stocks"}</SelectItem>
+                <SelectItem value="crypto">{lang === "ar" ? "عملات رقمية" : "Crypto"}</SelectItem>
+                <SelectItem value="metals">{lang === "ar" ? "معادن" : "Metals"}</SelectItem>
+                <SelectItem value="bonds">{lang === "ar" ? "سندات" : "Bonds"}</SelectItem>
+                <SelectItem value="currencies">{lang === "ar" ? "عملات عالمية" : "Currencies (FX)"}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {kind === "stocks" && (
+            <div>
+              <label className="text-xs text-muted-foreground">{lang === "ar" ? "السوق" : "Market"}</label>
+              <Select value={region} onValueChange={(v) => { setRegion(v as StockRegion); setSymbol(""); }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(REGION_LABELS) as StockRegion[]).map((r) => (
+                    <SelectItem key={r} value={r}>{REGION_LABELS[r].flag} {REGION_LABELS[r][lang as "ar" | "en"]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className={kind === "stocks" ? "md:col-span-1" : "md:col-span-2"}>
+            <label className="text-xs text-muted-foreground">{lang === "ar" ? "الأصل" : "Asset"}</label>
+            <Select value={selectedAsset?.symbol ?? ""} onValueChange={setSymbol}>
+              <SelectTrigger><SelectValue placeholder={lang === "ar" ? "اختر..." : "Choose..."} /></SelectTrigger>
+              <SelectContent className="max-h-72">
+                {currentOptions.map((o) => (
+                  <SelectItem key={o.symbol} value={o.symbol}>
+                    {o.symbol} — {o.name} (${o.price.toLocaleString(undefined, { maximumFractionDigits: 2 })})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">{lang === "ar" ? "الكمية" : "Quantity"}</label>
+            <Input type="number" min="0" step="0.0001" value={qty} onChange={(e) => setQty(e.target.value)} />
+          </div>
         </div>
-        <div>
-          <label className="text-xs text-muted-foreground">{lang === "ar" ? "الاسم" : "Name"}</label>
-          <Input value={form.asset_name} onChange={(e) => setForm({ ...form, asset_name: e.target.value })} />
+        <div className="flex flex-wrap gap-2">
+          <Button className="bg-emerald-500 hover:bg-emerald-600 gap-1" onClick={() => placeTrade("buy")}>
+            <TrendingUp className="h-4 w-4" /> {lang === "ar" ? "شراء" : "Buy"}
+          </Button>
+          <Button variant="outline" className="border-rose-500/50 text-rose-500 hover:bg-rose-500/10 gap-1" onClick={() => placeTrade("sell")}>
+            <TrendingDown className="h-4 w-4" /> {lang === "ar" ? "بيع" : "Sell"}
+          </Button>
+          {selectedAsset && (
+            <span className="ms-auto self-center text-xs text-muted-foreground">
+              {lang === "ar" ? "الإجمالي" : "Total"}: <span className="font-semibold text-foreground">${((parseFloat(qty) || 0) * selectedAsset.price).toFixed(2)}</span>
+            </span>
+          )}
         </div>
-        <div>
-          <label className="text-xs text-muted-foreground">{lang === "ar" ? "الكمية" : "Quantity"}</label>
-          <Input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
-        </div>
-        <Button className="bg-emerald-500 hover:bg-emerald-600 gap-1" onClick={() => placeTrade("buy")}>
-          <TrendingUp className="h-4 w-4" /> {lang === "ar" ? "شراء" : "Buy"}
-        </Button>
-        <Button variant="outline" className="border-rose-500/50 text-rose-500 hover:bg-rose-500/10 gap-1" onClick={() => placeTrade("sell")}>
-          <TrendingDown className="h-4 w-4" /> {lang === "ar" ? "بيع" : "Sell"}
-        </Button>
       </Card>
 
       <Card className="overflow-hidden">
@@ -196,7 +258,7 @@ function PaperTradingPage() {
             </thead>
             <tbody>
               {openTrades.map((t) => {
-                const cur = quotes[t.symbol] ?? Number(t.price);
+                const cur = priceOf(t.symbol, Number(t.price));
                 const pnl = (cur - Number(t.price)) * Number(t.quantity) * (t.side === "buy" ? 1 : -1);
                 return (
                   <tr key={t.id} className="border-t border-border">

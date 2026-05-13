@@ -10,7 +10,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { AssetAnalysisDialog } from "@/components/AssetAnalysisDialog";
 import { BuyAssetDialog } from "@/components/BuyAssetDialog";
-import { Building2, Coins, DollarSign, Brain, Gem, ShoppingCart, Landmark } from "lucide-react";
+import { Building2, Coins, DollarSign, Brain, Gem, ShoppingCart, Landmark, ExternalLink } from "lucide-react";
+import { BOND_BUY_LINKS, TREASURY_DIRECT_LINKS } from "@/lib/bond-links";
 
 interface SelectedAsset {
   symbol: string;
@@ -60,7 +61,7 @@ function MarketsPage() {
 
         <TabsContent value="stocks" className="mt-6 space-y-6"><StocksTab onAnalyze={analyze} onBuy={buy} /></TabsContent>
         <TabsContent value="crypto" className="mt-6 space-y-6"><AssetsTab category="crypto" onAnalyze={analyze} onBuy={buy} /></TabsContent>
-        <TabsContent value="bonds" className="mt-6 space-y-6"><AssetsTab category="bonds" onAnalyze={analyze} onBuy={buy} /></TabsContent>
+        <TabsContent value="bonds" className="mt-6 space-y-6"><BondsExternalLinks /><AssetsTab category="bonds" onAnalyze={analyze} onBuy={buy} /></TabsContent>
         <TabsContent value="metals" className="mt-6 space-y-6"><AssetsTab category="metals" onAnalyze={analyze} onBuy={buy} /></TabsContent>
         <TabsContent value="fx" className="mt-6 space-y-6"><AssetsTab category="currencies" onAnalyze={analyze} onBuy={buy} /></TabsContent>
       </Tabs>
@@ -68,6 +69,31 @@ function MarketsPage() {
       <AssetAnalysisDialog open={open} onOpenChange={setOpen} asset={selected} />
       <BuyAssetDialog open={buyOpen} onOpenChange={setBuyOpen} asset={buyTarget} />
     </div>
+  );
+}
+
+function BondsExternalLinks() {
+  const { lang } = useI18n();
+  return (
+    <section className="rounded-xl gradient-card border border-border p-5 shadow-card">
+      <h2 className="font-display text-lg font-semibold mb-1">
+        {lang === "ar" ? "شراء السندات الأمريكية مباشرة" : "Buy US Bonds directly"}
+      </h2>
+      <p className="text-xs text-muted-foreground mb-3">
+        {lang === "ar" ? "روابط رسمية لشراء السندات من المُصدر أو وسطاء معتمدين." : "Official links to buy bonds from issuer or licensed brokers."}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {TREASURY_DIRECT_LINKS.map((l) => (
+          <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer"
+             className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20">
+            <ExternalLink className="h-3.5 w-3.5" /> {l.label}
+          </a>
+        ))}
+      </div>
+      <p className="mt-3 text-[11px] text-muted-foreground">
+        {lang === "ar" ? "بعد الشراء يمكنك إضافة الأصل لقائمة المراقبة لمتابعته داخل البرنامج." : "After purchase, add the asset to your watchlist to track it inside the app."}
+      </p>
+    </section>
   );
 }
 

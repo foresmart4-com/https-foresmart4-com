@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine, Building, Plus, AlertCircle, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { QuickBuyPanel } from "@/components/QuickBuyPanel";
 
 export const Route = createFileRoute("/_app/wallet")({
   component: WalletPage,
@@ -216,6 +217,8 @@ function WalletPage() {
           <div className="mysr-form" />
         </Card>
       )}
+
+      <QuickBuyPanel />
 
       <Card className="overflow-hidden">
         <header className="border-b border-border bg-muted/30 px-5 py-3 font-semibold">
