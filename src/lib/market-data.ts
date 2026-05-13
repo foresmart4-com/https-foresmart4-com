@@ -1,6 +1,6 @@
 // Free market data aggregator. Runs server-side via TanStack server functions.
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+// Public market data — no auth required.
 
 export type AssetCategory = "currencies" | "metals" | "oil" | "crypto" | "stocks" | "bonds";
 
