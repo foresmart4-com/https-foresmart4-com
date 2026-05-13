@@ -258,14 +258,16 @@ Today: ${today}
 
 Build a comprehensive plan. Allocations percentages must sum to ~100% and reflect the focus areas + risk profile. Weekly steps must cover the first 4 weeks plus 3-4 monthly milestones with concrete SAR amounts and specific instruments (e.g. "اشترِ بـ 200 ريال من iShares MSCI World" or "150 ريال BTC عبر Rain"). Include at least 5 golden rules, 3-5 warnings, and 3-4 exit conditions.`;
 
-    let r = await callPlanModel(apiKey, "google/gemini-2.5-pro", [
+    // Use flash for fast response within Worker time limits. Pro model is too slow
+    // and times out on Cloudflare Workers (~30s wall-clock).
+    let r = await callPlanModel(apiKey, "google/gemini-2.5-flash", [
       { role: "system", content: sys },
       { role: "user", content: user },
     ]);
 
-    // Fallback to faster model if pro is rate-limited / unavailable.
+    // Fallback to lite if flash is unavailable.
     if (r.status === 429 || r.status === 503) {
-      r = await callPlanModel(apiKey, "google/gemini-2.5-flash", [
+      r = await callPlanModel(apiKey, "google/gemini-2.5-flash-lite", [
         { role: "system", content: sys },
         { role: "user", content: user },
       ]);
