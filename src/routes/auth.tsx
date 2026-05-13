@@ -10,6 +10,16 @@ import { TrendingUp, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
+  head: () => ({
+    meta: [
+      { title: "Sign in to ForeSmart — Private Access" },
+      { name: "description", content: "Sign in or request access to ForeSmart, the private AI-powered market intelligence platform for stocks, crypto, FX, metals and oil." },
+      { property: "og:title", content: "Sign in to ForeSmart" },
+      { property: "og:description", content: "Sign in or request access to the private ForeSmart platform." },
+      { property: "og:url", content: "https://foresmart4.store/auth" },
+    ],
+    links: [{ rel: "canonical", href: "https://foresmart4.store/auth" }],
+  }),
   component: AuthPage,
 });
 
@@ -96,6 +106,7 @@ function AuthPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-md">
+        <h1 className="sr-only">{lang === "ar" ? "تسجيل الدخول إلى ForeSmart" : "Sign in to ForeSmart"}</h1>
         <Link to="/" className="mb-8 flex items-center justify-center gap-2">
           <div className="grid h-10 w-10 place-items-center rounded-lg gradient-primary shadow-glow">
             <TrendingUp className="h-5 w-5 text-primary-foreground" />

@@ -5,6 +5,16 @@ import { Button } from "@/components/ui/button";
 import { TrendingUp, Brain, Bell, Globe2, ShieldCheck, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "ForeSmart — AI Market Intelligence & Investment Signals" },
+      { name: "description", content: "AI-driven insights across global stocks, crypto, FX, metals and oil. Smart signals, alerts and a paper-trading wallet to grow your capital." },
+      { property: "og:title", content: "ForeSmart — AI Market Intelligence & Investment Signals" },
+      { property: "og:description", content: "AI-driven insights across global stocks, crypto, FX, metals and oil. Smart signals, alerts and a paper-trading wallet to grow your capital." },
+      { property: "og:url", content: "https://foresmart4.store/" },
+    ],
+    links: [{ rel: "canonical", href: "https://foresmart4.store/" }],
+  }),
   component: Landing,
 });
 
@@ -70,7 +80,7 @@ function Landing() {
           ].map((f) => (
             <div key={f.title} className="rounded-xl gradient-card border border-border p-6 shadow-card">
               <f.icon className="mb-4 h-8 w-8 text-primary" />
-              <h3 className="mb-2 font-display text-lg font-semibold">{f.title}</h3>
+              <h2 className="mb-2 font-display text-lg font-semibold">{f.title}</h2>
               <p className="text-sm text-muted-foreground">{f.desc}</p>
             </div>
           ))}
