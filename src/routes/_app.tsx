@@ -7,7 +7,7 @@ import { AccessGate } from "@/components/AccessGate";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, LineChart, Bell, Archive, User as UserIcon,
-  Brain, LogOut, Globe2, Menu, TrendingUp, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap,
+  Brain, LogOut, Globe2, Menu, TrendingUp, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap, Eye, Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +36,8 @@ function AppLayout() {
     { to: "/bank-accounts", icon: Building, label: lang === "ar" ? "البنوك" : "Banks" },
     { to: "/advisor", icon: Brain, label: t("advisor") },
     { to: "/signals", icon: Zap, label: lang === "ar" ? "إشارات التداول" : "Signals" },
+    { to: "/scanner", icon: Search, label: lang === "ar" ? "سكانر الفرص" : "Scanner" },
+    { to: "/watchlist", icon: Eye, label: lang === "ar" ? "المتابعة" : "Watchlist" },
     { to: "/growth-plan", icon: Sprout, label: lang === "ar" ? "خطة النمو" : "Growth Plan" },
     { to: "/alerts", icon: Bell, label: t("alerts") },
     { to: "/archive", icon: Archive, label: t("archive") },

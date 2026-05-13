@@ -95,6 +95,13 @@ function PortfoliosPage() {
           {portfolios.map((p: any) => {
             const holdings = p.portfolio_holdings ?? [];
             const totalValue = holdings.reduce((s: number, h: any) => s + Number(h.quantity) * Number(h.avg_price), 0);
+            const positions = holdings.length;
+            // Concentration (Herfindahl) – diversification score.
+            const weights = holdings.map((h: any) => totalValue > 0 ? (Number(h.quantity) * Number(h.avg_price)) / totalValue : 0);
+            const hhi = weights.reduce((a: number, w: number) => a + w * w, 0);
+            const diversification = totalValue > 0 ? Math.round((1 - hhi) * 100) : 0;
+            // Simple risk approximation (more positions → less risk).
+            const riskScore = positions === 0 ? 0 : Math.min(100, Math.round(100 / Math.max(1, positions) * 2));
             return (
               <Card key={p.id} className="overflow-hidden">
                 <div className="gradient-card p-5">
@@ -109,6 +116,20 @@ function PortfoliosPage() {
                     <div className="text-xs text-muted-foreground">{lang === "ar" ? "إجمالي التكلفة" : "Total cost basis"}</div>
                     <div className="font-display text-2xl font-bold">${totalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
                   </div>
+                  <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="rounded-lg bg-background/40 p-2">
+                      <div className="text-muted-foreground">{lang === "ar" ? "الأصول" : "Assets"}</div>
+                      <div className="font-bold text-base">{positions}</div>
+                    </div>
+                    <div className="rounded-lg bg-background/40 p-2">
+                      <div className="text-muted-foreground">{lang === "ar" ? "تنويع" : "Diversification"}</div>
+                      <div className="font-bold text-base text-emerald-500">{diversification}%</div>
+                    </div>
+                    <div className="rounded-lg bg-background/40 p-2">
+                      <div className="text-muted-foreground">{lang === "ar" ? "مخاطر" : "Risk"}</div>
+                      <div className="font-bold text-base text-amber-500">{riskScore}</div>
+                    </div>
+                  </div>
                 </div>
                 <div className="border-t border-border">
                   {holdings.length === 0 ? (
@@ -122,18 +143,24 @@ function PortfoliosPage() {
                           <th className="px-4 py-2 text-start">{lang === "ar" ? "الرمز" : "Symbol"}</th>
                           <th className="px-4 py-2 text-end">{lang === "ar" ? "الكمية" : "Qty"}</th>
                           <th className="px-4 py-2 text-end">{lang === "ar" ? "متوسط" : "Avg"}</th>
+                          <th className="px-4 py-2 text-end">{lang === "ar" ? "الوزن" : "Weight"}</th>
                           <th className="px-4 py-2 text-end">{lang === "ar" ? "القيمة" : "Value"}</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {holdings.map((h: any) => (
-                          <tr key={h.id} className="border-t border-border">
-                            <td className="px-4 py-2 font-medium">{h.symbol}<div className="text-[10px] text-muted-foreground">{h.market}</div></td>
-                            <td className="px-4 py-2 text-end">{Number(h.quantity).toLocaleString()}</td>
-                            <td className="px-4 py-2 text-end">${Number(h.avg_price).toFixed(2)}</td>
-                            <td className="px-4 py-2 text-end font-medium">${(Number(h.quantity) * Number(h.avg_price)).toFixed(2)}</td>
-                          </tr>
-                        ))}
+                        {holdings.map((h: any, idx: number) => {
+                          const v = Number(h.quantity) * Number(h.avg_price);
+                          const w = totalValue > 0 ? (v / totalValue) * 100 : 0;
+                          return (
+                            <tr key={h.id} className="border-t border-border">
+                              <td className="px-4 py-2 font-medium">{h.symbol}<div className="text-[10px] text-muted-foreground">{h.market}</div></td>
+                              <td className="px-4 py-2 text-end">{Number(h.quantity).toLocaleString()}</td>
+                              <td className="px-4 py-2 text-end">${Number(h.avg_price).toFixed(2)}</td>
+                              <td className="px-4 py-2 text-end">{w.toFixed(1)}%</td>
+                              <td className="px-4 py-2 text-end font-medium">${v.toFixed(2)}</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   )}
