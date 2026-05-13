@@ -7,10 +7,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GraduationCap, TrendingUp, TrendingDown, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { getMarketData } from "@/lib/market-data";
-import { getStocksData } from "@/lib/stocks-data";
+import { getStocksData, REGION_LABELS, type StockRegion } from "@/lib/stocks-data";
+
+type Kind = "stocks" | "crypto" | "metals" | "bonds" | "currencies";
+
 
 export const Route = createFileRoute("/_app/paper-trading")({
   component: PaperTradingPage,
