@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { microCapitalPlan, type MicroCapitalPlan } from "@/lib/asset-analysis.functions";
 import { useI18n } from "@/lib/i18n";
