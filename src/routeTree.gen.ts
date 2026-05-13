@@ -21,12 +21,15 @@ import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppScannerRouteImport } from './routes/_app/scanner'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppPortfoliosRouteImport } from './routes/_app/portfolios'
+import { Route as AppPaperTradingRouteImport } from './routes/_app/paper-trading'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppMarketsRouteImport } from './routes/_app/markets'
+import { Route as AppHeatmapRouteImport } from './routes/_app/heatmap'
 import { Route as AppGrowthPlanRouteImport } from './routes/_app/growth-plan'
 import { Route as AppExternalAccountsRouteImport } from './routes/_app/external-accounts'
 import { Route as AppDomainRouteImport } from './routes/_app/domain'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppBankAccountsRouteImport } from './routes/_app/bank-accounts'
 import { Route as AppArchiveRouteImport } from './routes/_app/archive'
 import { Route as AppAlertsRouteImport } from './routes/_app/alerts'
@@ -96,6 +99,11 @@ const AppPortfoliosRoute = AppPortfoliosRouteImport.update({
   path: '/portfolios',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPaperTradingRoute = AppPaperTradingRouteImport.update({
+  id: '/paper-trading',
+  path: '/paper-trading',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMembersRoute = AppMembersRouteImport.update({
   id: '/members',
   path: '/members',
@@ -104,6 +112,11 @@ const AppMembersRoute = AppMembersRouteImport.update({
 const AppMarketsRoute = AppMarketsRouteImport.update({
   id: '/markets',
   path: '/markets',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHeatmapRoute = AppHeatmapRouteImport.update({
+  id: '/heatmap',
+  path: '/heatmap',
   getParentRoute: () => AppRoute,
 } as any)
 const AppGrowthPlanRoute = AppGrowthPlanRouteImport.update({
@@ -124,6 +137,11 @@ const AppDomainRoute = AppDomainRouteImport.update({
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCalendarRoute = AppCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
   getParentRoute: () => AppRoute,
 } as any)
 const AppBankAccountsRoute = AppBankAccountsRouteImport.update({
@@ -182,12 +200,15 @@ export interface FileRoutesByFullPath {
   '/alerts': typeof AppAlertsRoute
   '/archive': typeof AppArchiveRoute
   '/bank-accounts': typeof AppBankAccountsRoute
+  '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/domain': typeof AppDomainRoute
   '/external-accounts': typeof AppExternalAccountsRoute
   '/growth-plan': typeof AppGrowthPlanRoute
+  '/heatmap': typeof AppHeatmapRoute
   '/markets': typeof AppMarketsRoute
   '/members': typeof AppMembersRoute
+  '/paper-trading': typeof AppPaperTradingRoute
   '/portfolios': typeof AppPortfoliosRoute
   '/profile': typeof AppProfileRoute
   '/scanner': typeof AppScannerRoute
@@ -210,12 +231,15 @@ export interface FileRoutesByTo {
   '/alerts': typeof AppAlertsRoute
   '/archive': typeof AppArchiveRoute
   '/bank-accounts': typeof AppBankAccountsRoute
+  '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/domain': typeof AppDomainRoute
   '/external-accounts': typeof AppExternalAccountsRoute
   '/growth-plan': typeof AppGrowthPlanRoute
+  '/heatmap': typeof AppHeatmapRoute
   '/markets': typeof AppMarketsRoute
   '/members': typeof AppMembersRoute
+  '/paper-trading': typeof AppPaperTradingRoute
   '/portfolios': typeof AppPortfoliosRoute
   '/profile': typeof AppProfileRoute
   '/scanner': typeof AppScannerRoute
@@ -240,12 +264,15 @@ export interface FileRoutesById {
   '/_app/alerts': typeof AppAlertsRoute
   '/_app/archive': typeof AppArchiveRoute
   '/_app/bank-accounts': typeof AppBankAccountsRoute
+  '/_app/calendar': typeof AppCalendarRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/domain': typeof AppDomainRoute
   '/_app/external-accounts': typeof AppExternalAccountsRoute
   '/_app/growth-plan': typeof AppGrowthPlanRoute
+  '/_app/heatmap': typeof AppHeatmapRoute
   '/_app/markets': typeof AppMarketsRoute
   '/_app/members': typeof AppMembersRoute
+  '/_app/paper-trading': typeof AppPaperTradingRoute
   '/_app/portfolios': typeof AppPortfoliosRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/scanner': typeof AppScannerRoute
@@ -270,12 +297,15 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/archive'
     | '/bank-accounts'
+    | '/calendar'
     | '/dashboard'
     | '/domain'
     | '/external-accounts'
     | '/growth-plan'
+    | '/heatmap'
     | '/markets'
     | '/members'
+    | '/paper-trading'
     | '/portfolios'
     | '/profile'
     | '/scanner'
@@ -298,12 +328,15 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/archive'
     | '/bank-accounts'
+    | '/calendar'
     | '/dashboard'
     | '/domain'
     | '/external-accounts'
     | '/growth-plan'
+    | '/heatmap'
     | '/markets'
     | '/members'
+    | '/paper-trading'
     | '/portfolios'
     | '/profile'
     | '/scanner'
@@ -327,12 +360,15 @@ export interface FileRouteTypes {
     | '/_app/alerts'
     | '/_app/archive'
     | '/_app/bank-accounts'
+    | '/_app/calendar'
     | '/_app/dashboard'
     | '/_app/domain'
     | '/_app/external-accounts'
     | '/_app/growth-plan'
+    | '/_app/heatmap'
     | '/_app/markets'
     | '/_app/members'
+    | '/_app/paper-trading'
     | '/_app/portfolios'
     | '/_app/profile'
     | '/_app/scanner'
@@ -446,6 +482,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPortfoliosRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/paper-trading': {
+      id: '/_app/paper-trading'
+      path: '/paper-trading'
+      fullPath: '/paper-trading'
+      preLoaderRoute: typeof AppPaperTradingRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/members': {
       id: '/_app/members'
       path: '/members'
@@ -458,6 +501,13 @@ declare module '@tanstack/react-router' {
       path: '/markets'
       fullPath: '/markets'
       preLoaderRoute: typeof AppMarketsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/heatmap': {
+      id: '/_app/heatmap'
+      path: '/heatmap'
+      fullPath: '/heatmap'
+      preLoaderRoute: typeof AppHeatmapRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/growth-plan': {
@@ -486,6 +536,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/calendar': {
+      id: '/_app/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AppCalendarRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/bank-accounts': {
@@ -559,12 +616,15 @@ interface AppRouteChildren {
   AppAlertsRoute: typeof AppAlertsRoute
   AppArchiveRoute: typeof AppArchiveRoute
   AppBankAccountsRoute: typeof AppBankAccountsRoute
+  AppCalendarRoute: typeof AppCalendarRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDomainRoute: typeof AppDomainRoute
   AppExternalAccountsRoute: typeof AppExternalAccountsRoute
   AppGrowthPlanRoute: typeof AppGrowthPlanRoute
+  AppHeatmapRoute: typeof AppHeatmapRoute
   AppMarketsRoute: typeof AppMarketsRoute
   AppMembersRoute: typeof AppMembersRoute
+  AppPaperTradingRoute: typeof AppPaperTradingRoute
   AppPortfoliosRoute: typeof AppPortfoliosRoute
   AppProfileRoute: typeof AppProfileRoute
   AppScannerRoute: typeof AppScannerRoute
@@ -580,12 +640,15 @@ const AppRouteChildren: AppRouteChildren = {
   AppAlertsRoute: AppAlertsRoute,
   AppArchiveRoute: AppArchiveRoute,
   AppBankAccountsRoute: AppBankAccountsRoute,
+  AppCalendarRoute: AppCalendarRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDomainRoute: AppDomainRoute,
   AppExternalAccountsRoute: AppExternalAccountsRoute,
   AppGrowthPlanRoute: AppGrowthPlanRoute,
+  AppHeatmapRoute: AppHeatmapRoute,
   AppMarketsRoute: AppMarketsRoute,
   AppMembersRoute: AppMembersRoute,
+  AppPaperTradingRoute: AppPaperTradingRoute,
   AppPortfoliosRoute: AppPortfoliosRoute,
   AppProfileRoute: AppProfileRoute,
   AppScannerRoute: AppScannerRoute,
@@ -612,3 +675,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

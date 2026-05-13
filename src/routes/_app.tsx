@@ -7,7 +7,7 @@ import { AccessGate } from "@/components/AccessGate";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, LineChart, Bell, Archive, User as UserIcon,
-  Brain, LogOut, Globe2, Menu, TrendingUp, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap, Eye, Search,
+  Brain, LogOut, Globe2, Menu, TrendingUp, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap, Eye, Search, Flame, CalendarDays, GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +29,9 @@ function AppLayout() {
   const items = [
     { to: "/dashboard", icon: LayoutDashboard, label: t("dashboard") },
     { to: "/markets", icon: LineChart, label: t("markets") },
+    { to: "/heatmap", icon: Flame, label: lang === "ar" ? "خريطة حرارية" : "Heatmap" },
+    { to: "/calendar", icon: CalendarDays, label: lang === "ar" ? "التقويم الاقتصادي" : "Calendar" },
+    { to: "/paper-trading", icon: GraduationCap, label: lang === "ar" ? "محاكي التداول" : "Paper Trading" },
     { to: "/wallet", icon: Wallet, label: lang === "ar" ? "المحفظة" : "Wallet" },
     { to: "/subscription", icon: Crown, label: lang === "ar" ? "الاشتراك" : "Subscription" },
     { to: "/portfolios", icon: Briefcase, label: lang === "ar" ? "المحافظ الاستثمارية" : "Portfolios" },
