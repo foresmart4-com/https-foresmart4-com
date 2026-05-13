@@ -255,7 +255,7 @@ function TopGainersView() {
                       {c.image && (
                         <img
                           src={c.image}
-                          alt={c.name}
+                          alt={`${c.name} (${c.symbol}) cryptocurrency logo`}
                           className="h-6 w-6 rounded-full"
                           loading="lazy"
                         />
