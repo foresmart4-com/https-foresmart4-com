@@ -293,12 +293,13 @@ function TopGainersView() {
 function TopStockGainersView() {
   const { lang } = useI18n();
   const [market, setMarket] = useState<"all" | "us" | "saudi">("all");
+  const fn = useServerFn(getTopStockGainers);
   const { data, isLoading, isError, isFetching, error, refetch } = useQuery<
     TopStockGainer[],
     Error
   >({
     queryKey: ["top-stock-gainers", market],
-    queryFn: () => getTopStockGainers({ data: { market, limit: 15 } }),
+    queryFn: () => fn({ data: { market, limit: 15 } }),
     retry: 1,
     staleTime: 60_000,
   });
