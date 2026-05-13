@@ -13,6 +13,16 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/alerts")({
   component: AlertsPage,
+  head: () => ({
+    meta: [
+      { title: "Price Alerts — ForeSmart" },
+      { name: "description", content: "Create smart price alerts for stocks, crypto, FX and metals. Get notified when assets cross your target price." },
+      { property: "og:title", content: "Price Alerts — ForeSmart" },
+      { property: "og:description", content: "Smart price alerts across global markets." },
+      { property: "og:url", content: "https://foresmart4.store/alerts" },
+    ],
+    links: [{ rel: "canonical", href: "https://foresmart4.store/alerts" }],
+  }),
 });
 
 interface Alert {
