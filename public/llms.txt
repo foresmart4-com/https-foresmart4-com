@@ -1,0 +1,14 @@
+# ForeSmart
+
+> AI-driven market intelligence across global stocks, crypto, FX, metals and oil. Live signals, smart alerts, and a paper-trading wallet to help investors make clearer decisions.
+
+ForeSmart is a private, invitation-based platform that combines real-time market data with AI analysis to surface buy/sell opportunities, monitor watchlists, and grow capital responsibly.
+
+## Pages
+
+- [Home](/): Overview of ForeSmart — AI market intelligence and investment signals.
+- [Sign in](/auth): Sign in or request access to the private ForeSmart platform.
+
+## Optional
+
+- [Reset password](/reset-password): Recover access to your ForeSmart account.
