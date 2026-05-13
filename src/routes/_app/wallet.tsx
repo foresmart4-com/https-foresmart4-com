@@ -218,6 +218,8 @@ function WalletPage() {
         </Card>
       )}
 
+      <QuickBuyPanel />
+
       <Card className="overflow-hidden">
         <header className="border-b border-border bg-muted/30 px-5 py-3 font-semibold">
           {lang === "ar" ? "آخر المعاملات" : "Recent transactions"}
