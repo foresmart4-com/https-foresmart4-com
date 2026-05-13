@@ -11,6 +11,13 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
+  head: () => ({
+    meta: [
+      { title: "Reset Password — ForeSmart" },
+      { name: "description", content: "Set a new password for your ForeSmart account." },
+      { name: "robots", content: "noindex,nofollow" },
+    ],
+  }),
 });
 
 function ResetPasswordPage() {
