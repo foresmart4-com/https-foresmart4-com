@@ -209,57 +209,108 @@ const planTool = {
   },
 };
 
+async function callPlanModel(apiKey: string, model: string, messages: any[]) {
+  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      messages,
+      tools: [planTool],
+      tool_choice: { type: "function", function: { name: "micro_plan" } },
+    }),
+  });
+  return r;
+}
+
 export const microCapitalPlan = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d) => PlanInput.parse(d))
   .handler(async ({ data }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) return { plan: null as MicroCapitalPlan | null, error: "ai_not_configured" };
+    if (!apiKey) return { plan: null as MicroCapitalPlan | null, error: "ai_not_configured", detail: "LOVABLE_API_KEY missing" };
+
+    const today = new Date().toISOString().slice(0, 10);
 
     const sys = data.language === "ar"
-      ? `أنت مدرب استثماري متخصص في تنمية رؤوس الأموال الصغيرة جداً (من 50 إلى 5000 ريال سعودي). صمّم خطة عملية أسبوعية واضحة، واقعية، ومناسبة للسوق السعودي والخليجي والأسواق العالمية المتاحة لمستثمر فرد.
-- اقترح نسب توزيع منطقية (مثلاً 40% بيتكوين/إيثيريوم، 30% أسهم سعودية أو ETFs عالمية، 20% ذهب، 10% سيولة).
-- اكتب خطوات أسبوعية محددة (الأسبوع 1، 2، 3، 4، الشهر 2...) مع مبالغ بالريال.
-- اذكر قواعد إدارة المخاطر (مثلاً عدم المخاطرة بأكثر من 2% في صفقة، وقف خسارة، عدم استخدام رافعة مالية مع رأس مال صغير).
-- كن صريحاً بشأن الواقعية: لا تعد بأرباح خيالية. هدف شهري معقول 3-8% للمتوازن.
-استخدم الأداة micro_plan دائماً، واكتب جميع النصوص بالعربية.`
-      : `You are an investing coach specializing in growing very small portfolios (50–5000 SAR). Build a realistic, week-by-week plan with concrete allocations and SAR amounts. Always call the micro_plan tool. All text in English.`;
+      ? `أنت كبير مستشاري الاستثمار في صندوق احترافي، متخصص في تنمية رؤوس الأموال الصغيرة (50–5000 ريال). ادمج أفضل ممارسات عمالقة الاستثمار:
+- وارن بافت: قيمة، خندق تنافسي، صبر طويل الأمد.
+- ريه داليو: تنويع شامل (All Weather)، توازن المخاطر بين الأصول.
+- بيتر لينش: استثمر فيما تفهم، نمو معقول السعر (GARP).
+- بنجامين جراهام: هامش أمان، تجنب المضاربة العشوائية.
+- جاك بوغل: ETFs منخفضة التكلفة كأساس.
+- ستانلي دروكنميلر: تركّز ذكي حين تكون القناعة عالية.
+- كاثي وود: نسبة صغيرة في الابتكار طويل الأجل (كحد أقصى 10-15%).
+- ناسيم طالب (Barbell): أغلب رأس المال آمن + نسبة صغيرة لرهانات عالية المردود.
+- DCA الدوري + إعادة موازنة شهرية + قواعد صارمة لإدارة المخاطر (المخاطرة بأقل من 2% لكل صفقة، وقف خسارة، لا رافعة).
+خصص الخطة للسوق السعودي والخليجي والأصول العالمية المتاحة (تداول، Wahed، ETFs عالمية، بيتكوين/إيثيريوم عبر منصات منظمة، الذهب الفعلي/SGOV).
+- اقترح توزيعاً واقعياً يجمع: ETFs آمنة + أسهم قيادية + ذهب + نسبة محدودة من الكريبتو + سيولة طارئة (10-15%).
+- اكتب أهدافاً واقعية: محافظ 1-3% شهرياً، متوازن 3-6%، هجومي 5-10% (مع مخاطرة أعلى).
+- لا تعد بأرباح خيالية. كن صريحاً بشأن الخسائر المحتملة.
+- خطوات أسبوعية محددة بمبالغ بالريال (مثلاً: "أودع 100 ريال في صندوق ETF عالمي مثل VWRA").
+أعد الجواب فقط عبر استدعاء الأداة micro_plan. كل النصوص بالعربية الفصحى الواضحة.`
+      : `You are a senior investment advisor at a top fund, specializing in growing small portfolios (50–5000 SAR). Blend best practices from Buffett (value, moat), Dalio (All-Weather diversification), Lynch (GARP, invest in what you know), Graham (margin of safety), Bogle (low-cost ETFs), Druckenmiller (high-conviction concentration), Wood (small innovation sleeve, max 10-15%), and Taleb's barbell (mostly safe + small high-payoff bets). Apply DCA, monthly rebalancing, and strict risk rules (≤2% risk per trade, stop-loss, no leverage). Tailor for Saudi/Gulf retail investors with access to Tadawul, Wahed, global ETFs, regulated crypto, and physical/SGOV gold. Realistic monthly targets: conservative 1-3%, balanced 3-6%, aggressive 5-10%. Always call micro_plan. English only.`;
 
     const user = `Capital: ${data.capitalSar} SAR
 Risk appetite: ${data.riskAppetite}
 Horizon: ${data.monthsHorizon} months
 Focus areas: ${data.focus.join(", ")}
-Today: ${new Date().toISOString().slice(0, 10)}
+Today: ${today}
 
-Build the plan. Allocations percentages must sum to ~100%. Weekly steps should cover at least the first 4 weeks plus 2-3 monthly milestones with concrete SAR amounts (e.g. "اشترِ بـ 200 ريال من ETH").`;
+Build a comprehensive plan. Allocations percentages must sum to ~100% and reflect the focus areas + risk profile. Weekly steps must cover the first 4 weeks plus 3-4 monthly milestones with concrete SAR amounts and specific instruments (e.g. "اشترِ بـ 200 ريال من iShares MSCI World" or "150 ريال BTC عبر Rain"). Include at least 5 golden rules, 3-5 warnings, and 3-4 exit conditions.`;
 
+    let r = await callPlanModel(apiKey, "google/gemini-2.5-pro", [
+      { role: "system", content: sys },
+      { role: "user", content: user },
+    ]);
+
+    // Fallback to faster model if pro is rate-limited / unavailable.
+    if (r.status === 429 || r.status === 503) {
+      r = await callPlanModel(apiKey, "google/gemini-2.5-flash", [
+        { role: "system", content: sys },
+        { role: "user", content: user },
+      ]);
+    }
+
+    if (r.status === 429) return { plan: null, error: "rate_limited", detail: "Too many requests" };
+    if (r.status === 402) return { plan: null, error: "payment_required", detail: "Add Lovable AI credits" };
+    if (!r.ok) {
+      const txt = await r.text();
+      console.error("microCapitalPlan error", r.status, txt);
+      return { plan: null, error: "ai_error", detail: `${r.status}: ${txt.slice(0, 200)}` };
+    }
+
+    let firstPlan: MicroCapitalPlan;
     try {
-      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: sys },
-            { role: "user", content: user },
-          ],
-          tools: [planTool],
-          tool_choice: { type: "function", function: { name: "micro_plan" } },
-        }),
-      });
-      if (r.status === 429) return { plan: null, error: "rate_limited" };
-      if (r.status === 402) return { plan: null, error: "payment_required" };
-      if (!r.ok) {
-        console.error("microCapitalPlan error", r.status, await r.text());
-        return { plan: null, error: "ai_error" };
-      }
       const d = await r.json();
       const call = d.choices?.[0]?.message?.tool_calls?.[0];
-      if (!call?.function?.arguments) return { plan: null, error: "no_tool_call" };
-      const plan = JSON.parse(call.function.arguments) as MicroCapitalPlan;
-      return { plan, error: null as string | null };
+      if (!call?.function?.arguments) return { plan: null, error: "no_tool_call", detail: "Model did not call tool" };
+      firstPlan = JSON.parse(call.function.arguments) as MicroCapitalPlan;
     } catch (e) {
       console.error(e);
-      return { plan: null, error: "network_error" };
+      return { plan: null, error: "parse_error", detail: String(e) };
     }
+
+    // Second pass: critique + refine for realism, risk balance, and clarity.
+    try {
+      const critiqueSys = data.language === "ar"
+        ? `أنت مراجع استثمار صارم. خذ الخطة المقدمة وحسّنها: تأكد أن نسب التوزيع تساوي 100%، أن الأهداف الشهرية واقعية لمستوى المخاطرة، أن الخطوات الأسبوعية محددة بأرقام بالريال، أن قواعد إدارة المخاطر صارمة، وأن هناك خطة للخروج عند الخسارة. أعد الخطة المحسّنة عبر الأداة micro_plan فقط. لا تخفض الجودة، فقط حسّن.`
+        : `You are a strict investment reviewer. Improve the given plan: ensure allocations sum to 100%, monthly targets are realistic for the risk level, weekly steps have concrete SAR amounts, risk rules are tight, and exit conditions are explicit. Return the improved plan via the micro_plan tool only.`;
+
+      const r2 = await callPlanModel(apiKey, "google/gemini-2.5-flash", [
+        { role: "system", content: critiqueSys },
+        { role: "user", content: `Inputs:\nCapital: ${data.capitalSar} SAR\nRisk: ${data.riskAppetite}\nHorizon: ${data.monthsHorizon}m\nFocus: ${data.focus.join(", ")}\n\nDraft plan to refine:\n${JSON.stringify(firstPlan)}` },
+      ]);
+      if (r2.ok) {
+        const d2 = await r2.json();
+        const call2 = d2.choices?.[0]?.message?.tool_calls?.[0];
+        if (call2?.function?.arguments) {
+          const refined = JSON.parse(call2.function.arguments) as MicroCapitalPlan;
+          return { plan: refined, error: null as string | null, detail: null as string | null };
+        }
+      }
+    } catch (e) {
+      console.warn("refinement skipped:", e);
+    }
+
+    return { plan: firstPlan, error: null as string | null, detail: null as string | null };
   });
