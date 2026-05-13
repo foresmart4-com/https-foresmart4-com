@@ -10,6 +10,16 @@ import { TrendingUp, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
+  head: () => ({
+    meta: [
+      { title: "Sign in to ForeSmart — Private Access" },
+      { name: "description", content: "Sign in or request access to ForeSmart, the private AI-powered market intelligence platform for stocks, crypto, FX, metals and oil." },
+      { property: "og:title", content: "Sign in to ForeSmart" },
+      { property: "og:description", content: "Sign in or request access to the private ForeSmart platform." },
+      { property: "og:url", content: "https://foresmart4.store/auth" },
+    ],
+    links: [{ rel: "canonical", href: "https://foresmart4.store/auth" }],
+  }),
   component: AuthPage,
 });
 
