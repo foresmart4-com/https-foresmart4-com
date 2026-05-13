@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine, Building, Plus, AlertCircle, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { QuickBuyPanel } from "@/components/QuickBuyPanel";
 
 export const Route = createFileRoute("/_app/wallet")({
   component: WalletPage,
