@@ -68,10 +68,12 @@ function PaperTradingPage() {
   const loadQuotes = async () => {
     try {
       const [m, s] = await Promise.all([getMarketData(), getStocksData()]);
-      const q: Record<string, number> = {};
-      m.assets.forEach((a) => (q[a.symbol] = a.price));
-      s.stocks.forEach((a) => (q[a.symbol] = a.price));
+      const q: Record<string, { price: number; name: string }> = {};
+      m.assets.forEach((a) => (q[a.symbol] = { price: a.price, name: a.name }));
+      s.stocks.forEach((a) => (q[a.symbol] = { price: a.price, name: a.name }));
       setQuotes(q);
+      setMarketAssets(m.assets.map((a) => ({ symbol: a.symbol, name: a.name, price: a.price, category: a.category })));
+      setStockAssets(s.stocks.map((a) => ({ symbol: a.symbol, name: a.name, price: a.price, region: a.region })));
     } catch { /* ignore */ }
   };
 
