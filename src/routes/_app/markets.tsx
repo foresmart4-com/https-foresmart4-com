@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { getMarketData, deriveSignal, type AssetQuote } from "@/lib/market-data";
 import { getStocksData, REGION_LABELS, type StockQuote, type StockRegion } from "@/lib/stocks-data";
@@ -214,7 +215,8 @@ function RegionSection({ region, items, onAnalyze, onBuy }: { region: StockRegio
 
 function AssetsTab({ category, onAnalyze, onBuy }: { category: "crypto" | "currencies" | "metals" | "bonds"; onAnalyze: (a: SelectedAsset) => void; onBuy: (a: SelectedAsset) => void }) {
   const { t } = useI18n();
-  const { data, isLoading } = useQuery({ queryKey: ["market"], queryFn: () => getMarketData(), refetchInterval: 60000 });
+  const marketFn = useServerFn(getMarketData);
+  const { data, isLoading } = useQuery({ queryKey: ["market"], queryFn: () => marketFn(), refetchInterval: 60000 });
   const items = (data?.assets ?? []).filter((a) => a.category === category);
   if (isLoading) return <p className="text-muted-foreground">{t("loading")}</p>;
   return <AssetTable items={items} onAnalyze={onAnalyze} onBuy={onBuy} />;

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState, useMemo } from "react";
 import { getMarketData, deriveSignal, type AssetQuote, type AssetCategory } from "@/lib/market-data";
 import { useI18n } from "@/lib/i18n";
@@ -22,9 +23,10 @@ function DashboardPage() {
   const [cat, setCat] = useState<AssetCategory>("crypto");
   const [selected, setSelected] = useState<string | null>(null);
 
+  const marketFn = useServerFn(getMarketData);
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["market"],
-    queryFn: () => getMarketData(),
+    queryFn: () => marketFn(),
     refetchInterval: 60000,
   });
 
