@@ -1,6 +1,5 @@
 // Free market data aggregator. Runs server-side via TanStack server functions.
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export type AssetCategory = "currencies" | "metals" | "oil" | "crypto" | "stocks" | "bonds";
 
@@ -24,42 +23,48 @@ const CRYPTO_IDS = [
 ];
 
 async function fetchCrypto(): Promise<AssetQuote[]> {
-  const ids = CRYPTO_IDS.map((c) => c.id).join(",");
-  const r = await fetch(
-    `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h`,
-  );
-  if (!r.ok) return [];
-  const data = (await r.json()) as Array<{
-    id: string; current_price: number; price_change_percentage_24h: number;
-    high_24h: number; low_24h: number; total_volume: number;
-  }>;
-  // Fetch 24h history for each (sparkline endpoint per coin)
-  const results: AssetQuote[] = [];
-  for (const coin of data) {
-    const meta = CRYPTO_IDS.find((c) => c.id === coin.id)!;
-    let history: AssetQuote["history"] = [];
-    try {
-      const hr = await fetch(
-        `https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=1`,
-      );
-      if (hr.ok) {
-        const hd = (await hr.json()) as { prices: [number, number][] };
-        history = hd.prices.map(([t, p]) => ({ t, p }));
+  try {
+    const ids = CRYPTO_IDS.map((c) => c.id).join(",");
+    const r = await fetch(
+      `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h`,
+    );
+    if (!r.ok) return [];
+    const data = (await r.json()) as Array<{
+      id: string; current_price: number; price_change_percentage_24h: number;
+      high_24h: number; low_24h: number; total_volume: number;
+    }>;
+    // Fetch 24h history for each (sparkline endpoint per coin)
+    const results: AssetQuote[] = [];
+    for (const coin of data) {
+      const meta = CRYPTO_IDS.find((c) => c.id === coin.id);
+      if (!meta) continue;
+      let history: AssetQuote["history"] = [];
+      try {
+        const hr = await fetch(
+          `https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=1`,
+        );
+        if (hr.ok) {
+          const hd = (await hr.json()) as { prices: [number, number][] };
+          history = hd.prices.map(([t, p]) => ({ t, p }));
+        }
+      } catch { /* ignore */ }
+      results.push({
+        symbol: meta.symbol,
+        name: meta.name,
+        category: "crypto",
+        price: coin.current_price,
+        changePct: coin.price_change_percentage_24h ?? 0,
+        high24h: coin.high_24h,
+        low24h: coin.low_24h,
+        volume: coin.total_volume,
+        history,
+      });
       }
-    } catch { /* ignore */ }
-    results.push({
-      symbol: meta.symbol,
-      name: meta.name,
-      category: "crypto",
-      price: coin.current_price,
-      changePct: coin.price_change_percentage_24h ?? 0,
-      high24h: coin.high_24h,
-      low24h: coin.low_24h,
-      volume: coin.total_volume,
-      history,
-    });
+    return results;
+  } catch (error) {
+    console.error("fetchCrypto failed", error);
+    return [];
   }
-  return results;
 }
 
 const FX_PAIRS = [
@@ -269,17 +274,24 @@ async function fetchBonds(): Promise<AssetQuote[]> {
 
 
 export const getMarketData = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
   .handler(async () => {
-  const [crypto, fx, metals, metalFunds, bonds] = await Promise.all([
-    fetchCrypto(),
-    fetchFX(),
-    fetchMetals(),
-    fetchMetalFunds(),
-    fetchBonds(),
-  ]);
-  return { assets: [...crypto, ...metals, ...metalFunds, ...fx, ...bonds], fetchedAt: Date.now() };
-});
+    const safe = async (loader: () => Promise<AssetQuote[]>, label: string) => {
+      try {
+        return await loader();
+      } catch (error) {
+        console.error(`Market loader failed: ${label}`, error);
+        return [];
+      }
+    };
+    const [crypto, fx, metals, metalFunds, bonds] = await Promise.all([
+      safe(fetchCrypto, "crypto"),
+      safe(fetchFX, "fx"),
+      safe(fetchMetals, "metals"),
+      safe(fetchMetalFunds, "metal-funds"),
+      safe(fetchBonds, "bonds"),
+    ]);
+    return { assets: [...crypto, ...metals, ...metalFunds, ...fx, ...bonds], fetchedAt: Date.now() };
+  });
 
 // ===== Technical indicators =====
 export function calcRSI(prices: number[], period = 14): number | null {
