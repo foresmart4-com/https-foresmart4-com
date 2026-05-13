@@ -303,19 +303,24 @@ Today: ${today}
 
 Build a comprehensive plan. Allocations percentages must sum to ~100% and reflect the focus areas + risk profile. Weekly steps must cover the first 4 weeks plus 3-4 monthly milestones with concrete SAR amounts and specific instruments (e.g. "اشترِ بـ 200 ريال من iShares MSCI World" or "150 ريال BTC عبر Rain"). Include at least 5 golden rules, 3-5 warnings, and 3-4 exit conditions.`;
 
-    // Use flash for fast response within Worker time limits. Pro model is too slow
-    // and times out on Cloudflare Workers (~30s wall-clock).
-    let r = await callPlanModel(apiKey, "google/gemini-2.5-flash", [
+    const messages = [
       { role: "system", content: sys },
       { role: "user", content: user },
-    ]);
+    ];
 
-    // Fallback to lite if flash is unavailable.
-    if (r.status === 429 || r.status === 503) {
-      r = await callPlanModel(apiKey, "google/gemini-2.5-flash-lite", [
+    let r: Response;
+    try {
+      // Default to the current fast AI Gateway model, then fall back to lite.
+      r = await callPlanModel(apiKey, "google/gemini-3-flash-preview", messages);
+      if (r.status === 429 || r.status === 503) {
+        r = await callPlanModel(apiKey, "google/gemini-2.5-flash-lite", [
         { role: "system", content: sys },
         { role: "user", content: user },
-      ]);
+        ]);
+      }
+    } catch (e) {
+      console.error("microCapitalPlan timeout/network fallback", e);
+      return { plan: buildDeterministicMicroPlan(data), error: null as string | null, detail: "fallback_plan" };
     }
 
     if (r.status === 429) return { plan: null, error: "rate_limited", detail: "Too many requests" };
@@ -330,11 +335,11 @@ Build a comprehensive plan. Allocations percentages must sum to ~100% and reflec
     try {
       const d = await r.json();
       const call = d.choices?.[0]?.message?.tool_calls?.[0];
-      if (!call?.function?.arguments) return { plan: null, error: "no_tool_call", detail: "Model did not call tool" };
+      if (!call?.function?.arguments) return { plan: buildDeterministicMicroPlan(data), error: null as string | null, detail: "fallback_plan" };
       firstPlan = JSON.parse(call.function.arguments) as MicroCapitalPlan;
     } catch (e) {
       console.error(e);
-      return { plan: null, error: "parse_error", detail: String(e) };
+      return { plan: buildDeterministicMicroPlan(data), error: null as string | null, detail: "fallback_plan" };
     }
 
     return { plan: firstPlan, error: null as string | null, detail: null as string | null };
