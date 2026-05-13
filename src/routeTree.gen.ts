@@ -13,10 +13,12 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppWatchlistRouteImport } from './routes/_app/watchlist'
 import { Route as AppWalletRouteImport } from './routes/_app/wallet'
 import { Route as AppSubscriptionRouteImport } from './routes/_app/subscription'
 import { Route as AppSignalsRouteImport } from './routes/_app/signals'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppScannerRouteImport } from './routes/_app/scanner'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppPortfoliosRouteImport } from './routes/_app/portfolios'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
@@ -54,6 +56,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppWatchlistRoute = AppWatchlistRouteImport.update({
+  id: '/watchlist',
+  path: '/watchlist',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppWalletRoute = AppWalletRouteImport.update({
   id: '/wallet',
   path: '/wallet',
@@ -72,6 +79,11 @@ const AppSignalsRoute = AppSignalsRouteImport.update({
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppScannerRoute = AppScannerRouteImport.update({
+  id: '/scanner',
+  path: '/scanner',
   getParentRoute: () => AppRoute,
 } as any)
 const AppProfileRoute = AppProfileRouteImport.update({
@@ -178,10 +190,12 @@ export interface FileRoutesByFullPath {
   '/members': typeof AppMembersRoute
   '/portfolios': typeof AppPortfoliosRoute
   '/profile': typeof AppProfileRoute
+  '/scanner': typeof AppScannerRoute
   '/settings': typeof AppSettingsRoute
   '/signals': typeof AppSignalsRoute
   '/subscription': typeof AppSubscriptionRoute
   '/wallet': typeof AppWalletRoute
+  '/watchlist': typeof AppWatchlistRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -204,10 +218,12 @@ export interface FileRoutesByTo {
   '/members': typeof AppMembersRoute
   '/portfolios': typeof AppPortfoliosRoute
   '/profile': typeof AppProfileRoute
+  '/scanner': typeof AppScannerRoute
   '/settings': typeof AppSettingsRoute
   '/signals': typeof AppSignalsRoute
   '/subscription': typeof AppSubscriptionRoute
   '/wallet': typeof AppWalletRoute
+  '/watchlist': typeof AppWatchlistRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -232,10 +248,12 @@ export interface FileRoutesById {
   '/_app/members': typeof AppMembersRoute
   '/_app/portfolios': typeof AppPortfoliosRoute
   '/_app/profile': typeof AppProfileRoute
+  '/_app/scanner': typeof AppScannerRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/signals': typeof AppSignalsRoute
   '/_app/subscription': typeof AppSubscriptionRoute
   '/_app/wallet': typeof AppWalletRoute
+  '/_app/watchlist': typeof AppWatchlistRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -260,10 +278,12 @@ export interface FileRouteTypes {
     | '/members'
     | '/portfolios'
     | '/profile'
+    | '/scanner'
     | '/settings'
     | '/signals'
     | '/subscription'
     | '/wallet'
+    | '/watchlist'
     | '/api/public/moyasar-webhook'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
@@ -286,10 +306,12 @@ export interface FileRouteTypes {
     | '/members'
     | '/portfolios'
     | '/profile'
+    | '/scanner'
     | '/settings'
     | '/signals'
     | '/subscription'
     | '/wallet'
+    | '/watchlist'
     | '/api/public/moyasar-webhook'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
@@ -313,10 +335,12 @@ export interface FileRouteTypes {
     | '/_app/members'
     | '/_app/portfolios'
     | '/_app/profile'
+    | '/_app/scanner'
     | '/_app/settings'
     | '/_app/signals'
     | '/_app/subscription'
     | '/_app/wallet'
+    | '/_app/watchlist'
     | '/api/public/moyasar-webhook'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
@@ -366,6 +390,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/watchlist': {
+      id: '/_app/watchlist'
+      path: '/watchlist'
+      fullPath: '/watchlist'
+      preLoaderRoute: typeof AppWatchlistRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/wallet': {
       id: '/_app/wallet'
       path: '/wallet'
@@ -392,6 +423,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/scanner': {
+      id: '/_app/scanner'
+      path: '/scanner'
+      fullPath: '/scanner'
+      preLoaderRoute: typeof AppScannerRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/profile': {
@@ -529,10 +567,12 @@ interface AppRouteChildren {
   AppMembersRoute: typeof AppMembersRoute
   AppPortfoliosRoute: typeof AppPortfoliosRoute
   AppProfileRoute: typeof AppProfileRoute
+  AppScannerRoute: typeof AppScannerRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppSignalsRoute: typeof AppSignalsRoute
   AppSubscriptionRoute: typeof AppSubscriptionRoute
   AppWalletRoute: typeof AppWalletRoute
+  AppWatchlistRoute: typeof AppWatchlistRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -548,10 +588,12 @@ const AppRouteChildren: AppRouteChildren = {
   AppMembersRoute: AppMembersRoute,
   AppPortfoliosRoute: AppPortfoliosRoute,
   AppProfileRoute: AppProfileRoute,
+  AppScannerRoute: AppScannerRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSignalsRoute: AppSignalsRoute,
   AppSubscriptionRoute: AppSubscriptionRoute,
   AppWalletRoute: AppWalletRoute,
+  AppWatchlistRoute: AppWatchlistRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

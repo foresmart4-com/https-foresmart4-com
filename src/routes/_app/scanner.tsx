@@ -39,13 +39,13 @@ function ScannerPage() {
       try {
         const [m, s] = await Promise.all([getMarketData(), getStocksData()]);
         const all: Row[] = [];
-        for (const a of m) {
+        for (const a of m.assets) {
           const prices = a.history.map((h) => h.p);
           const rsi = calcRSI(prices);
           const score = computeScore(a.changePct, rsi);
           all.push({ symbol: a.symbol, name: a.name, category: a.category, price: a.price, changePct: a.changePct, rsi, score });
         }
-        for (const a of s) {
+        for (const a of s.stocks) {
           const rsi = calcRSI(a.history);
           const score = computeScore(a.changePct, rsi);
           all.push({ symbol: a.symbol, name: a.name, category: "stocks-" + a.region, price: a.price, changePct: a.changePct, rsi, score });

@@ -32,8 +32,8 @@ function WatchlistPage() {
     try {
       const [m, s] = await Promise.all([getMarketData(), getStocksData()]);
       const q: Record<string, { price: number; change: number }> = {};
-      m.forEach((a) => (q[a.symbol] = { price: a.price, change: a.changePct }));
-      s.forEach((a) => (q[a.symbol] = { price: a.price, change: a.changePct }));
+      m.assets.forEach((a) => (q[a.symbol] = { price: a.price, change: a.changePct }));
+      s.stocks.forEach((a) => (q[a.symbol] = { price: a.price, change: a.changePct }));
       setQuotes(q);
     } catch { /* ignore */ }
   };
