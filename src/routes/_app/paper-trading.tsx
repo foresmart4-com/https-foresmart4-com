@@ -178,25 +178,65 @@ function PaperTradingPage() {
         </Card>
       </div>
 
-      <Card className="p-4 grid gap-3 md:grid-cols-[1fr_2fr_1fr_auto_auto] items-end">
-        <div>
-          <label className="text-xs text-muted-foreground">{lang === "ar" ? "الرمز" : "Symbol"}</label>
-          <Input value={form.symbol} onChange={(e) => setForm({ ...form, symbol: e.target.value.toUpperCase() })} />
+      <Card className="p-4 space-y-3">
+        <div className="grid gap-3 md:grid-cols-4">
+          <div>
+            <label className="text-xs text-muted-foreground">{lang === "ar" ? "النوع" : "Type"}</label>
+            <Select value={kind} onValueChange={(v) => { setKind(v as Kind); setSymbol(""); }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="stocks">{lang === "ar" ? "أسهم وشركات" : "Companies / Stocks"}</SelectItem>
+                <SelectItem value="crypto">{lang === "ar" ? "عملات رقمية" : "Crypto"}</SelectItem>
+                <SelectItem value="metals">{lang === "ar" ? "معادن" : "Metals"}</SelectItem>
+                <SelectItem value="bonds">{lang === "ar" ? "سندات" : "Bonds"}</SelectItem>
+                <SelectItem value="currencies">{lang === "ar" ? "عملات عالمية" : "Currencies (FX)"}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {kind === "stocks" && (
+            <div>
+              <label className="text-xs text-muted-foreground">{lang === "ar" ? "السوق" : "Market"}</label>
+              <Select value={region} onValueChange={(v) => { setRegion(v as StockRegion); setSymbol(""); }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(REGION_LABELS) as StockRegion[]).map((r) => (
+                    <SelectItem key={r} value={r}>{REGION_LABELS[r].flag} {REGION_LABELS[r][lang as "ar" | "en"]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className={kind === "stocks" ? "md:col-span-1" : "md:col-span-2"}>
+            <label className="text-xs text-muted-foreground">{lang === "ar" ? "الأصل" : "Asset"}</label>
+            <Select value={selectedAsset?.symbol ?? ""} onValueChange={setSymbol}>
+              <SelectTrigger><SelectValue placeholder={lang === "ar" ? "اختر..." : "Choose..."} /></SelectTrigger>
+              <SelectContent className="max-h-72">
+                {currentOptions.map((o) => (
+                  <SelectItem key={o.symbol} value={o.symbol}>
+                    {o.symbol} — {o.name} (${o.price.toLocaleString(undefined, { maximumFractionDigits: 2 })})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">{lang === "ar" ? "الكمية" : "Quantity"}</label>
+            <Input type="number" min="0" step="0.0001" value={qty} onChange={(e) => setQty(e.target.value)} />
+          </div>
         </div>
-        <div>
-          <label className="text-xs text-muted-foreground">{lang === "ar" ? "الاسم" : "Name"}</label>
-          <Input value={form.asset_name} onChange={(e) => setForm({ ...form, asset_name: e.target.value })} />
+        <div className="flex flex-wrap gap-2">
+          <Button className="bg-emerald-500 hover:bg-emerald-600 gap-1" onClick={() => placeTrade("buy")}>
+            <TrendingUp className="h-4 w-4" /> {lang === "ar" ? "شراء" : "Buy"}
+          </Button>
+          <Button variant="outline" className="border-rose-500/50 text-rose-500 hover:bg-rose-500/10 gap-1" onClick={() => placeTrade("sell")}>
+            <TrendingDown className="h-4 w-4" /> {lang === "ar" ? "بيع" : "Sell"}
+          </Button>
+          {selectedAsset && (
+            <span className="ms-auto self-center text-xs text-muted-foreground">
+              {lang === "ar" ? "الإجمالي" : "Total"}: <span className="font-semibold text-foreground">${((parseFloat(qty) || 0) * selectedAsset.price).toFixed(2)}</span>
+            </span>
+          )}
         </div>
-        <div>
-          <label className="text-xs text-muted-foreground">{lang === "ar" ? "الكمية" : "Quantity"}</label>
-          <Input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
-        </div>
-        <Button className="bg-emerald-500 hover:bg-emerald-600 gap-1" onClick={() => placeTrade("buy")}>
-          <TrendingUp className="h-4 w-4" /> {lang === "ar" ? "شراء" : "Buy"}
-        </Button>
-        <Button variant="outline" className="border-rose-500/50 text-rose-500 hover:bg-rose-500/10 gap-1" onClick={() => placeTrade("sell")}>
-          <TrendingDown className="h-4 w-4" /> {lang === "ar" ? "بيع" : "Sell"}
-        </Button>
       </Card>
 
       <Card className="overflow-hidden">
