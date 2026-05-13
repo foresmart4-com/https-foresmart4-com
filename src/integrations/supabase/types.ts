@@ -640,6 +640,19 @@ export type Database = {
           id: string
         }[]
       }
+      wallet_credit_topup: {
+        Args: {
+          _payment_id: string
+          _payment_method: string
+          _topup_id: string
+        }
+        Returns: {
+          amount: number
+          credited: boolean
+          user_id: string
+          wallet_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "subscriber" | "pending"
