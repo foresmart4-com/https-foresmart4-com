@@ -15,6 +15,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppWalletRouteImport } from './routes/_app/wallet'
 import { Route as AppSubscriptionRouteImport } from './routes/_app/subscription'
+import { Route as AppSignalsRouteImport } from './routes/_app/signals'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppPortfoliosRouteImport } from './routes/_app/portfolios'
@@ -61,6 +62,11 @@ const AppWalletRoute = AppWalletRouteImport.update({
 const AppSubscriptionRoute = AppSubscriptionRouteImport.update({
   id: '/subscription',
   path: '/subscription',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSignalsRoute = AppSignalsRouteImport.update({
+  id: '/signals',
+  path: '/signals',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
@@ -173,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/portfolios': typeof AppPortfoliosRoute
   '/profile': typeof AppProfileRoute
   '/settings': typeof AppSettingsRoute
+  '/signals': typeof AppSignalsRoute
   '/subscription': typeof AppSubscriptionRoute
   '/wallet': typeof AppWalletRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
@@ -198,6 +205,7 @@ export interface FileRoutesByTo {
   '/portfolios': typeof AppPortfoliosRoute
   '/profile': typeof AppProfileRoute
   '/settings': typeof AppSettingsRoute
+  '/signals': typeof AppSignalsRoute
   '/subscription': typeof AppSubscriptionRoute
   '/wallet': typeof AppWalletRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
@@ -225,6 +233,7 @@ export interface FileRoutesById {
   '/_app/portfolios': typeof AppPortfoliosRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/settings': typeof AppSettingsRoute
+  '/_app/signals': typeof AppSignalsRoute
   '/_app/subscription': typeof AppSubscriptionRoute
   '/_app/wallet': typeof AppWalletRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
@@ -252,6 +261,7 @@ export interface FileRouteTypes {
     | '/portfolios'
     | '/profile'
     | '/settings'
+    | '/signals'
     | '/subscription'
     | '/wallet'
     | '/api/public/moyasar-webhook'
@@ -277,6 +287,7 @@ export interface FileRouteTypes {
     | '/portfolios'
     | '/profile'
     | '/settings'
+    | '/signals'
     | '/subscription'
     | '/wallet'
     | '/api/public/moyasar-webhook'
@@ -303,6 +314,7 @@ export interface FileRouteTypes {
     | '/_app/portfolios'
     | '/_app/profile'
     | '/_app/settings'
+    | '/_app/signals'
     | '/_app/subscription'
     | '/_app/wallet'
     | '/api/public/moyasar-webhook'
@@ -366,6 +378,13 @@ declare module '@tanstack/react-router' {
       path: '/subscription'
       fullPath: '/subscription'
       preLoaderRoute: typeof AppSubscriptionRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/signals': {
+      id: '/_app/signals'
+      path: '/signals'
+      fullPath: '/signals'
+      preLoaderRoute: typeof AppSignalsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/settings': {
@@ -511,6 +530,7 @@ interface AppRouteChildren {
   AppPortfoliosRoute: typeof AppPortfoliosRoute
   AppProfileRoute: typeof AppProfileRoute
   AppSettingsRoute: typeof AppSettingsRoute
+  AppSignalsRoute: typeof AppSignalsRoute
   AppSubscriptionRoute: typeof AppSubscriptionRoute
   AppWalletRoute: typeof AppWalletRoute
 }
@@ -529,6 +549,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPortfoliosRoute: AppPortfoliosRoute,
   AppProfileRoute: AppProfileRoute,
   AppSettingsRoute: AppSettingsRoute,
+  AppSignalsRoute: AppSignalsRoute,
   AppSubscriptionRoute: AppSubscriptionRoute,
   AppWalletRoute: AppWalletRoute,
 }
