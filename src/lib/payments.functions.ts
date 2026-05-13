@@ -136,6 +136,7 @@ export const initiateTopup = createServerFn({ method: "POST" })
   });
 
 export const previewTopupFees = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({
     amountSar: z.number().min(1).max(500000),
     isMada: z.boolean().optional(),
