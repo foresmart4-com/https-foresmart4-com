@@ -397,3 +397,43 @@ pro_annual_sar
 - صلاحيات إنتاجية وUser Roles على جدول `user_roles`.
 - Broker Integration (IB/Alpaca) عبر server functions فقط.
 - Payment provider integration كاملة.
+
+---
+
+## Phase: Withdrawal Parity, Manual Review Center & Audit-ready Journal
+
+### Withdrawal Timeline (parity with Deposit)
+- Unique ref `WDR-YYYY-NNNN`, 4-step timeline (Created → Review → Approved/Rejected/Cancelled → Completed).
+- Fee summary (5 SAR < 1000, 10 SAR ≥ 1000), holder + IBAN (masked), note.
+- Statuses: review / completed / rejected / cancelled.
+- Actions: copy ref, view details (toast modal), cancel-if-pending.
+- Every action logged via `logEvent({ source: "withdrawal", actor, severity, beforeState, afterState })`.
+
+### Manual Review Center (Admin Console)
+- Unified table of Deposits + Withdrawals with filters (type / status / search).
+- Approve / Reject / Reopen / Note / Details — each writes an audit entry with `before_state` and `after_state`.
+
+### Audit-ready Trading Journal
+- New fields per entry: `journalRef` (`JRN-YYYY-NNNN`), `actor` (user/admin/system/ai), `severity` (info/warning/critical), `linkedRefId`, `beforeState`, `afterState`.
+- Row left-border colored by severity, badge per entry.
+- Filters: source, status, actor, severity, linked ref id.
+- Two exports: full Journal CSV and Admin/critical-only Audit CSV.
+
+### Production Roadmap (Settings)
+- 4 phases (Backend, Payments, Market Data, Broker) with status badge, required items, top risk and details modal.
+- See `BACKEND_REQUIREMENTS.md` for the full schema, endpoints, security and migration path.
+
+### Enhanced System Report
+- JSON export now includes Manual Review Summary, Audit Journal Summary, Auto Trading Simulation Summary, Data Source Status, Payment Placeholder Status, AI Engine Status and Production Roadmap.
+- New companion CSV summary export.
+
+### Current Status
+- Frontend MVP: Advanced
+- Crypto Data: Live (CoinGecko) with Mock fallback
+- Stocks: Mock
+- AI: Mock Engine
+- Auto Trading: Simulation Only (STOP_LOSS priority, HIGH risk blocked)
+- Deposit / Withdrawal: Manual Review
+- Broker: Not Connected
+- Payment: Not Connected
+- Backend: Not Connected (see `BACKEND_REQUIREMENTS.md`)
