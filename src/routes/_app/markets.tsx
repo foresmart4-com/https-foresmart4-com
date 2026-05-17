@@ -14,6 +14,7 @@ import { Building2, Coins, DollarSign, Brain, Gem, ShoppingCart, Landmark, Exter
 import { BOND_BUY_LINKS, TREASURY_DIRECT_LINKS } from "@/lib/bond-links";
 import { FeaturedAssetsTable } from "@/components/FeaturedAssetsTable";
 import { CryptoLivePanel } from "@/components/CryptoLivePanel";
+import { AIDecisionPanel } from "@/components/AIDecisionPanel";
 
 interface SelectedAsset {
   symbol: string;
