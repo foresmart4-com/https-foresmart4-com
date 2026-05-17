@@ -307,6 +307,10 @@ function SettingsPage() {
           </section>
         )}
 
+        {/* Admin tools */}
+        {isAdmin && <PaymentLinksSettings />}
+        {isAdmin && <AdminReviewPanel />}
+
         {/* Danger zone */}
         <section className="rounded-xl border border-border p-5">
           <Button variant="outline" onClick={handleSignOut} className="w-full md:w-auto">
