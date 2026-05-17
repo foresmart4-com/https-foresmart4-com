@@ -192,6 +192,8 @@ function RegionSection({ region, items, onAnalyze, onBuy }: { region: StockRegio
   const avg = items.reduce((s, a) => s + a.changePct, 0) / items.length;
   const gainers = items.filter((a) => a.changePct > 0).length;
   const losers = items.filter((a) => a.changePct < 0).length;
+  const [visible, setVisible] = useState(30);
+  const shown = items.slice(0, visible);
   return (
     <section className="overflow-hidden rounded-xl gradient-card border border-border shadow-card">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/30 px-5 py-4">
