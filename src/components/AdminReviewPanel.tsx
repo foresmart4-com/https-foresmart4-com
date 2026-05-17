@@ -51,6 +51,7 @@ export function AdminReviewPanel() {
   }, [deposits, withdrawals, subs, invites, decisionLog, orders]);
 
   const act = (kind: "deposit" | "withdrawal" | "subscription" | "invite", list: Row[], setList: (v: Row[]) => void, id: string, next: Row["status"]) => {
+    const prev = list.find((r) => r.id === id);
     setList(list.map((r) => (r.id === id ? { ...r, status: next } : r)));
     const label_ar = next === "completed" ? "تم القبول" : next === "rejected" ? "تم الرفض" : "أُعيد للمراجعة";
     const label_en = next === "completed" ? "Approved" : next === "rejected" ? "Rejected" : "Re-opened";
@@ -58,7 +59,11 @@ export function AdminReviewPanel() {
       source: "admin",
       eventKind: `${kind}_${next}`,
       status: next === "completed" ? "completed" : next === "rejected" ? "rejected" : "review",
-      refId: id,
+      refId: id, linkedRefId: id,
+      actor: "admin",
+      severity: next === "rejected" ? "critical" : next === "completed" ? "info" : "warning",
+      beforeState: prev ? { status: prev.status } : undefined,
+      afterState: { status: next },
       notes: `${lang === "ar" ? label_ar : label_en} بواسطة الإدارة`,
     });
     toast.success(`${id} — ${lang === "ar" ? label_ar : label_en}`);
