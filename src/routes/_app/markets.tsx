@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { AssetAnalysisDialog } from "@/components/AssetAnalysisDialog";
 import { BuyAssetDialog } from "@/components/BuyAssetDialog";
 import { Building2, Coins, DollarSign, Brain, Gem, ShoppingCart, Landmark, ExternalLink } from "lucide-react";
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/_app/markets")({
   component: MarketsPage,
 });
 
-const REGION_ORDER: StockRegion[] = ["us", "eu", "uk", "japan", "china", "uae", "saudi"];
+const REGION_ORDER: StockRegion[] = ["us", "eu", "uk", "japan", "china", "uae", "saudi", "qatar"];
 
 function MarketsPage() {
   const { t, lang } = useI18n();
@@ -108,24 +109,35 @@ function StocksTab({ onAnalyze, onBuy }: { onAnalyze: (a: SelectedAsset) => void
   const { t, lang } = useI18n();
   const { data, isLoading } = useQuery({ queryKey: ["stocks"], queryFn: () => getStocksData(), refetchInterval: 120000 });
   const [selectedRegions, setSelectedRegions] = useState<StockRegion[]>([...REGION_ORDER]);
+  const [query, setQuery] = useState("");
   const stocks = data?.stocks ?? [];
   const toggle = (r: StockRegion) =>
     setSelectedRegions((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
   const allOn = selectedRegions.length === REGION_ORDER.length;
   if (isLoading) return <p className="text-muted-foreground">{t("loading")}</p>;
+  const q = query.trim().toLowerCase();
+  const total = stocks.length;
   return (
     <>
       <div className="rounded-xl gradient-card border border-border p-4 shadow-card">
-        <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-lg font-semibold">
               {lang === "ar" ? "الأسواق العالمية" : "Global Markets"}
             </h2>
             <p className="text-xs text-muted-foreground">
-              {lang === "ar" ? "اختر سوقاً واحداً أو أكثر لعرضه" : "Pick one or more markets to display"}
+              {lang === "ar"
+                ? `${total.toLocaleString()} شركة من أكبر البورصات العالمية (Mock + Live للأسهم الرئيسية)`
+                : `${total.toLocaleString()} listed companies across major exchanges (Mock + Live for headline tickers)`}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={lang === "ar" ? "بحث برمز أو اسم..." : "Search ticker or name..."}
+              className="h-8 w-44 text-xs sm:w-56"
+            />
             <Button size="sm" variant="outline" className="h-7 text-xs"
               onClick={() => setSelectedRegions(allOn ? [] : [...REGION_ORDER])}>
               {allOn
@@ -162,7 +174,11 @@ function StocksTab({ onAnalyze, onBuy }: { onAnalyze: (a: SelectedAsset) => void
         </p>
       )}
       {REGION_ORDER.filter((r) => selectedRegions.includes(r)).map((r) => {
-        const items = stocks.filter((s) => s.region === r);
+        const items = stocks.filter((s) => {
+          if (s.region !== r) return false;
+          if (!q) return true;
+          return s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q) || s.sector.toLowerCase().includes(q);
+        });
         if (items.length === 0) return null;
         return <RegionSection key={r} region={r} items={items} onAnalyze={onAnalyze} onBuy={onBuy} />;
       })}
@@ -176,6 +192,8 @@ function RegionSection({ region, items, onAnalyze, onBuy }: { region: StockRegio
   const avg = items.reduce((s, a) => s + a.changePct, 0) / items.length;
   const gainers = items.filter((a) => a.changePct > 0).length;
   const losers = items.filter((a) => a.changePct < 0).length;
+  const [visible, setVisible] = useState(30);
+  const shown = items.slice(0, visible);
   return (
     <section className="overflow-hidden rounded-xl gradient-card border border-border shadow-card">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/30 px-5 py-4">
@@ -206,7 +224,7 @@ function RegionSection({ region, items, onAnalyze, onBuy }: { region: StockRegio
             </tr>
           </thead>
           <tbody>
-            {items.map((s) => {
+            {shown.map((s) => {
               const sig = deriveSignal(s.history);
               return (
                 <tr key={s.symbol} className="border-t border-border hover:bg-muted/30">
@@ -242,6 +260,15 @@ function RegionSection({ region, items, onAnalyze, onBuy }: { region: StockRegio
           </tbody>
         </table>
       </div>
+      {visible < items.length && (
+        <div className="flex items-center justify-center border-t border-border bg-muted/20 px-4 py-3">
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setVisible((v) => v + 30)}>
+            {lang === "ar"
+              ? `عرض المزيد (${items.length - visible} متبقّي)`
+              : `Show more (${items.length - visible} remaining)`}
+          </Button>
+        </div>
+      )}
     </section>
   );
 }
