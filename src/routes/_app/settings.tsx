@@ -1,15 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useAccess } from "@/lib/use-access";
 import { supabase } from "@/integrations/supabase/client";
+import { getMySubscription } from "@/lib/payments.functions";
+import { STRIPE_LOOKUP_KEYS } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Settings as SettingsIcon, Globe2, User as UserIcon, Key, Crown, Wallet,
-  Building, Link2, Bell, LogOut, ChevronRight, Globe, ShieldAlert,
+  Building, Link2, Bell, LogOut, ChevronRight, Globe, ShieldAlert, ArrowDownToLine, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,6 +28,8 @@ function SettingsPage() {
   const { isAdmin } = useAccess();
   const navigate = useNavigate();
   const [currency, setCurrency] = useState("USD");
+  const subFn = useServerFn(getMySubscription);
+  const { data: sub } = useQuery({ queryKey: ["my-sub-settings"], queryFn: () => subFn() });
 
   useEffect(() => {
     if (!user) return;
