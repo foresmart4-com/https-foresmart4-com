@@ -69,26 +69,27 @@ const DEFAULTS: AutoTradingSettings = {
 type State = {
   settings: AutoTradingSettings;
   orders: AutoTradeOrder[];
+  decisionLog: DecisionLogEntry[];
   dailyLoss: number;
   haltedAt: number | null;
 };
 
 function load(): State {
-  if (typeof window === "undefined") {
-    return { settings: DEFAULTS, orders: [], dailyLoss: 0, haltedAt: null };
-  }
+  const empty: State = { settings: DEFAULTS, orders: [], decisionLog: [], dailyLoss: 0, haltedAt: null };
+  if (typeof window === "undefined") return empty;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { settings: DEFAULTS, orders: [], dailyLoss: 0, haltedAt: null };
+    if (!raw) return empty;
     const parsed = JSON.parse(raw);
     return {
       settings: { ...DEFAULTS, ...parsed.settings, riskRules: { ...DEFAULTS.riskRules, ...(parsed.settings?.riskRules ?? {}) } },
       orders: Array.isArray(parsed.orders) ? parsed.orders : [],
+      decisionLog: Array.isArray(parsed.decisionLog) ? parsed.decisionLog : [],
       dailyLoss: parsed.dailyLoss ?? 0,
       haltedAt: parsed.haltedAt ?? null,
     };
   } catch {
-    return { settings: DEFAULTS, orders: [], dailyLoss: 0, haltedAt: null };
+    return empty;
   }
 }
 
