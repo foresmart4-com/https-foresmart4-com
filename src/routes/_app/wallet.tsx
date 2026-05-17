@@ -16,6 +16,7 @@ import { AllocationPanel } from "@/components/AllocationPanel";
 import { ManualOperationForm } from "@/components/ManualOperationForm";
 import { AssetPnlPanel } from "@/components/AssetPnlPanel";
 import { WithdrawalSection } from "@/components/WithdrawalSection";
+import { RiskManagementPanel } from "@/components/RiskManagementPanel";
 
 export const Route = createFileRoute("/_app/wallet")({
   component: WalletPage,
