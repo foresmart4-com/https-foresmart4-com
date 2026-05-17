@@ -185,28 +185,39 @@ async function fetchYahooQuote(c: CompanyDef, region: StockRegion): Promise<Stoc
 
 export const getStocksData = createServerFn({ method: "GET" })
   .handler(async () => {
-    const all: Array<{ region: StockRegion; def: CompanyDef }> = [];
+    const { STOCKS_UNIVERSE } = await import("./stocks-universe");
+    const seen = new Set<string>();
+    const liveTasks: Promise<StockQuote>[] = [];
     (Object.keys(COMPANIES) as StockRegion[]).forEach((region) => {
-      COMPANIES[region].forEach((def) => all.push({ region, def }));
+      COMPANIES[region].forEach((def) => {
+        seen.add(def.symbol);
+        liveTasks.push(
+          fetchYahooQuote(def, region)
+            .then((q) => q ?? syntheticQuote(def, region))
+            .catch(() => syntheticQuote(def, region)),
+        );
+      });
     });
-    const tasks = all.map(async ({ region, def }) => {
-      try {
-        return (await fetchYahooQuote(def, region)) ?? syntheticQuote(def, region);
-      } catch (error) {
-        console.error(`Stock loader failed: ${def.symbol}`, error);
-        return syntheticQuote(def, region);
-      }
+    const mockResults: StockQuote[] = [];
+    (Object.keys(STOCKS_UNIVERSE) as StockRegion[]).forEach((region) => {
+      STOCKS_UNIVERSE[region].forEach((def) => {
+        if (seen.has(def.symbol)) return;
+        seen.add(def.symbol);
+        mockResults.push(syntheticQuote(def, region));
+      });
     });
-    const results = await Promise.all(tasks);
-    return { stocks: results, fetchedAt: Date.now() };
+    const liveResults = await Promise.all(liveTasks);
+    return { stocks: [...liveResults, ...mockResults], fetchedAt: Date.now() };
   });
 
 export const REGION_LABELS: Record<StockRegion, { ar: string; en: string; flag: string }> = {
-  us: { ar: "السوق الأمريكي", en: "United States", flag: "🇺🇸" },
-  eu: { ar: "السوق الأوروبي", en: "Europe", flag: "🇪🇺" },
-  uk: { ar: "السوق البريطاني", en: "United Kingdom", flag: "🇬🇧" },
-  japan: { ar: "السوق الياباني", en: "Japan", flag: "🇯🇵" },
-  china: { ar: "السوق الصيني", en: "China", flag: "🇨🇳" },
-  uae: { ar: "السوق الإماراتي", en: "UAE", flag: "🇦🇪" },
-  saudi: { ar: "السوق السعودي", en: "Saudi Arabia", flag: "🇸🇦" },
+  us: { ar: "السوق الأمريكي", en: "United States (NYSE+NASDAQ)", flag: "🇺🇸" },
+  eu: { ar: "السوق الأوروبي", en: "Europe (Euronext+XETRA)", flag: "🇪🇺" },
+  uk: { ar: "السوق البريطاني", en: "United Kingdom (LSE)", flag: "🇬🇧" },
+  japan: { ar: "السوق الياباني", en: "Japan (TSE)", flag: "🇯🇵" },
+  china: { ar: "السوق الصيني", en: "China (HKEX+SSE)", flag: "🇨🇳" },
+  uae: { ar: "السوق الإماراتي", en: "UAE (ADX+DFM)", flag: "🇦🇪" },
+  saudi: { ar: "السوق السعودي (تداول)", en: "Saudi Arabia (Tadawul)", flag: "🇸🇦" },
+  qatar: { ar: "السوق القطري", en: "Qatar (QSE)", flag: "🇶🇦" },
+};
 };
