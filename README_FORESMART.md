@@ -268,3 +268,65 @@ pro_annual_sar
 - AI Decision Testing: **Active**
 - Safety Rules: **Active**
 - Paper Trading: **Simulation Only**
+
+---
+
+## Functional Integration Audit (Final MVP Wiring)
+
+تم في هذه المرحلة ربط اللوحات وتجهيز النظام للإنتاج لاحقاً دون أي ربط حقيقي.
+
+### اللوحات المربوطة وظيفياً
+
+| اللوحة | المصدر | الإجراء |
+|--------|--------|---------|
+| WatchlistPanel | watchlistStore + generateTradingDecision | تحليل الآن / إضافة للمحفظة / إزالة |
+| SmartAlertsPanel | قرارات AI + Watchlist | مراقبة / تجاهل |
+| PortfolioRiskDashboard | computePortfolioRisk(mock positions) | عرض تركّز/تنويع/توصيات |
+| BacktestingPanel | backtesting.ts (mock-deterministic) | اختيار استراتيجية + تصدير |
+| TradingJournalPanel | tradingJournal store | فلتر + إضافة + تصدير CSV |
+| AutoTradingModeBar | autoTrading store | تفعيل/إيقاف/إيقاف طارئ + دورة محاكاة + تقرير |
+| AIDecisionPanel + Tester | marketIntelligence | اختبار قرارات + توضيح Score |
+| RiskManagementPanel | assetPnl mock + AI | SL/TP محاكاة |
+| WithdrawalSection | localStorage | طلبات مراجعة |
+| AdminReviewPanel | mock pending list | اعتماد/رفض |
+| PaymentLinksSettings | localStorage placeholders | روابط Stripe (placeholder) |
+| CryptoLivePanel | CoinGecko | Live polling |
+| SystemReadinessPanel | aggregator | System Check + MVP Score + Data Source Manager + Export Report |
+
+### Unified Data Status Badges (`DataStatusBadge`)
+`Live` · `Mock` · `Simulation` · `Manual Review` · `Not Connected` · `Ready Later`
+يُستخدم في الأسواق، المحفظة، AI، الإعدادات، Watchlist.
+
+### Auto Trading Modes (محدّث)
+- **Conservative**: minConfidence=85, maxRisk=LOW, position≤5%, allowMockSimulation=false
+- **Balanced**:     minConfidence=75, maxRisk=MEDIUM, position≤10%, allowMockSimulation=true
+- **Aggressive**:   minConfidence=65, maxRisk=MEDIUM, position≤15%, allowMockSimulation=true
+- HIGH risk لا يُنشئ أمراً أبداً في كل الأوضاع.
+
+### Emergency Stop
+زر `E-Stop` داخل AutoTradingModeBar → يستدعي `emergencyStop()` → يوقف autoTrading ويسجل `haltedAt`.
+
+### System Check + MVP Readiness Score
+يُحسب من 12 فحصاً: Crypto, Stocks, AI engine, Simulation, Watchlist, Portfolio, Payments, Deposit/Withdrawal, Admin, Docs, Journal, Safety.
+الصيغة: نقاط = Σ(ok ? (warn ? 0.65 : 1) : 0) / N × 100.
+
+### Export System Report
+زر داخل SystemReadinessPanel يصدّر JSON يشمل: MVP score, system checks, data sources, autoTrading state, watchlist count, portfolio risk, journal count, gaps.
+
+### Data Source Manager (Admin only)
+يعرض حالة كل مزود (CoinGecko=Live, AI=Mock, Stocks/Brokers/Payments=Not Connected) مع حقول placeholder للمفاتيح **لا تُحفظ** — مع تنبيه أن المفاتيح يجب أن تعيش في Backend آمن لاحقاً.
+
+### Status Map
+- **Live**: CoinGecko
+- **Mock**: بيانات الأسهم، AI، News, Macro
+- **Simulation**: كل أوامر التداول، Backtesting
+- **Manual Review**: الإيداع والسحب
+- **Not Connected**: Stripe, Broker API, Alpha Vantage, Twelve Data, Finnhub, Saudi Provider, News API
+- **Ready Later**: المزايا التي تحتاج Backend مخصصاً
+
+### يحتاج لاحقاً
+- مزود دفع (Stripe lookup keys → server functions).
+- مزود أسواق للأسهم (Twelve Data/Alpha Vantage/Finnhub) عبر server functions.
+- مزود أخبار + معنويات حقيقي.
+- وسيط تداول (IB/Alpaca) — لا يُربط من الواجهة أبداً.
+- Backend آمن لتخزين مفاتيح API (Lovable Cloud secrets).

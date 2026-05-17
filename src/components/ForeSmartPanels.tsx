@@ -10,9 +10,9 @@ import { buildSmartAlerts } from "@/lib/smartAlerts";
 import { generateTradingDecision, type AssetContext } from "@/lib/marketIntelligence";
 import { computePortfolioRisk } from "@/lib/portfolioRisk";
 import { useJournal, addJournalEntry, journalToCSV, deleteJournalEntry } from "@/lib/tradingJournal";
-import { runSimulationCycle, useAutoTrading, ordersToCSV, setTradingMode, TRADING_MODE_PRESETS, type TradingMode } from "@/lib/autoTrading";
+import { runSimulationCycle, useAutoTrading, ordersToCSV, setTradingMode, setEnabled, emergencyStop, TRADING_MODE_PRESETS, REJECT_REASONS_AR, type TradingMode } from "@/lib/autoTrading";
 import { useWatchlist } from "@/lib/watchlistStore";
-import { AlertTriangle, BookOpen, FlaskRound, ShieldCheck, Download, Trash2, Bell, PlayCircle, Gauge } from "lucide-react";
+import { AlertTriangle, BookOpen, FlaskRound, ShieldCheck, Download, Trash2, Bell, PlayCircle, Gauge, Power, OctagonAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -223,21 +223,42 @@ export function AutoTradingModeBar() {
   const { lang } = useI18n();
   const { settings, orders } = useAutoTrading();
   const { items } = useWatchlist();
+  const [report, setReport] = useState<{ analyzed: number; created: number; rejected: number; reasons: Record<string, number> } | null>(null);
+
   const runCycle = () => {
     const decisions = items.map((a) => generateTradingDecision({ symbol: a.symbol, category: a.category as any, price: a.price, change24h: a.change24h, currency: a.currency } as AssetContext));
-    const report = runSimulationCycle(decisions, true);
+    const r = runSimulationCycle(decisions, true);
+    setReport(r);
     toast.success(lang === "ar"
-      ? `تحليل ${report.analyzed} · إنشاء ${report.created} · رفض ${report.rejected}`
-      : `Analyzed ${report.analyzed} · Created ${report.created} · Rejected ${report.rejected}`);
+      ? `تحليل ${r.analyzed} · إنشاء ${r.created} · رفض ${r.rejected}`
+      : `Analyzed ${r.analyzed} · Created ${r.created} · Rejected ${r.rejected}`);
   };
+
+  const p = TRADING_MODE_PRESETS[settings.tradingMode];
+
   return (
     <Card className="p-4 space-y-3">
-      <header className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" />
-        <h3 className="font-display text-base font-semibold">{lang === "ar" ? "أوضاع التداول الآلي" : "Trading Modes"}</h3>
+      <header className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" />
+          <h3 className="font-display text-base font-semibold">{lang === "ar" ? "أوضاع التداول الآلي" : "Trading Modes"}</h3>
+          <Badge variant={settings.enabled ? "default" : "secondary"} className="text-[10px]">
+            {settings.enabled ? (lang === "ar" ? "مفعّل" : "Enabled") : (lang === "ar" ? "متوقف" : "Disabled")}
+          </Badge>
+        </div>
+        <div className="flex gap-1">
+          <Button size="sm" variant={settings.enabled ? "outline" : "default"} className="h-7 gap-1 text-[11px]"
+            onClick={() => { setEnabled(!settings.enabled); toast.success(!settings.enabled ? (lang === "ar" ? "تم التفعيل" : "Enabled") : (lang === "ar" ? "تم الإيقاف" : "Disabled")); }}>
+            <Power className="h-3 w-3" />{settings.enabled ? (lang === "ar" ? "إيقاف" : "Off") : (lang === "ar" ? "تفعيل" : "On")}
+          </Button>
+          <Button size="sm" variant="destructive" className="h-7 gap-1 text-[11px]"
+            onClick={() => { emergencyStop(); toast.error(lang === "ar" ? "إيقاف طارئ — لن تنشأ أوامر جديدة" : "Emergency stop — no new orders"); }}>
+            <OctagonAlert className="h-3 w-3" />{lang === "ar" ? "إيقاف طارئ" : "E-Stop"}
+          </Button>
+        </div>
       </header>
       <div className="grid gap-2 sm:grid-cols-3">
         {(Object.keys(TRADING_MODE_PRESETS) as TradingMode[]).map((m) => {
-          const p = TRADING_MODE_PRESETS[m];
+          const preset = TRADING_MODE_PRESETS[m];
           const active = settings.tradingMode === m;
           return (
             <button key={m} onClick={() => { setTradingMode(m); toast.success(`Mode: ${m}`); }}
@@ -245,11 +266,15 @@ export function AutoTradingModeBar() {
                 active ? "border-primary bg-primary/10" : "border-border hover:bg-muted/40")}>
               <div className="text-sm font-semibold capitalize">{m}</div>
               <div className="mt-1 text-[10px] text-muted-foreground">
-                Conf ≥{p.minConfidence}% · Risk ≤{p.maxRisk} · Size ≤{p.maxPositionPct}%
+                Conf ≥{preset.minConfidence}% · Risk ≤{preset.maxRisk} · Size ≤{preset.maxPositionPct}%
               </div>
             </button>
           );
         })}
+      </div>
+      <div className="rounded border border-border bg-muted/20 p-2 text-[10px] text-muted-foreground">
+        <span className="font-semibold text-foreground">{lang === "ar" ? "الإعدادات الحالية: " : "Current: "}</span>
+        Mode {settings.tradingMode} · MinConf {settings.minConfidence}% · MaxRisk {p.maxRisk} · Pos ≤{settings.riskRules.maxPositionPct}% · Mock BUY {settings.allowMockSimulation ? "✓" : "✗"}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" onClick={runCycle} className="gap-1"><PlayCircle className="h-4 w-4" />{lang === "ar" ? "تشغيل دورة محاكاة" : "Run cycle"}</Button>
@@ -257,6 +282,26 @@ export function AutoTradingModeBar() {
           <Download className="h-4 w-4" />{lang === "ar" ? "تصدير أوامر المحاكاة" : "Export sim orders"}
         </Button>
       </div>
+      {report && (
+        <div className="rounded border border-border bg-background/60 p-2 text-[11px]">
+          <div className="font-semibold">{lang === "ar" ? "تقرير آخر دورة" : "Last cycle report"}</div>
+          <div className="mt-1 grid grid-cols-3 gap-2 text-center">
+            <div className="rounded bg-muted/30 p-1.5"><div className="text-muted-foreground">{lang === "ar" ? "تحليل" : "Analyzed"}</div><div className="font-semibold">{report.analyzed}</div></div>
+            <div className="rounded bg-success/10 p-1.5 text-success"><div>{lang === "ar" ? "أوامر" : "Created"}</div><div className="font-semibold">{report.created}</div></div>
+            <div className="rounded bg-danger/10 p-1.5 text-danger"><div>{lang === "ar" ? "رفض" : "Rejected"}</div><div className="font-semibold">{report.rejected}</div></div>
+          </div>
+          {Object.keys(report.reasons).length > 0 && (
+            <ul className="mt-2 space-y-0.5 text-muted-foreground">
+              {Object.entries(report.reasons).map(([k, v]) => (
+                <li key={k}>• {lang === "ar" ? (REJECT_REASONS_AR[k] ?? k) : k} <span className="text-foreground">×{v}</span></li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      {settings.enabled === false && (
+        <p className="text-[10px] text-warning flex items-center gap-1"><AlertTriangle className="h-3 w-3" />{lang === "ar" ? "التداول الآلي متوقف — لن تنشأ أوامر جديدة من القرارات." : "Auto-trading off — no new orders from decisions."}</p>
+      )}
       <p className="text-[10px] text-warning flex items-center gap-1"><AlertTriangle className="h-3 w-3" />{lang === "ar" ? "كل العمليات Simulation فقط — لا تداول حقيقي." : "Simulation only — no real trading."}</p>
     </Card>
   );

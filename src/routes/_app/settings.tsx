@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminReviewPanel } from "@/components/AdminReviewPanel";
+import { SystemReadinessPanel } from "@/components/SystemReadinessPanel";
 import { PaymentLinksSettings } from "@/components/PaymentLinksSettings";
 
 export const Route = createFileRoute("/_app/settings")({
@@ -320,6 +321,7 @@ function SettingsPage() {
         {/* Admin tools */}
         {isAdmin && <PaymentLinksSettings />}
         {isAdmin && <AdminReviewPanel />}
+        {isAdmin && <SystemReadinessPanel />}
 
         {/* Danger zone */}
         <section className="rounded-xl border border-border p-5">
