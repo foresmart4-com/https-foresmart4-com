@@ -24,7 +24,7 @@ const DEFAULT_MODE: BrokerMode = "testnet";
 
 export async function getAccount(mode: BrokerMode = DEFAULT_MODE): Promise<BrokerAccount> {
   try {
-    return await callBroker("account", { mode });
+    return await callBroker<BrokerAccount>("account", { mode });
   } catch {
     return fallbackAccount(mode);
   }
