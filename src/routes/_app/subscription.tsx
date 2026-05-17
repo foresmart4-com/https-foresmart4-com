@@ -64,6 +64,33 @@ function SubscriptionPage() {
         </p>
       </div>
 
+      {/* Free trial highlight */}
+      <Card className="gradient-card border-primary/40 p-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="font-display text-lg font-bold">
+              {lang === "ar" ? "ابدأ بتجربة مجانية 14 يوم" : "Start a 14-day free trial"}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {lang === "ar"
+                ? "وصول كامل لميزات الخطة الأساسية بدون أي خصم. ألغِ في أي وقت قبل انتهاء التجربة."
+                : "Full access to Basic features with no charge. Cancel anytime before the trial ends."}
+            </div>
+          </div>
+        </div>
+        <Button
+          className="gap-2 shrink-0"
+          disabled={!!(isActive && hasStripeCustomer)}
+          onClick={() => toast.success(lang === "ar" ? "تم تفعيل التجربة المجانية لمدة 14 يوم" : "14-day free trial activated")}
+        >
+          <Sparkles className="h-4 w-4" />
+          {lang === "ar" ? "بدء التجربة المجانية" : "Start free trial"}
+        </Button>
+      </Card>
+
       {isActive && (
         <Card className="gradient-card border-success/40 p-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
