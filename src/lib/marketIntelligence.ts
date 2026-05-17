@@ -272,29 +272,56 @@ export function generateTradingDecision(ctx: AssetContext): TradingDecision {
   if (risk.conflictingSignals) warning.push("إشارات فنية متضاربة");
   if (risk.lowLiquidity) warning.push("سيولة منخفضة");
 
-  // Score-based action
-  let score = 0;
-  if (indicators.trend === "up") score += 2;
-  if (indicators.trend === "down") score -= 2;
-  if (indicators.rsi < 35) score += 1;
-  if (indicators.rsi > 70) score -= 1;
-  if (indicators.momentum > 2) score += 1;
-  if (indicators.momentum < -2) score -= 1;
-  if (sentiment.label === "positive") score += 1;
-  if (sentiment.label === "negative") score -= 1;
-  if (ctx.price > indicators.resistance * 0.995) score += 0; // near resistance, neutral
-  if (ctx.price < indicators.support * 1.005) score -= 0;
+  // ===== Score Engine =====
+  const clamp = (v: number, mn = -100, mx = 100) => Math.max(mn, Math.min(mx, v));
+
+  const trendScore =
+    indicators.trend === "up" ? 22 :
+    indicators.trend === "down" ? -22 : 0;
+  const momentumScore = clamp(indicators.momentum * 3, -25, 25);
+  const rsiScore =
+    indicators.rsi < 30 ? 18 :
+    indicators.rsi < 40 ? 9 :
+    indicators.rsi > 75 ? -18 :
+    indicators.rsi > 65 ? -8 : 0;
+  const volatilityScore = clamp(-indicators.volatility * 2, -20, 0);
+  const sentimentScore = Math.round((sentiment.score ?? 0) * 18);
+  const macroScore =
+    macro.dxy > 106 ? -5 :
+    macro.dxy < 100 ? 5 : 0;
+  const distToRes = (indicators.resistance - ctx.price) / Math.max(ctx.price, 0.0001);
+  const distToSup = (ctx.price - indicators.support) / Math.max(ctx.price, 0.0001);
+  const supportResistanceScore =
+    distToSup < 0.005 ? 10 :
+    distToRes < 0.005 ? -10 : 0;
+  let riskPenalty = 0;
+  if (risk.highVolatility) riskPenalty -= 8;
+  if (risk.sharpDrop) riskPenalty -= 12;
+  if (risk.overboughtRally) riskPenalty -= 6;
+  if (risk.conflictingSignals) riskPenalty -= 10;
+  if (risk.lowLiquidity) riskPenalty -= 4;
+
+  const totalRaw = trendScore + momentumScore + rsiScore + volatilityScore +
+    sentimentScore + macroScore + supportResistanceScore + riskPenalty;
+  const total = clamp(totalRaw);
+
+  const scoreBreakdown: ScoreBreakdown = {
+    trendScore, momentumScore, rsiScore, volatilityScore,
+    sentimentScore, macroScore, supportResistanceScore, riskPenalty, total,
+  };
 
   let action: TradingAction;
   if (ctx.change24h <= -7) action = "STOP_LOSS";
   else if (ctx.change24h >= 12 && indicators.rsi > 70) action = "TAKE_PROFIT";
-  else if (risk.conflictingSignals) action = "HOLD";
-  else if (score >= 3) action = "BUY";
-  else if (score <= -3) action = "SELL";
+  else if (risk.conflictingSignals && Math.abs(total) < 40) action = "HOLD";
+  else if (total >= 35) action = "BUY";
+  else if (total <= -35) action = "SELL";
   else action = "HOLD";
 
-  // Confidence
-  let confidence = Math.min(100, Math.max(10, 50 + score * 8 - (risk.highVolatility ? 8 : 0) - (risk.conflictingSignals ? 10 : 0)));
+  // Confidence — derived from |score| with risk damping
+  let confidence = Math.min(100, Math.max(10,
+    40 + Math.abs(total) * 0.55 - (risk.highVolatility ? 6 : 0) - (risk.conflictingSignals ? 8 : 0)
+  ));
   if (action === "HOLD") confidence = Math.min(confidence, 55);
   if (rl === "HIGH" && action === "BUY" && confidence < 86) {
     action = "HOLD";
@@ -302,12 +329,11 @@ export function generateTradingDecision(ctx: AssetContext): TradingDecision {
     confidence = Math.min(confidence, 55);
   }
 
-  // Stop / Target / Position size
   const stopPct = rl === "HIGH" ? 0.06 : rl === "MEDIUM" ? 0.04 : 0.025;
   const tpPct = rl === "HIGH" ? 0.12 : rl === "MEDIUM" ? 0.08 : 0.05;
   const suggestedStopLoss = Number((ctx.price * (1 - stopPct)).toFixed(4));
   const suggestedTakeProfit = Number((ctx.price * (1 + tpPct)).toFixed(4));
-  const suggestedPositionSize = rl === "HIGH" ? 2 : rl === "MEDIUM" ? 5 : 8; // % of capital
+  const suggestedPositionSize = rl === "HIGH" ? 2 : rl === "MEDIUM" ? 5 : 8;
 
   const timeHorizon: TradingDecision["timeHorizon"] =
     indicators.trend === "side" ? "short" : rl === "LOW" ? "long" : "medium";
@@ -325,6 +351,8 @@ export function generateTradingDecision(ctx: AssetContext): TradingDecision {
     category: ctx.category,
     action,
     confidence: Math.round(confidence),
+    decisionScore: Math.round(total),
+    scoreBreakdown,
     riskLevel: rl,
     reasonSummary: reasonMap[action],
     supportingFactors: supporting,
