@@ -332,3 +332,80 @@ export function generateTradingDecision(ctx: AssetContext): TradingDecision {
 export function batchDecisions(items: AssetContext[]): TradingDecision[] {
   return items.map(generateTradingDecision);
 }
+
+// ============= Scenario builders for QA =============
+export type ScenarioId = "sharp_drop" | "strong_rally" | "high_volatility" | "conflicting" | "stop_loss_break";
+
+export type Scenario = {
+  id: ScenarioId;
+  name_ar: string;
+  name_en: string;
+  description_ar: string;
+  context: AssetContext;
+};
+
+function makeHistory(start: number, end: number, pattern: "linear" | "volatile" | "spike" = "linear"): number[] {
+  const n = 60;
+  const out: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1);
+    let v = start + (end - start) * t;
+    if (pattern === "volatile") v += Math.sin(i * 0.9) * (end * 0.05) + Math.cos(i * 1.7) * (end * 0.04);
+    if (pattern === "spike") v += i > n - 5 ? (end - start) * 0.3 : 0;
+    out.push(Math.max(0.01, v));
+  }
+  return out;
+}
+
+export const QA_SCENARIOS: Scenario[] = [
+  {
+    id: "sharp_drop",
+    name_ar: "هبوط حاد",
+    name_en: "Sharp drop",
+    description_ar: "السعر هبط -8% خلال 24س بعد اتجاه صاعد سابق.",
+    context: {
+      symbol: "TEST-DROP", name_ar: "اختبار هبوط", category: "us",
+      price: 92, change24h: -8, history: makeHistory(100, 92, "linear"), currency: "USD",
+    },
+  },
+  {
+    id: "strong_rally",
+    name_ar: "صعود قوي",
+    name_en: "Strong rally",
+    description_ar: "صعود متواصل +6% مع زخم إيجابي.",
+    context: {
+      symbol: "TEST-RALLY", name_ar: "اختبار صعود", category: "crypto",
+      price: 106, change24h: 6, history: makeHistory(95, 106, "linear"), currency: "USD",
+    },
+  },
+  {
+    id: "high_volatility",
+    name_ar: "تذبذب عالي",
+    name_en: "High volatility",
+    description_ar: "تذبذب حاد بدون اتجاه واضح.",
+    context: {
+      symbol: "TEST-VOL", name_ar: "اختبار تذبذب", category: "crypto",
+      price: 100, change24h: 0.4, history: makeHistory(98, 100, "volatile"), currency: "USD",
+    },
+  },
+  {
+    id: "conflicting",
+    name_ar: "إشارات متضاربة",
+    name_en: "Conflicting signals",
+    description_ar: "اتجاه صاعد لكن RSI متضخم في منطقة تشبع شراء.",
+    context: {
+      symbol: "TEST-CONF", name_ar: "اختبار تضارب", category: "us",
+      price: 110, change24h: 1.2, history: makeHistory(85, 110, "spike"), currency: "USD",
+    },
+  },
+  {
+    id: "stop_loss_break",
+    name_ar: "كسر وقف الخسارة",
+    name_en: "Stop-loss break",
+    description_ar: "السعر تجاوز عتبة الخسارة المحددة (-9%).",
+    context: {
+      symbol: "TEST-SL", name_ar: "اختبار وقف", category: "saudi",
+      price: 91, change24h: -9, history: makeHistory(100, 91, "linear"), currency: "SAR",
+    },
+  },
+];
