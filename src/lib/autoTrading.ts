@@ -29,14 +29,27 @@ export type AutoTradingSettings = {
   dailyLossLimit: number;         // SAR; stop trading if exceeded
   minConfidence: number;          // 0..100
   mode: "auto_execute" | "require_approval";
+  allowMockSimulation: boolean;   // allow BUY orders on mock data
   riskRules: {
-    maxLossPerTradePct: number;   // % of capital
-    maxPositionPct: number;       // % of capital
-    haltOnDailyLossPct: number;   // % of capital
+    maxLossPerTradePct: number;
+    maxPositionPct: number;
+    haltOnDailyLossPct: number;
   };
 };
 
-const STORAGE_KEY = "foresmart_autotrade_v1";
+export type DecisionLogEntry = {
+  id: string;
+  asset: string;
+  action: TradingDecision["action"];
+  confidence: number;
+  riskLevel: TradingDecision["riskLevel"];
+  source: "live" | "mock";
+  createdAt: number;
+  orderCreated: boolean;
+  rejectReason?: string;
+};
+
+const STORAGE_KEY = "foresmart_autotrade_v2";
 
 const DEFAULTS: AutoTradingSettings = {
   enabled: false,
@@ -45,6 +58,7 @@ const DEFAULTS: AutoTradingSettings = {
   dailyLossLimit: 1000,
   minConfidence: 70,
   mode: "require_approval",
+  allowMockSimulation: false,
   riskRules: {
     maxLossPerTradePct: 2,
     maxPositionPct: 10,
