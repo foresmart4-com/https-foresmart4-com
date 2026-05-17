@@ -22,6 +22,8 @@ export type AutoTradeOrder = {
   status: AutoTradeStatus;
 };
 
+export type TradingMode = "conservative" | "balanced" | "aggressive";
+
 export type AutoTradingSettings = {
   enabled: boolean;
   allowedAssets: string[];        // empty = all
@@ -29,12 +31,19 @@ export type AutoTradingSettings = {
   dailyLossLimit: number;         // SAR; stop trading if exceeded
   minConfidence: number;          // 0..100
   mode: "auto_execute" | "require_approval";
-  allowMockSimulation: boolean;   // allow BUY orders on mock data
+  tradingMode: TradingMode;
+  allowMockSimulation: boolean;
   riskRules: {
     maxLossPerTradePct: number;
     maxPositionPct: number;
     haltOnDailyLossPct: number;
   };
+};
+
+export const TRADING_MODE_PRESETS: Record<TradingMode, { minConfidence: number; maxRisk: "LOW" | "MEDIUM" | "HIGH"; maxPositionPct: number }> = {
+  conservative: { minConfidence: 85, maxRisk: "LOW",    maxPositionPct: 5 },
+  balanced:     { minConfidence: 75, maxRisk: "MEDIUM", maxPositionPct: 10 },
+  aggressive:   { minConfidence: 65, maxRisk: "MEDIUM", maxPositionPct: 15 },
 };
 
 export type DecisionLogEntry = {
@@ -49,15 +58,16 @@ export type DecisionLogEntry = {
   rejectReason?: string;
 };
 
-const STORAGE_KEY = "foresmart_autotrade_v2";
+const STORAGE_KEY = "foresmart_autotrade_v3";
 
 const DEFAULTS: AutoTradingSettings = {
   enabled: false,
   allowedAssets: [],
   maxAmountPerTrade: 500,
   dailyLossLimit: 1000,
-  minConfidence: 70,
+  minConfidence: 75,
   mode: "require_approval",
+  tradingMode: "balanced",
   allowMockSimulation: false,
   riskRules: {
     maxLossPerTradePct: 2,
@@ -142,7 +152,23 @@ export const REJECT_REASONS_AR: Record<string, string> = {
   asset_not_allowed: "الأصل غير مسموح",
   daily_loss_limit_reached: "تم بلوغ حد الخسارة اليومي",
   mock_data_buy_blocked: "BUY ممنوع على بيانات تجريبية (فعّل السماح بالمحاكاة)",
+  mode_risk_exceeded: "مستوى المخاطر يتجاوز سقف الوضع الحالي",
+  stop_loss_priority: "إنشاء أمر وقف خسارة بأولوية",
 };
+
+export function setTradingMode(mode: TradingMode) {
+  const p = TRADING_MODE_PRESETS[mode];
+  state = {
+    ...state,
+    settings: {
+      ...state.settings,
+      tradingMode: mode,
+      minConfidence: p.minConfidence,
+      riskRules: { ...state.settings.riskRules, maxPositionPct: p.maxPositionPct },
+    },
+  };
+  emit();
+}
 
 function logDecision(
   decision: TradingDecision,
@@ -189,6 +215,9 @@ export function tryCreateOrderFromDecision(
   if (!s.enabled) return reject("auto_trading_disabled");
   if (decision.action === "HOLD") return reject("hold_no_order");
   if (decision.riskLevel === "HIGH") return reject("risk_too_high");
+  const modeMaxRisk = TRADING_MODE_PRESETS[s.tradingMode].maxRisk;
+  const rankOf = (r: TradingDecision["riskLevel"]) => ({ LOW: 1, MEDIUM: 2, HIGH: 3 }[r]);
+  if (rankOf(decision.riskLevel) > rankOf(modeMaxRisk)) return reject("mode_risk_exceeded");
   if (decision.confidence < s.minConfidence) return reject("below_min_confidence");
   if (dataIsMock && decision.action === "BUY" && !s.allowMockSimulation) {
     return reject("mock_data_buy_blocked");
@@ -203,6 +232,34 @@ export function tryCreateOrderFromDecision(
   emit();
   logDecision(decision, source, true);
   return { ok: true, order };
+}
+
+export type CycleReport = {
+  analyzed: number;
+  created: number;
+  rejected: number;
+  reasons: Record<string, number>;
+};
+
+export function runSimulationCycle(decisions: TradingDecision[], dataIsMock = true): CycleReport {
+  const reasons: Record<string, number> = {};
+  let created = 0, rejected = 0;
+  for (const d of decisions) {
+    const r = tryCreateOrderFromDecision(d, dataIsMock);
+    if (r.ok) created++;
+    else { rejected++; reasons[r.reason] = (reasons[r.reason] ?? 0) + 1; }
+  }
+  return { analyzed: decisions.length, created, rejected, reasons };
+}
+
+export function ordersToCSV(orders: AutoTradeOrder[]): string {
+  const header = "id,asset,category,action,price,amount,quantity,confidence,status,reason,createdAt";
+  const esc = (v: any) => v == null ? "" : `"${String(v).replace(/"/g, '""')}"`;
+  const body = orders.map((o) => [
+    o.id, o.asset, o.category, o.action, o.price, o.amount, o.quantity,
+    o.confidence, o.status, o.reason, new Date(o.createdAt).toISOString(),
+  ].map(esc).join(",")).join("\n");
+  return `${header}\n${body}`;
 }
 
 function buildOrder(decision: TradingDecision, dataIsMock: boolean, mode: AutoTradingSettings["mode"]): AutoTradeOrder {
