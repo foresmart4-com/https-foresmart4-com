@@ -193,6 +193,71 @@ function SettingsPage() {
           )}
         </section>
 
+        {/* Subscription & trial */}
+        <section className="rounded-xl gradient-card border border-border p-5 shadow-card">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+              <Crown className="h-5 w-5 text-primary" />
+              {lang === "ar" ? "الاشتراك الحالي" : "Current subscription"}
+            </h2>
+            <Link to="/subscription"><Button size="sm" variant="outline">{lang === "ar" ? "إدارة" : "Manage"}</Button></Link>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3 text-sm">
+            <div className="rounded-lg border border-border p-3">
+              <div className="text-xs text-muted-foreground">{lang === "ar" ? "الحالة" : "Status"}</div>
+              <div className="mt-1">
+                <Badge variant={sub?.status === "active" ? "default" : "secondary"}>
+                  {sub?.status ?? (lang === "ar" ? "بدون اشتراك" : "No subscription")}
+                </Badge>
+              </div>
+            </div>
+            <div className="rounded-lg border border-border p-3">
+              <div className="text-xs text-muted-foreground">{lang === "ar" ? "نهاية التجربة المجانية" : "Trial ends"}</div>
+              <div className="mt-1 font-medium">
+                {sub?.trial_ends_at ? new Date(sub.trial_ends_at).toLocaleDateString() : "—"}
+              </div>
+            </div>
+            <div className="rounded-lg border border-border p-3">
+              <div className="text-xs text-muted-foreground">{lang === "ar" ? "نهاية الدورة" : "Period ends"}</div>
+              <div className="mt-1 font-medium">
+                {sub?.current_period_end ? new Date(sub.current_period_end).toLocaleDateString() : "—"}
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs">
+            <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+            <span>{lang === "ar"
+              ? "تشمل التجربة المجانية 14 يوم من جميع ميزات الخطة الأساسية."
+              : "Free trial includes 14 days of all Basic plan features."}</span>
+          </div>
+        </section>
+
+        {/* Payment links / deposit settings */}
+        <section className="rounded-xl gradient-card border border-border p-5 shadow-card">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+              <ArrowDownToLine className="h-5 w-5 text-primary" />
+              {lang === "ar" ? "روابط الدفع والإيداع" : "Payment links & deposits"}
+            </h2>
+            <Link to="/deposit"><Button size="sm">{lang === "ar" ? "فتح صفحة الإيداع" : "Open deposit"}</Button></Link>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {lang === "ar"
+              ? "روابط الدفع المستقبلية (Moyasar / PayTabs / Tap) ستظهر هنا فور التفعيل."
+              : "Future payment links (Moyasar / PayTabs / Tap) will appear here once enabled."}
+          </p>
+          {isAdmin && (
+            <details className="mt-3 rounded-lg border border-border bg-muted/30 p-3 text-xs">
+              <summary className="cursor-pointer font-semibold">
+                {lang === "ar" ? "Stripe lookup keys المطلوبة لاحقاً" : "Required Stripe lookup keys"}
+              </summary>
+              <ul className="mt-2 grid grid-cols-2 gap-1 font-mono text-[11px]">
+                {STRIPE_LOOKUP_KEYS.map((k) => <li key={k}>• {k}</li>)}
+              </ul>
+            </details>
+          )}
+        </section>
+
         {/* Danger zone */}
         <section className="rounded-xl border border-border p-5">
           <Button variant="outline" onClick={handleSignOut} className="w-full md:w-auto">
