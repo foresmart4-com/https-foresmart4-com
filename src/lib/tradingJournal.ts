@@ -64,10 +64,19 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
+let journalSeq = 0;
+function nextJournalRef(): string {
+  const year = new Date().getFullYear();
+  // base on count of entries plus session seq for uniqueness
+  const base = (entries.filter((e) => e.journalRef?.startsWith(`JRN-${year}-`)).length) + (++journalSeq);
+  return `JRN-${year}-${String(base).padStart(4, "0")}`;
+}
+
 export function addJournalEntry(e: Omit<JournalEntry, "id" | "createdAt"> & { id?: string; createdAt?: number }) {
   const entry: JournalEntry = {
     ...e,
     id: e.id ?? `j_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    journalRef: e.journalRef ?? nextJournalRef(),
     createdAt: e.createdAt ?? Date.now(),
   };
   entries = [entry, ...entries].slice(0, 1000);
@@ -84,10 +93,25 @@ export function logEvent(opts: {
   notes?: string;
   amount?: number;
   refId?: string;
+  linkedRefId?: string;
   confidence?: number;
   riskLevel?: "LOW" | "MEDIUM" | "HIGH";
   side?: JournalEntry["side"];
+  actor?: JournalActor;
+  severity?: JournalSeverity;
+  beforeState?: any;
+  afterState?: any;
 }) {
+  const inferActor: JournalActor =
+    opts.actor ?? (opts.source === "admin" ? "admin"
+    : opts.source === "ai" || opts.source === "auto_trading" ? "ai"
+    : opts.source === "system" || opts.source === "backtest" ? "system"
+    : "user");
+  const inferSeverity: JournalSeverity =
+    opts.severity ?? (opts.status === "rejected" || opts.eventKind?.includes("emergency") ? "critical"
+    : opts.status === "manual_review" || opts.status === "review" || opts.riskLevel === "HIGH" ? "warning"
+    : "info");
+
   return addJournalEntry({
     asset: opts.asset ?? "",
     type: opts.source === "deposit" ? "deposit"
@@ -104,8 +128,13 @@ export function logEvent(opts: {
     notes: opts.notes,
     amount: opts.amount,
     refId: opts.refId,
+    linkedRefId: opts.linkedRefId,
     confidence: opts.confidence,
     riskLevel: opts.riskLevel,
+    actor: inferActor,
+    severity: inferSeverity,
+    beforeState: opts.beforeState,
+    afterState: opts.afterState,
   });
 }
 
@@ -124,13 +153,17 @@ export function useJournal() {
 }
 
 export function journalToCSV(rows: JournalEntry[]): string {
-  const header = "id,date,source,type,eventKind,status,asset,side,entry,exit,amount,pnlPct,confidence,riskLevel,refId,reasonIn,reasonOut,notes";
-  const esc = (v: any) => v == null ? "" : `"${String(v).replace(/"/g, '""')}"`;
+  const header = "id,journalRef,date,actor,severity,source,type,eventKind,status,asset,side,entry,exit,amount,pnlPct,confidence,riskLevel,refId,linkedRefId,reasonIn,reasonOut,notes,beforeState,afterState";
+  const esc = (v: any) => v == null ? "" : `"${String(typeof v === "object" ? JSON.stringify(v) : v).replace(/"/g, '""')}"`;
   const body = rows.map((r) => [
-    r.id, new Date(r.createdAt).toISOString(), r.source ?? "", r.type, r.eventKind ?? "",
-    r.status ?? "", r.asset, r.side, r.entry ?? "", r.exit ?? "", r.amount ?? "",
-    r.pnlPct ?? "", r.confidence ?? "", r.riskLevel ?? "", r.refId ?? "",
+    r.id, r.journalRef ?? "", new Date(r.createdAt).toISOString(),
+    r.actor ?? "", r.severity ?? "",
+    r.source ?? "", r.type, r.eventKind ?? "", r.status ?? "",
+    r.asset, r.side, r.entry ?? "", r.exit ?? "", r.amount ?? "",
+    r.pnlPct ?? "", r.confidence ?? "", r.riskLevel ?? "",
+    r.refId ?? "", r.linkedRefId ?? "",
     r.reasonIn ?? "", r.reasonOut ?? "", r.notes ?? "",
+    r.beforeState ?? "", r.afterState ?? "",
   ].map(esc).join(",")).join("\n");
   return `${header}\n${body}`;
 }
