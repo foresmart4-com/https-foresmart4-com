@@ -20,6 +20,11 @@ import { predictAllBreakouts, type BreakoutReport } from "@/services/edge/breako
 import { analyzeLiquidityFlow, type LiquidityFlowReport } from "@/services/edge/liquidityFlow";
 import { trackWhaleActivity, type WhaleReport } from "@/services/edge/whaleTracker";
 import { rankOpportunities, type RankedOpportunity } from "@/services/edge/opportunityRanking";
+import { calculateAllEntryZones, type EntryZone } from "@/services/execution/entryZoneEngine";
+import { buildAllExitPlans, type ExitPlan } from "@/services/execution/exitEngine";
+import { calculateAllPositionSizes, type PositionSizing } from "@/services/execution/positionSizing";
+import { evaluateAllTiming, type TimingReport } from "@/services/execution/timingEngine";
+import { buildAllTradePlans, type TradePlan } from "@/services/execution/tradePlanner";
 
 export interface MarketIntel {
   quotes: MarketQuote[];
@@ -47,6 +52,12 @@ export interface MarketIntel {
   liquidity: LiquidityFlowReport;
   whales: WhaleReport;
   rankedOpportunities: RankedOpportunity[];
+  // Tactical execution layer
+  entryZones: EntryZone[];
+  exitPlans: ExitPlan[];
+  positionSizing: PositionSizing[];
+  timingReports: TimingReport[];
+  tradePlans: TradePlan[];
   generatedAt: number;
 }
 
@@ -81,11 +92,19 @@ export async function getMarketIntel(keys?: AssetKey[]): Promise<MarketIntel> {
     quotes, signals, calibratedSignals, regime, earlyMomentum, breakouts, liquidity, whales,
   );
 
+  // Tactical execution layer
+  const entryZones = calculateAllEntryZones(quotes, calibratedSignals, timeframes, breakouts);
+  const exitPlans = buildAllExitPlans(quotes, calibratedSignals, sentiment);
+  const positionSizing = calculateAllPositionSizes(quotes, calibratedSignals, regime, portfolio);
+  const timingReports = evaluateAllTiming(quotes, regime, breakouts, liquidity, events);
+  const tradePlans = buildAllTradePlans(quotes, calibratedSignals, regime, entryZones, exitPlans, positionSizing, timingReports);
+
   return {
     quotes, signals, summary, sentiment, insight, news,
     events, correlations, opportunities, reasoning, alerts,
     timeframes, regime, calibratedSignals, confidence, portfolio, backtest,
     earlyMomentum, breakouts, liquidity, whales, rankedOpportunities,
+    entryZones, exitPlans, positionSizing, timingReports, tradePlans,
     generatedAt: Date.now(),
   };
 }
