@@ -15,6 +15,11 @@ import { detectRegime, type RegimeReport } from "@/services/quant/regimeDetectio
 import { calibrateSignals, summarizeConfidence, type CalibratedSignal, type ConfidenceSummary } from "@/services/quant/confidenceEngine";
 import { buildPortfolio, type PortfolioReport } from "@/services/portfolio/portfolioEngine";
 import { runBacktest, type BacktestReport } from "@/services/backtest/backtestEngine";
+import { analyzeAllEarlyMomentum, type EarlyMomentumReport } from "@/services/edge/earlyMomentumEngine";
+import { predictAllBreakouts, type BreakoutReport } from "@/services/edge/breakoutPrediction";
+import { analyzeLiquidityFlow, type LiquidityFlowReport } from "@/services/edge/liquidityFlow";
+import { trackWhaleActivity, type WhaleReport } from "@/services/edge/whaleTracker";
+import { rankOpportunities, type RankedOpportunity } from "@/services/edge/opportunityRanking";
 
 export interface MarketIntel {
   quotes: MarketQuote[];
@@ -36,6 +41,12 @@ export interface MarketIntel {
   confidence: ConfidenceSummary;
   portfolio: PortfolioReport;
   backtest: BacktestReport;
+  // Edge discovery layer
+  earlyMomentum: EarlyMomentumReport[];
+  breakouts: BreakoutReport[];
+  liquidity: LiquidityFlowReport;
+  whales: WhaleReport;
+  rankedOpportunities: RankedOpportunity[];
   generatedAt: number;
 }
 
@@ -60,10 +71,21 @@ export async function getMarketIntel(keys?: AssetKey[]): Promise<MarketIntel> {
   const portfolio = buildPortfolio(quotes, signals, correlations);
   const backtest = runBacktest(quotes, signals, regime);
 
+
+  // Edge discovery layer
+  const earlyMomentum = analyzeAllEarlyMomentum(quotes, sentiment);
+  const breakouts = predictAllBreakouts(quotes);
+  const liquidity = analyzeLiquidityFlow(quotes);
+  const whales = trackWhaleActivity(quotes);
+  const rankedOpportunities = rankOpportunities(
+    quotes, signals, calibratedSignals, regime, earlyMomentum, breakouts, liquidity, whales,
+  );
+
   return {
     quotes, signals, summary, sentiment, insight, news,
     events, correlations, opportunities, reasoning, alerts,
     timeframes, regime, calibratedSignals, confidence, portfolio, backtest,
+    earlyMomentum, breakouts, liquidity, whales, rankedOpportunities,
     generatedAt: Date.now(),
   };
 }
