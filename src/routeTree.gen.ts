@@ -29,6 +29,7 @@ import { Route as AppHeatmapRouteImport } from './routes/_app/heatmap'
 import { Route as AppGrowthPlanRouteImport } from './routes/_app/growth-plan'
 import { Route as AppExternalAccountsRouteImport } from './routes/_app/external-accounts'
 import { Route as AppDomainRouteImport } from './routes/_app/domain'
+import { Route as AppDepositRouteImport } from './routes/_app/deposit'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppBankAccountsRouteImport } from './routes/_app/bank-accounts'
@@ -140,6 +141,11 @@ const AppDomainRoute = AppDomainRouteImport.update({
   path: '/domain',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDepositRoute = AppDepositRouteImport.update({
+  id: '/deposit',
+  path: '/deposit',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -209,6 +215,7 @@ export interface FileRoutesByFullPath {
   '/bank-accounts': typeof AppBankAccountsRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
+  '/deposit': typeof AppDepositRoute
   '/domain': typeof AppDomainRoute
   '/external-accounts': typeof AppExternalAccountsRoute
   '/growth-plan': typeof AppGrowthPlanRoute
@@ -241,6 +248,7 @@ export interface FileRoutesByTo {
   '/bank-accounts': typeof AppBankAccountsRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
+  '/deposit': typeof AppDepositRoute
   '/domain': typeof AppDomainRoute
   '/external-accounts': typeof AppExternalAccountsRoute
   '/growth-plan': typeof AppGrowthPlanRoute
@@ -275,6 +283,7 @@ export interface FileRoutesById {
   '/_app/bank-accounts': typeof AppBankAccountsRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/deposit': typeof AppDepositRoute
   '/_app/domain': typeof AppDomainRoute
   '/_app/external-accounts': typeof AppExternalAccountsRoute
   '/_app/growth-plan': typeof AppGrowthPlanRoute
@@ -309,6 +318,7 @@ export interface FileRouteTypes {
     | '/bank-accounts'
     | '/calendar'
     | '/dashboard'
+    | '/deposit'
     | '/domain'
     | '/external-accounts'
     | '/growth-plan'
@@ -341,6 +351,7 @@ export interface FileRouteTypes {
     | '/bank-accounts'
     | '/calendar'
     | '/dashboard'
+    | '/deposit'
     | '/domain'
     | '/external-accounts'
     | '/growth-plan'
@@ -374,6 +385,7 @@ export interface FileRouteTypes {
     | '/_app/bank-accounts'
     | '/_app/calendar'
     | '/_app/dashboard'
+    | '/_app/deposit'
     | '/_app/domain'
     | '/_app/external-accounts'
     | '/_app/growth-plan'
@@ -551,6 +563,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDomainRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/deposit': {
+      id: '/_app/deposit'
+      path: '/deposit'
+      fullPath: '/deposit'
+      preLoaderRoute: typeof AppDepositRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -638,6 +657,7 @@ interface AppRouteChildren {
   AppBankAccountsRoute: typeof AppBankAccountsRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppDepositRoute: typeof AppDepositRoute
   AppDomainRoute: typeof AppDomainRoute
   AppExternalAccountsRoute: typeof AppExternalAccountsRoute
   AppGrowthPlanRoute: typeof AppGrowthPlanRoute
@@ -662,6 +682,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppBankAccountsRoute: AppBankAccountsRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppDepositRoute: AppDepositRoute,
   AppDomainRoute: AppDomainRoute,
   AppExternalAccountsRoute: AppExternalAccountsRoute,
   AppGrowthPlanRoute: AppGrowthPlanRoute,

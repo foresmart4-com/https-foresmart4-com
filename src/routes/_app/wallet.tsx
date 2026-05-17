@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { QuickBuyPanel } from "@/components/QuickBuyPanel";
 import { AllocationPanel } from "@/components/AllocationPanel";
 import { ManualOperationForm } from "@/components/ManualOperationForm";
+import { AssetPnlPanel } from "@/components/AssetPnlPanel";
 
 export const Route = createFileRoute("/_app/wallet")({
   component: WalletPage,
@@ -108,7 +109,10 @@ function WalletPage() {
             {lang === "ar" ? "اشحن المحفظة بالريال السعودي عبر mada / Visa / Apple Pay / STC Pay." : "Top up via mada / Visa / Apple Pay / STC Pay."}
           </p>
         </div>
-        <Link to="/subscription"><Button variant="outline" className="gap-2"><Crown className="h-4 w-4" />{lang === "ar" ? "خطط الاشتراك" : "Plans"}</Button></Link>
+        <div className="flex gap-2">
+          <Link to="/deposit"><Button className="gap-2"><ArrowDownToLine className="h-4 w-4" />{lang === "ar" ? "صفحة الإيداع" : "Deposit page"}</Button></Link>
+          <Link to="/subscription"><Button variant="outline" className="gap-2"><Crown className="h-4 w-4" />{lang === "ar" ? "خطط الاشتراك" : "Plans"}</Button></Link>
+        </div>
       </div>
 
       {search.deposit === "success" && (
@@ -224,6 +228,8 @@ function WalletPage() {
         <AllocationPanel />
         <ManualOperationForm />
       </div>
+
+      <AssetPnlPanel />
 
       <QuickBuyPanel />
 
