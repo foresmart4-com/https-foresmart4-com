@@ -220,4 +220,3 @@ export const REGION_LABELS: Record<StockRegion, { ar: string; en: string; flag: 
   saudi: { ar: "السوق السعودي (تداول)", en: "Saudi Arabia (Tadawul)", flag: "🇸🇦" },
   qatar: { ar: "السوق القطري", en: "Qatar (QSE)", flag: "🇶🇦" },
 };
-};
