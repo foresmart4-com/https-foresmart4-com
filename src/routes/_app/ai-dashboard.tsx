@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity, Bitcoin, DollarSign, TrendingUp, TrendingDown, Brain, Zap,
-  Newspaper, Eye, Send, ShieldAlert, Sparkles, CircleDot, Gauge,
+  Newspaper, Eye, Send, ShieldAlert, Sparkles, CircleDot, Gauge, Droplet,
+  BarChart3, Coins, LineChart as LineIcon, RefreshCw,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Area, AreaChart, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
+import { useMarketIntel } from "@/hooks/useMarketIntel";
+import { AnimatedNumber } from "@/components/dashboard/AnimatedNumber";
+import { ConfidenceBar, RiskHeat } from "@/components/dashboard/ConfidenceBar";
+import type { AssetKey } from "@/services/market/marketData";
 
 export const Route = createFileRoute("/_app/ai-dashboard")({
   component: AIDashboardPage,
@@ -22,42 +27,16 @@ export const Route = createFileRoute("/_app/ai-dashboard")({
   }),
 });
 
-// ---------- mock data ----------
-const spark = (seed: number, trend = 1) =>
-  Array.from({ length: 24 }, (_, i) => ({
-    v: 100 + Math.sin((i + seed) / 3) * 8 + i * 0.4 * trend + (seed % 5),
-  }));
+const ASSET_ICONS: Record<AssetKey, typeof Bitcoin> = {
+  BTC: Bitcoin, ETH: Coins, XAU: Sparkles, SPX: TrendingUp,
+  NDX: BarChart3, OIL: Droplet, DXY: DollarSign,
+};
 
-const overviewCards = [
-  { key: "BTC", name: "Bitcoin", icon: Bitcoin, price: 71420.55, change: 2.34, conf: 86, trend: "up", data: spark(1, 1) },
-  { key: "XAU", name: "Gold (XAU)", icon: Sparkles, price: 2418.9, change: 0.62, conf: 74, trend: "up", data: spark(7, 0.6) },
-  { key: "SPX", name: "S&P 500", icon: TrendingUp, price: 5483.12, change: -0.41, conf: 68, trend: "down", data: spark(3, -0.4) },
-  { key: "DXY", name: "US Dollar Index", icon: DollarSign, price: 104.27, change: -0.18, conf: 71, trend: "down", data: spark(9, -0.3) },
-];
-
-const signals = [
-  { asset: "BTC/USD", action: "BUY", conf: 87, risk: 32, reason: "Bullish breakout above $70k with strong volume confirmation.", ts: "2m ago" },
-  { asset: "ETH/USD", action: "HOLD", conf: 61, risk: 45, reason: "Consolidation near resistance; awaiting macro catalyst.", ts: "9m ago" },
-  { asset: "XAU/USD", action: "BUY", conf: 78, risk: 28, reason: "Safe-haven flows accelerating amid geopolitical tension.", ts: "14m ago" },
-  { asset: "NDX", action: "SELL", conf: 72, risk: 58, reason: "Overbought RSI + weakening breadth across mega caps.", ts: "21m ago" },
-];
-
-const news = [
-  { headline: "Fed signals patient stance on rate cuts", sentiment: "neutral", impact: "High", asset: "DXY", summary: "Markets price in Sept cut; USD softens marginally." },
-  { headline: "BlackRock BTC ETF sees record inflows", sentiment: "positive", impact: "High", asset: "BTC", summary: "$520M net inflow — strongest in 6 weeks; tailwind for spot." },
-  { headline: "Middle East tensions escalate", sentiment: "negative", impact: "Medium", asset: "XAU", summary: "Risk-off bid lifts gold; oil volatility rising." },
-];
-
-const watchlist = [
-  { sym: "BTC", price: 71420.5, chg: 2.34 },
-  { sym: "ETH", price: 3842.1, chg: 1.12 },
-  { sym: "Gold", price: 2418.9, chg: 0.62 },
-  { sym: "NASDAQ", price: 19234.7, chg: -0.55 },
-  { sym: "Oil", price: 82.14, chg: 0.91 },
-];
+const OVERVIEW_KEYS: AssetKey[] = ["BTC", "XAU", "SPX", "DXY"];
+const WATCH_KEYS: AssetKey[] = ["BTC", "ETH", "XAU", "NDX", "OIL"];
 
 // ---------- subcomponents ----------
-function GlassCard({ className, children }: { className?: string; children: React.ReactNode }) {
+function GlassCard({ className, children }: { className?: string; children?: React.ReactNode }) {
   return (
     <Card className={cn(
       "border-border/50 bg-card/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.25)] transition-all hover:border-primary/40 hover:shadow-[0_8px_40px_rgba(99,102,241,0.18)]",
@@ -79,8 +58,8 @@ function LiveClock() {
 
 function ActionBadge({ action }: { action: string }) {
   const map: Record<string, string> = {
-    BUY: "bg-success/15 text-success border-success/30",
-    SELL: "bg-danger/15 text-danger border-danger/30",
+    BUY: "bg-success/15 text-success border-success/30 shadow-[0_0_12px_rgba(34,197,94,0.25)]",
+    SELL: "bg-danger/15 text-danger border-danger/30 shadow-[0_0_12px_rgba(239,68,68,0.25)]",
     HOLD: "bg-warning/15 text-warning border-warning/30",
   };
   return <span className={cn("rounded-md border px-2 py-0.5 text-[11px] font-bold tracking-wider", map[action])}>{action}</span>;
@@ -91,11 +70,50 @@ function SentimentDot({ s }: { s: string }) {
   return <CircleDot className={cn("h-3.5 w-3.5", c)} />;
 }
 
+function relTime(ts: number, ar: boolean): string {
+  const m = Math.max(1, Math.floor((Date.now() - ts) / 60000));
+  if (m < 60) return ar ? `قبل ${m}د` : `${m}m ago`;
+  const h = Math.floor(m / 60);
+  return ar ? `قبل ${h}س` : `${h}h ago`;
+}
+
 // ---------- main ----------
 function AIDashboardPage() {
   const { lang } = useI18n();
   const ar = lang === "ar";
   const [alerts, setAlerts] = useState({ enabled: true, signals: true, news: true, highRisk: false });
+
+  const { data, isLoading, isFetching, refetch, dataUpdatedAt } = useMarketIntel(undefined, 60_000);
+
+  const overviewQuotes = useMemo(
+    () => (data?.quotes ?? []).filter((q) => OVERVIEW_KEYS.includes(q.key)),
+    [data],
+  );
+  const watchlistQuotes = useMemo(
+    () => (data?.quotes ?? []).filter((q) => WATCH_KEYS.includes(q.key)),
+    [data],
+  );
+  const topSignals = useMemo(
+    () => [...(data?.signals ?? [])].sort((a, b) => b.confidence - a.confidence).slice(0, 4),
+    [data],
+  );
+
+  const sentimentLabel = data?.summary.sentiment === "bullish"
+    ? (ar ? "متفائل" : "Bullish")
+    : data?.summary.sentiment === "bearish"
+    ? (ar ? "متشائم" : "Bearish")
+    : (ar ? "محايد" : "Neutral");
+  const sentimentTone =
+    data?.summary.sentiment === "bullish" ? "text-success" :
+    data?.summary.sentiment === "bearish" ? "text-danger" : "text-warning";
+
+  const riskMap: Record<string, { label: string; tone: string }> = {
+    low: { label: ar ? "منخفض" : "Low", tone: "text-success" },
+    moderate: { label: ar ? "متوسط" : "Moderate", tone: "text-warning" },
+    elevated: { label: ar ? "مرتفع" : "Elevated", tone: "text-warning" },
+    high: { label: ar ? "عالٍ" : "High", tone: "text-danger" },
+  };
+  const risk = riskMap[data?.summary.riskLevel ?? "moderate"];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -121,59 +139,77 @@ function AIDashboardPage() {
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
                 {ar ? "السوق مفتوح" : "Market Open"}
               </Badge>
-              <Badge variant="outline" className="gap-1 border-primary/40 text-primary">
-                <Activity className="h-3 w-3" /> {ar ? "متفائل" : "Bullish Sentiment"}
+              <Badge variant="outline" className={cn("gap-1 border-primary/40", sentimentTone)}>
+                <Activity className="h-3 w-3" /> {sentimentLabel}
               </Badge>
               <Badge variant="outline" className="gap-1 border-accent/40">
-                <Zap className="h-3 w-3 text-accent" /> AI Online
+                <Zap className={cn("h-3 w-3 text-accent", isFetching && "animate-pulse")} /> AI {isFetching ? (ar ? "يحلل..." : "Analyzing...") : "Online"}
               </Badge>
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <LiveClock />
               </div>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => refetch()} disabled={isFetching}>
+                <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
+              </Button>
             </div>
           </div>
         </GlassCard>
 
         {/* Overview cards */}
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {overviewCards.map((c) => {
-            const up = c.change >= 0;
+          {isLoading && Array.from({ length: 4 }).map((_, i) => (
+            <GlassCard key={i} className="h-[148px] animate-pulse p-4" />
+          ))}
+          {overviewQuotes.map((q) => {
+            const up = q.changePct >= 0;
+            const Icon = ASSET_ICONS[q.key] ?? LineIcon;
+            const conf = Math.min(96, 50 + Math.round(Math.abs(q.momentum) * 20 + (50 - Math.abs(50 - q.volatility)) * 0.3));
+            const chartData = q.history.map((v) => ({ v }));
             return (
-              <GlassCard key={c.key} className="p-4">
+              <GlassCard key={q.key} className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
-                      <c.icon className="h-4 w-4" />
+                    <span className={cn(
+                      "grid h-9 w-9 place-items-center rounded-lg",
+                      up ? "bg-success/10 text-success" : "bg-danger/10 text-danger",
+                    )}>
+                      <Icon className="h-4 w-4" />
                     </span>
                     <div>
-                      <div className="text-xs text-muted-foreground">{c.key}</div>
-                      <div className="text-sm font-semibold">{c.name}</div>
+                      <div className="text-xs text-muted-foreground">{q.key}</div>
+                      <div className="text-sm font-semibold">{q.name}</div>
                     </div>
                   </div>
                   <Badge variant="outline" className="border-primary/30 text-[10px]">
-                    <Gauge className="me-1 h-2.5 w-2.5" /> {c.conf}%
+                    <Gauge className="me-1 h-2.5 w-2.5" /> {conf}%
                   </Badge>
                 </div>
                 <div className="mt-3 flex items-end justify-between">
                   <div>
-                    <div className="font-display text-2xl font-bold tabular-nums">
-                      ${c.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                    </div>
+                    <AnimatedNumber
+                      value={q.price}
+                      decimals={q.price < 10 ? 4 : 2}
+                      prefix="$"
+                      className="font-display text-2xl font-bold tabular-nums"
+                    />
                     <div className={cn("flex items-center gap-1 text-xs font-semibold", up ? "text-success" : "text-danger")}>
                       {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                      {up ? "+" : ""}{c.change.toFixed(2)}%
+                      {up ? "+" : ""}{q.changePct.toFixed(2)}%
+                      <span className="ms-1 text-[10px] uppercase text-muted-foreground">
+                        · {q.trend}
+                      </span>
                     </div>
                   </div>
                   <div className="h-12 w-24">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={c.data}>
+                      <AreaChart data={chartData}>
                         <defs>
-                          <linearGradient id={`g-${c.key}`} x1="0" y1="0" x2="0" y2="1">
+                          <linearGradient id={`g-${q.key}`} x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor={up ? "hsl(var(--success))" : "hsl(var(--danger))"} stopOpacity={0.5} />
                             <stop offset="100%" stopColor={up ? "hsl(var(--success))" : "hsl(var(--danger))"} stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <Area type="monotone" dataKey="v" stroke={up ? "hsl(var(--success))" : "hsl(var(--danger))"} strokeWidth={1.8} fill={`url(#g-${c.key})`} />
+                        <Area type="monotone" dataKey="v" stroke={up ? "hsl(var(--success))" : "hsl(var(--danger))"} strokeWidth={1.8} fill={`url(#g-${q.key})`} />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -192,27 +228,27 @@ function AIDashboardPage() {
               </span>
               <div>
                 <h3 className="font-display text-lg font-bold">{ar ? "ملخص الذكاء الاصطناعي" : "AI Market Summary"}</h3>
-                <p className="text-[11px] text-muted-foreground">{ar ? "تم التحديث الآن" : "Updated moments ago"}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {dataUpdatedAt ? (ar ? `محدث ${relTime(dataUpdatedAt, true)}` : `Updated ${relTime(dataUpdatedAt, false)}`) : (ar ? "جارٍ التحميل" : "Loading")}
+                </p>
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{ar ? "المعنويات" : "Sentiment"}</div>
-                <div className="mt-1 text-base font-bold text-success">{ar ? "متفائل" : "Bullish"}</div>
+                <div className={cn("mt-1 text-base font-bold", sentimentTone)}>{sentimentLabel}</div>
               </div>
               <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{ar ? "مستوى المخاطرة" : "Risk Level"}</div>
-                <div className="mt-1 text-base font-bold text-warning">{ar ? "متوسط" : "Moderate"}</div>
+                <div className={cn("mt-1 text-base font-bold", risk.tone)}>{risk.label}</div>
               </div>
               <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{ar ? "تركيز اليوم" : "Focus Asset"}</div>
-                <div className="mt-1 text-base font-bold text-primary">BTC / Gold</div>
+                <div className="mt-1 text-base font-bold text-primary">{data?.summary.focusAsset ?? "—"}</div>
               </div>
             </div>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              {ar
-                ? "تشير المؤشرات إلى استمرار الزخم الصعودي في البيتكوين مع تدفقات قوية إلى صناديق ETF، بينما يستفيد الذهب من تصاعد التوترات الجيوسياسية. ضعف طفيف في الدولار يدعم الأصول البديلة. ينصح الذكاء الاصطناعي بالتركيز على فرص الشراء التدريجي مع إدارة مخاطر صارمة."
-                : "Momentum indicators favor continued strength in BTC amid record ETF inflows. Gold benefits from rising geopolitical risk premium, while the USD softens marginally. The AI recommends scaling into long positions with disciplined risk controls and tight invalidation levels."}
+              {data?.summary.body ?? (ar ? "جارٍ تحليل السوق..." : "Analyzing market conditions...")}
             </p>
           </GlassCard>
 
@@ -222,23 +258,34 @@ function AIDashboardPage() {
               <h3 className="font-display text-lg font-bold">{ar ? "قائمة المتابعة" : "Watchlist"}</h3>
             </div>
             <div className="space-y-2">
-              {watchlist.map((w) => {
-                const up = w.chg >= 0;
+              {watchlistQuotes.map((w) => {
+                const up = w.changePct >= 0;
                 return (
-                  <div key={w.sym} className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/10 p-2.5 transition-colors hover:bg-muted/30">
+                  <div key={w.key} className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/10 p-2.5 transition-colors hover:bg-muted/30">
                     <div className="flex items-center gap-2">
-                      <div className="grid h-8 w-8 place-items-center rounded-md bg-primary/10 text-xs font-bold text-primary">{w.sym.slice(0, 3)}</div>
-                      <div className="text-sm font-semibold">{w.sym}</div>
+                      <div className={cn(
+                        "grid h-8 w-8 place-items-center rounded-md text-xs font-bold",
+                        up ? "bg-success/10 text-success" : "bg-danger/10 text-danger",
+                      )}>
+                        {w.key}
+                      </div>
+                      <div className="text-sm font-semibold">{w.name}</div>
                     </div>
                     <div className="text-end">
-                      <div className="text-sm font-medium tabular-nums">${w.price.toLocaleString()}</div>
+                      <AnimatedNumber
+                        value={w.price}
+                        decimals={w.price < 10 ? 4 : 2}
+                        prefix="$"
+                        className="text-sm font-medium tabular-nums"
+                      />
                       <div className={cn("text-[11px] font-semibold", up ? "text-success" : "text-danger")}>
-                        {up ? "+" : ""}{w.chg.toFixed(2)}%
+                        {up ? "+" : ""}{w.changePct.toFixed(2)}%
                       </div>
                     </div>
                   </div>
                 );
               })}
+              {isLoading && <div className="py-6 text-center text-xs text-muted-foreground">{ar ? "جارٍ التحميل..." : "Loading..."}</div>}
             </div>
           </GlassCard>
         </div>
@@ -250,25 +297,40 @@ function AIDashboardPage() {
             <h3 className="font-display text-lg font-bold">{ar ? "إشارات التداول" : "Trading Signals"}</h3>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {signals.map((s) => (
+            {topSignals.map((s) => (
               <GlassCard key={s.asset} className="p-4">
                 <div className="flex items-center justify-between">
-                  <div className="font-semibold">{s.asset}</div>
+                  <div>
+                    <div className="font-semibold">{s.assetName}</div>
+                    <div className="text-[10px] uppercase text-muted-foreground">{s.asset}</div>
+                  </div>
                   <ActionBadge action={s.action} />
                 </div>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
-                  <div className="rounded-md bg-muted/20 p-2">
-                    <div className="text-muted-foreground">{ar ? "الثقة" : "Confidence"}</div>
-                    <div className="mt-0.5 text-sm font-bold text-primary">{s.conf}%</div>
+                <div className="mt-3 space-y-2">
+                  <div>
+                    <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
+                      <span>{ar ? "الثقة" : "Confidence"}</span>
+                      <span className="font-bold text-primary">{s.confidence}%</span>
+                    </div>
+                    <ConfidenceBar value={s.confidence} />
                   </div>
-                  <div className="rounded-md bg-muted/20 p-2">
-                    <div className="text-muted-foreground">{ar ? "المخاطرة" : "Risk"}</div>
-                    <div className={cn("mt-0.5 text-sm font-bold", s.risk > 50 ? "text-danger" : s.risk > 35 ? "text-warning" : "text-success")}>{s.risk}</div>
+                  <div>
+                    <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
+                      <span>{ar ? "المخاطرة" : "Risk"}</span>
+                      <span className={cn("font-bold", s.risk > 60 ? "text-danger" : s.risk > 40 ? "text-warning" : "text-success")}>{s.risk}</span>
+                    </div>
+                    <RiskHeat value={s.risk} />
                   </div>
                 </div>
                 <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{s.reason}</p>
-                <div className="mt-2 text-[10px] uppercase tracking-wider text-muted-foreground">{s.ts}</div>
+                <div className="mt-2 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <span>RSI {s.rsi}</span>
+                  <span>{relTime(s.timestamp, ar)}</span>
+                </div>
               </GlassCard>
+            ))}
+            {isLoading && Array.from({ length: 4 }).map((_, i) => (
+              <GlassCard key={`s-${i}`} className="h-[180px] animate-pulse p-4" />
             ))}
           </div>
         </section>
@@ -281,20 +343,25 @@ function AIDashboardPage() {
               <h3 className="font-display text-lg font-bold">{ar ? "تأثير الأخبار" : "News Impact"}</h3>
             </div>
             <div className="space-y-3">
-              {news.map((n) => (
-                <GlassCard key={n.headline} className="p-4">
+              {(data?.news ?? []).map((n) => (
+                <GlassCard key={n.id} className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <SentimentDot s={n.sentiment} />
                         <h4 className="font-semibold leading-tight">{n.headline}</h4>
                       </div>
-                      <p className="mt-1.5 text-xs text-muted-foreground">{n.summary}</p>
+                      <p className="mt-1.5 text-xs text-muted-foreground">{n.analysis}</p>
+                      <div className="mt-2 max-w-[60%]">
+                        <RiskHeat value={n.impactScore} />
+                      </div>
                     </div>
                     <div className="flex flex-col items-end gap-1.5 text-[11px]">
                       <Badge variant="outline" className="border-primary/30">{n.asset}</Badge>
                       <Badge variant="outline" className={cn(
-                        n.impact === "High" ? "border-danger/40 text-danger" : "border-warning/40 text-warning",
+                        n.impact === "High" ? "border-danger/40 text-danger" :
+                        n.impact === "Medium" ? "border-warning/40 text-warning" :
+                        "border-muted-foreground/30 text-muted-foreground",
                       )}>
                         {n.impact}
                       </Badge>
@@ -302,6 +369,7 @@ function AIDashboardPage() {
                   </div>
                 </GlassCard>
               ))}
+              {isLoading && <GlassCard className="h-24 animate-pulse" />}
             </div>
           </div>
 
