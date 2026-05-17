@@ -125,48 +125,102 @@ export function clearLog() {
   emit();
 }
 
+export function clearDecisionLog() {
+  state = { ...state, decisionLog: [] };
+  emit();
+}
+
 export type CreateOrderResult =
   | { ok: true; order: AutoTradeOrder }
   | { ok: false; reason: string };
+
+export const REJECT_REASONS_AR: Record<string, string> = {
+  auto_trading_disabled: "التداول الآلي معطل",
+  hold_no_order: "القرار: انتظار — لا أمر",
+  risk_too_high: "المخاطر عالية والثقة غير كافية",
+  below_min_confidence: "الثقة أقل من الحد المطلوب",
+  asset_not_allowed: "الأصل غير مسموح",
+  daily_loss_limit_reached: "تم بلوغ حد الخسارة اليومي",
+  mock_data_buy_blocked: "BUY ممنوع على بيانات تجريبية (فعّل السماح بالمحاكاة)",
+};
+
+function logDecision(
+  decision: TradingDecision,
+  dataSource: "live" | "mock",
+  orderCreated: boolean,
+  rejectReason?: string,
+) {
+  const entry: DecisionLogEntry = {
+    id: `dec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    asset: decision.asset,
+    action: decision.action,
+    confidence: decision.confidence,
+    riskLevel: decision.riskLevel,
+    source: dataSource,
+    createdAt: Date.now(),
+    orderCreated,
+    rejectReason,
+  };
+  state = { ...state, decisionLog: [entry, ...state.decisionLog].slice(0, 300) };
+  emit();
+}
 
 export function tryCreateOrderFromDecision(
   decision: TradingDecision,
   dataIsMock = true,
 ): CreateOrderResult {
   const s = state.settings;
-  if (!s.enabled) return { ok: false, reason: "auto_trading_disabled" };
-  if (decision.action === "HOLD") return { ok: false, reason: "hold_no_order" };
-  if (decision.riskLevel === "HIGH" && decision.confidence < 85) {
-    return { ok: false, reason: "risk_too_high" };
-  }
-  if (decision.confidence < s.minConfidence) {
-    return { ok: false, reason: "below_min_confidence" };
-  }
-  if (s.allowedAssets.length > 0 && !s.allowedAssets.includes(decision.asset)) {
-    return { ok: false, reason: "asset_not_allowed" };
-  }
-  if (state.dailyLoss >= s.dailyLossLimit) {
-    return { ok: false, reason: "daily_loss_limit_reached" };
+  const source: "live" | "mock" = dataIsMock ? "mock" : "live";
+
+  // STOP_LOSS has highest priority — always create (paper).
+  if (decision.action === "STOP_LOSS") {
+    const order = buildOrder(decision, dataIsMock, s.mode);
+    state = { ...state, orders: [order, ...state.orders].slice(0, 200) };
+    emit();
+    logDecision(decision, source, true);
+    return { ok: true, order };
   }
 
-  const amount = Math.min(s.maxAmountPerTrade, s.maxAmountPerTrade * (decision.suggestedPositionSize / 10));
-  const order: AutoTradeOrder = {
+  const reject = (reason: string): CreateOrderResult => {
+    logDecision(decision, source, false, reason);
+    return { ok: false, reason };
+  };
+
+  if (!s.enabled) return reject("auto_trading_disabled");
+  if (decision.action === "HOLD") return reject("hold_no_order");
+  if (decision.riskLevel === "HIGH") return reject("risk_too_high");
+  if (decision.confidence < s.minConfidence) return reject("below_min_confidence");
+  if (dataIsMock && decision.action === "BUY" && !s.allowMockSimulation) {
+    return reject("mock_data_buy_blocked");
+  }
+  if (s.allowedAssets.length > 0 && !s.allowedAssets.includes(decision.asset)) {
+    return reject("asset_not_allowed");
+  }
+  if (state.dailyLoss >= s.dailyLossLimit) return reject("daily_loss_limit_reached");
+
+  const order = buildOrder(decision, dataIsMock, s.mode);
+  state = { ...state, orders: [order, ...state.orders].slice(0, 200) };
+  emit();
+  logDecision(decision, source, true);
+  return { ok: true, order };
+}
+
+function buildOrder(decision: TradingDecision, dataIsMock: boolean, mode: AutoTradingSettings["mode"]): AutoTradeOrder {
+  const amount = Math.min(500, 500 * (decision.suggestedPositionSize / 10));
+  const price = Number(((decision.suggestedStopLoss + decision.suggestedTakeProfit) / 2).toFixed(4));
+  return {
     id: `sim_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     asset: decision.asset,
     category: decision.category,
     action: decision.action,
-    price: decision.indicators ? Number((decision.suggestedStopLoss + decision.suggestedTakeProfit) / 2) : 0,
+    price,
     amount: Number(amount.toFixed(2)),
-    quantity: 0,
+    quantity: price > 0 ? Number((amount / price).toFixed(6)) : 0,
     confidence: decision.confidence,
     reason: decision.reasonSummary + (dataIsMock ? " (بيانات تجريبية)" : ""),
     createdAt: Date.now(),
-    status: s.mode === "auto_execute" ? "simulated" : "pending_review",
+    status: mode === "auto_execute" ? "simulated" : "pending_review",
   };
-  order.quantity = order.price > 0 ? Number((order.amount / order.price).toFixed(6)) : 0;
-  state = { ...state, orders: [order, ...state.orders].slice(0, 200) };
-  emit();
-  return { ok: true, order };
 }
 
 export function setOrderStatus(id: string, status: AutoTradeStatus) {
