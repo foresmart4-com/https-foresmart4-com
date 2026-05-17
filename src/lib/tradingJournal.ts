@@ -8,10 +8,14 @@ export type JournalSource =
 
 export type JournalStatus =
   | "simulation" | "manual_review" | "ai" | "portfolio" | "admin"
-  | "completed" | "rejected" | "review" | "info";
+  | "completed" | "rejected" | "cancelled" | "review" | "info";
+
+export type JournalActor = "user" | "admin" | "system" | "ai";
+export type JournalSeverity = "info" | "warning" | "critical";
 
 export type JournalEntry = {
   id: string;
+  journalRef?: string;      // e.g. JRN-2026-0001
   asset: string;            // "" for non-asset events (system/admin)
   type: "ai_decision" | "simulation" | "manual" | "deposit" | "withdrawal" | "system" | "admin" | "backtest";
   side: "buy" | "sell" | "hold" | "stop_loss" | "take_profit" | "info";
@@ -27,7 +31,12 @@ export type JournalEntry = {
   source?: JournalSource;
   status?: JournalStatus;
   eventKind?: string;       // free-form: "emergency_stop" | "mode_change" | etc.
-  refId?: string;           // e.g. DEP-2026-0001
+  refId?: string;           // linked external ref (DEP-/WDR-/order id)
+  linkedRefId?: string;     // alias / additional linked ref
+  actor?: JournalActor;
+  severity?: JournalSeverity;
+  beforeState?: any;
+  afterState?: any;
   createdAt: number;
 };
 
