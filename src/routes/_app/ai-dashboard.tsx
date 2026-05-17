@@ -36,7 +36,7 @@ const OVERVIEW_KEYS: AssetKey[] = ["BTC", "XAU", "SPX", "DXY"];
 const WATCH_KEYS: AssetKey[] = ["BTC", "ETH", "XAU", "NDX", "OIL"];
 
 // ---------- subcomponents ----------
-function GlassCard({ className, children }: { className?: string; children: React.ReactNode }) {
+function GlassCard({ className, children }: { className?: string; children?: React.ReactNode }) {
   return (
     <Card className={cn(
       "border-border/50 bg-card/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.25)] transition-all hover:border-primary/40 hover:shadow-[0_8px_40px_rgba(99,102,241,0.18)]",
