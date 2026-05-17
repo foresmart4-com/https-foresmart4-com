@@ -131,6 +131,11 @@ function WatchlistPage() {
           </div>
         )}
       </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <WatchlistPanel />
+        <SmartAlertsPanel />
+      </div>
     </div>
   );
 }
