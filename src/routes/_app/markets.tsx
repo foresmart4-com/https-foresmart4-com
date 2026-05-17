@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { AssetAnalysisDialog } from "@/components/AssetAnalysisDialog";
 import { BuyAssetDialog } from "@/components/BuyAssetDialog";
 import { Building2, Coins, DollarSign, Brain, Gem, ShoppingCart, Landmark, ExternalLink } from "lucide-react";
