@@ -10,6 +10,8 @@ import { Eye, Plus, Trash2, Bell, TrendingUp, TrendingDown } from "lucide-react"
 import { toast } from "sonner";
 import { getMarketData } from "@/lib/market-data";
 import { getStocksData } from "@/lib/stocks-data";
+import { WatchlistPanel } from "@/components/WatchlistPanel";
+import { SmartAlertsPanel } from "@/components/ForeSmartPanels";
 
 export const Route = createFileRoute("/_app/watchlist")({
   component: WatchlistPage,
