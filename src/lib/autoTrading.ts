@@ -124,11 +124,13 @@ export function updateSettings(patch: Partial<AutoTradingSettings>) {
 export function setEnabled(enabled: boolean) {
   state = { ...state, settings: { ...state.settings, enabled }, haltedAt: enabled ? null : state.haltedAt };
   emit();
+  logEvent({ source: "auto_trading", eventKind: enabled ? "enabled" : "disabled", status: "info" });
 }
 
 export function emergencyStop() {
   state = { ...state, settings: { ...state.settings, enabled: false }, haltedAt: Date.now() };
   emit();
+  logEvent({ source: "auto_trading", eventKind: "emergency_stop", status: "info", notes: "إيقاف طارئ — لا أوامر جديدة" });
 }
 
 export function clearLog() {
