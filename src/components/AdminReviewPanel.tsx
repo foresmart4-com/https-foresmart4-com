@@ -3,7 +3,9 @@ import { useI18n } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, Check, X, RefreshCw, Eye, Activity, AlertTriangle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ShieldCheck, Check, X, RefreshCw, Eye, Activity, AlertTriangle, Filter, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { logEvent } from "@/lib/tradingJournal";
@@ -49,6 +51,7 @@ export function AdminReviewPanel() {
   }, [deposits, withdrawals, subs, invites, decisionLog, orders]);
 
   const act = (kind: "deposit" | "withdrawal" | "subscription" | "invite", list: Row[], setList: (v: Row[]) => void, id: string, next: Row["status"]) => {
+    const prev = list.find((r) => r.id === id);
     setList(list.map((r) => (r.id === id ? { ...r, status: next } : r)));
     const label_ar = next === "completed" ? "تم القبول" : next === "rejected" ? "تم الرفض" : "أُعيد للمراجعة";
     const label_en = next === "completed" ? "Approved" : next === "rejected" ? "Rejected" : "Re-opened";
@@ -56,7 +59,11 @@ export function AdminReviewPanel() {
       source: "admin",
       eventKind: `${kind}_${next}`,
       status: next === "completed" ? "completed" : next === "rejected" ? "rejected" : "review",
-      refId: id,
+      refId: id, linkedRefId: id,
+      actor: "admin",
+      severity: next === "rejected" ? "critical" : next === "completed" ? "info" : "warning",
+      beforeState: prev ? { status: prev.status } : undefined,
+      afterState: { status: next },
       notes: `${lang === "ar" ? label_ar : label_en} بواسطة الإدارة`,
     });
     toast.success(`${id} — ${lang === "ar" ? label_ar : label_en}`);
@@ -153,6 +160,14 @@ export function AdminReviewPanel() {
         <span className="text-muted-foreground">{lang === "ar" ? "السحب البنكي" : "Bank"}</span><DataStatusBadge status="manual_review" />
       </div>
 
+      <ManualReviewCenter
+        deposits={deposits} withdrawals={withdrawals}
+        onAct={(kind, id, next) => {
+          if (kind === "deposit") act("deposit", deposits, setDeposits, id, next);
+          else act("withdrawal", withdrawals, setWithdrawals, id, next);
+        }}
+      />
+
       <Table title={lang === "ar" ? "طلبات الإيداع" : "Deposit requests"} kind="deposit" rows={deposits} setRows={setDeposits} />
       <Table title={lang === "ar" ? "طلبات السحب" : "Withdrawal requests"} kind="withdrawal" rows={withdrawals} setRows={setWithdrawals} />
       <Table title={lang === "ar" ? "الاشتراكات" : "Subscriptions"} kind="subscription" rows={subs} setRows={setSubs} />
@@ -202,5 +217,132 @@ export function AdminReviewPanel() {
           : "Actions are demo-local and logged to the unified journal. Will wire to backend later."}
       </p>
     </Card>
+  );
+}
+
+type UnifiedRow = { kind: "deposit" | "withdrawal"; row: Row; ts: number };
+
+function ManualReviewCenter({
+  deposits, withdrawals, onAct,
+}: {
+  deposits: Row[]; withdrawals: Row[];
+  onAct: (kind: "deposit" | "withdrawal", id: string, next: Row["status"]) => void;
+}) {
+  const { lang } = useI18n();
+  const [typeF, setTypeF] = useState<"all" | "deposit" | "withdrawal">("all");
+  const [statusF, setStatusF] = useState<"all" | "review" | "completed" | "rejected">("all");
+  const [q, setQ] = useState("");
+
+  const rows: UnifiedRow[] = useMemo(() => {
+    const merged: UnifiedRow[] = [
+      ...deposits.map((r, i) => ({ kind: "deposit" as const, row: r, ts: Date.now() - i * 1000 })),
+      ...withdrawals.map((r, i) => ({ kind: "withdrawal" as const, row: r, ts: Date.now() - i * 800 })),
+    ];
+    return merged
+      .filter((x) => typeF === "all" || x.kind === typeF)
+      .filter((x) => statusF === "all" || x.row.status === statusF)
+      .filter((x) => !q || (x.row.id + x.row.user + (x.row.amount ?? "")).toLowerCase().includes(q.toLowerCase()))
+      .sort((a, b) => (a.row.status === "review" ? -1 : 1) - (b.row.status === "review" ? -1 : 1));
+  }, [deposits, withdrawals, typeF, statusF, q]);
+
+  return (
+    <section className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <ClipboardList className="h-4 w-4 text-primary" />
+        <h4 className="font-display text-sm font-semibold">{lang === "ar" ? "مركز المراجعة الموحّد" : "Manual Review Center"}</h4>
+        <Badge variant="outline" className="text-[10px]">{rows.length}</Badge>
+        <div className="ms-auto flex flex-wrap items-center gap-1">
+          <Filter className="h-3 w-3 text-muted-foreground" />
+          <Select value={typeF} onValueChange={(v) => setTypeF(v as any)}>
+            <SelectTrigger className="h-7 w-28 text-[11px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{lang === "ar" ? "كل الأنواع" : "All types"}</SelectItem>
+              <SelectItem value="deposit">{lang === "ar" ? "إيداع" : "Deposit"}</SelectItem>
+              <SelectItem value="withdrawal">{lang === "ar" ? "سحب" : "Withdrawal"}</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={statusF} onValueChange={(v) => setStatusF(v as any)}>
+            <SelectTrigger className="h-7 w-28 text-[11px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{lang === "ar" ? "كل الحالات" : "All statuses"}</SelectItem>
+              <SelectItem value="review">{lang === "ar" ? "قيد المراجعة" : "Review"}</SelectItem>
+              <SelectItem value="completed">{lang === "ar" ? "مكتمل" : "Completed"}</SelectItem>
+              <SelectItem value="rejected">{lang === "ar" ? "مرفوض" : "Rejected"}</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={lang === "ar" ? "بحث…" : "Search…"} className="h-7 w-32 text-[11px]" />
+        </div>
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="rounded border border-dashed border-border bg-background/40 p-6 text-center text-xs text-muted-foreground">
+          {lang === "ar" ? "لا توجد طلبات مطابقة. عدّل الفلاتر أو انتظر طلبات جديدة." : "No matching requests. Adjust filters or wait for new ones."}
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-border bg-background/40">
+          <table className="w-full min-w-[640px] text-xs">
+            <thead className="bg-muted/30 text-[10px] uppercase text-muted-foreground">
+              <tr>
+                <th className="px-2 py-1.5 text-start">{lang === "ar" ? "النوع" : "Type"}</th>
+                <th className="px-2 py-1.5 text-start">{lang === "ar" ? "الرقم" : "Ref"}</th>
+                <th className="px-2 py-1.5 text-start">{lang === "ar" ? "المستخدم" : "User"}</th>
+                <th className="px-2 py-1.5 text-end">{lang === "ar" ? "المبلغ" : "Amount"}</th>
+                <th className="px-2 py-1.5 text-end">{lang === "ar" ? "الحالة" : "Status"}</th>
+                <th className="px-2 py-1.5 text-end">{lang === "ar" ? "إجراء" : "Action"}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((x) => (
+                <tr key={`${x.kind}-${x.row.id}`} className="border-t border-border">
+                  <td className="px-2 py-1.5">
+                    <Badge variant="outline" className={cn("text-[10px]", x.kind === "deposit" ? "border-success/40 text-success" : "border-warning/40 text-warning")}>
+                      {x.kind === "deposit" ? (lang === "ar" ? "إيداع" : "Deposit") : (lang === "ar" ? "سحب" : "Withdrawal")}
+                    </Badge>
+                  </td>
+                  <td className="px-2 py-1.5 font-mono text-[11px]">{x.row.id}</td>
+                  <td className="px-2 py-1.5">{x.row.user}</td>
+                  <td className="px-2 py-1.5 text-end">{x.row.amount ?? "—"}</td>
+                  <td className="px-2 py-1.5 text-end">
+                    <Badge variant="outline" className={cn("text-[10px]",
+                      x.row.status === "completed" && "border-success/40 text-success",
+                      x.row.status === "review"    && "border-warning/40 text-warning",
+                      x.row.status === "rejected"  && "border-danger/40 text-danger")}>
+                      {x.row.status}
+                    </Badge>
+                  </td>
+                  <td className="px-2 py-1.5 text-end">
+                    <div className="inline-flex gap-1">
+                      <Button size="icon" variant="ghost" className="h-6 w-6 text-success" title={lang === "ar" ? "اعتماد" : "Approve"} disabled={x.row.status === "completed"} onClick={() => onAct(x.kind, x.row.id, "completed")}>
+                        <Check className="h-3 w-3" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-6 w-6 text-danger" title={lang === "ar" ? "رفض" : "Reject"} disabled={x.row.status === "rejected"} onClick={() => onAct(x.kind, x.row.id, "rejected")}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-6 w-6" title={lang === "ar" ? "مراجعة" : "Reopen"} onClick={() => onAct(x.kind, x.row.id, "review")}>
+                        <RefreshCw className="h-3 w-3" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-6 w-6" title={lang === "ar" ? "ملاحظة" : "Note"} onClick={() => {
+                        const note = typeof window !== "undefined" ? window.prompt(lang === "ar" ? "أضف ملاحظة:" : "Add note:") : null;
+                        if (note) { logEvent({ source: "admin", eventKind: `${x.kind}_note`, refId: x.row.id, linkedRefId: x.row.id, actor: "admin", severity: "info", notes: note }); toast.success(lang === "ar" ? "تمت إضافة الملاحظة" : "Note added"); }
+                      }}>
+                        <ClipboardList className="h-3 w-3" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-6 w-6" title={lang === "ar" ? "تفاصيل" : "Details"} onClick={() => toast.info(`${x.row.id} · ${x.row.user} · ${x.row.amount ?? "—"}`)}>
+                        <Eye className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="text-[10px] text-muted-foreground">
+        {lang === "ar"
+          ? "كل إجراء يُسجَّل في دفتر التداول كـ Audit Log مع actor و severity."
+          : "Every action is logged in the Audit journal with actor and severity."}
+      </p>
+    </section>
   );
 }

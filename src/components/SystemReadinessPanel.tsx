@@ -98,9 +98,29 @@ export function SystemReadinessPanel() {
     const report = {
       generatedAt: new Date().toISOString(),
       mvpReadinessScore: score,
+      systemStatus: { autoTrading: settings.enabled ? "enabled" : "disabled", mode: settings.tradingMode, haltedAt },
       systemChecks: checks,
+      manualReviewSummary: {
+        depositRequests: journal.filter((e) => e.source === "deposit").length,
+        withdrawalRequests: journal.filter((e) => e.source === "withdrawal").length,
+        adminActions: journal.filter((e) => e.actor === "admin").length,
+        pendingReview: journal.filter((e) => e.status === "review" || e.status === "manual_review").length,
+      },
+      autoTradingSimulation: { orders: orders.length, recent: orders.slice(0, 5) },
+      auditJournalSummary: {
+        total: journal.length,
+        critical: journal.filter((e) => e.severity === "critical").length,
+        warning: journal.filter((e) => e.severity === "warning").length,
+        info: journal.filter((e) => (e.severity ?? "info") === "info").length,
+      },
       dataSources: SOURCES.map((s) => ({ key: s.key, status: s.status })),
-      autoTrading: { enabled: settings.enabled, mode: settings.tradingMode, ordersCount: orders.length, haltedAt },
+      paymentPlaceholderStatus: "not_connected",
+      aiEngineStatus: "mock",
+      productionRoadmap: {
+        backend: "not_connected", payments: "not_connected",
+        marketData: "partial (CoinGecko live, others mock)", broker: "not_connected",
+      },
+      backendRequirementsDoc: "BACKEND_REQUIREMENTS.md",
       watchlistCount: items.length,
       portfolioRisk: {
         score: risk.riskScore,
@@ -108,11 +128,32 @@ export function SystemReadinessPanel() {
         diversification: risk.diversification,
         largestAsset: risk.largestAsset?.symbol,
       },
-      journalCount: journal.length,
       gaps: gaps.map((g) => g.key),
     };
     download(`foresmart_system_report_${Date.now()}.json`, JSON.stringify(report, null, 2));
     toast.success(lang === "ar" ? "تم تصدير التقرير" : "Report exported");
+  };
+
+  const exportReportCSV = () => {
+    const lines = [
+      "section,key,value",
+      `meta,generatedAt,${new Date().toISOString()}`,
+      `meta,mvpReadinessScore,${score}`,
+      `autoTrading,enabled,${settings.enabled}`,
+      `autoTrading,mode,${settings.tradingMode}`,
+      `autoTrading,orders,${orders.length}`,
+      `journal,total,${journal.length}`,
+      `journal,critical,${journal.filter((e) => e.severity === "critical").length}`,
+      `journal,warning,${journal.filter((e) => e.severity === "warning").length}`,
+      `manualReview,deposits,${journal.filter((e) => e.source === "deposit").length}`,
+      `manualReview,withdrawals,${journal.filter((e) => e.source === "withdrawal").length}`,
+      `portfolio,risk,${risk.riskScore}`,
+      `portfolio,value,${risk.totalValue}`,
+      ...checks.map((c) => `check,${c.key},${c.ok ? (c.warn ? "warn" : "ok") : "fail"}`),
+      ...SOURCES.map((s) => `dataSource,${s.key},${s.status}`),
+    ].join("\n");
+    download(`foresmart_system_report_${Date.now()}.csv`, lines, "text/csv");
+    toast.success(lang === "ar" ? "تم تصدير الملخص CSV" : "Summary CSV exported");
   };
 
   return (
@@ -131,6 +172,9 @@ export function SystemReadinessPanel() {
           </Button>
           <Button size="sm" className="h-8 gap-1 text-xs" onClick={exportReport}>
             <FileJson className="h-3.5 w-3.5" />{lang === "ar" ? "تقرير النظام JSON" : "System JSON"}
+          </Button>
+          <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={exportReportCSV}>
+            <FileSpreadsheet className="h-3.5 w-3.5" />{lang === "ar" ? "ملخص النظام CSV" : "System CSV"}
           </Button>
           <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={() => {
             if (journal.length === 0) { toast.info(lang === "ar" ? "لا توجد سجلات للتصدير" : "Journal is empty"); return; }

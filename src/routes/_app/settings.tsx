@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { AdminReviewPanel } from "@/components/AdminReviewPanel";
 import { SystemReadinessPanel } from "@/components/SystemReadinessPanel";
 import { PaymentLinksSettings } from "@/components/PaymentLinksSettings";
+import { ProductionRoadmap } from "@/components/ProductionRoadmap";
 
 export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
@@ -321,6 +322,7 @@ function SettingsPage() {
         {/* Admin tools */}
         {isAdmin && <PaymentLinksSettings />}
         {isAdmin && <AdminReviewPanel />}
+        <ProductionRoadmap />
         {isAdmin && <SystemReadinessPanel />}
 
         {/* Danger zone */}
