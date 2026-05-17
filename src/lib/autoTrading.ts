@@ -5,6 +5,7 @@
 
 import { useSyncExternalStore } from "react";
 import type { TradingDecision } from "./marketIntelligence";
+import { logEvent } from "./tradingJournal";
 
 export type AutoTradeStatus = "simulated" | "pending_review" | "rejected";
 
