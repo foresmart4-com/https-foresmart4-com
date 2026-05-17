@@ -171,6 +171,7 @@ export function setTradingMode(mode: TradingMode) {
     },
   };
   emit();
+  logEvent({ source: "auto_trading", eventKind: "mode_change", status: "info", notes: `الوضع: ${mode}` });
 }
 
 function logDecision(
