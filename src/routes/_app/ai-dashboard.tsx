@@ -17,6 +17,7 @@ import { AnimatedNumber } from "@/components/dashboard/AnimatedNumber";
 import { ConfidenceBar, RiskHeat } from "@/components/dashboard/ConfidenceBar";
 import { LiveTicker } from "@/components/dashboard/LiveTicker";
 import { FearGreedGauge } from "@/components/dashboard/FearGreedGauge";
+import { AICommandCenter } from "@/components/dashboard/AICommandCenter";
 import type { AssetKey } from "@/services/market/marketData";
 
 export const Route = createFileRoute("/_app/ai-dashboard")({
@@ -368,6 +369,9 @@ function AIDashboardPage() {
             ))}
           </div>
         </section>
+
+        {/* AI Command Center — Opportunities, Correlations, Events, Reasoning, Alerts */}
+        {data && <AICommandCenter data={data} ar={ar} />}
 
         {/* News + Alert settings */}
         <div className="grid gap-4 lg:grid-cols-3">
