@@ -4,8 +4,12 @@ import { createSubscriptionCheckout } from "@/lib/payments.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback } from "react";
 
+export type SubPriceId =
+  | "quarterly_sar" | "semi_annual_sar" | "annual_sar"
+  | "pro_quarterly_sar" | "pro_semi_annual_sar" | "pro_annual_sar";
+
 interface Props {
-  priceId: "quarterly_sar" | "semi_annual_sar" | "annual_sar";
+  priceId: SubPriceId;
   returnUrl: string;
 }
 
