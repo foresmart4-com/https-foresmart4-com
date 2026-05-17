@@ -22,6 +22,8 @@ export type AutoTradeOrder = {
   status: AutoTradeStatus;
 };
 
+export type TradingMode = "conservative" | "balanced" | "aggressive";
+
 export type AutoTradingSettings = {
   enabled: boolean;
   allowedAssets: string[];        // empty = all
@@ -29,12 +31,19 @@ export type AutoTradingSettings = {
   dailyLossLimit: number;         // SAR; stop trading if exceeded
   minConfidence: number;          // 0..100
   mode: "auto_execute" | "require_approval";
-  allowMockSimulation: boolean;   // allow BUY orders on mock data
+  tradingMode: TradingMode;
+  allowMockSimulation: boolean;
   riskRules: {
     maxLossPerTradePct: number;
     maxPositionPct: number;
     haltOnDailyLossPct: number;
   };
+};
+
+export const TRADING_MODE_PRESETS: Record<TradingMode, { minConfidence: number; maxRisk: "LOW" | "MEDIUM" | "HIGH"; maxPositionPct: number }> = {
+  conservative: { minConfidence: 85, maxRisk: "LOW",    maxPositionPct: 5 },
+  balanced:     { minConfidence: 75, maxRisk: "MEDIUM", maxPositionPct: 10 },
+  aggressive:   { minConfidence: 65, maxRisk: "MEDIUM", maxPositionPct: 15 },
 };
 
 export type DecisionLogEntry = {
@@ -49,15 +58,16 @@ export type DecisionLogEntry = {
   rejectReason?: string;
 };
 
-const STORAGE_KEY = "foresmart_autotrade_v2";
+const STORAGE_KEY = "foresmart_autotrade_v3";
 
 const DEFAULTS: AutoTradingSettings = {
   enabled: false,
   allowedAssets: [],
   maxAmountPerTrade: 500,
   dailyLossLimit: 1000,
-  minConfidence: 70,
+  minConfidence: 75,
   mode: "require_approval",
+  tradingMode: "balanced",
   allowMockSimulation: false,
   riskRules: {
     maxLossPerTradePct: 2,
