@@ -44,13 +44,16 @@ export function buildPortfolio(
   });
   const totalW = raw.reduce((a, r) => a + r.w, 0) || 1;
 
-  const positions: Position[] = raw.map(({ q, s, w }) => ({
-    asset: q.key,
-    assetName: q.name,
-    weight: +(w / totalW).toFixed(3),
-    bias: !s || s.action === "HOLD" ? "flat" : s.action === "BUY" ? "long" : "short",
-    pnlPct: +q.changePct.toFixed(2),
-  })).sort((a, b) => b.weight - a.weight);
+  const positions: Position[] = raw.map(({ q, s, w }) => {
+    const bias: Position["bias"] = !s || s.action === "HOLD" ? "flat" : s.action === "BUY" ? "long" : "short";
+    return {
+      asset: q.key,
+      assetName: q.name,
+      weight: +(w / totalW).toFixed(3),
+      bias,
+      pnlPct: +q.changePct.toFixed(2),
+    };
+  }).sort((a, b) => b.weight - a.weight);
 
   const totalExposure = Math.min(100, Math.round(positions.filter((p) => p.bias !== "flat")
     .reduce((s, p) => s + p.weight, 0) * 100));
