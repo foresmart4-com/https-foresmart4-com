@@ -67,11 +67,25 @@ export type TradingAction =
   | "STOP_LOSS"
   | "TAKE_PROFIT";
 
+export type ScoreBreakdown = {
+  trendScore: number;
+  momentumScore: number;
+  rsiScore: number;
+  volatilityScore: number;
+  sentimentScore: number;
+  macroScore: number;
+  supportResistanceScore: number;
+  riskPenalty: number;
+  total: number; // -100..+100
+};
+
 export type TradingDecision = {
   asset: string;
   category: MarketCategory;
   action: TradingAction;
   confidence: number; // 0..100
+  decisionScore: number; // -100..+100
+  scoreBreakdown: ScoreBreakdown;
   riskLevel: "LOW" | "MEDIUM" | "HIGH";
   reasonSummary: string;
   supportingFactors: string[];
