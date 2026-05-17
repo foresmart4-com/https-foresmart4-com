@@ -14,6 +14,7 @@ import { Building2, Coins, DollarSign, Brain, Gem, ShoppingCart, Landmark, Exter
 import { BOND_BUY_LINKS, TREASURY_DIRECT_LINKS } from "@/lib/bond-links";
 import { FeaturedAssetsTable } from "@/components/FeaturedAssetsTable";
 import { CryptoLivePanel } from "@/components/CryptoLivePanel";
+import { AIDecisionPanel } from "@/components/AIDecisionPanel";
 
 interface SelectedAsset {
   symbol: string;
@@ -53,6 +54,7 @@ function MarketsPage() {
       </div>
 
       <CryptoLivePanel />
+      <AIDecisionPanel />
       <FeaturedAssetsTable />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>

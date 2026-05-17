@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { AIDecisionPanel } from "@/components/AIDecisionPanel";
+import { AutoTradingControlPanel } from "@/components/AutoTradingControlPanel";
 
 export const Route = createFileRoute("/_app/advisor")({
   component: AdvisorPage,
@@ -118,6 +120,11 @@ function AdvisorPage() {
           {rawFallback}
         </div>
       )}
+
+      <div className="mt-8 space-y-6">
+        <AIDecisionPanel />
+        <AutoTradingControlPanel />
+      </div>
     </div>
   );
 }
