@@ -162,59 +162,101 @@ export function TradingJournalPanel() {
   const { lang } = useI18n();
   const entries = useJournal();
   const [filter, setFilter] = useState<"all" | "win" | "lose">("all");
-  const filtered = entries.filter((e) => filter === "all" ? true : filter === "win" ? (e.pnlPct ?? 0) > 0 : (e.pnlPct ?? 0) < 0);
+  const [source, setSource] = useState<string>("all");
+  const [status, setStatus] = useState<string>("all");
+
+  const sources = Array.from(new Set(entries.map((e) => e.source).filter(Boolean))) as string[];
+  const statuses = Array.from(new Set(entries.map((e) => e.status).filter(Boolean))) as string[];
+
+  const filtered = entries.filter((e) => {
+    if (filter === "win" && !((e.pnlPct ?? 0) > 0)) return false;
+    if (filter === "lose" && !((e.pnlPct ?? 0) < 0)) return false;
+    if (source !== "all" && e.source !== source) return false;
+    if (status !== "all" && e.status !== status) return false;
+    return true;
+  });
+
+  const clearFilters = () => { setFilter("all"); setSource("all"); setStatus("all"); toast.success(lang === "ar" ? "تم مسح الفلاتر" : "Filters cleared"); };
+
   return (
     <Card className="overflow-hidden">
-      <header className="flex items-center justify-between border-b border-border bg-muted/30 px-5 py-3">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/30 px-5 py-3">
         <div className="flex items-center gap-2">
           <BookOpen className="h-4 w-4 text-primary" />
-          <h3 className="font-display text-base font-semibold">{lang === "ar" ? "دفتر التداول" : "Trading Journal"}</h3>
+          <h3 className="font-display text-base font-semibold">{lang === "ar" ? "دفتر التداول الموحد" : "Unified Journal"}</h3>
           <Badge variant="outline" className="text-[10px]">{entries.length}</Badge>
         </div>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
+          <Select value={source} onValueChange={setSource}>
+            <SelectTrigger className="h-7 w-32 text-xs"><SelectValue placeholder="Source" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{lang === "ar" ? "كل المصادر" : "All sources"}</SelectItem>
+              {sources.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className="h-7 w-32 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{lang === "ar" ? "كل الحالات" : "All statuses"}</SelectItem>
+              {statuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
           <Select value={filter} onValueChange={(v) => setFilter(v as any)}>
-            <SelectTrigger className="h-7 w-28 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{lang === "ar" ? "الكل" : "All"}</SelectItem>
               <SelectItem value="win">{lang === "ar" ? "رابحة" : "Wins"}</SelectItem>
               <SelectItem value="lose">{lang === "ar" ? "خاسرة" : "Losses"}</SelectItem>
             </SelectContent>
           </Select>
-          <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => { addJournalEntry({ asset: "DEMO", type: "manual", side: "buy", entry: 100, exit: 105, pnlPct: 5, reasonIn: "اختبار", reasonOut: "هدف" }); toast.success("Added"); }}>+</Button>
-          <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => download(`journal_${Date.now()}.csv`, journalToCSV(filtered))}><Download className="h-3 w-3" />CSV</Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={clearFilters}>{lang === "ar" ? "مسح" : "Clear"}</Button>
+          <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => { addJournalEntry({ asset: "DEMO", type: "manual", side: "buy", entry: 100, exit: 105, pnlPct: 5, reasonIn: "تجريبي", reasonOut: "هدف", source: "portfolio", status: "portfolio" }); toast.success(lang === "ar" ? "أُضيف حدث تجريبي" : "Demo event added"); }}>+</Button>
+          <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => { download(`journal_${Date.now()}.csv`, journalToCSV(filtered)); toast.success(lang === "ar" ? "تم تصدير الدفتر" : "Journal exported"); }}><Download className="h-3 w-3" />CSV</Button>
         </div>
       </header>
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead className="bg-muted/20 text-muted-foreground"><tr>
-            <th className="px-2 py-1.5 text-start">{lang === "ar" ? "الأصل" : "Asset"}</th>
-            <th className="px-2 py-1.5">{lang === "ar" ? "النوع" : "Type"}</th>
-            <th className="px-2 py-1.5">{lang === "ar" ? "اتجاه" : "Side"}</th>
-            <th className="px-2 py-1.5 text-end">{lang === "ar" ? "دخول" : "Entry"}</th>
-            <th className="px-2 py-1.5 text-end">{lang === "ar" ? "خروج" : "Exit"}</th>
-            <th className="px-2 py-1.5 text-end">P/L%</th>
-            <th className="px-2 py-1.5 text-start">{lang === "ar" ? "سبب" : "Reason"}</th>
-            <th className="px-2 py-1.5 text-end">{lang === "ar" ? "تاريخ" : "Date"}</th>
-            <th className="px-2 py-1.5"></th>
-          </tr></thead>
-          <tbody>
-            {filtered.map((e) => (
-              <tr key={e.id} className="border-t border-border">
-                <td className="px-2 py-1.5 font-medium">{e.asset}</td>
-                <td className="px-2 py-1.5">{e.type}</td>
-                <td className="px-2 py-1.5">{e.side}</td>
-                <td className="px-2 py-1.5 text-end">{e.entry ?? "—"}</td>
-                <td className="px-2 py-1.5 text-end">{e.exit ?? "—"}</td>
-                <td className={cn("px-2 py-1.5 text-end font-semibold", (e.pnlPct ?? 0) >= 0 ? "text-success" : "text-danger")}>{e.pnlPct?.toFixed(2) ?? "—"}</td>
-                <td className="px-2 py-1.5 text-muted-foreground truncate max-w-[160px]">{e.reasonIn ?? "—"} → {e.reasonOut ?? "—"}</td>
-                <td className="px-2 py-1.5 text-end text-muted-foreground">{new Date(e.createdAt).toLocaleDateString()}</td>
-                <td className="px-2 py-1.5"><Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => deleteJournalEntry(e.id)}><Trash2 className="h-3 w-3" /></Button></td>
-              </tr>
-            ))}
-            {filtered.length === 0 && <tr><td colSpan={9} className="px-2 py-4 text-center text-muted-foreground">{lang === "ar" ? "لا قيود" : "Empty"}</td></tr>}
-          </tbody>
-        </table>
-      </div>
+      {filtered.length === 0 ? (
+        <div className="p-8 text-center">
+          <BookOpen className="mx-auto mb-2 h-8 w-8 text-muted-foreground/60" />
+          <div className="font-semibold">{lang === "ar" ? "لا توجد سجلات بهذه الفلاتر" : "No entries match"}</div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {lang === "ar" ? "ستظهر هنا قرارات AI، أوامر المحاكاة، الإيداع/السحب، وأحداث النظام تلقائياً." : "AI decisions, sim orders, deposits/withdrawals and system events appear here."}
+          </p>
+          <Button size="sm" className="mt-3 gap-1" onClick={() => { addJournalEntry({ asset: "DEMO", type: "manual", side: "buy", entry: 100, exit: 105, pnlPct: 5, reasonIn: "تجريبي", reasonOut: "هدف", source: "portfolio", status: "portfolio" }); toast.success(lang === "ar" ? "أُضيف حدث تجريبي" : "Demo added"); }}>
+            {lang === "ar" ? "إنشاء حدث تجريبي" : "Create demo event"}
+          </Button>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px] text-xs">
+            <thead className="bg-muted/20 text-muted-foreground"><tr>
+              <th className="px-2 py-1.5 text-start">{lang === "ar" ? "المصدر" : "Source"}</th>
+              <th className="px-2 py-1.5 text-start">{lang === "ar" ? "الحدث" : "Event"}</th>
+              <th className="px-2 py-1.5 text-start">{lang === "ar" ? "الأصل" : "Asset"}</th>
+              <th className="px-2 py-1.5">{lang === "ar" ? "اتجاه" : "Side"}</th>
+              <th className="px-2 py-1.5 text-end">P/L%</th>
+              <th className="px-2 py-1.5 text-start">{lang === "ar" ? "سبب/ملاحظة" : "Reason / Note"}</th>
+              <th className="px-2 py-1.5 text-start">{lang === "ar" ? "الحالة" : "Status"}</th>
+              <th className="px-2 py-1.5 text-end">{lang === "ar" ? "تاريخ" : "Date"}</th>
+              <th className="px-2 py-1.5"></th>
+            </tr></thead>
+            <tbody>
+              {filtered.map((e) => (
+                <tr key={e.id} className="border-t border-border">
+                  <td className="px-2 py-1.5"><Badge variant="outline" className="text-[10px]">{e.source ?? e.type}</Badge></td>
+                  <td className="px-2 py-1.5 text-muted-foreground">{e.eventKind ?? e.type}</td>
+                  <td className="px-2 py-1.5 font-medium">{e.asset || "—"}</td>
+                  <td className="px-2 py-1.5">{e.side}</td>
+                  <td className={cn("px-2 py-1.5 text-end font-semibold", (e.pnlPct ?? 0) >= 0 ? "text-success" : "text-danger")}>{e.pnlPct?.toFixed(2) ?? "—"}</td>
+                  <td className="px-2 py-1.5 text-muted-foreground truncate max-w-[200px]">{e.reasonIn ?? e.notes ?? "—"}{e.reasonOut ? ` → ${e.reasonOut}` : ""}</td>
+                  <td className="px-2 py-1.5"><Badge variant="outline" className="text-[10px]">{e.status ?? "—"}</Badge></td>
+                  <td className="px-2 py-1.5 text-end text-muted-foreground">{new Date(e.createdAt).toLocaleDateString()}</td>
+                  <td className="px-2 py-1.5"><Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => deleteJournalEntry(e.id)}><Trash2 className="h-3 w-3" /></Button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </Card>
   );
 }

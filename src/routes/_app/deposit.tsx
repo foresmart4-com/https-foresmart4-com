@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowDownToLine, Wallet, ShieldCheck, Clock, CheckCircle2, XCircle, Info } from "lucide-react";
+import { ArrowDownToLine, Wallet, ShieldCheck, Clock, CheckCircle2, XCircle, Info, Copy, Ban } from "lucide-react";
 import { toast } from "sonner";
 import { calcTransferFee, depositHistoryMock, type DepositRecord } from "@/lib/mock-data";
+import { logEvent } from "@/lib/tradingJournal";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/deposit")({ component: DepositPage });
@@ -55,14 +56,29 @@ function DepositPage() {
   const submit = () => {
     if (amt < 100) { toast.error(lang === "ar" ? "الحد الأدنى 100 ريال" : "Min 100 SAR"); return; }
     if (selectedMethod.future) { toast.info(lang === "ar" ? "بوابة قيد التفعيل لاحقاً" : "Gateway not active yet"); return; }
+    const year = new Date().getFullYear();
+    const seq = String(1000 + history.length + 1).padStart(4, "0");
+    const refId = `DEP-${year}-${seq}`;
     const rec: DepositRecord = {
-      id: "DP-" + Math.floor(1100 + Math.random() * 800),
+      id: refId,
       date: new Date().toISOString().slice(0, 10),
       amountSar: amt, method, status: "review", notes: notes || undefined,
     };
     setHistory((h) => [rec, ...h]);
     setNotes("");
-    toast.success(lang === "ar" ? `تم إنشاء طلب الإيداع ${rec.id} — قيد المراجعة` : `Deposit ${rec.id} submitted — under review`);
+    logEvent({ source: "deposit", eventKind: "created", refId, amount: amt, status: "manual_review", notes: `${methodLabel(method)} — صافي ${net}` });
+    toast.success(lang === "ar" ? `تم إنشاء طلب الإيداع ${refId} — قيد المراجعة` : `Deposit ${refId} submitted — under review`);
+  };
+
+  const copyRef = (id: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) navigator.clipboard.writeText(id);
+    toast.success(lang === "ar" ? `تم نسخ ${id}` : `Copied ${id}`);
+  };
+
+  const cancelRequest = (id: string) => {
+    setHistory((h) => h.map((r) => r.id === id ? { ...r, status: "rejected" } : r));
+    logEvent({ source: "deposit", eventKind: "cancelled", refId: id, status: "rejected", notes: "إلغاء من قبل المستخدم" });
+    toast.success(lang === "ar" ? `تم إلغاء الطلب ${id}` : `Cancelled ${id}`);
   };
 
   const methodLabel = useMemo(() => (m: Method) => {
@@ -159,35 +175,67 @@ function DepositPage() {
         <header className="border-b border-border bg-muted/30 px-5 py-3 font-semibold">
           {lang === "ar" ? "طلبات الإيداع السابقة" : "Previous deposit requests"}
         </header>
-        <table className="w-full text-sm">
-          <thead className="bg-muted/20 text-xs uppercase text-muted-foreground">
-            <tr>
-              <th className="px-4 py-2 text-start">{lang === "ar" ? "الرقم" : "ID"}</th>
-              <th className="px-4 py-2 text-start">{lang === "ar" ? "التاريخ" : "Date"}</th>
-              <th className="px-4 py-2 text-start">{lang === "ar" ? "الطريقة" : "Method"}</th>
-              <th className="px-4 py-2 text-end">{lang === "ar" ? "المبلغ" : "Amount"}</th>
-              <th className="px-4 py-2 text-end">{lang === "ar" ? "الرسوم" : "Fee"}</th>
-              <th className="px-4 py-2 text-end">{lang === "ar" ? "الصافي" : "Net"}</th>
-              <th className="px-4 py-2 text-end">{lang === "ar" ? "الحالة" : "Status"}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.map((r) => {
-              const f = calcTransferFee(r.amountSar);
-              return (
-                <tr key={r.id} className="border-t border-border">
-                  <td className="px-4 py-2 font-mono text-xs">{r.id}</td>
-                  <td className="px-4 py-2 text-xs text-muted-foreground">{r.date}</td>
-                  <td className="px-4 py-2 text-xs">{methodLabel(r.method)}</td>
-                  <td className="px-4 py-2 text-end">{r.amountSar.toLocaleString()} SAR</td>
-                  <td className="px-4 py-2 text-end text-danger">-{f}</td>
-                  <td className="px-4 py-2 text-end font-medium text-success">{(r.amountSar - f).toLocaleString()}</td>
-                  <td className="px-4 py-2 text-end">{statusBadge(r.status, lang as "ar" | "en")}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[820px] text-sm">
+            <thead className="bg-muted/20 text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="px-4 py-2 text-start">{lang === "ar" ? "الرقم" : "Ref"}</th>
+                <th className="px-4 py-2 text-start">{lang === "ar" ? "التاريخ" : "Date"}</th>
+                <th className="px-4 py-2 text-start">{lang === "ar" ? "الطريقة" : "Method"}</th>
+                <th className="px-4 py-2 text-end">{lang === "ar" ? "المبلغ" : "Amount"}</th>
+                <th className="px-4 py-2 text-end">{lang === "ar" ? "الرسوم" : "Fee"}</th>
+                <th className="px-4 py-2 text-end">{lang === "ar" ? "الصافي" : "Net"}</th>
+                <th className="px-4 py-2 text-start">{lang === "ar" ? "المسار" : "Timeline"}</th>
+                <th className="px-4 py-2 text-end">{lang === "ar" ? "الحالة" : "Status"}</th>
+                <th className="px-4 py-2 text-end">{lang === "ar" ? "إجراء" : "Action"}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map((r) => {
+                const f = calcTransferFee(r.amountSar);
+                const steps: { ar: string; en: string; on: boolean }[] = [
+                  { ar: "تم الإنشاء", en: "Created", on: true },
+                  { ar: "قيد المراجعة", en: "Under review", on: r.status !== "rejected" },
+                  { ar: r.status === "rejected" ? "مرفوض" : "اعتُمد", en: r.status === "rejected" ? "Rejected" : "Approved", on: r.status === "completed" || r.status === "rejected" },
+                  { ar: "مكتمل", en: "Completed", on: r.status === "completed" },
+                ];
+                return (
+                  <tr key={r.id} className="border-t border-border">
+                    <td className="px-4 py-2 font-mono text-xs">{r.id}</td>
+                    <td className="px-4 py-2 text-xs text-muted-foreground">{r.date}</td>
+                    <td className="px-4 py-2 text-xs">{methodLabel(r.method)}</td>
+                    <td className="px-4 py-2 text-end">{r.amountSar.toLocaleString()} SAR</td>
+                    <td className="px-4 py-2 text-end text-danger">-{f}</td>
+                    <td className="px-4 py-2 text-end font-medium text-success">{(r.amountSar - f).toLocaleString()}</td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center gap-1">
+                        {steps.map((s, i) => (
+                          <span key={i} className="flex items-center gap-1">
+                            <span className={cn("h-2 w-2 rounded-full", s.on ? (r.status === "rejected" && i >= 2 ? "bg-danger" : "bg-success") : "bg-muted")} title={lang === "ar" ? s.ar : s.en} />
+                            {i < steps.length - 1 && <span className={cn("h-px w-3", s.on ? "bg-success/60" : "bg-muted")} />}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 text-end">{statusBadge(r.status, lang as "ar" | "en")}</td>
+                    <td className="px-4 py-2 text-end">
+                      <div className="inline-flex gap-1">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" title={lang === "ar" ? "نسخ الرقم" : "Copy ref"} onClick={() => copyRef(r.id)}>
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                        {r.status === "review" && (
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-danger" title={lang === "ar" ? "إلغاء الطلب" : "Cancel"} onClick={() => cancelRequest(r.id)}>
+                            <Ban className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </Card>
     </div>
   );

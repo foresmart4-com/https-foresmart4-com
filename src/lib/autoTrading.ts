@@ -5,6 +5,7 @@
 
 import { useSyncExternalStore } from "react";
 import type { TradingDecision } from "./marketIntelligence";
+import { logEvent } from "./tradingJournal";
 
 export type AutoTradeStatus = "simulated" | "pending_review" | "rejected";
 
@@ -123,11 +124,13 @@ export function updateSettings(patch: Partial<AutoTradingSettings>) {
 export function setEnabled(enabled: boolean) {
   state = { ...state, settings: { ...state.settings, enabled }, haltedAt: enabled ? null : state.haltedAt };
   emit();
+  logEvent({ source: "auto_trading", eventKind: enabled ? "enabled" : "disabled", status: "info" });
 }
 
 export function emergencyStop() {
   state = { ...state, settings: { ...state.settings, enabled: false }, haltedAt: Date.now() };
   emit();
+  logEvent({ source: "auto_trading", eventKind: "emergency_stop", status: "info", notes: "إيقاف طارئ — لا أوامر جديدة" });
 }
 
 export function clearLog() {
@@ -168,6 +171,7 @@ export function setTradingMode(mode: TradingMode) {
     },
   };
   emit();
+  logEvent({ source: "auto_trading", eventKind: "mode_change", status: "info", notes: `الوضع: ${mode}` });
 }
 
 function logDecision(
@@ -249,7 +253,9 @@ export function runSimulationCycle(decisions: TradingDecision[], dataIsMock = tr
     if (r.ok) created++;
     else { rejected++; reasons[r.reason] = (reasons[r.reason] ?? 0) + 1; }
   }
-  return { analyzed: decisions.length, created, rejected, reasons };
+  const report = { analyzed: decisions.length, created, rejected, reasons };
+  logEvent({ source: "auto_trading", eventKind: "simulation_cycle", status: "simulation", notes: `تحليل ${report.analyzed} · إنشاء ${report.created} · رفض ${report.rejected}` });
+  return report;
 }
 
 export function ordersToCSV(orders: AutoTradeOrder[]): string {
