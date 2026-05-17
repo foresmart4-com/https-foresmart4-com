@@ -52,6 +52,7 @@ function MarketsPage() {
         </p>
       </div>
 
+      <CryptoLivePanel />
       <FeaturedAssetsTable />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
