@@ -284,6 +284,11 @@ function SettingsPage() {
                 { ar: "قواعد الأمان",          en: "Safety Rules",     state: "ok",       note_ar: "Active — حماية مخاطر/ثقة/بيانات تجريبية", note_en: "Active — risk/confidence/mock-data guards" },
                 { ar: "التداول الورقي",        en: "Paper Trading",    state: "mock",     note_ar: "Simulation Only — لا تداول حقيقي",        note_en: "Simulation only — no real trading" },
                 { ar: "الاشتراكات",     en: "Subscriptions",    state: "mock",     note_ar: "الواجهة جاهزة — الدفع غير مفعّل",            note_en: "UI ready — payment disabled" },
+                { ar: "التنبيهات الذكية",  en: "Smart Alerts",     state: "ok",       note_ar: "Active — مبنية على قرارات AI",             note_en: "Active — built on AI decisions" },
+                { ar: "مخاطر المحفظة",     en: "Portfolio Risk",   state: "ok",       note_ar: "Active — تحليل تركّز/تنويع",                note_en: "Active — concentration/diversification" },
+                { ar: "Backtesting",      en: "Backtesting",      state: "mock",     note_ar: "Mock engine — لاختبار الاستراتيجيات",       note_en: "Mock engine — strategy testing" },
+                { ar: "سجل التداول",       en: "Trading Journal",  state: "ok",       note_ar: "Active — تصدير CSV",                       note_en: "Active — CSV export" },
+                { ar: "أوضاع التداول",     en: "Trading Modes",    state: "ok",       note_ar: "Conservative / Balanced / Aggressive",     note_en: "Conservative / Balanced / Aggressive" },
               ] as const).map((row, i) => {
                 const map = {
                   ok:       { Icon: CheckCircle2,  cls: "text-success",  label_ar: "يعمل",       label_en: "Operational" },

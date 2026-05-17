@@ -17,6 +17,7 @@ import { ManualOperationForm } from "@/components/ManualOperationForm";
 import { AssetPnlPanel } from "@/components/AssetPnlPanel";
 import { WithdrawalSection } from "@/components/WithdrawalSection";
 import { RiskManagementPanel } from "@/components/RiskManagementPanel";
+import { PortfolioRiskDashboard } from "@/components/ForeSmartPanels";
 
 export const Route = createFileRoute("/_app/wallet")({
   component: WalletPage,
@@ -234,6 +235,8 @@ function WalletPage() {
       <AssetPnlPanel />
 
       <RiskManagementPanel />
+
+      <PortfolioRiskDashboard />
 
       <WithdrawalSection />
 

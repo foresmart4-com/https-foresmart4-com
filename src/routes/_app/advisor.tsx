@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { AIDecisionPanel } from "@/components/AIDecisionPanel";
 import { AutoTradingControlPanel } from "@/components/AutoTradingControlPanel";
 import { AIDecisionTester } from "@/components/AIDecisionTester";
+import { AutoTradingModeBar, BacktestingPanel, TradingJournalPanel } from "@/components/ForeSmartPanels";
 
 export const Route = createFileRoute("/_app/advisor")({
   component: AdvisorPage,
@@ -123,9 +124,12 @@ function AdvisorPage() {
       )}
 
       <div className="mt-8 space-y-6">
+        <AutoTradingModeBar />
         <AIDecisionPanel />
         <AIDecisionTester />
         <AutoTradingControlPanel />
+        <BacktestingPanel />
+        <TradingJournalPanel />
       </div>
     </div>
   );
