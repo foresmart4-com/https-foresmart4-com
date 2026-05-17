@@ -41,6 +41,12 @@ export interface MarketIntel {
   confidence: ConfidenceSummary;
   portfolio: PortfolioReport;
   backtest: BacktestReport;
+  // Edge discovery layer
+  earlyMomentum: EarlyMomentumReport[];
+  breakouts: BreakoutReport[];
+  liquidity: LiquidityFlowReport;
+  whales: WhaleReport;
+  rankedOpportunities: RankedOpportunity[];
   generatedAt: number;
 }
 
