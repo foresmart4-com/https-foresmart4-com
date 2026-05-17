@@ -20,6 +20,7 @@ import { FearGreedGauge } from "@/components/dashboard/FearGreedGauge";
 import { AICommandCenter } from "@/components/dashboard/AICommandCenter";
 import { QuantPanel } from "@/components/dashboard/QuantPanel";
 import { EdgeCommandCenter } from "@/components/dashboard/EdgeCommandCenter";
+import { AdaptiveIntelligencePanel } from "@/components/dashboard/AdaptiveIntelligencePanel";
 import { useAIMarketAnalyst, useAIMarketInsights } from "@/hooks/useAIBrain";
 import type { AssetKey } from "@/services/market/marketData";
 
@@ -440,6 +441,9 @@ function AIDashboardPage() {
 
         {/* Edge Discovery Center — Early momentum, breakouts, liquidity, whales, ranked ops */}
         {data && <EdgeCommandCenter data={data} ar={ar} />}
+
+        {/* Adaptive Intelligence — learning, memory, strategy adaptation, personality, self-eval */}
+        {data && <AdaptiveIntelligencePanel data={data} ar={ar} />}
 
         {/* News + Alert settings */}
         <div className="grid gap-4 lg:grid-cols-3">
