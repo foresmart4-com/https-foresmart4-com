@@ -27,7 +27,7 @@ export interface StockQuote {
   isLive?: boolean;
 }
 
-interface CompanyDef {
+export interface CompanyDef {
   symbol: string;
   name: string;
   sector: string;
