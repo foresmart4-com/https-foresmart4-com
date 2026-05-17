@@ -23,6 +23,7 @@ import { EdgeCommandCenter } from "@/components/dashboard/EdgeCommandCenter";
 import { AdaptiveIntelligencePanel } from "@/components/dashboard/AdaptiveIntelligencePanel";
 import { TacticalExecutionPanel } from "@/components/dashboard/TacticalExecutionPanel";
 import { PrecisionPanel } from "@/components/dashboard/PrecisionPanel";
+import { AutonomousExecutionPanel } from "@/components/dashboard/AutonomousExecutionPanel";
 import { useAIMarketAnalyst, useAIMarketInsights } from "@/hooks/useAIBrain";
 import type { AssetKey } from "@/services/market/marketData";
 
@@ -448,6 +449,9 @@ function AIDashboardPage() {
         {data && <AdaptiveIntelligencePanel data={data} ar={ar} />}
         {data && <TacticalExecutionPanel data={data} ar={ar} />}
         {data && <PrecisionPanel data={data} ar={ar} />}
+
+        <AutonomousExecutionPanel data={data} ar={ar} />
+
 
         {/* News + Alert settings */}
         <div className="grid gap-4 lg:grid-cols-3">
