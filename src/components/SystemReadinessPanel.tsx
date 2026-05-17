@@ -125,12 +125,32 @@ export function SystemReadinessPanel() {
             {score}/100
           </Badge>
         </div>
-        <div className="flex gap-1">
-          <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={() => { setRan(true); toast.success(lang === "ar" ? "اكتمل الفحص" : "Check done"); }}>
-            <PlayCircle className="h-3.5 w-3.5" />{lang === "ar" ? "تشغيل فحص النظام" : "Run system check"}
+        <div className="flex flex-wrap gap-1">
+          <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={() => { setRan(true); logEvent({ source: "system", eventKind: "system_check", status: "info", notes: `MVP ${score}/100` }); toast.success(lang === "ar" ? "اكتمل فحص النظام النهائي" : "Final system check done"); }}>
+            <PlayCircle className="h-3.5 w-3.5" />{lang === "ar" ? "فحص النظام النهائي" : "Final system check"}
           </Button>
           <Button size="sm" className="h-8 gap-1 text-xs" onClick={exportReport}>
-            <Download className="h-3.5 w-3.5" />{lang === "ar" ? "تصدير تقرير" : "Export report"}
+            <FileJson className="h-3.5 w-3.5" />{lang === "ar" ? "تقرير النظام JSON" : "System JSON"}
+          </Button>
+          <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={() => {
+            if (journal.length === 0) { toast.info(lang === "ar" ? "لا توجد سجلات للتصدير" : "Journal is empty"); return; }
+            download(`journal_${Date.now()}.csv`, journalToCSV(journal), "text/csv");
+            toast.success(lang === "ar" ? "تم تصدير دفتر التداول" : "Journal exported");
+          }}>
+            <FileSpreadsheet className="h-3.5 w-3.5" />{lang === "ar" ? "دفتر التداول CSV" : "Journal CSV"}
+          </Button>
+          <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={() => {
+            if (orders.length === 0) { toast.info(lang === "ar" ? "لا توجد أوامر محاكاة" : "No sim orders"); return; }
+            download(`sim_orders_${Date.now()}.csv`, ordersToCSV(orders), "text/csv");
+            toast.success(lang === "ar" ? "تم تصدير أوامر المحاكاة" : "Sim orders exported");
+          }}>
+            <FileSpreadsheet className="h-3.5 w-3.5" />{lang === "ar" ? "أوامر المحاكاة CSV" : "Sim CSV"}
+          </Button>
+          <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={() => {
+            download(`portfolio_risk_${Date.now()}.json`, JSON.stringify(risk, null, 2));
+            toast.success(lang === "ar" ? "تم تصدير تقرير المحفظة" : "Portfolio report exported");
+          }}>
+            <FileJson className="h-3.5 w-3.5" />{lang === "ar" ? "مخاطر المحفظة JSON" : "Risk JSON"}
           </Button>
         </div>
       </header>
