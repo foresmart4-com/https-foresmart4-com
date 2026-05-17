@@ -30,9 +30,7 @@ export function AdminReviewPanel() {
   const [subs, setSubs] = useState(initialSubs);
   const [invites, setInvites] = useState(initialInvites);
 
-  const act = <T extends Row>(
-    list: T[], setList: (v: T[]) => void, id: string, next: T["status"],
-  ) => {
+  const act = (list: Row[], setList: (v: Row[]) => void, id: string, next: Row["status"]) => {
     setList(list.map((r) => (r.id === id ? { ...r, status: next } : r)));
     const label = next === "completed" ? (lang === "ar" ? "تم القبول" : "Approved")
       : next === "rejected" ? (lang === "ar" ? "تم الرفض" : "Rejected")
@@ -40,7 +38,7 @@ export function AdminReviewPanel() {
     toast.success(`${id} — ${label}`);
   };
 
-  const Table = <T extends Row>({ title, rows, setRows }: { title: string; rows: T[]; setRows: (v: T[]) => void }) => (
+  const Table = ({ title, rows, setRows }: { title: string; rows: Row[]; setRows: (v: Row[]) => void }) => (
     <div>
       <div className="mb-2 text-xs font-semibold uppercase text-muted-foreground">{title}</div>
       <div className="overflow-x-auto rounded-lg border border-border">
