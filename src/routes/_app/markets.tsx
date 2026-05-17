@@ -260,6 +260,15 @@ function RegionSection({ region, items, onAnalyze, onBuy }: { region: StockRegio
           </tbody>
         </table>
       </div>
+      {visible < items.length && (
+        <div className="flex items-center justify-center border-t border-border bg-muted/20 px-4 py-3">
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setVisible((v) => v + 30)}>
+            {lang === "ar"
+              ? `عرض المزيد (${items.length - visible} متبقّي)`
+              : `Show more (${items.length - visible} remaining)`}
+          </Button>
+        </div>
+      )}
     </section>
   );
 }
