@@ -54,9 +54,11 @@ export function rankOpportunities(
     const momentumScore = Math.min(100, Math.abs(q.momentum) * 25);
     const earlyScore = e?.score ?? 0;
     const breakoutScore = b?.confidence ?? 0;
-    const regimeAlign = regime.bias === "bullish" && q.changePct > 0 ? 15
-      : regime.bias === "bearish" && q.changePct < 0 ? 15
-      : regime.bias === "neutral" ? 5 : 0;
+    const regimeBull = regime.regime === "Trending Bullish" || regime.regime === "Risk-On";
+    const regimeBear = regime.regime === "Trending Bearish" || regime.regime === "Risk-Off" || regime.regime === "Panic";
+    const regimeAlign = regimeBull && q.changePct > 0 ? 15
+      : regimeBear && q.changePct < 0 ? 15
+      : regime.regime === "Sideways" ? 5 : 0;
     const liquidityAlign = Math.min(20, Math.abs(sectorBias) * 0.25);
     const whalePenalty = (w?.manipulationRisk ?? 0) > 60 ? -10 : 0;
     const volPenalty = q.volatility > 75 ? -8 : 0;
