@@ -25,7 +25,7 @@ function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
 
   if (loading) return <div className="grid min-h-screen place-items-center text-muted-foreground">{t("loading")}</div>;
-  if (!user) return <Navigate to="/auth" />;
+  if (!user) return <LoginRequired />;
 
   const items = [
     { to: "/dashboard", icon: LayoutDashboard, label: t("dashboard") },
