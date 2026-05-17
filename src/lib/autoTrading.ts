@@ -152,7 +152,23 @@ export const REJECT_REASONS_AR: Record<string, string> = {
   asset_not_allowed: "الأصل غير مسموح",
   daily_loss_limit_reached: "تم بلوغ حد الخسارة اليومي",
   mock_data_buy_blocked: "BUY ممنوع على بيانات تجريبية (فعّل السماح بالمحاكاة)",
+  mode_risk_exceeded: "مستوى المخاطر يتجاوز سقف الوضع الحالي",
+  stop_loss_priority: "إنشاء أمر وقف خسارة بأولوية",
 };
+
+export function setTradingMode(mode: TradingMode) {
+  const p = TRADING_MODE_PRESETS[mode];
+  state = {
+    ...state,
+    settings: {
+      ...state.settings,
+      tradingMode: mode,
+      minConfidence: p.minConfidence,
+      riskRules: { ...state.settings.riskRules, maxPositionPct: p.maxPositionPct },
+    },
+  };
+  emit();
+}
 
 function logDecision(
   decision: TradingDecision,
