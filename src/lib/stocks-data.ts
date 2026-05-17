@@ -92,6 +92,11 @@ const COMPANIES: Record<StockRegion, CompanyDef[]> = {
     { symbol: "1180.SR", name: "Saudi National Bank", sector: "Banking", baseline: 35, currency: "SAR" },
     { symbol: "2280.SR", name: "Almarai", sector: "Food", baseline: 53, currency: "SAR" },
   ],
+  qatar: [
+    { symbol: "QNBK.QA", name: "Qatar National Bank", sector: "Banking", baseline: 16.2, currency: "QAR" },
+    { symbol: "IQCD.QA", name: "Industries Qatar", sector: "Industrial", baseline: 12.5, currency: "QAR" },
+    { symbol: "ORDS.QA", name: "Ooredoo", sector: "Telecom", baseline: 11.8, currency: "QAR" },
+  ],
 };
 
 function syntheticQuote(c: CompanyDef, region: StockRegion): StockQuote {
