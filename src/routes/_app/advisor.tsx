@@ -124,9 +124,12 @@ function AdvisorPage() {
       )}
 
       <div className="mt-8 space-y-6">
+        <AutoTradingModeBar />
         <AIDecisionPanel />
         <AIDecisionTester />
         <AutoTradingControlPanel />
+        <BacktestingPanel />
+        <TradingJournalPanel />
       </div>
     </div>
   );
