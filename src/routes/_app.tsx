@@ -30,6 +30,7 @@ function AppLayout() {
 
   const items = [
     { to: "/dashboard", icon: LayoutDashboard, label: t("dashboard") },
+    { to: "/ai-dashboard", icon: Brain, label: lang === "ar" ? "لوحة الذكاء" : "AI Dashboard" },
     { to: "/markets", icon: LineChart, label: t("markets") },
     { to: "/heatmap", icon: Flame, label: lang === "ar" ? "خريطة حرارية" : "Heatmap" },
     { to: "/calendar", icon: CalendarDays, label: lang === "ar" ? "التقويم الاقتصادي" : "Calendar" },

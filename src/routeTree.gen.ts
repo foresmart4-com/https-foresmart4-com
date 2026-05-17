@@ -35,6 +35,7 @@ import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppBankAccountsRouteImport } from './routes/_app/bank-accounts'
 import { Route as AppArchiveRouteImport } from './routes/_app/archive'
 import { Route as AppAlertsRouteImport } from './routes/_app/alerts'
+import { Route as AppAiDashboardRouteImport } from './routes/_app/ai-dashboard'
 import { Route as AppAdvisorRouteImport } from './routes/_app/advisor'
 import { Route as ApiPublicMoyasarWebhookRouteImport } from './routes/api/public/moyasar-webhook'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -171,6 +172,11 @@ const AppAlertsRoute = AppAlertsRouteImport.update({
   path: '/alerts',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAiDashboardRoute = AppAiDashboardRouteImport.update({
+  id: '/ai-dashboard',
+  path: '/ai-dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdvisorRoute = AppAdvisorRouteImport.update({
   id: '/advisor',
   path: '/advisor',
@@ -210,6 +216,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/advisor': typeof AppAdvisorRoute
+  '/ai-dashboard': typeof AppAiDashboardRoute
   '/alerts': typeof AppAlertsRoute
   '/archive': typeof AppArchiveRoute
   '/bank-accounts': typeof AppBankAccountsRoute
@@ -243,6 +250,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/advisor': typeof AppAdvisorRoute
+  '/ai-dashboard': typeof AppAiDashboardRoute
   '/alerts': typeof AppAlertsRoute
   '/archive': typeof AppArchiveRoute
   '/bank-accounts': typeof AppBankAccountsRoute
@@ -278,6 +286,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_app/advisor': typeof AppAdvisorRoute
+  '/_app/ai-dashboard': typeof AppAiDashboardRoute
   '/_app/alerts': typeof AppAlertsRoute
   '/_app/archive': typeof AppArchiveRoute
   '/_app/bank-accounts': typeof AppBankAccountsRoute
@@ -313,6 +322,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/advisor'
+    | '/ai-dashboard'
     | '/alerts'
     | '/archive'
     | '/bank-accounts'
@@ -346,6 +356,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/advisor'
+    | '/ai-dashboard'
     | '/alerts'
     | '/archive'
     | '/bank-accounts'
@@ -380,6 +391,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/_app/advisor'
+    | '/_app/ai-dashboard'
     | '/_app/alerts'
     | '/_app/archive'
     | '/_app/bank-accounts'
@@ -605,6 +617,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAlertsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/ai-dashboard': {
+      id: '/_app/ai-dashboard'
+      path: '/ai-dashboard'
+      fullPath: '/ai-dashboard'
+      preLoaderRoute: typeof AppAiDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/advisor': {
       id: '/_app/advisor'
       path: '/advisor'
@@ -652,6 +671,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAdvisorRoute: typeof AppAdvisorRoute
+  AppAiDashboardRoute: typeof AppAiDashboardRoute
   AppAlertsRoute: typeof AppAlertsRoute
   AppArchiveRoute: typeof AppArchiveRoute
   AppBankAccountsRoute: typeof AppBankAccountsRoute
@@ -677,6 +697,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdvisorRoute: AppAdvisorRoute,
+  AppAiDashboardRoute: AppAiDashboardRoute,
   AppAlertsRoute: AppAlertsRoute,
   AppArchiveRoute: AppArchiveRoute,
   AppBankAccountsRoute: AppBankAccountsRoute,
