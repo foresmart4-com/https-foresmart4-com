@@ -87,7 +87,7 @@ export function rankOpportunities(
       `Conf ${conf}`,
       e ? `Early ${e.score}` : null,
       b && b.direction !== "neutral" ? `Breakout ${b.direction} ${b.confidence}` : null,
-      `Regime ${regime.bias}`,
+      `Regime ${regime.regime}`,
       sectorBias ? `${SECTOR_FOR_ASSET[q.key]} flow ${sectorBias > 0 ? "+" : ""}${Math.round(sectorBias)}` : null,
       w && w.severity !== "info" ? `Whale ${w.severity}` : null,
     ].filter(Boolean).join(" · ");
