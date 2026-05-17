@@ -238,3 +238,33 @@ pro_annual_sar
 7. **KYC/AML** ومراجعة قانونية قبل أي تنفيذ حقيقي.
 
 > جميع الأوامر الحالية في النظام **تجريبية (Simulation/Paper)** ولا تُنفّذ تداولاً حقيقياً.
+
+## AI Decision QA & Safety Rules
+
+### اختبار القرارات
+
+داخل صفحة **AI Analyst** يوجد قسم "اختبار قرارات الذكاء الاصطناعي" (`AIDecisionTester`) ويحتوي:
+
+- **أصول اختبار ثابتة:** BTC, ETH, أرامكو, الراجحي, الذهب — تعرض السعر/RSI/MA20/MA50/الاتجاه/الدعم/المقاومة/المعنويات/المخاطر/القرار/الثقة/وقف الخسارة/جني الربح.
+- **زر "إعادة تحليل جميع الأصول"** يعيد تشغيل `generateTradingDecision` لكل أصل ويظهر toast بالتحديث.
+- **اختبار سيناريوهات** (5): هبوط حاد، صعود قوي، تذبذب عالي، إشارات متضاربة، كسر وقف الخسارة. كل بطاقة تعرض القرار + السبب + هل سيتم إنشاء أمر Auto Trading Simulation أم لا.
+- **سجل قرارات AI** (`decisionLog` في `autoTrading.ts`): الأصل، القرار، الثقة، المخاطر، المصدر Live/Mock، الوقت، هل تم إنشاء أمر، سبب الرفض إن وجد.
+
+### قواعد الأمان (Safety Rules)
+
+مطبقة داخل `tryCreateOrderFromDecision`:
+
+1. **STOP_LOSS له أولوية على أي قرار آخر** — يُنشأ دائماً (Paper) حتى لو كان النظام معطلاً.
+2. لا يُنشأ أمر BUY على بيانات تجريبية إلا إذا فعّل المستخدم `allowMockSimulation` (Toggle داخل الـ QA).
+3. لا يُنشأ أمر إذا `confidence < minConfidence`.
+4. لا يُنشأ أمر إذا `riskLevel = HIGH`.
+5. لا يُنشأ أمر إذا تم بلوغ `dailyLossLimit`.
+6. لا يُنشأ أمر إذا `auto_trading_disabled` أو الأصل خارج قائمة `allowedAssets`.
+
+أسباب الرفض موحّدة في `REJECT_REASONS_AR` وتظهر في السجل + toasts.
+
+### حالة System Status بعد هذه المرحلة
+
+- AI Decision Testing: **Active**
+- Safety Rules: **Active**
+- Paper Trading: **Simulation Only**
