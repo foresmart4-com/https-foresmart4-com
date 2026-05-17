@@ -5,11 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
 import { DataStatusBadge, type DataStatus } from "@/components/DataStatusBadge";
-import { useAutoTrading } from "@/lib/autoTrading";
+import { useAutoTrading, ordersToCSV } from "@/lib/autoTrading";
 import { useWatchlist } from "@/lib/watchlistStore";
 import { computePortfolioRisk } from "@/lib/portfolioRisk";
-import { useJournal } from "@/lib/tradingJournal";
-import { Activity, Download, PlayCircle, Database, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { useJournal, journalToCSV, logEvent } from "@/lib/tradingJournal";
+import { Activity, Download, PlayCircle, Database, AlertTriangle, CheckCircle2, FileJson, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 
 type Source = {
