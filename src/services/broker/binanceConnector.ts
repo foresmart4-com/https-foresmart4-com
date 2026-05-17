@@ -60,12 +60,12 @@ export async function placeOrder(input: {
 }
 
 export async function cancelOrder(orderId: string, symbol: string, mode: BrokerMode = DEFAULT_MODE): Promise<BrokerOrder> {
-  try { return await callBroker("cancel", { orderId, symbol, mode }); }
+  try { return await callBroker<BrokerOrder>("cancel", { orderId, symbol, mode }); }
   catch { return { id: orderId, symbol, side: "BUY", type: "MARKET", qty: 0, status: "CANCELED", ts: Date.now() }; }
 }
 
 export async function getOrderStatus(orderId: string, symbol: string, mode: BrokerMode = DEFAULT_MODE): Promise<BrokerOrder> {
-  try { return await callBroker("status", { orderId, symbol, mode }); }
+  try { return await callBroker<BrokerOrder>("status", { orderId, symbol, mode }); }
   catch { return { id: orderId, symbol, side: "BUY", type: "MARKET", qty: 0, status: "NEW", ts: Date.now() }; }
 }
 
