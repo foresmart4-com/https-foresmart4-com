@@ -138,6 +138,52 @@ export function calcTransferFee(amountSar: number): number {
 }
 export const MONTHLY_WALLET_FEE_PCT = 0.001; // 0.1%
 
+// Per-asset P&L (mock)
+export type AssetPnl = {
+  symbol: string;
+  name_ar: string;
+  name_en: string;
+  quantity: number;
+  avgCost: number;
+  lastPrice: number;
+  currency: string;
+};
+export const assetPnlMock: AssetPnl[] = [
+  { symbol: "2222.SR", name_ar: "أرامكو السعودية", name_en: "Saudi Aramco",  quantity: 320, avgCost: 26.10, lastPrice: 28.40, currency: "SAR" },
+  { symbol: "1120.SR", name_ar: "الراجحي",         name_en: "Al Rajhi Bank", quantity: 80,  avgCost: 88.30, lastPrice: 92.10, currency: "SAR" },
+  { symbol: "NVDA",    name_ar: "إنفيديا",         name_en: "NVIDIA",        quantity: 12,  avgCost: 118.40, lastPrice: 142.20, currency: "USD" },
+  { symbol: "BTC",     name_ar: "بتكوين",          name_en: "Bitcoin",       quantity: 0.18, avgCost: 67200, lastPrice: 64800, currency: "USD" },
+  { symbol: "XAU",     name_ar: "الذهب",           name_en: "Gold (oz)",     quantity: 4,    avgCost: 2310,  lastPrice: 2418,  currency: "USD" },
+];
+
+// Deposit history (mock)
+export type DepositRecord = {
+  id: string;
+  date: string;
+  amountSar: number;
+  method: "payment_link" | "manual_bank" | "mada_visa_mc" | "moyasar" | "paytabs" | "tap";
+  status: "review" | "completed" | "rejected";
+  reference?: string;
+  notes?: string;
+};
+export const depositHistoryMock: DepositRecord[] = [
+  { id: "DP-1042", date: "2026-05-12", amountSar: 1500, method: "mada_visa_mc",  status: "completed", reference: "MYS-22841" },
+  { id: "DP-1041", date: "2026-05-08", amountSar: 800,  method: "manual_bank",  status: "completed", reference: "BANK-99812" },
+  { id: "DP-1040", date: "2026-05-05", amountSar: 2500, method: "payment_link", status: "review" },
+  { id: "DP-1039", date: "2026-04-29", amountSar: 500,  method: "manual_bank",  status: "rejected",  notes: "إيصال غير واضح" },
+];
+
+// Stripe lookup keys to wire later (do NOT enable live payments yet).
+// Configure these in Stripe Dashboard → Products → add lookup_key:
+export const STRIPE_LOOKUP_KEYS = [
+  "quarterly_sar",
+  "semi_annual_sar",
+  "annual_sar",
+  "pro_quarterly_sar",
+  "pro_semi_annual_sar",
+  "pro_annual_sar",
+] as const;
+
 // AI analyst canned answers (mock)
 export const analystStarters = [
   { q_ar: "حلّل السوق السعودي اليوم",   q_en: "Analyze the Saudi market today" },
