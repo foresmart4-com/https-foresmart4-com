@@ -25,6 +25,7 @@ import { TacticalExecutionPanel } from "@/components/dashboard/TacticalExecution
 import { PrecisionPanel } from "@/components/dashboard/PrecisionPanel";
 import { AutonomousExecutionPanel } from "@/components/dashboard/AutonomousExecutionPanel";
 import { MonitoringCommandCenter } from "@/components/dashboard/MonitoringCommandCenter";
+import { SecurityCommandCenter } from "@/components/dashboard/SecurityCommandCenter";
 import { useAIMarketAnalyst, useAIMarketInsights } from "@/hooks/useAIBrain";
 import type { AssetKey } from "@/services/market/marketData";
 
@@ -454,6 +455,8 @@ function AIDashboardPage() {
         <AutonomousExecutionPanel data={data} ar={ar} />
 
         <MonitoringCommandCenter data={data} ar={ar} />
+
+        <SecurityCommandCenter data={data} ar={ar} />
 
 
 
