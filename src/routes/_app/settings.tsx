@@ -1,15 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useAccess } from "@/lib/use-access";
 import { supabase } from "@/integrations/supabase/client";
+import { getMySubscription } from "@/lib/payments.functions";
+import { STRIPE_LOOKUP_KEYS } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Settings as SettingsIcon, Globe2, User as UserIcon, Key, Crown, Wallet,
-  Building, Link2, Bell, LogOut, ChevronRight, Globe, ShieldAlert,
+  Building, Link2, Bell, LogOut, ChevronRight, Globe, ShieldAlert, ArrowDownToLine, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,6 +28,8 @@ function SettingsPage() {
   const { isAdmin } = useAccess();
   const navigate = useNavigate();
   const [currency, setCurrency] = useState("USD");
+  const subFn = useServerFn(getMySubscription);
+  const { data: sub } = useQuery({ queryKey: ["my-sub-settings"], queryFn: () => subFn() });
 
   useEffect(() => {
     if (!user) return;
@@ -46,6 +53,7 @@ function SettingsPage() {
     { to: "/profile", icon: Key, label: t("apiKeys"), desc: lang === "ar" ? "مفاتيح Alpha Vantage و Twelve Data وغيرها" : "Alpha Vantage, Twelve Data and others" },
     { to: "/subscription", icon: Crown, label: lang === "ar" ? "الاشتراك والفوترة" : "Subscription & Billing", desc: lang === "ar" ? "إدارة خطة الاشتراك وطرق الدفع" : "Manage your plan and payment methods" },
     { to: "/wallet", icon: Wallet, label: lang === "ar" ? "المحفظة" : "Wallet", desc: lang === "ar" ? "الرصيد والمعاملات" : "Balance and transactions" },
+    { to: "/deposit", icon: ArrowDownToLine, label: lang === "ar" ? "الإيداع" : "Deposit", desc: lang === "ar" ? "إنشاء طلب إيداع وعرض السجل" : "Create deposit request and view history" },
     { to: "/bank-accounts", icon: Building, label: lang === "ar" ? "الحسابات البنكية" : "Bank Accounts", desc: lang === "ar" ? "إدارة حساباتك البنكية" : "Manage your bank accounts" },
     { to: "/external-accounts", icon: Link2, label: lang === "ar" ? "الربط الخارجي" : "External Accounts", desc: lang === "ar" ? "الربط مع الوسطاء والمنصات" : "Connect brokers and platforms" },
     { to: "/alerts", icon: Bell, label: t("alerts"), desc: lang === "ar" ? "إدارة تنبيهات الأسعار" : "Manage price alerts" },
@@ -183,6 +191,71 @@ function SettingsPage() {
                 <ChevronRight className={`h-4 w-4 text-muted-foreground ${dir === "rtl" ? "rotate-180" : ""}`} />
               </Link>
             </div>
+          )}
+        </section>
+
+        {/* Subscription & trial */}
+        <section className="rounded-xl gradient-card border border-border p-5 shadow-card">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+              <Crown className="h-5 w-5 text-primary" />
+              {lang === "ar" ? "الاشتراك الحالي" : "Current subscription"}
+            </h2>
+            <Link to="/subscription"><Button size="sm" variant="outline">{lang === "ar" ? "إدارة" : "Manage"}</Button></Link>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3 text-sm">
+            <div className="rounded-lg border border-border p-3">
+              <div className="text-xs text-muted-foreground">{lang === "ar" ? "الحالة" : "Status"}</div>
+              <div className="mt-1">
+                <Badge variant={sub?.status === "active" ? "default" : "secondary"}>
+                  {sub?.status ?? (lang === "ar" ? "بدون اشتراك" : "No subscription")}
+                </Badge>
+              </div>
+            </div>
+            <div className="rounded-lg border border-border p-3">
+              <div className="text-xs text-muted-foreground">{lang === "ar" ? "نهاية التجربة المجانية" : "Trial ends"}</div>
+              <div className="mt-1 font-medium">
+                {sub?.trial_ends_at ? new Date(sub.trial_ends_at).toLocaleDateString() : "—"}
+              </div>
+            </div>
+            <div className="rounded-lg border border-border p-3">
+              <div className="text-xs text-muted-foreground">{lang === "ar" ? "نهاية الدورة" : "Period ends"}</div>
+              <div className="mt-1 font-medium">
+                {sub?.current_period_end ? new Date(sub.current_period_end).toLocaleDateString() : "—"}
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs">
+            <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+            <span>{lang === "ar"
+              ? "تشمل التجربة المجانية 14 يوم من جميع ميزات الخطة الأساسية."
+              : "Free trial includes 14 days of all Basic plan features."}</span>
+          </div>
+        </section>
+
+        {/* Payment links / deposit settings */}
+        <section className="rounded-xl gradient-card border border-border p-5 shadow-card">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+              <ArrowDownToLine className="h-5 w-5 text-primary" />
+              {lang === "ar" ? "روابط الدفع والإيداع" : "Payment links & deposits"}
+            </h2>
+            <Link to="/deposit"><Button size="sm">{lang === "ar" ? "فتح صفحة الإيداع" : "Open deposit"}</Button></Link>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {lang === "ar"
+              ? "روابط الدفع المستقبلية (Moyasar / PayTabs / Tap) ستظهر هنا فور التفعيل."
+              : "Future payment links (Moyasar / PayTabs / Tap) will appear here once enabled."}
+          </p>
+          {isAdmin && (
+            <details className="mt-3 rounded-lg border border-border bg-muted/30 p-3 text-xs">
+              <summary className="cursor-pointer font-semibold">
+                {lang === "ar" ? "Stripe lookup keys المطلوبة لاحقاً" : "Required Stripe lookup keys"}
+              </summary>
+              <ul className="mt-2 grid grid-cols-2 gap-1 font-mono text-[11px]">
+                {STRIPE_LOOKUP_KEYS.map((k) => <li key={k}>• {k}</li>)}
+              </ul>
+            </details>
           )}
         </section>
 
