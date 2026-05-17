@@ -330,3 +330,70 @@ pro_annual_sar
 - مزود أخبار + معنويات حقيقي.
 - وسيط تداول (IB/Alpaca) — لا يُربط من الواجهة أبداً.
 - Backend آمن لتخزين مفاتيح API (Lovable Cloud secrets).
+
+---
+
+## Final Operational MVP
+
+### Deposit / Withdrawal Timeline
+- أرقام مرجعية: `DEP-YYYY-####` و `WDR-YYYY-####`.
+- خط زمني مرئي: تم الإنشاء → قيد المراجعة → اعتُمد/رُفض → مكتمل.
+- أزرار: نسخ الرقم، إلغاء (إن كان قيد المراجعة).
+- تنبيه ثابت: "الإيداع والسحب يتمان بالمراجعة اليدوية حالياً ولا يوجد تحويل بنكي آلي."
+- كل عملية تُسجَّل في الدفتر الموحد عبر `logEvent({ source: "deposit" | "withdrawal" })`.
+
+### Trading Journal Event Aggregation
+- `JournalEntry` موسّعة بحقول: `source`, `status`, `eventKind`, `refId`, `confidence`, `riskLevel`, `amount`.
+- المصادر: `ai`, `auto_trading`, `watchlist`, `portfolio`, `deposit`, `withdrawal`, `backtest`, `system`, `admin`.
+- مولّدات أحداث تلقائية: تشغيل دورة محاكاة، إيقاف طارئ، تغيير وضع، فحص النظام، إجراءات الإدارة، إنشاء/إلغاء طلبات الإيداع، تحليل أصل من Watchlist.
+- فلاتر اللوحة: مصدر + حالة + win/lose + مسح الفلاتر + تصدير CSV + Empty State مع زر إنشاء حدث تجريبي.
+
+### Admin Operational Console
+- ملخصات: إجمالي إيداعات/سحوبات، معلقة/مكتملة/مرفوضة.
+- حالة النظام مع DataStatusBadge: CoinGecko / الأسهم / AI / Auto Trading / الدفع / السحب البنكي.
+- جداول قابلة للتمرير الأفقي: إيداعات، سحوبات، اشتراكات، دعوات.
+- إجراءات (اعتماد/رفض/مراجعة/تفاصيل) تُحدّث الحالة محلياً + toast + تسجيل في الدفتر.
+- لوحات إضافية: قرارات AI عالية المخاطر + آخر أوامر المحاكاة.
+
+### Data Consistency Layer
+- `logEvent(...)` نقطة مركزية لكل الأحداث.
+- التداول الآلي يدعو الدفتر تلقائياً عند: enable/disable/E-Stop/mode_change/simulation_cycle.
+- Watchlist يستدعي الدفتر عند "تحليل الآن".
+- Deposit يستدعي الدفتر عند إنشاء/إلغاء طلب.
+- Admin يستدعي الدفتر عند كل إجراء.
+
+### System Final Check + MVP Readiness Score
+- 12 فحصاً مرئياً مع شارات OK / Warn / Fail.
+- النتيجة: 0–100 مع شريط لوني + قائمة الفجوات بعد تشغيل الفحص.
+
+### Export Reports (Settings → Admin)
+- تقرير النظام JSON
+- دفتر التداول CSV
+- أوامر المحاكاة CSV
+- مخاطر المحفظة JSON
+- (كل زر يعرض toast إذا لم تكن البيانات متاحة)
+
+### Unified Status Badges (`DataStatusBadge`)
+`Live` · `Mock` · `Simulation` · `Manual Review` · `Not Connected` · `Ready Later` — مستخدمة في Markets، Wallet، AI، Watchlist، Deposit، Settings، Admin، Data Source Manager.
+
+### Safety Notices (ثابتة بصرياً)
+- AI Analyst: "التحليل مساعد ولا يعتبر توصية مالية ملزمة."
+- Auto Trading: "التداول الآلي الحالي محاكاة فقط ولا ينفذ أوامر حقيقية."
+- Deposit/Withdrawal: "تخضع للمراجعة اليدوية."
+- Data Source Manager: "المفاتيح يجب حفظها لاحقاً في Backend آمن."
+- Backtesting: "نتائج المحاكاة لا تضمن الأداء المستقبلي."
+
+### Status Map النهائي
+- **Live**: CoinGecko (Crypto).
+- **Mock**: الأسهم، الأخبار، الاقتصاد الكلي، AI engine.
+- **Simulation**: Auto Trading، Backtesting، AI orders.
+- **Manual Review**: Deposit، Withdrawal.
+- **Not Connected**: Broker API، Bank Transfer Automation، Stripe / payment webhooks، Real AI provider، Stock Market provider، News API.
+
+### يحتاج Backend لاحقاً
+- تخزين المستخدمين والعمليات وAudit Logs.
+- حفظ مفاتيح API في Lovable Cloud Secrets.
+- Webhooks (Stripe/البنك).
+- صلاحيات إنتاجية وUser Roles على جدول `user_roles`.
+- Broker Integration (IB/Alpaca) عبر server functions فقط.
+- Payment provider integration كاملة.
