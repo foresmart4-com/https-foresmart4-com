@@ -71,10 +71,21 @@ export async function getMarketIntel(keys?: AssetKey[]): Promise<MarketIntel> {
   const portfolio = buildPortfolio(quotes, signals, correlations);
   const backtest = runBacktest(quotes, signals, regime);
 
+
+  // Edge discovery layer
+  const earlyMomentum = analyzeAllEarlyMomentum(quotes, sentiment);
+  const breakouts = predictAllBreakouts(quotes);
+  const liquidity = analyzeLiquidityFlow(quotes);
+  const whales = trackWhaleActivity(quotes);
+  const rankedOpportunities = rankOpportunities(
+    quotes, signals, calibratedSignals, regime, earlyMomentum, breakouts, liquidity, whales,
+  );
+
   return {
     quotes, signals, summary, sentiment, insight, news,
     events, correlations, opportunities, reasoning, alerts,
     timeframes, regime, calibratedSignals, confidence, portfolio, backtest,
+    earlyMomentum, breakouts, liquidity, whales, rankedOpportunities,
     generatedAt: Date.now(),
   };
 }
