@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AIDecisionPanel } from "@/components/AIDecisionPanel";
 import { AutoTradingControlPanel } from "@/components/AutoTradingControlPanel";
+import { AIDecisionTester } from "@/components/AIDecisionTester";
 
 export const Route = createFileRoute("/_app/advisor")({
   component: AdvisorPage,
