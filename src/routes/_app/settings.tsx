@@ -53,6 +53,7 @@ function SettingsPage() {
     { to: "/profile", icon: Key, label: t("apiKeys"), desc: lang === "ar" ? "مفاتيح Alpha Vantage و Twelve Data وغيرها" : "Alpha Vantage, Twelve Data and others" },
     { to: "/subscription", icon: Crown, label: lang === "ar" ? "الاشتراك والفوترة" : "Subscription & Billing", desc: lang === "ar" ? "إدارة خطة الاشتراك وطرق الدفع" : "Manage your plan and payment methods" },
     { to: "/wallet", icon: Wallet, label: lang === "ar" ? "المحفظة" : "Wallet", desc: lang === "ar" ? "الرصيد والمعاملات" : "Balance and transactions" },
+    { to: "/deposit", icon: ArrowDownToLine, label: lang === "ar" ? "الإيداع" : "Deposit", desc: lang === "ar" ? "إنشاء طلب إيداع وعرض السجل" : "Create deposit request and view history" },
     { to: "/bank-accounts", icon: Building, label: lang === "ar" ? "الحسابات البنكية" : "Bank Accounts", desc: lang === "ar" ? "إدارة حساباتك البنكية" : "Manage your bank accounts" },
     { to: "/external-accounts", icon: Link2, label: lang === "ar" ? "الربط الخارجي" : "External Accounts", desc: lang === "ar" ? "الربط مع الوسطاء والمنصات" : "Connect brokers and platforms" },
     { to: "/alerts", icon: Bell, label: t("alerts"), desc: lang === "ar" ? "إدارة تنبيهات الأسعار" : "Manage price alerts" },
