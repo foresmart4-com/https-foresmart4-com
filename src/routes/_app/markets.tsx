@@ -12,6 +12,7 @@ import { AssetAnalysisDialog } from "@/components/AssetAnalysisDialog";
 import { BuyAssetDialog } from "@/components/BuyAssetDialog";
 import { Building2, Coins, DollarSign, Brain, Gem, ShoppingCart, Landmark, ExternalLink } from "lucide-react";
 import { BOND_BUY_LINKS, TREASURY_DIRECT_LINKS } from "@/lib/bond-links";
+import { FeaturedAssetsTable } from "@/components/FeaturedAssetsTable";
 
 interface SelectedAsset {
   symbol: string;
@@ -49,6 +50,8 @@ function MarketsPage() {
           {lang === "ar" ? "اضغط على \"تحليل ذكي\" بجانب أي أصل لمعرفة هل الشراء أم البيع الآن." : "Tap \"AI analysis\" next to any asset to see buy/sell verdict."}
         </p>
       </div>
+
+      <FeaturedAssetsTable />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
         <TabsList className="grid w-full max-w-4xl grid-cols-5">

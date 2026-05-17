@@ -82,11 +82,38 @@ function SettingsPage() {
               <Select value={currency} onValueChange={saveCurrency}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {["USD","EUR","GBP","JPY","SAR","AED","EGP","KWD","CHF","CAD","AUD","TRY","CNY"].map((c) => (
+                  {["SAR","USD","EUR","GBP","JPY","AED","EGP","KWD","CHF","CAD","AUD","TRY","CNY"].map((c) => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label className="mb-1.5 block">{lang === "ar" ? "درجة المخاطر المفضلة" : "Risk tolerance"}</Label>
+              <Select defaultValue="medium">
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">{lang === "ar" ? "منخفضة" : "Low"}</SelectItem>
+                  <SelectItem value="medium">{lang === "ar" ? "متوسطة" : "Medium"}</SelectItem>
+                  <SelectItem value="high">{lang === "ar" ? "مرتفعة" : "High"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="mb-1.5 block">{lang === "ar" ? "تنبيهات السوق" : "Market alerts"}</Label>
+              <Select defaultValue="on">
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="on">{lang === "ar" ? "مفعّلة" : "Enabled"}</SelectItem>
+                  <SelectItem value="off">{lang === "ar" ? "معطّلة" : "Disabled"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="rounded-lg border border-success/30 bg-success/5 p-3 text-xs">
+            <div className="font-semibold text-success">{lang === "ar" ? "حالة الدعوة والموافقة" : "Invite & approval status"}</div>
+            <div className="mt-0.5 text-muted-foreground">
+              {lang === "ar" ? "حسابك تم اعتماده من قِبَل المالك." : "Your account has been approved by the owner."}
             </div>
           </div>
         </section>
