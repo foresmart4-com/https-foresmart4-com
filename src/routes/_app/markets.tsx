@@ -13,6 +13,7 @@ import { BuyAssetDialog } from "@/components/BuyAssetDialog";
 import { Building2, Coins, DollarSign, Brain, Gem, ShoppingCart, Landmark, ExternalLink } from "lucide-react";
 import { BOND_BUY_LINKS, TREASURY_DIRECT_LINKS } from "@/lib/bond-links";
 import { FeaturedAssetsTable } from "@/components/FeaturedAssetsTable";
+import { CryptoLivePanel } from "@/components/CryptoLivePanel";
 
 interface SelectedAsset {
   symbol: string;
@@ -51,6 +52,7 @@ function MarketsPage() {
         </p>
       </div>
 
+      <CryptoLivePanel />
       <FeaturedAssetsTable />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>

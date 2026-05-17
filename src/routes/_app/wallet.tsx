@@ -15,6 +15,7 @@ import { QuickBuyPanel } from "@/components/QuickBuyPanel";
 import { AllocationPanel } from "@/components/AllocationPanel";
 import { ManualOperationForm } from "@/components/ManualOperationForm";
 import { AssetPnlPanel } from "@/components/AssetPnlPanel";
+import { WithdrawalSection } from "@/components/WithdrawalSection";
 
 export const Route = createFileRoute("/_app/wallet")({
   component: WalletPage,
@@ -230,6 +231,8 @@ function WalletPage() {
       </div>
 
       <AssetPnlPanel />
+
+      <WithdrawalSection />
 
       <QuickBuyPanel />
 
