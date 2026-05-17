@@ -280,6 +280,9 @@ function SettingsPage() {
                 { ar: "الدفع",          en: "Payments",         state: "disabled", note_ar: "Manual Review — يحتاج Stripe lookup keys", note_en: "Manual review — needs Stripe lookup keys" },
                 { ar: "التحويل البنكي", en: "Bank Transfer",    state: "ok",       note_ar: "Manual Review — مراجعة يدوية للإيداع",      note_en: "Manual review for deposits" },
                 { ar: "السحب",          en: "Withdrawals",      state: "ok",       note_ar: "مراجعة يدوية للسحب",                       note_en: "Manual review for withdrawals" },
+                { ar: "اختبار قرارات الذكاء الاصطناعي", en: "AI Decision Testing", state: "ok", note_ar: "Active — متاح داخل AI Analyst", note_en: "Active — available in AI Analyst" },
+                { ar: "قواعد الأمان",          en: "Safety Rules",     state: "ok",       note_ar: "Active — حماية مخاطر/ثقة/بيانات تجريبية", note_en: "Active — risk/confidence/mock-data guards" },
+                { ar: "التداول الورقي",        en: "Paper Trading",    state: "mock",     note_ar: "Simulation Only — لا تداول حقيقي",        note_en: "Simulation only — no real trading" },
                 { ar: "الاشتراكات",     en: "Subscriptions",    state: "mock",     note_ar: "الواجهة جاهزة — الدفع غير مفعّل",            note_en: "UI ready — payment disabled" },
               ] as const).map((row, i) => {
                 const map = {
