@@ -272,7 +272,8 @@ function SettingsPage() {
             </h2>
             <ul className="divide-y divide-border text-sm">
               {([
-                { ar: "بيانات الأسواق", en: "Market data",      state: "mock",     note_ar: "بيانات تجريبية — جاهز للربط مع API", note_en: "Mock data — ready to wire to API" },
+                { ar: "بيانات الأسواق (أسهم/سلع)", en: "Markets (stocks/commodities)", state: "mock", note_ar: "Mock — جاهز للربط (Twelve Data / Alpha Vantage)", note_en: "Mock — ready to wire (Twelve Data / Alpha Vantage)" },
+                { ar: "العملات الرقمية (CoinGecko)", en: "Crypto (CoinGecko)",            state: "ok",   note_ar: "متصل مباشرة — تحديث كل 60 ثانية",                note_en: "Live connection — refreshes every 60s" },
                 { ar: "الدفع",          en: "Payments",         state: "disabled", note_ar: "غير مفعّل — يحتاج Stripe lookup keys", note_en: "Disabled — needs Stripe lookup keys" },
                 { ar: "الإيداع",        en: "Deposits",         state: "ok",       note_ar: "يعمل كطلب مراجعة داخلي",               note_en: "Working as internal review request" },
                 { ar: "السحب",          en: "Withdrawals",      state: "disabled", note_ar: "غير مفعّل حالياً",                       note_en: "Currently disabled" },
