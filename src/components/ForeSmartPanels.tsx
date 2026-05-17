@@ -10,9 +10,9 @@ import { buildSmartAlerts } from "@/lib/smartAlerts";
 import { generateTradingDecision, type AssetContext } from "@/lib/marketIntelligence";
 import { computePortfolioRisk } from "@/lib/portfolioRisk";
 import { useJournal, addJournalEntry, journalToCSV, deleteJournalEntry } from "@/lib/tradingJournal";
-import { runSimulationCycle, useAutoTrading, ordersToCSV, setTradingMode, TRADING_MODE_PRESETS, type TradingMode } from "@/lib/autoTrading";
+import { runSimulationCycle, useAutoTrading, ordersToCSV, setTradingMode, setEnabled, emergencyStop, TRADING_MODE_PRESETS, REJECT_REASONS_AR, type TradingMode } from "@/lib/autoTrading";
 import { useWatchlist } from "@/lib/watchlistStore";
-import { AlertTriangle, BookOpen, FlaskRound, ShieldCheck, Download, Trash2, Bell, PlayCircle, Gauge } from "lucide-react";
+import { AlertTriangle, BookOpen, FlaskRound, ShieldCheck, Download, Trash2, Bell, PlayCircle, Gauge, Power, OctagonAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
