@@ -11,6 +11,7 @@ import {
   Brain, LogOut, Globe2, Menu, TrendingUp, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap, Eye, Search, Flame, CalendarDays, GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -115,6 +116,7 @@ function AppLayout() {
       </aside>
 
       <main className="flex-1 overflow-x-hidden">
+        <PaymentTestModeBanner />
         <AccessGate>
           <Outlet />
           <footer className="border-t border-border px-6 py-4 text-center text-[11px] text-muted-foreground">
