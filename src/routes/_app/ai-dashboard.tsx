@@ -24,6 +24,7 @@ import { AdaptiveIntelligencePanel } from "@/components/dashboard/AdaptiveIntell
 import { TacticalExecutionPanel } from "@/components/dashboard/TacticalExecutionPanel";
 import { PrecisionPanel } from "@/components/dashboard/PrecisionPanel";
 import { AutonomousExecutionPanel } from "@/components/dashboard/AutonomousExecutionPanel";
+import { MonitoringCommandCenter } from "@/components/dashboard/MonitoringCommandCenter";
 import { useAIMarketAnalyst, useAIMarketInsights } from "@/hooks/useAIBrain";
 import type { AssetKey } from "@/services/market/marketData";
 
@@ -451,6 +452,9 @@ function AIDashboardPage() {
         {data && <PrecisionPanel data={data} ar={ar} />}
 
         <AutonomousExecutionPanel data={data} ar={ar} />
+
+        <MonitoringCommandCenter data={data} ar={ar} />
+
 
 
         {/* News + Alert settings */}
