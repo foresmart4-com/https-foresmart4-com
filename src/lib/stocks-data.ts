@@ -10,7 +10,8 @@ export type StockRegion =
   | "japan"
   | "china"
   | "uae"
-  | "saudi";
+  | "saudi"
+  | "qatar";
 
 export interface StockQuote {
   symbol: string;
