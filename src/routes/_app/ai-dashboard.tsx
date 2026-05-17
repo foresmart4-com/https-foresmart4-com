@@ -18,6 +18,7 @@ import { ConfidenceBar, RiskHeat } from "@/components/dashboard/ConfidenceBar";
 import { LiveTicker } from "@/components/dashboard/LiveTicker";
 import { FearGreedGauge } from "@/components/dashboard/FearGreedGauge";
 import { AICommandCenter } from "@/components/dashboard/AICommandCenter";
+import { QuantPanel } from "@/components/dashboard/QuantPanel";
 import { useAIMarketAnalyst, useAIMarketInsights } from "@/hooks/useAIBrain";
 import type { AssetKey } from "@/services/market/marketData";
 
