@@ -224,7 +224,7 @@ function RegionSection({ region, items, onAnalyze, onBuy }: { region: StockRegio
             </tr>
           </thead>
           <tbody>
-            {items.map((s) => {
+            {shown.map((s) => {
               const sig = deriveSignal(s.history);
               return (
                 <tr key={s.symbol} className="border-t border-border hover:bg-muted/30">
