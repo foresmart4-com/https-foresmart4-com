@@ -164,45 +164,74 @@ export function TradingJournalPanel() {
   const [filter, setFilter] = useState<"all" | "win" | "lose">("all");
   const [source, setSource] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
+  const [actor, setActor] = useState<string>("all");
+  const [severity, setSeverity] = useState<string>("all");
+  const [linked, setLinked] = useState<string>("");
 
   const sources = Array.from(new Set(entries.map((e) => e.source).filter(Boolean))) as string[];
   const statuses = Array.from(new Set(entries.map((e) => e.status).filter(Boolean))) as string[];
+  const actors = Array.from(new Set(entries.map((e) => e.actor).filter(Boolean))) as string[];
 
   const filtered = entries.filter((e) => {
     if (filter === "win" && !((e.pnlPct ?? 0) > 0)) return false;
     if (filter === "lose" && !((e.pnlPct ?? 0) < 0)) return false;
     if (source !== "all" && e.source !== source) return false;
     if (status !== "all" && e.status !== status) return false;
+    if (actor !== "all" && e.actor !== actor) return false;
+    if (severity !== "all" && (e.severity ?? "info") !== severity) return false;
+    if (linked && !((e.linkedRefId ?? e.refId ?? "").toLowerCase().includes(linked.toLowerCase()))) return false;
     return true;
   });
 
-  const clearFilters = () => { setFilter("all"); setSource("all"); setStatus("all"); toast.success(lang === "ar" ? "تم مسح الفلاتر" : "Filters cleared"); };
+  const clearFilters = () => { setFilter("all"); setSource("all"); setStatus("all"); setActor("all"); setSeverity("all"); setLinked(""); toast.success(lang === "ar" ? "تم مسح الفلاتر" : "Filters cleared"); };
+
+  const sevCls = (s?: string) =>
+    s === "critical" ? "border-l-2 border-l-danger bg-danger/5"
+    : s === "warning" ? "border-l-2 border-l-warning bg-warning/5"
+    : "border-l-2 border-l-primary/40";
 
   return (
     <Card className="overflow-hidden">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/30 px-5 py-3">
         <div className="flex items-center gap-2">
           <BookOpen className="h-4 w-4 text-primary" />
-          <h3 className="font-display text-base font-semibold">{lang === "ar" ? "دفتر التداول الموحد" : "Unified Journal"}</h3>
+          <h3 className="font-display text-base font-semibold">{lang === "ar" ? "دفتر التداول الموحد · Audit Log" : "Unified Journal · Audit Log"}</h3>
           <Badge variant="outline" className="text-[10px]">{entries.length}</Badge>
         </div>
         <div className="flex flex-wrap gap-1">
           <Select value={source} onValueChange={setSource}>
-            <SelectTrigger className="h-7 w-32 text-xs"><SelectValue placeholder="Source" /></SelectTrigger>
+            <SelectTrigger className="h-7 w-28 text-xs"><SelectValue placeholder="Source" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{lang === "ar" ? "كل المصادر" : "All sources"}</SelectItem>
               {sources.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="h-7 w-32 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectTrigger className="h-7 w-28 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{lang === "ar" ? "كل الحالات" : "All statuses"}</SelectItem>
               {statuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={actor} onValueChange={setActor}>
+            <SelectTrigger className="h-7 w-24 text-xs"><SelectValue placeholder="Actor" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{lang === "ar" ? "أي مُنفّذ" : "Any actor"}</SelectItem>
+              {actors.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={severity} onValueChange={setSeverity}>
+            <SelectTrigger className="h-7 w-24 text-xs"><SelectValue placeholder="Sev" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{lang === "ar" ? "كل الأهمية" : "All sev"}</SelectItem>
+              <SelectItem value="info">info</SelectItem>
+              <SelectItem value="warning">warning</SelectItem>
+              <SelectItem value="critical">critical</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input value={linked} onChange={(e) => setLinked(e.target.value)} placeholder={lang === "ar" ? "ربط #" : "Linked #"} className="h-7 w-24 text-[11px]" />
           <Select value={filter} onValueChange={(v) => setFilter(v as any)}>
-            <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-7 w-20 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{lang === "ar" ? "الكل" : "All"}</SelectItem>
               <SelectItem value="win">{lang === "ar" ? "رابحة" : "Wins"}</SelectItem>
@@ -210,8 +239,9 @@ export function TradingJournalPanel() {
             </SelectContent>
           </Select>
           <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={clearFilters}>{lang === "ar" ? "مسح" : "Clear"}</Button>
-          <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => { addJournalEntry({ asset: "DEMO", type: "manual", side: "buy", entry: 100, exit: 105, pnlPct: 5, reasonIn: "تجريبي", reasonOut: "هدف", source: "portfolio", status: "portfolio" }); toast.success(lang === "ar" ? "أُضيف حدث تجريبي" : "Demo event added"); }}>+</Button>
+          <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => { addJournalEntry({ asset: "DEMO", type: "manual", side: "buy", entry: 100, exit: 105, pnlPct: 5, reasonIn: "تجريبي", reasonOut: "هدف", source: "portfolio", status: "portfolio", actor: "user", severity: "info" }); toast.success(lang === "ar" ? "أُضيف حدث تجريبي" : "Demo event added"); }}>+</Button>
           <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => { download(`journal_${Date.now()}.csv`, journalToCSV(filtered)); toast.success(lang === "ar" ? "تم تصدير الدفتر" : "Journal exported"); }}><Download className="h-3 w-3" />CSV</Button>
+          <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => { download(`audit_log_${Date.now()}.csv`, journalToCSV(filtered.filter((e) => e.actor === "admin" || e.severity === "critical" || e.severity === "warning"))); toast.success(lang === "ar" ? "تم تصدير سجل التدقيق" : "Audit log exported"); }}><Download className="h-3 w-3" />Audit</Button>
         </div>
       </header>
       {filtered.length === 0 ? (
@@ -221,34 +251,45 @@ export function TradingJournalPanel() {
           <p className="mt-1 text-xs text-muted-foreground">
             {lang === "ar" ? "ستظهر هنا قرارات AI، أوامر المحاكاة، الإيداع/السحب، وأحداث النظام تلقائياً." : "AI decisions, sim orders, deposits/withdrawals and system events appear here."}
           </p>
-          <Button size="sm" className="mt-3 gap-1" onClick={() => { addJournalEntry({ asset: "DEMO", type: "manual", side: "buy", entry: 100, exit: 105, pnlPct: 5, reasonIn: "تجريبي", reasonOut: "هدف", source: "portfolio", status: "portfolio" }); toast.success(lang === "ar" ? "أُضيف حدث تجريبي" : "Demo added"); }}>
+          <Button size="sm" className="mt-3 gap-1" onClick={() => { addJournalEntry({ asset: "DEMO", type: "manual", side: "buy", entry: 100, exit: 105, pnlPct: 5, reasonIn: "تجريبي", reasonOut: "هدف", source: "portfolio", status: "portfolio", actor: "user", severity: "info" }); toast.success(lang === "ar" ? "أُضيف حدث تجريبي" : "Demo added"); }}>
             {lang === "ar" ? "إنشاء حدث تجريبي" : "Create demo event"}
           </Button>
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-xs">
+          <table className="w-full min-w-[860px] text-xs">
             <thead className="bg-muted/20 text-muted-foreground"><tr>
+              <th className="px-2 py-1.5 text-start">JRN</th>
+              <th className="px-2 py-1.5 text-start">{lang === "ar" ? "Actor" : "Actor"}</th>
+              <th className="px-2 py-1.5 text-start">Sev</th>
               <th className="px-2 py-1.5 text-start">{lang === "ar" ? "المصدر" : "Source"}</th>
               <th className="px-2 py-1.5 text-start">{lang === "ar" ? "الحدث" : "Event"}</th>
               <th className="px-2 py-1.5 text-start">{lang === "ar" ? "الأصل" : "Asset"}</th>
-              <th className="px-2 py-1.5">{lang === "ar" ? "اتجاه" : "Side"}</th>
               <th className="px-2 py-1.5 text-end">P/L%</th>
+              <th className="px-2 py-1.5 text-start">{lang === "ar" ? "ربط" : "Linked"}</th>
               <th className="px-2 py-1.5 text-start">{lang === "ar" ? "سبب/ملاحظة" : "Reason / Note"}</th>
-              <th className="px-2 py-1.5 text-start">{lang === "ar" ? "الحالة" : "Status"}</th>
               <th className="px-2 py-1.5 text-end">{lang === "ar" ? "تاريخ" : "Date"}</th>
               <th className="px-2 py-1.5"></th>
             </tr></thead>
             <tbody>
               {filtered.map((e) => (
-                <tr key={e.id} className="border-t border-border">
+                <tr key={e.id} className={cn("border-t border-border", sevCls(e.severity))}>
+                  <td className="px-2 py-1.5 font-mono text-[10px]">{e.journalRef ?? "—"}</td>
+                  <td className="px-2 py-1.5"><Badge variant="outline" className="text-[10px]">{e.actor ?? "—"}</Badge></td>
+                  <td className="px-2 py-1.5">
+                    <Badge variant="outline" className={cn("text-[10px]",
+                      e.severity === "critical" && "border-danger/40 text-danger",
+                      e.severity === "warning" && "border-warning/40 text-warning",
+                      (!e.severity || e.severity === "info") && "border-primary/40 text-primary")}>
+                      {e.severity ?? "info"}
+                    </Badge>
+                  </td>
                   <td className="px-2 py-1.5"><Badge variant="outline" className="text-[10px]">{e.source ?? e.type}</Badge></td>
                   <td className="px-2 py-1.5 text-muted-foreground">{e.eventKind ?? e.type}</td>
                   <td className="px-2 py-1.5 font-medium">{e.asset || "—"}</td>
-                  <td className="px-2 py-1.5">{e.side}</td>
                   <td className={cn("px-2 py-1.5 text-end font-semibold", (e.pnlPct ?? 0) >= 0 ? "text-success" : "text-danger")}>{e.pnlPct?.toFixed(2) ?? "—"}</td>
+                  <td className="px-2 py-1.5 font-mono text-[10px] text-muted-foreground">{e.linkedRefId ?? e.refId ?? "—"}</td>
                   <td className="px-2 py-1.5 text-muted-foreground truncate max-w-[200px]">{e.reasonIn ?? e.notes ?? "—"}{e.reasonOut ? ` → ${e.reasonOut}` : ""}</td>
-                  <td className="px-2 py-1.5"><Badge variant="outline" className="text-[10px]">{e.status ?? "—"}</Badge></td>
                   <td className="px-2 py-1.5 text-end text-muted-foreground">{new Date(e.createdAt).toLocaleDateString()}</td>
                   <td className="px-2 py-1.5"><Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => deleteJournalEntry(e.id)}><Trash2 className="h-3 w-3" /></Button></td>
                 </tr>
