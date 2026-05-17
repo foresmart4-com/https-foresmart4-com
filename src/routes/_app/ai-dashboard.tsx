@@ -434,6 +434,9 @@ function AIDashboardPage() {
         {/* AI Command Center — Opportunities, Correlations, Events, Reasoning, Alerts */}
         {data && <AICommandCenter data={data} ar={ar} />}
 
+        {/* Quant Intelligence Layer */}
+        {data && <QuantPanel data={data} ar={ar} />}
+
         {/* News + Alert settings */}
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2">
