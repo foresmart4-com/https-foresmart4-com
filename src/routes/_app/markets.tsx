@@ -32,7 +32,7 @@ export const Route = createFileRoute("/_app/markets")({
   component: MarketsPage,
 });
 
-const REGION_ORDER: StockRegion[] = ["us", "eu", "uk", "japan", "china", "uae", "saudi"];
+const REGION_ORDER: StockRegion[] = ["us", "eu", "uk", "japan", "china", "uae", "saudi", "qatar"];
 
 function MarketsPage() {
   const { t, lang } = useI18n();
