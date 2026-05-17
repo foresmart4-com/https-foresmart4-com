@@ -160,6 +160,14 @@ export function AdminReviewPanel() {
         <span className="text-muted-foreground">{lang === "ar" ? "السحب البنكي" : "Bank"}</span><DataStatusBadge status="manual_review" />
       </div>
 
+      <ManualReviewCenter
+        deposits={deposits} withdrawals={withdrawals}
+        onAct={(kind, id, next) => {
+          if (kind === "deposit") act("deposit", deposits, setDeposits, id, next);
+          else act("withdrawal", withdrawals, setWithdrawals, id, next);
+        }}
+      />
+
       <Table title={lang === "ar" ? "طلبات الإيداع" : "Deposit requests"} kind="deposit" rows={deposits} setRows={setDeposits} />
       <Table title={lang === "ar" ? "طلبات السحب" : "Withdrawal requests"} kind="withdrawal" rows={withdrawals} setRows={setWithdrawals} />
       <Table title={lang === "ar" ? "الاشتراكات" : "Subscriptions"} kind="subscription" rows={subs} setRows={setSubs} />
