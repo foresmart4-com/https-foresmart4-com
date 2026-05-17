@@ -109,24 +109,35 @@ function StocksTab({ onAnalyze, onBuy }: { onAnalyze: (a: SelectedAsset) => void
   const { t, lang } = useI18n();
   const { data, isLoading } = useQuery({ queryKey: ["stocks"], queryFn: () => getStocksData(), refetchInterval: 120000 });
   const [selectedRegions, setSelectedRegions] = useState<StockRegion[]>([...REGION_ORDER]);
+  const [query, setQuery] = useState("");
   const stocks = data?.stocks ?? [];
   const toggle = (r: StockRegion) =>
     setSelectedRegions((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
   const allOn = selectedRegions.length === REGION_ORDER.length;
   if (isLoading) return <p className="text-muted-foreground">{t("loading")}</p>;
+  const q = query.trim().toLowerCase();
+  const total = stocks.length;
   return (
     <>
       <div className="rounded-xl gradient-card border border-border p-4 shadow-card">
-        <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-lg font-semibold">
               {lang === "ar" ? "الأسواق العالمية" : "Global Markets"}
             </h2>
             <p className="text-xs text-muted-foreground">
-              {lang === "ar" ? "اختر سوقاً واحداً أو أكثر لعرضه" : "Pick one or more markets to display"}
+              {lang === "ar"
+                ? `${total.toLocaleString()} شركة من أكبر البورصات العالمية (Mock + Live للأسهم الرئيسية)`
+                : `${total.toLocaleString()} listed companies across major exchanges (Mock + Live for headline tickers)`}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={lang === "ar" ? "بحث برمز أو اسم..." : "Search ticker or name..."}
+              className="h-8 w-44 text-xs sm:w-56"
+            />
             <Button size="sm" variant="outline" className="h-7 text-xs"
               onClick={() => setSelectedRegions(allOn ? [] : [...REGION_ORDER])}>
               {allOn
@@ -163,7 +174,11 @@ function StocksTab({ onAnalyze, onBuy }: { onAnalyze: (a: SelectedAsset) => void
         </p>
       )}
       {REGION_ORDER.filter((r) => selectedRegions.includes(r)).map((r) => {
-        const items = stocks.filter((s) => s.region === r);
+        const items = stocks.filter((s) => {
+          if (s.region !== r) return false;
+          if (!q) return true;
+          return s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q) || s.sector.toLowerCase().includes(q);
+        });
         if (items.length === 0) return null;
         return <RegionSection key={r} region={r} items={items} onAnalyze={onAnalyze} onBuy={onBuy} />;
       })}
