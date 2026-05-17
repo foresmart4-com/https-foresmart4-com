@@ -215,6 +215,9 @@ export function tryCreateOrderFromDecision(
   if (!s.enabled) return reject("auto_trading_disabled");
   if (decision.action === "HOLD") return reject("hold_no_order");
   if (decision.riskLevel === "HIGH") return reject("risk_too_high");
+  const modeMaxRisk = TRADING_MODE_PRESETS[s.tradingMode].maxRisk;
+  const rankOf = (r: TradingDecision["riskLevel"]) => ({ LOW: 1, MEDIUM: 2, HIGH: 3 }[r]);
+  if (rankOf(decision.riskLevel) > rankOf(modeMaxRisk)) return reject("mode_risk_exceeded");
   if (decision.confidence < s.minConfidence) return reject("below_min_confidence");
   if (dataIsMock && decision.action === "BUY" && !s.allowMockSimulation) {
     return reject("mock_data_buy_blocked");
@@ -229,6 +232,34 @@ export function tryCreateOrderFromDecision(
   emit();
   logDecision(decision, source, true);
   return { ok: true, order };
+}
+
+export type CycleReport = {
+  analyzed: number;
+  created: number;
+  rejected: number;
+  reasons: Record<string, number>;
+};
+
+export function runSimulationCycle(decisions: TradingDecision[], dataIsMock = true): CycleReport {
+  const reasons: Record<string, number> = {};
+  let created = 0, rejected = 0;
+  for (const d of decisions) {
+    const r = tryCreateOrderFromDecision(d, dataIsMock);
+    if (r.ok) created++;
+    else { rejected++; reasons[r.reason] = (reasons[r.reason] ?? 0) + 1; }
+  }
+  return { analyzed: decisions.length, created, rejected, reasons };
+}
+
+export function ordersToCSV(orders: AutoTradeOrder[]): string {
+  const header = "id,asset,category,action,price,amount,quantity,confidence,status,reason,createdAt";
+  const esc = (v: any) => v == null ? "" : `"${String(v).replace(/"/g, '""')}"`;
+  const body = orders.map((o) => [
+    o.id, o.asset, o.category, o.action, o.price, o.amount, o.quantity,
+    o.confidence, o.status, o.reason, new Date(o.createdAt).toISOString(),
+  ].map(esc).join(",")).join("\n");
+  return `${header}\n${body}`;
 }
 
 function buildOrder(decision: TradingDecision, dataIsMock: boolean, mode: AutoTradingSettings["mode"]): AutoTradeOrder {
