@@ -58,7 +58,7 @@ export function evaluateTiming(
     ? Math.round(breakout.squeeze * 0.5 + breakout.pressure * 0.3 + (breakout.direction === "neutral" ? 0 : 15))
     : 30;
 
-  const highImpactNews = events.filter((e) => e.impact === "high").length;
+  const highImpactNews = events.filter((e) => e.strength >= 70 || e.urgency >= 70).length;
   const newsRisk = Math.min(100, highImpactNews * 28 + (events.length > 4 ? 10 : 0));
 
   const noise = Math.min(100, Math.round(volatilitySpike * 0.5 + (100 - liquidityScore) * 0.4));
