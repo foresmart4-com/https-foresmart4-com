@@ -232,6 +232,8 @@ function WalletPage() {
 
       <AssetPnlPanel />
 
+      <WithdrawalSection />
+
       <QuickBuyPanel />
 
       <Card className="overflow-hidden">
