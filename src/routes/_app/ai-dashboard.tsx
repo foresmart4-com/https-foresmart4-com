@@ -15,6 +15,8 @@ import { useI18n } from "@/lib/i18n";
 import { useMarketIntel } from "@/hooks/useMarketIntel";
 import { AnimatedNumber } from "@/components/dashboard/AnimatedNumber";
 import { ConfidenceBar, RiskHeat } from "@/components/dashboard/ConfidenceBar";
+import { LiveTicker } from "@/components/dashboard/LiveTicker";
+import { FearGreedGauge } from "@/components/dashboard/FearGreedGauge";
 import type { AssetKey } from "@/services/market/marketData";
 
 export const Route = createFileRoute("/_app/ai-dashboard")({
@@ -83,7 +85,7 @@ function AIDashboardPage() {
   const ar = lang === "ar";
   const [alerts, setAlerts] = useState({ enabled: true, signals: true, news: true, highRisk: false });
 
-  const { data, isLoading, isFetching, refetch, dataUpdatedAt } = useMarketIntel(undefined, 60_000);
+  const { data, isLoading, isFetching, refetch, dataUpdatedAt, isError } = useMarketIntel(undefined, 30_000);
 
   const overviewQuotes = useMemo(
     () => (data?.quotes ?? []).filter((q) => OVERVIEW_KEYS.includes(q.key)),
@@ -154,6 +156,38 @@ function AIDashboardPage() {
             </div>
           </div>
         </GlassCard>
+
+        {/* Live ticker */}
+        <LiveTicker quotes={data?.quotes ?? []} />
+
+        {isError && (
+          <GlassCard className="border-danger/40 p-3 text-sm text-danger">
+            {ar ? "تعذّر الاتصال ببعض مصادر البيانات — يتم استخدام بيانات احتياطية." : "Some market sources are unavailable — using fallback data."}
+          </GlassCard>
+        )}
+
+        {/* Fear & Greed + AI Insight */}
+        {data && (
+          <div className="grid gap-4 lg:grid-cols-3">
+            <GlassCard className="p-5">
+              <FearGreedGauge sentiment={data.sentiment} ar={ar} />
+            </GlassCard>
+            <GlassCard className="p-5 lg:col-span-2">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-accent to-primary text-primary-foreground shadow-glow">
+                  <Sparkles className="h-4 w-4" />
+                </span>
+                <div>
+                  <h3 className="font-display text-base font-bold">{data.insight.title}</h3>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {data.insight.model === "lovable-ai" ? "Lovable AI" : (ar ? "تحليل محلي" : "On-device heuristic")}
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm leading-relaxed text-muted-foreground">{data.insight.body}</p>
+            </GlassCard>
+          </div>
+        )}
 
         {/* Overview cards */}
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
