@@ -51,8 +51,8 @@ function AdvisorPage() {
   };
 
   const suggestions = lang === "ar"
-    ? ["هل أشتري الذهب الآن؟", "ما توقعك للبتكوين هذا الأسبوع؟", "كيف تؤثر التوترات الجيوسياسية على النفط؟", "خطة استثمار بـ 5000$ لمدة 6 أشهر"]
-    : ["Should I buy gold now?", "BTC outlook this week?", "How do geopolitical tensions affect oil?", "$5k investment plan for 6 months"];
+    ? ["حلّل السوق السعودي اليوم", "قارن بين الذهب وناسداك", "ما مخاطر شراء أرامكو؟", "اقترح توزيع محفظة متوازن"]
+    : ["Analyze the Saudi market today", "Compare Gold vs Nasdaq", "What are the risks of buying Aramco?", "Suggest a balanced portfolio allocation"];
 
   return (
     <div className="container mx-auto max-w-6xl p-6">
@@ -67,11 +67,15 @@ function AdvisorPage() {
           <div className="flex-1">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
               <Sparkles className="h-3.5 w-3.5" />
-              {lang === "ar" ? "ذكاء استثماري متقدم" : "Advanced Investment AI"}
+              ForeSmart AI Analyst
             </div>
             <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">
               <span className="text-gradient">{t("advisor")}</span>
             </h1>
+            <div className="mt-3 inline-flex items-center gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-1 text-[11px] text-warning">
+              <AlertTriangle className="h-3 w-3" />
+              {lang === "ar" ? "التحليل مساعد ولا يعتبر توصية مالية ملزمة." : "Analysis is assistive only — not binding financial advice."}
+            </div>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               {lang === "ar"
                 ? "إجابات مرتبة على شكل جدول زمني — قصير، متوسط، وطويل المدى — مع توصيات شراء/بيع، مستويات دخول، وقف خسارة وأهداف ربح."

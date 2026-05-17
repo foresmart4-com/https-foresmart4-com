@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine, Building, Plus, AlertCircle, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuickBuyPanel } from "@/components/QuickBuyPanel";
+import { AllocationPanel } from "@/components/AllocationPanel";
+import { ManualOperationForm } from "@/components/ManualOperationForm";
 
 export const Route = createFileRoute("/_app/wallet")({
   component: WalletPage,
@@ -217,6 +219,11 @@ function WalletPage() {
           <div className="mysr-form" />
         </Card>
       )}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <AllocationPanel />
+        <ManualOperationForm />
+      </div>
 
       <QuickBuyPanel />
 
