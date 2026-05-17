@@ -175,35 +175,67 @@ function DepositPage() {
         <header className="border-b border-border bg-muted/30 px-5 py-3 font-semibold">
           {lang === "ar" ? "طلبات الإيداع السابقة" : "Previous deposit requests"}
         </header>
-        <table className="w-full text-sm">
-          <thead className="bg-muted/20 text-xs uppercase text-muted-foreground">
-            <tr>
-              <th className="px-4 py-2 text-start">{lang === "ar" ? "الرقم" : "ID"}</th>
-              <th className="px-4 py-2 text-start">{lang === "ar" ? "التاريخ" : "Date"}</th>
-              <th className="px-4 py-2 text-start">{lang === "ar" ? "الطريقة" : "Method"}</th>
-              <th className="px-4 py-2 text-end">{lang === "ar" ? "المبلغ" : "Amount"}</th>
-              <th className="px-4 py-2 text-end">{lang === "ar" ? "الرسوم" : "Fee"}</th>
-              <th className="px-4 py-2 text-end">{lang === "ar" ? "الصافي" : "Net"}</th>
-              <th className="px-4 py-2 text-end">{lang === "ar" ? "الحالة" : "Status"}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.map((r) => {
-              const f = calcTransferFee(r.amountSar);
-              return (
-                <tr key={r.id} className="border-t border-border">
-                  <td className="px-4 py-2 font-mono text-xs">{r.id}</td>
-                  <td className="px-4 py-2 text-xs text-muted-foreground">{r.date}</td>
-                  <td className="px-4 py-2 text-xs">{methodLabel(r.method)}</td>
-                  <td className="px-4 py-2 text-end">{r.amountSar.toLocaleString()} SAR</td>
-                  <td className="px-4 py-2 text-end text-danger">-{f}</td>
-                  <td className="px-4 py-2 text-end font-medium text-success">{(r.amountSar - f).toLocaleString()}</td>
-                  <td className="px-4 py-2 text-end">{statusBadge(r.status, lang as "ar" | "en")}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[820px] text-sm">
+            <thead className="bg-muted/20 text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="px-4 py-2 text-start">{lang === "ar" ? "الرقم" : "Ref"}</th>
+                <th className="px-4 py-2 text-start">{lang === "ar" ? "التاريخ" : "Date"}</th>
+                <th className="px-4 py-2 text-start">{lang === "ar" ? "الطريقة" : "Method"}</th>
+                <th className="px-4 py-2 text-end">{lang === "ar" ? "المبلغ" : "Amount"}</th>
+                <th className="px-4 py-2 text-end">{lang === "ar" ? "الرسوم" : "Fee"}</th>
+                <th className="px-4 py-2 text-end">{lang === "ar" ? "الصافي" : "Net"}</th>
+                <th className="px-4 py-2 text-start">{lang === "ar" ? "المسار" : "Timeline"}</th>
+                <th className="px-4 py-2 text-end">{lang === "ar" ? "الحالة" : "Status"}</th>
+                <th className="px-4 py-2 text-end">{lang === "ar" ? "إجراء" : "Action"}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map((r) => {
+                const f = calcTransferFee(r.amountSar);
+                const steps: { ar: string; en: string; on: boolean }[] = [
+                  { ar: "تم الإنشاء", en: "Created", on: true },
+                  { ar: "قيد المراجعة", en: "Under review", on: r.status !== "rejected" },
+                  { ar: r.status === "rejected" ? "مرفوض" : "اعتُمد", en: r.status === "rejected" ? "Rejected" : "Approved", on: r.status === "completed" || r.status === "rejected" },
+                  { ar: "مكتمل", en: "Completed", on: r.status === "completed" },
+                ];
+                return (
+                  <tr key={r.id} className="border-t border-border">
+                    <td className="px-4 py-2 font-mono text-xs">{r.id}</td>
+                    <td className="px-4 py-2 text-xs text-muted-foreground">{r.date}</td>
+                    <td className="px-4 py-2 text-xs">{methodLabel(r.method)}</td>
+                    <td className="px-4 py-2 text-end">{r.amountSar.toLocaleString()} SAR</td>
+                    <td className="px-4 py-2 text-end text-danger">-{f}</td>
+                    <td className="px-4 py-2 text-end font-medium text-success">{(r.amountSar - f).toLocaleString()}</td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center gap-1">
+                        {steps.map((s, i) => (
+                          <span key={i} className="flex items-center gap-1">
+                            <span className={cn("h-2 w-2 rounded-full", s.on ? (r.status === "rejected" && i >= 2 ? "bg-danger" : "bg-success") : "bg-muted")} title={lang === "ar" ? s.ar : s.en} />
+                            {i < steps.length - 1 && <span className={cn("h-px w-3", s.on ? "bg-success/60" : "bg-muted")} />}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 text-end">{statusBadge(r.status, lang as "ar" | "en")}</td>
+                    <td className="px-4 py-2 text-end">
+                      <div className="inline-flex gap-1">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" title={lang === "ar" ? "نسخ الرقم" : "Copy ref"} onClick={() => copyRef(r.id)}>
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                        {r.status === "review" && (
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-danger" title={lang === "ar" ? "إلغاء الطلب" : "Cancel"} onClick={() => cancelRequest(r.id)}>
+                            <Ban className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </Card>
     </div>
   );
