@@ -24,7 +24,7 @@ const schema = z.object({
   notes: z.string().trim().max(1000).optional().or(z.literal("")),
 });
 
-export function InterestForm() {
+export function InterestForm({ onSuccess }: { onSuccess?: () => void } = {}) {
   const { lang } = useI18n();
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -60,6 +60,7 @@ export function InterestForm() {
     }
     setDone(true);
     toast.success(t("تم استلام طلبك! سنرسل لك رابط الدعوة قريباً", "Received! We'll email your invite soon"));
+    onSuccess?.();
   }
 
   if (done) {
@@ -90,8 +91,8 @@ export function InterestForm() {
         </h3>
         <p className="mt-1 text-sm text-muted-foreground">
           {t(
-            "تجربة مجانية 14 يوم. ثم 3 أشهر بـ70 ريال، 6 أشهر بـ100 ريال، أو سنة كاملة بـ160 ريال فقط.",
-            "14-day free trial. Then 3 mo / 70 SAR, 6 mo / 100 SAR, or 12 mo / 160 SAR.",
+            "تجربة مجانية 14 يوم. ثم 3 أشهر بـ100 ريال، 6 أشهر بـ150 ريال، أو سنة كاملة بـ200 ريال.",
+            "14-day free trial. Then 3 mo / 100 SAR, 6 mo / 150 SAR, or 12 mo / 200 SAR.",
           )}
         </p>
       </div>
@@ -144,13 +145,13 @@ export function InterestForm() {
                 {t("تجربة مجانية 14 يوم", "14-day free trial")}
               </SelectItem>
               <SelectItem value="quarterly">
-                {t("3 أشهر — 70 ريال", "3 months — 70 SAR")}
+                {t("3 أشهر — 100 ريال", "3 months — 100 SAR")}
               </SelectItem>
               <SelectItem value="semi_annual">
-                {t("6 أشهر — 100 ريال", "6 months — 100 SAR")}
+                {t("6 أشهر — 150 ريال", "6 months — 150 SAR")}
               </SelectItem>
               <SelectItem value="annual">
-                {t("سنة كاملة — 160 ريال", "12 months — 160 SAR")}
+                {t("سنة كاملة — 200 ريال", "12 months — 200 SAR")}
               </SelectItem>
             </SelectContent>
           </Select>
