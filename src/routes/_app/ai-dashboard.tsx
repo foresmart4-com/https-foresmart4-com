@@ -18,6 +18,7 @@ import { ConfidenceBar, RiskHeat } from "@/components/dashboard/ConfidenceBar";
 import { LiveTicker } from "@/components/dashboard/LiveTicker";
 import { FearGreedGauge } from "@/components/dashboard/FearGreedGauge";
 import { AICommandCenter } from "@/components/dashboard/AICommandCenter";
+import { QuantPanel } from "@/components/dashboard/QuantPanel";
 import { useAIMarketAnalyst, useAIMarketInsights } from "@/hooks/useAIBrain";
 import type { AssetKey } from "@/services/market/marketData";
 
@@ -432,6 +433,9 @@ function AIDashboardPage() {
 
         {/* AI Command Center — Opportunities, Correlations, Events, Reasoning, Alerts */}
         {data && <AICommandCenter data={data} ar={ar} />}
+
+        {/* Quant Intelligence Layer */}
+        {data && <QuantPanel data={data} ar={ar} />}
 
         {/* News + Alert settings */}
         <div className="grid gap-4 lg:grid-cols-3">
