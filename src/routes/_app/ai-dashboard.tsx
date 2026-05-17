@@ -18,6 +18,7 @@ import { ConfidenceBar, RiskHeat } from "@/components/dashboard/ConfidenceBar";
 import { LiveTicker } from "@/components/dashboard/LiveTicker";
 import { FearGreedGauge } from "@/components/dashboard/FearGreedGauge";
 import { AICommandCenter } from "@/components/dashboard/AICommandCenter";
+import { useAIMarketAnalyst, useAIMarketInsights } from "@/hooks/useAIBrain";
 import type { AssetKey } from "@/services/market/marketData";
 
 export const Route = createFileRoute("/_app/ai-dashboard")({
@@ -87,6 +88,10 @@ function AIDashboardPage() {
   const [alerts, setAlerts] = useState({ enabled: true, signals: true, news: true, highRisk: false });
 
   const { data, isLoading, isFetching, refetch, dataUpdatedAt, isError } = useMarketIntel(undefined, 30_000);
+  const aiAnalyst = useAIMarketAnalyst(data, ar ? "ar" : "en");
+  const aiInsights = useAIMarketInsights(data, ar ? "ar" : "en");
+  const analyst = aiAnalyst.data?.data ?? null;
+  const liveInsights = aiInsights.data?.data?.insights ?? [];
 
   const overviewQuotes = useMemo(
     () => (data?.quotes ?? []).filter((q) => OVERVIEW_KEYS.includes(q.key)),
@@ -176,16 +181,71 @@ function AIDashboardPage() {
             <GlassCard className="p-5 lg:col-span-2">
               <div className="mb-2 flex items-center gap-2">
                 <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-accent to-primary text-primary-foreground shadow-glow">
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkles className={cn("h-4 w-4", aiAnalyst.isFetching && "animate-pulse")} />
                 </span>
-                <div>
-                  <h3 className="font-display text-base font-bold">{data.insight.title}</h3>
+                <div className="flex-1">
+                  <h3 className="font-display text-base font-bold">
+                    {analyst ? (ar ? "نظرة المحلل المؤسسي" : "Institutional Market Outlook") : data.insight.title}
+                  </h3>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    {data.insight.model === "lovable-ai" ? "Lovable AI" : (ar ? "تحليل محلي" : "On-device heuristic")}
+                    {analyst ? "Lovable AI · GPT-class reasoning" : aiAnalyst.isFetching ? (ar ? "يفكر..." : "Thinking...") : (ar ? "تحليل محلي" : "On-device heuristic")}
                   </p>
                 </div>
+                {analyst && (
+                  <Badge variant="outline" className="border-primary/40 text-[10px]">
+                    {ar ? "ثقة" : "Conf"} {analyst.confidence}%
+                  </Badge>
+                )}
               </div>
-              <p className="text-sm leading-relaxed text-muted-foreground">{data.insight.body}</p>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {analyst?.outlook ?? data.insight.body}
+              </p>
+              {analyst && (
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {analyst.bullishShifts?.length > 0 && (
+                    <div className="rounded-lg border border-success/30 bg-success/5 p-2.5">
+                      <div className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-success">
+                        <TrendingUp className="h-3 w-3" /> {ar ? "تحولات صاعدة" : "Bullish shifts"}
+                      </div>
+                      <ul className="space-y-0.5 text-xs text-muted-foreground">
+                        {analyst.bullishShifts.slice(0, 3).map((s, i) => <li key={i}>· {s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {analyst.bearishShifts?.length > 0 && (
+                    <div className="rounded-lg border border-danger/30 bg-danger/5 p-2.5">
+                      <div className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-danger">
+                        <TrendingDown className="h-3 w-3" /> {ar ? "تحولات هابطة" : "Bearish shifts"}
+                      </div>
+                      <ul className="space-y-0.5 text-xs text-muted-foreground">
+                        {analyst.bearishShifts.slice(0, 3).map((s, i) => <li key={i}>· {s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {analyst.riskAnalysis && (
+                    <div className="rounded-lg border border-warning/30 bg-warning/5 p-2.5 sm:col-span-2">
+                      <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-warning">
+                        {ar ? "تحليل المخاطر / دوران رأس المال" : "Risk · Capital rotation"}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{analyst.riskAnalysis} {analyst.capitalRotation}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              {liveInsights.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {liveInsights.slice(0, 5).map((ins, i) => (
+                    <span key={i} className={cn(
+                      "rounded-full border px-2.5 py-1 text-[11px]",
+                      ins.tone === "bullish" ? "border-success/40 bg-success/10 text-success" :
+                      ins.tone === "bearish" ? "border-danger/40 bg-danger/10 text-danger" :
+                      "border-border/50 bg-muted/20 text-muted-foreground",
+                    )}>
+                      {ins.asset ? <span className="font-bold">{ins.asset}: </span> : null}{ins.text}
+                    </span>
+                  ))}
+                </div>
+              )}
             </GlassCard>
           </div>
         )}
