@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowDownToLine, Wallet, ShieldCheck, Clock, CheckCircle2, XCircle, Info } from "lucide-react";
+import { ArrowDownToLine, Wallet, ShieldCheck, Clock, CheckCircle2, XCircle, Info, Copy, Ban } from "lucide-react";
 import { toast } from "sonner";
 import { calcTransferFee, depositHistoryMock, type DepositRecord } from "@/lib/mock-data";
+import { logEvent } from "@/lib/tradingJournal";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/deposit")({ component: DepositPage });
