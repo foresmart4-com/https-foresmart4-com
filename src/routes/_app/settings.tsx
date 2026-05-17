@@ -321,6 +321,7 @@ function SettingsPage() {
         {/* Admin tools */}
         {isAdmin && <PaymentLinksSettings />}
         {isAdmin && <AdminReviewPanel />}
+        {isAdmin && <SystemReadinessPanel />}
 
         {/* Danger zone */}
         <section className="rounded-xl border border-border p-5">
