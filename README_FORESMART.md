@@ -183,3 +183,58 @@ pro_annual_sar
 - **مزود دفع مفعّل** (Moyasar / Stripe / PayTabs / Tap) + Webhooks.
 - **مزود بيانات أسواق** للأسهم والسلع (Twelve Data / Alpha Vantage / Finnhub).
 - **AI حقيقي** عبر Lovable AI Gateway لاستبدال `generateMockAnalysis`.
+
+## Market Intelligence Engine
+
+ملف: `src/lib/marketIntelligence.ts`
+
+يولّد لكل أصل تحليلاً مركّباً يجمع:
+
+- **مؤشرات فنية:** RSI, MA20, MA50, اتجاه (up/down/side), دعم/مقاومة، زخم، تقلب، إشارة حجم.
+- **معنويات أخبار (Mock):** `mockNewsSentiment` يعطي positive/neutral/negative — قابل لاحقاً للربط مع Finnhub News / NewsAPI / GDELT.
+- **اقتصاد كلي (Mock):** فائدة، تضخم، DXY، نفط، ذهب — قابل للربط لاحقاً.
+- **عوامل مخاطر:** تقلب عالي، هبوط مفاجئ، صعود مبالغ، تضارب إشارات، سيولة منخفضة.
+
+### دالة القرار `generateTradingDecision(ctx)`
+
+ترجع: `action` (BUY/SELL/HOLD/STOP_LOSS/TAKE_PROFIT), `confidence` 0-100,
+`riskLevel`, `reasonSummary`, `supportingFactors`, `warningFactors`,
+`suggestedStopLoss`, `suggestedTakeProfit`, `suggestedPositionSize %`,
+`timeHorizon`, `mode: "analysis_only"`.
+
+قواعد:
+
+- لا تعطي `BUY` إذا `riskLevel = HIGH` إلا بثقة > 85.
+- `STOP_LOSS` إذا الهبوط تجاوز حد الخسارة.
+- `TAKE_PROFIT` إذا وصل السعر للهدف مع RSI مرتفع.
+- `HOLD` عند تضارب الإشارات.
+- تنبيه ثابت: "هذا تحليل مساعد وليس توصية مالية ملزمة."
+
+## Auto Trading Simulation
+
+ملف: `src/lib/autoTrading.ts`
+
+- **Paper trading فقط.** لا ينفذ أوامر حقيقية.
+- يقرأ قرارات `generateTradingDecision` ويُنشئ `AutoTradeOrder` بحالة `simulated` أو `pending_review`.
+- إعدادات: تفعيل، أصول مسموحة، أقصى مبلغ/صفقة، حد خسارة يومي، أدنى ثقة، وضع تنفيذ (آلي/موافقة).
+- زر "إيقاف فوري" يعطل النظام ويسجل وقت الإيقاف.
+- التخزين محلي `localStorage` بمفتاح `foresmart_autotrade_v1`.
+
+## لماذا التداول الحقيقي غير مفعّل
+
+- لا يوجد ربط Broker API.
+- لا توجد طبقة backend آمنة لتنفيذ أوامر مالية.
+- البيانات (أسهم/سلع/أخبار/اقتصاد كلي) Mock في معظمها.
+- لا توجد Audit logs ولا Risk limits على مستوى الخادم.
+
+## المطلوب لاحقاً للربط مع وسيط حقيقي
+
+1. **Broker API** معتمد (مثلاً: Interactive Brokers, Alpaca, Saxo, محلي مرخّص).
+2. **API Keys** محفوظة كأسرار في `process.env` على الخادم — لا تُمرّر للواجهة.
+3. **Backend آمن** عبر TanStack `createServerFn` مع `requireSupabaseAuth`.
+4. **Database** لجدول `orders`, `executions`, `risk_limits`, `audit_logs`.
+5. **Audit Logs** لكل أمر (المستخدم، الوقت، IP، القرار، الحالة).
+6. **Risk Limits** على مستوى الخادم (ليس الواجهة فقط).
+7. **KYC/AML** ومراجعة قانونية قبل أي تنفيذ حقيقي.
+
+> جميع الأوامر الحالية في النظام **تجريبية (Simulation/Paper)** ولا تُنفّذ تداولاً حقيقياً.
