@@ -322,6 +322,7 @@ function SettingsPage() {
         {/* Admin tools */}
         {isAdmin && <PaymentLinksSettings />}
         {isAdmin && <AdminReviewPanel />}
+        <ProductionRoadmap />
         {isAdmin && <SystemReadinessPanel />}
 
         {/* Danger zone */}
