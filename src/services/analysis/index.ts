@@ -25,6 +25,10 @@ import { buildAllExitPlans, type ExitPlan } from "@/services/execution/exitEngin
 import { calculateAllPositionSizes, type PositionSizing } from "@/services/execution/positionSizing";
 import { evaluateAllTiming, type TimingReport } from "@/services/execution/timingEngine";
 import { buildAllTradePlans, type TradePlan } from "@/services/execution/tradePlanner";
+import { filterSignals, type FilteredSignal } from "@/services/precision/signalQualityFilter";
+import { rankPriorities, type PriorityItem } from "@/services/precision/priorityEngine";
+import { detectAllNoise, type NoiseReport, type NoiseSummary } from "@/services/precision/noiseReduction";
+import { scoreAllPlans, type InstitutionalScore } from "@/services/precision/institutionalScoring";
 
 export interface MarketIntel {
   quotes: MarketQuote[];
@@ -58,6 +62,12 @@ export interface MarketIntel {
   positionSizing: PositionSizing[];
   timingReports: TimingReport[];
   tradePlans: TradePlan[];
+  // Precision optimization layer
+  filteredSignals: FilteredSignal[];
+  priorities: PriorityItem[];
+  noiseReports: NoiseReport[];
+  noiseSummary: NoiseSummary;
+  institutionalScores: InstitutionalScore[];
   generatedAt: number;
 }
 
@@ -99,12 +109,19 @@ export async function getMarketIntel(keys?: AssetKey[]): Promise<MarketIntel> {
   const timingReports = evaluateAllTiming(quotes, regime, breakouts, liquidity, events);
   const tradePlans = buildAllTradePlans(quotes, calibratedSignals, regime, entryZones, exitPlans, positionSizing, timingReports);
 
+  // Precision optimization layer
+  const filteredSignals = filterSignals(calibratedSignals, timeframes, regime, sentiment, liquidity, quotes);
+  const { reports: noiseReports, summary: noiseSummary } = detectAllNoise(quotes, breakouts, liquidity, sentiment);
+  const institutionalScores = scoreAllPlans(tradePlans, filteredSignals, noiseReports, regime);
+  const priorities = rankPriorities(tradePlans, filteredSignals, regime);
+
   return {
     quotes, signals, summary, sentiment, insight, news,
     events, correlations, opportunities, reasoning, alerts,
     timeframes, regime, calibratedSignals, confidence, portfolio, backtest,
     earlyMomentum, breakouts, liquidity, whales, rankedOpportunities,
     entryZones, exitPlans, positionSizing, timingReports, tradePlans,
+    filteredSignals, priorities, noiseReports, noiseSummary, institutionalScores,
     generatedAt: Date.now(),
   };
 }
