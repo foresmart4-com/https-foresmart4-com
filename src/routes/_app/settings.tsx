@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminReviewPanel } from "@/components/AdminReviewPanel";
+import { SystemReadinessPanel } from "@/components/SystemReadinessPanel";
 import { PaymentLinksSettings } from "@/components/PaymentLinksSettings";
 
 export const Route = createFileRoute("/_app/settings")({
