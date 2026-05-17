@@ -272,13 +272,15 @@ function SettingsPage() {
             </h2>
             <ul className="divide-y divide-border text-sm">
               {([
-                { ar: "بيانات الأسواق (أسهم/سلع)", en: "Markets (stocks/commodities)", state: "mock", note_ar: "Mock — جاهز للربط (Twelve Data / Alpha Vantage)", note_en: "Mock — ready to wire (Twelve Data / Alpha Vantage)" },
-                { ar: "العملات الرقمية (CoinGecko)", en: "Crypto (CoinGecko)",            state: "ok",   note_ar: "متصل مباشرة — تحديث كل 60 ثانية",                note_en: "Live connection — refreshes every 60s" },
-                { ar: "الدفع",          en: "Payments",         state: "disabled", note_ar: "غير مفعّل — يحتاج Stripe lookup keys", note_en: "Disabled — needs Stripe lookup keys" },
-                { ar: "الإيداع",        en: "Deposits",         state: "ok",       note_ar: "يعمل كطلب مراجعة داخلي",               note_en: "Working as internal review request" },
-                { ar: "السحب",          en: "Withdrawals",      state: "disabled", note_ar: "غير مفعّل حالياً",                       note_en: "Currently disabled" },
-                { ar: "الذكاء الاصطناعي", en: "AI Analyst",     state: "mock",     note_ar: "ردود تجريبية — جاهز للربط لاحقاً",       note_en: "Mock responses — ready to connect later" },
-                { ar: "الاشتراكات",     en: "Subscriptions",    state: "mock",     note_ar: "الواجهة جاهزة — الدفع غير مفعّل",        note_en: "UI ready — payment disabled" },
+                { ar: "بيانات الأسهم (أسواق عالمية)", en: "Stock data", state: "mock", note_ar: "Mock — جاهز للربط (Twelve Data / Alpha Vantage)", note_en: "Mock — ready to wire (Twelve Data / Alpha Vantage)" },
+                { ar: "العملات الرقمية (CoinGecko)", en: "Crypto (CoinGecko)",            state: "ok",   note_ar: "متصل مباشرة — تحديث كل 60 ثانية",                note_en: "Live — refreshes every 60s" },
+                { ar: "محرك الذكاء الاصطناعي للسوق", en: "AI Market Intelligence",       state: "mock", note_ar: "Mock Engine Active — أخبار/اقتصاد كلي تجريبية", note_en: "Mock engine active — news/macro are mock" },
+                { ar: "التداول الآلي",              en: "Auto Trading",                  state: "mock", note_ar: "Simulation Only — Paper trading فقط",          note_en: "Simulation only — paper trading" },
+                { ar: "وسيط التداول",               en: "Broker API",                    state: "disabled", note_ar: "Not Connected — يحتاج ربط Broker آمن",       note_en: "Not connected — requires secure broker wiring" },
+                { ar: "الدفع",          en: "Payments",         state: "disabled", note_ar: "Manual Review — يحتاج Stripe lookup keys", note_en: "Manual review — needs Stripe lookup keys" },
+                { ar: "التحويل البنكي", en: "Bank Transfer",    state: "ok",       note_ar: "Manual Review — مراجعة يدوية للإيداع",      note_en: "Manual review for deposits" },
+                { ar: "السحب",          en: "Withdrawals",      state: "ok",       note_ar: "مراجعة يدوية للسحب",                       note_en: "Manual review for withdrawals" },
+                { ar: "الاشتراكات",     en: "Subscriptions",    state: "mock",     note_ar: "الواجهة جاهزة — الدفع غير مفعّل",            note_en: "UI ready — payment disabled" },
               ] as const).map((row, i) => {
                 const map = {
                   ok:       { Icon: CheckCircle2,  cls: "text-success",  label_ar: "يعمل",       label_en: "Operational" },
