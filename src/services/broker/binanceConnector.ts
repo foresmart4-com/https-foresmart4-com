@@ -47,7 +47,7 @@ export async function placeOrder(input: {
   const mode = input.mode ?? DEFAULT_MODE;
   const t0 = performance.now();
   try {
-    const o = await callBroker("place", { ...input, mode });
+    const o = await callBroker<BrokerOrder>("place", { ...input, mode });
     return { ...o, latencyMs: Math.round(performance.now() - t0) };
   } catch (e) {
     return {
