@@ -40,8 +40,8 @@ export const brokerCall = createServerFn({ method: "POST" })
     return simulate(data);
   });
 
-export async function callBroker(action: string, payload: Record<string, unknown>) {
-  return brokerCall({ data: { action, ...payload } as never });
+export async function callBroker<T = unknown>(action: string, payload: Record<string, unknown>): Promise<T> {
+  return (await brokerCall({ data: { action, ...payload } as never })) as T;
 }
 
 function simulate(d: z.infer<typeof ActionSchema>) {
