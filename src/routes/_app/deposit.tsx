@@ -56,14 +56,29 @@ function DepositPage() {
   const submit = () => {
     if (amt < 100) { toast.error(lang === "ar" ? "الحد الأدنى 100 ريال" : "Min 100 SAR"); return; }
     if (selectedMethod.future) { toast.info(lang === "ar" ? "بوابة قيد التفعيل لاحقاً" : "Gateway not active yet"); return; }
+    const year = new Date().getFullYear();
+    const seq = String(1000 + history.length + 1).padStart(4, "0");
+    const refId = `DEP-${year}-${seq}`;
     const rec: DepositRecord = {
-      id: "DP-" + Math.floor(1100 + Math.random() * 800),
+      id: refId,
       date: new Date().toISOString().slice(0, 10),
       amountSar: amt, method, status: "review", notes: notes || undefined,
     };
     setHistory((h) => [rec, ...h]);
     setNotes("");
-    toast.success(lang === "ar" ? `تم إنشاء طلب الإيداع ${rec.id} — قيد المراجعة` : `Deposit ${rec.id} submitted — under review`);
+    logEvent({ source: "deposit", eventKind: "created", refId, amount: amt, status: "manual_review", notes: `${methodLabel(method)} — صافي ${net}` });
+    toast.success(lang === "ar" ? `تم إنشاء طلب الإيداع ${refId} — قيد المراجعة` : `Deposit ${refId} submitted — under review`);
+  };
+
+  const copyRef = (id: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) navigator.clipboard.writeText(id);
+    toast.success(lang === "ar" ? `تم نسخ ${id}` : `Copied ${id}`);
+  };
+
+  const cancelRequest = (id: string) => {
+    setHistory((h) => h.map((r) => r.id === id ? { ...r, status: "rejected" } : r));
+    logEvent({ source: "deposit", eventKind: "cancelled", refId: id, status: "rejected", notes: "إلغاء من قبل المستخدم" });
+    toast.success(lang === "ar" ? `تم إلغاء الطلب ${id}` : `Cancelled ${id}`);
   };
 
   const methodLabel = useMemo(() => (m: Method) => {
