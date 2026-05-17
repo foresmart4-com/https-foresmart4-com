@@ -173,6 +173,9 @@ export function SystemReadinessPanel() {
           <Button size="sm" className="h-8 gap-1 text-xs" onClick={exportReport}>
             <FileJson className="h-3.5 w-3.5" />{lang === "ar" ? "تقرير النظام JSON" : "System JSON"}
           </Button>
+          <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={exportReportCSV}>
+            <FileSpreadsheet className="h-3.5 w-3.5" />{lang === "ar" ? "ملخص النظام CSV" : "System CSV"}
+          </Button>
           <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={() => {
             if (journal.length === 0) { toast.info(lang === "ar" ? "لا توجد سجلات للتصدير" : "Journal is empty"); return; }
             download(`journal_${Date.now()}.csv`, journalToCSV(journal), "text/csv");
