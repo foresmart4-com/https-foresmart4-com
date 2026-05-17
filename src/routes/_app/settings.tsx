@@ -18,6 +18,8 @@ import {
   Activity, CheckCircle2, AlertTriangle, XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { AdminReviewPanel } from "@/components/AdminReviewPanel";
+import { PaymentLinksSettings } from "@/components/PaymentLinksSettings";
 
 export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
