@@ -236,6 +236,8 @@ function WalletPage() {
 
       <RiskManagementPanel />
 
+      <PortfolioRiskDashboard />
+
       <WithdrawalSection />
 
       <QuickBuyPanel />
