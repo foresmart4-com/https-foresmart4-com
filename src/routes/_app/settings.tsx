@@ -260,6 +260,50 @@ function SettingsPage() {
           )}
         </section>
 
+        {/* System Status (admin only) */}
+        {isAdmin && (
+          <section className="rounded-xl gradient-card border border-border p-5 shadow-card">
+            <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-semibold">
+              <Activity className="h-5 w-5 text-primary" />
+              {lang === "ar" ? "حالة الأنظمة (System Status)" : "System Status"}
+              <Badge variant="outline" className="ms-2 text-[10px]">MVP</Badge>
+            </h2>
+            <ul className="divide-y divide-border text-sm">
+              {([
+                { ar: "بيانات الأسواق", en: "Market data",      state: "mock",     note_ar: "بيانات تجريبية — جاهز للربط مع API", note_en: "Mock data — ready to wire to API" },
+                { ar: "الدفع",          en: "Payments",         state: "disabled", note_ar: "غير مفعّل — يحتاج Stripe lookup keys", note_en: "Disabled — needs Stripe lookup keys" },
+                { ar: "الإيداع",        en: "Deposits",         state: "ok",       note_ar: "يعمل كطلب مراجعة داخلي",               note_en: "Working as internal review request" },
+                { ar: "السحب",          en: "Withdrawals",      state: "disabled", note_ar: "غير مفعّل حالياً",                       note_en: "Currently disabled" },
+                { ar: "الذكاء الاصطناعي", en: "AI Analyst",     state: "mock",     note_ar: "ردود تجريبية — جاهز للربط لاحقاً",       note_en: "Mock responses — ready to connect later" },
+                { ar: "الاشتراكات",     en: "Subscriptions",    state: "mock",     note_ar: "الواجهة جاهزة — الدفع غير مفعّل",        note_en: "UI ready — payment disabled" },
+              ] as const).map((row, i) => {
+                const map = {
+                  ok:       { Icon: CheckCircle2,  cls: "text-success",  label_ar: "يعمل",       label_en: "Operational" },
+                  mock:     { Icon: AlertTriangle, cls: "text-warning",  label_ar: "تجريبي",     label_en: "Mock" },
+                  disabled: { Icon: XCircle,       cls: "text-danger",   label_ar: "غير مفعّل",   label_en: "Disabled" },
+                } as const;
+                const m = map[row.state]; const Icon = m.Icon;
+                return (
+                  <li key={i} className="flex items-center justify-between gap-3 py-3">
+                    <div className="min-w-0">
+                      <div className="font-medium">{lang === "ar" ? row.ar : row.en}</div>
+                      <div className="text-xs text-muted-foreground truncate">{lang === "ar" ? row.note_ar : row.note_en}</div>
+                    </div>
+                    <span className={`inline-flex shrink-0 items-center gap-1 text-xs font-semibold ${m.cls}`}>
+                      <Icon className="h-4 w-4" />{lang === "ar" ? m.label_ar : m.label_en}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="mt-3 text-[11px] text-muted-foreground">
+              {lang === "ar"
+                ? "هذه اللوحة عرضية للمسؤول فقط، تُلخّص حالة النسخة الحالية كـ MVP قبل ربط الـ APIs الفعلية."
+                : "Admin-only overview summarizing this MVP state before wiring real APIs."}
+            </p>
+          </section>
+        )}
+
         {/* Danger zone */}
         <section className="rounded-xl border border-border p-5">
           <Button variant="outline" onClick={handleSignOut} className="w-full md:w-auto">
