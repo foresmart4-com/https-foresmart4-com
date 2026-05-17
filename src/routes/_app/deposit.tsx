@@ -78,7 +78,16 @@ function DepositPage() {
             {lang === "ar" ? "أنشئ طلب إيداع باستخدام إحدى طرق الدفع المعتمدة." : "Create a deposit request with one of the supported methods."}
           </p>
         </div>
-        <Link to="/wallet"><Button variant="outline" className="gap-2"><Wallet className="h-4 w-4" />{lang === "ar" ? "المحفظة" : "Wallet"}</Button></Link>
+        <Link to="/wallet"><Button variant="outline" className="gap-2"><Wallet className="h-4 w-4" />{lang === "ar" ? "رجوع إلى المحفظة" : "Back to Wallet"}</Button></Link>
+      </div>
+
+      <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 p-3 text-xs">
+        <Info className="h-4 w-4 shrink-0 text-warning" />
+        <span>
+          {lang === "ar"
+            ? "تنبيه: هذا طلب إيداع يخضع لمراجعة الإدارة قبل إضافته إلى رصيدك، وليس إيداعاً بنكياً فورياً. سيتم إشعارك عند اعتماد الطلب."
+            : "Notice: this is a deposit request reviewed by admin before crediting — it is not an instant bank deposit. You will be notified upon approval."}
+        </span>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
