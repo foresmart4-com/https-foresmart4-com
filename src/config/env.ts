@@ -5,9 +5,9 @@ export const env = {
   FINNHUB_API_KEY: import.meta.env.VITE_FINNHUB_API_KEY as string | undefined,
   COINGECKO_API: (import.meta.env.VITE_COINGECKO_API as string | undefined) ?? "https://api.coingecko.com/api/v3",
   NEWS_API_KEY: import.meta.env.VITE_NEWS_API_KEY as string | undefined,
-  // OPENAI_API_KEY is never exposed to the browser. AI text analysis is routed
-  // through the Lovable AI gateway via server functions instead.
-  OPENAI_API_KEY: import.meta.env.VITE_OPENAI_API_KEY as string | undefined,
+  // AI text analysis is routed through the Lovable AI gateway via server
+  // functions; no AI provider key is ever read on the client.
+
 } as const;
 
 export const hasFinnhub = () => Boolean(env.FINNHUB_API_KEY);
