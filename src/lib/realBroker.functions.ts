@@ -122,7 +122,7 @@ export const saveInvestmentPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => PlanInput.parse(i))
   .handler(async ({ data, context }) => {
-    const payload = { ...data, user_id: context.userId };
+    const payload = { ...data, user_id: context.userId } as never;
     const q = data.id
       ? supabaseAdmin.from("investment_plans").update(payload).eq("id", data.id).eq("user_id", context.userId).select().single()
       : supabaseAdmin.from("investment_plans").insert(payload).select().single();
@@ -163,7 +163,7 @@ export const logAiDecision = createServerFn({ method: "POST" })
     context: z.record(z.string(), z.unknown()).optional(),
   }).parse(i))
   .handler(async ({ data, context }) => {
-    await supabaseAdmin.from("ai_decisions").insert({ ...data, user_id: context.userId });
+    await supabaseAdmin.from("ai_decisions").insert({ ...data, user_id: context.userId } as never);
     return { ok: true };
   });
 

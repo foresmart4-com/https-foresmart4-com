@@ -13,7 +13,7 @@ import {
   type AutopilotState, type AutopilotMode,
 } from "@/services/autonomy/aiAutopilot";
 import { fetchAccount, listExecutionHistory } from "@/lib/realBroker.functions";
-import type { AnalysisState } from "@/services/analysis";
+import type { MarketIntel } from "@/services/analysis";
 
 interface AccountSnapshot {
   connected: boolean;
@@ -30,7 +30,7 @@ interface HistoryRow {
   created_at: string;
 }
 
-export function ExecutionControlCenter({ data, ar }: { data: AnalysisState | null; ar: boolean }) {
+export function ExecutionControlCenter({ data, ar }: { data: MarketIntel | null; ar: boolean }) {
   const fetchAcct = useServerFn(fetchAccount);
   const fetchHistory = useServerFn(listExecutionHistory);
 
@@ -40,7 +40,7 @@ export function ExecutionControlCenter({ data, ar }: { data: AnalysisState | nul
   const [mode, setMode] = useState<"testnet" | "live">("testnet");
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => subscribeAutopilot(setAutopilot), []);
+  useEffect(() => { const off = subscribeAutopilot(setAutopilot); return () => { off(); }; }, []);
 
   const refresh = async () => {
     setBusy(true);
@@ -56,7 +56,7 @@ export function ExecutionControlCenter({ data, ar }: { data: AnalysisState | nul
   useEffect(() => { void refresh(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [mode]);
 
   const regime = data?.regime?.regime ?? "—";
-  const pnlDay = data?.portfolio?.totalPnl ?? 0;
+  const pnlDay = data?.portfolio?.riskScore ?? 0;
 
   return (
     <section className="space-y-4">
@@ -93,9 +93,9 @@ export function ExecutionControlCenter({ data, ar }: { data: AnalysisState | nul
           value={account?.equityUSDT != null ? `$${account.equityUSDT.toLocaleString()}` : "—"}
           variant="primary" />
         <StatCard label={ar ? "نظام السوق" : "Regime"} value={regime} variant="primary" />
-        <StatCard label={ar ? "PnL اليوم" : "Day PnL"}
-          value={`${pnlDay >= 0 ? "+" : ""}$${pnlDay.toFixed(2)}`}
-          variant={pnlDay >= 0 ? "success" : "danger"} />
+        <StatCard label={ar ? "درجة المخاطرة" : "Risk Score"}
+          value={`${pnlDay.toFixed(0)}`}
+          variant={pnlDay > 70 ? "danger" : pnlDay > 45 ? "muted" : "success"} />
       </div>
 
       <Card className="border-border/50 bg-card/40 backdrop-blur-xl p-4">
