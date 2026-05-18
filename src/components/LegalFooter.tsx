@@ -7,9 +7,9 @@ interface Props {
 }
 
 const DISCLAIMER_EN =
-  "This platform provides AI-powered analytics, educational insights, market intelligence tools, and membership services only. It does not provide investment management, brokerage, or regulated financial services.";
+  "ForeSmart provides AI-powered financial analytics and educational market insights only. No brokerage, custody, or investment management services are provided.";
 const DISCLAIMER_AR =
-  "تقدم هذه المنصة تحليلات مدعومة بالذكاء الاصطناعي ورؤى تعليمية وأدوات لذكاء السوق وخدمات عضوية فقط. لا تقدم خدمات إدارة استثمار أو وساطة أو خدمات مالية منظمة.";
+  "تقدم ForeSmart تحليلات مالية مدعومة بالذكاء الاصطناعي ورؤى تعليمية حول الأسواق فقط. لا نقدم خدمات وساطة أو حفظ أصول أو إدارة استثمارات.";
 
 export function LegalFooter({ variant = "full", className = "" }: Props) {
   const { lang } = useI18n();

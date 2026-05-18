@@ -11,11 +11,8 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine, Building, Plus, AlertCircle, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { QuickBuyPanel } from "@/components/QuickBuyPanel";
 import { AllocationPanel } from "@/components/AllocationPanel";
-import { ManualOperationForm } from "@/components/ManualOperationForm";
 import { AssetPnlPanel } from "@/components/AssetPnlPanel";
-import { WithdrawalSection } from "@/components/WithdrawalSection";
 import { RiskManagementPanel } from "@/components/RiskManagementPanel";
 import { PortfolioRiskDashboard } from "@/components/ForeSmartPanels";
 
@@ -107,22 +104,23 @@ function WalletPage() {
     <div className="container mx-auto max-w-6xl space-y-6 p-6" dir={dir}>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-3xl font-bold">{lang === "ar" ? "المحفظة الرقمية" : "Digital Wallet"}</h1>
+          <h1 className="font-display text-3xl font-bold">{lang === "ar" ? "المحفظة التجريبية" : "Demo Portfolio"}</h1>
           <p className="text-sm text-muted-foreground">
-            {lang === "ar" ? "اشحن المحفظة بالريال السعودي عبر mada / Visa / Apple Pay / STC Pay." : "Top up via mada / Visa / Apple Pay / STC Pay."}
+            {lang === "ar"
+              ? "أرصدة تجريبية ومقاييس تحليلية لأغراض التعلم والمحاكاة فقط — لا تدفقات أموال حقيقية."
+              : "Demo balances and analytics metrics for learning and simulation only — no real-money flows."}
           </p>
         </div>
         <div className="flex gap-2">
-          <Link to="/deposit"><Button className="gap-2"><ArrowDownToLine className="h-4 w-4" />{lang === "ar" ? "صفحة الإيداع" : "Deposit page"}</Button></Link>
           <Link to="/subscription"><Button variant="outline" className="gap-2"><Crown className="h-4 w-4" />{lang === "ar" ? "خطط الاشتراك" : "Plans"}</Button></Link>
         </div>
       </div>
 
-      {search.deposit === "success" && (
-        <div className="rounded-lg border border-success/40 bg-success/10 p-4 text-sm text-success">
-          {lang === "ar" ? "تم الدفع بنجاح. سيظهر الرصيد خلال لحظات." : "Payment successful. Balance will update shortly."}
-        </div>
-      )}
+      <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
+        {lang === "ar"
+          ? "تنبيه: ForeSmart منصة تحليلات بالذكاء الاصطناعي — تم تعطيل الإيداع والسحب والتنفيذ بأموال حقيقية. جميع الأرقام أدناه هي محاكاة افتراضية تعليمية."
+          : "Notice: ForeSmart is an AI analytics platform — deposits, withdrawals, and real-money execution are disabled. All figures below are educational simulations."}
+      </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="gradient-card p-6 md:col-span-2">
@@ -130,49 +128,39 @@ function WalletPage() {
             <div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <WalletIcon className="h-4 w-4" />
-                {lang === "ar" ? "الرصيد المتاح" : "Available balance"}
+                {lang === "ar" ? "الرصيد التجريبي" : "Demo balance"}
               </div>
               <div className="mt-2 font-display text-4xl font-bold">
                 {Number(wallet?.balance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
-              <div className="mt-1 text-xs text-muted-foreground">{wallet?.currency ?? "SAR"}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{wallet?.currency ?? "SAR"} · {lang === "ar" ? "محاكاة" : "simulated"}</div>
             </div>
           </div>
 
           <div className="mt-6 flex flex-wrap items-end gap-3">
             <div>
               <label className="text-xs text-muted-foreground">
-                {lang === "ar" ? `مبلغ الشحن (ريال) — الحد الأدنى ${MIN_TOPUP}` : `Top-up (SAR) — min ${MIN_TOPUP}`}
+                {lang === "ar" ? "شحن (معطّل — وضع تحليلي)" : "Top up (disabled — analytics mode)"}
               </label>
-              <Input type="number" min={MIN_TOPUP} step={10} value={amount} onChange={(e) => setAmount(e.target.value)} className="w-40" />
+              <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} disabled className="w-40" />
             </div>
-            <Button onClick={handleDeposit} disabled={initiate.isPending || amt < MIN_TOPUP} className="gap-2">
+            <Button disabled className="gap-2">
               <ArrowDownToLine className="h-4 w-4" />
-              {initiate.isPending ? "..." : (lang === "ar" ? "شحن المحفظة" : "Top up")}
+              {lang === "ar" ? "الإيداع غير متاح" : "Deposits unavailable"}
             </Button>
             <Button variant="outline" disabled className="gap-2">
               <ArrowUpFromLine className="h-4 w-4" />
-              {lang === "ar" ? "سحب (قريباً)" : "Withdraw (soon)"}
+              {lang === "ar" ? "السحب غير متاح" : "Withdrawals unavailable"}
             </Button>
           </div>
 
-          {fees && amt >= MIN_TOPUP && (
-            <div className="mt-4 rounded-lg border border-border bg-muted/30 p-3 text-xs">
-              <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
-                <div><div className="text-muted-foreground">{lang === "ar" ? "الإجمالي" : "Total"}</div><div className="font-semibold">{amt} ريال</div></div>
-                <div><div className="text-muted-foreground">{lang === "ar" ? "رسوم Moyasar" : "Moyasar fee"}</div><div>-{fees.moyasarFee}</div></div>
-                <div><div className="text-muted-foreground">{lang === "ar" ? "رسوم الموقع 0.15%" : "Site fee 0.15%"}</div><div>-{fees.serviceFee}</div></div>
-                <div><div className="text-muted-foreground">{lang === "ar" ? "صافي الإضافة" : "Net credit"}</div><div className="font-bold text-success">{fees.netCredit}</div></div>
-              </div>
-            </div>
-          )}
-
           <p className="mt-3 text-[11px] text-muted-foreground">
             {lang === "ar"
-              ? "الدفع آمن عبر Moyasar (PCI-DSS Level 1). يقبل mada وVisa وMastercard وApple Pay وSTC Pay."
-              : "Secured by Moyasar (PCI-DSS Level 1). Accepts mada, Visa, Mastercard, Apple Pay, STC Pay."}
+              ? "ForeSmart لا يقدم خدمات وساطة أو حفظ أصول أو إدارة استثمار. الأرصدة الظاهرة هنا تجريبية وتُستخدم لأغراض التحليل والتعلم فقط."
+              : "ForeSmart does not provide brokerage, custody, or investment management. Balances shown here are demo-only for analytics and learning."}
           </p>
         </Card>
+
 
         <Card className="gradient-card p-6">
           <div className="flex items-center justify-between">
@@ -229,7 +217,6 @@ function WalletPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <AllocationPanel />
-        <ManualOperationForm />
       </div>
 
       <AssetPnlPanel />
@@ -238,9 +225,6 @@ function WalletPage() {
 
       <PortfolioRiskDashboard />
 
-      <WithdrawalSection />
-
-      <QuickBuyPanel />
 
       <Card className="overflow-hidden">
         <header className="border-b border-border bg-muted/30 px-5 py-3 font-semibold">

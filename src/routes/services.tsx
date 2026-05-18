@@ -10,9 +10,9 @@ export const Route = createFileRoute("/services")({
   head: () => ({
     meta: [
       { title: "Services — ForeSmart" },
-      { name: "description", content: "Institutional-grade AI market intelligence: quant analysis, opportunity detection, tactical execution, risk management, and security." },
+      { name: "description", content: "AI-powered financial analytics and educational market intelligence: signals, smart alerts, portfolio tracking, simulations and AI recommendations. No brokerage or investment management." },
       { property: "og:title", content: "Services — ForeSmart" },
-      { property: "og:description", content: "AI market intelligence, quant analysis, tactical execution, risk and security — built for institutional clarity." },
+      { property: "og:description", content: "AI market analytics, smart alerts, portfolio tracking, educational simulations — analytics SaaS, not a broker." },
     ],
     links: [{ rel: "canonical", href: "https://foresmart4.store/services" }],
   }),
@@ -74,30 +74,30 @@ const SERVICES: Service[] = [
   },
   {
     icon: Bot,
-    titleAr: "أدوات التداول الآلي الاختيارية",
-    titleEn: "Autonomous Trading Controls",
-    ar: "أربع مستويات تحكم: إيقاف، استشاري، نصف آلي، آلي كامل — جميعها بإعدادات مخاطر صارمة ووضع تجريبي افتراضي.",
-    en: "Four control tiers: off, advisory, semi-auto, and full-auto — all gated by strict risk limits and TESTNET-by-default.",
-    pointsAr: ["تحكم متدرّج", "افتراضي تجريبي", "زر إيقاف عالمي"],
-    pointsEn: ["Tiered controls", "TESTNET default", "Global kill-switch"],
+    titleAr: "محاكاة تداول تعليمية",
+    titleEn: "Educational Trading Simulations",
+    ar: "بيئة محاكاة افتراضية لاختبار الاستراتيجيات والتعلم — بدون أموال حقيقية وبدون أي تنفيذ فعلي للصفقات.",
+    en: "A sandboxed simulation environment for learning and strategy testing — no real money, no live order execution.",
+    pointsAr: ["محفظة تجريبية", "بدون تنفيذ حقيقي", "أداة تعليمية"],
+    pointsEn: ["Demo portfolio", "No live execution", "Educational tool"],
   },
   {
     icon: Briefcase,
-    titleAr: "ذكاء المحفظة",
-    titleEn: "Portfolio Intelligence",
-    ar: "تحليل ارتباطات، توزيع رأس المال، وقياس الأداء على مستوى المحفظة بمعايير مؤسسية.",
-    en: "Correlation analysis, capital allocation, and institutional-grade portfolio-level performance measurement.",
-    pointsAr: ["ارتباطات الأصول", "توزيع رأس المال", "أداء مؤسسي"],
-    pointsEn: ["Asset correlations", "Capital allocation", "Institutional metrics"],
+    titleAr: "تتبع المحفظة وتحليلها",
+    titleEn: "Portfolio Tracking & Analytics",
+    ar: "تحليل ارتباطات، تتبع التوزيع، وقياس الأداء على مستوى المحفظة الشخصية لأغراض تحليلية — لست وسيطاً ولا حافظاً للأصول.",
+    en: "Correlation analytics, allocation tracking, and portfolio-level performance metrics for analysis only — we are not a broker or custodian.",
+    pointsAr: ["ارتباطات الأصول", "تتبع التوزيع", "مؤشرات تحليلية"],
+    pointsEn: ["Asset correlations", "Allocation tracking", "Analytical metrics"],
   },
   {
     icon: Crosshair,
-    titleAr: "التخطيط التكتيكي للتنفيذ",
-    titleEn: "Tactical Execution Planning",
-    ar: "محركات مناطق الدخول، التوقيت، تحديد الحجم، وسلّم الخروج — للمستخدم القرار النهائي دائماً.",
-    en: "Entry-zone, timing, sizing, and exit-ladder engines — the user always retains the final decision.",
-    pointsAr: ["مناطق دخول", "سلّم خروج", "تحديد حجم ذكي"],
-    pointsEn: ["Entry zones", "Exit ladders", "Smart sizing"],
+    titleAr: "توصيات تحليلية",
+    titleEn: "AI Recommendations",
+    ar: "محركات تحلل مناطق الاهتمام والتوقيت والحجم وتقدم توصيات تعليمية — القرار النهائي والتنفيذ يبقى دائماً للمستخدم على منصته الخاصة.",
+    en: "Engines that surface interest zones, timing, and sizing as educational recommendations — final decision and execution always remain with the user on their own platform.",
+    pointsAr: ["مناطق اهتمام", "توصيات تعليمية", "بدون تنفيذ"],
+    pointsEn: ["Interest zones", "Educational recs", "No execution"],
   },
   {
     icon: Eye,
@@ -124,10 +124,10 @@ function ServicesPage() {
     <LegalPageShell
       titleAr="الخدمات"
       titleEn="Services"
-      subtitleAr="طبقات ذكاء اصطناعي مؤسسي مصمّمة للوضوح، الانضباط، وحماية رأس المال."
-      subtitleEn="Institutional AI intelligence layers — engineered for clarity, discipline, and capital protection."
-      badgeAr="منصة ذكاء اصطناعي مؤسسية"
-      badgeEn="Institutional AI Platform"
+      subtitleAr="منصة SaaS للتحليلات المالية بالذكاء الاصطناعي ورؤى السوق التعليمية — لا وساطة، لا حفظ أصول، لا إدارة استثمار."
+      subtitleEn="An AI financial analytics and educational market intelligence SaaS — no brokerage, no custody, no investment management."
+      badgeAr="تحليلات مالية بالذكاء الاصطناعي"
+      badgeEn="AI Financial Analytics SaaS"
     >
       {(lang) => (
         <div className="grid gap-5 md:grid-cols-2">
