@@ -11,6 +11,7 @@ import {
   sendSecurityEmail,
   sendOtpEmail,
   sendPasswordResetEmail,
+  sendInvitationEmail,
   getEmailHealth,
 } from "./resend.server";
 
