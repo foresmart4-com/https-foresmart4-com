@@ -29,6 +29,7 @@ import { EmailDeliveryPanel } from "@/components/dashboard/EmailDeliveryPanel";
 import { SecurityCommandCenter } from "@/components/dashboard/SecurityCommandCenter";
 import { InvestmentPlansPanel } from "@/components/dashboard/InvestmentPlansPanel";
 import { ExecutionControlCenter } from "@/components/dashboard/ExecutionControlCenter";
+import { LiveCommandCenter } from "@/components/dashboard/LiveCommandCenter";
 import { useAIMarketAnalyst, useAIMarketInsights } from "@/hooks/useAIBrain";
 import type { AssetKey } from "@/services/market/marketData";
 
