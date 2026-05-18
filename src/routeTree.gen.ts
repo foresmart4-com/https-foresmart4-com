@@ -42,6 +42,7 @@ import { Route as AppAlertsRouteImport } from './routes/_app/alerts'
 import { Route as AppAiDashboardRouteImport } from './routes/_app/ai-dashboard'
 import { Route as AppAdvisorRouteImport } from './routes/_app/advisor'
 import { Route as ApiPublicMoyasarWebhookRouteImport } from './routes/api/public/moyasar-webhook'
+import { Route as ApiPublicEmailConfigCheckRouteImport } from './routes/api/public/email-config-check'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -211,6 +212,12 @@ const ApiPublicMoyasarWebhookRoute = ApiPublicMoyasarWebhookRouteImport.update({
   path: '/api/public/moyasar-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicEmailConfigCheckRoute =
+  ApiPublicEmailConfigCheckRouteImport.update({
+    id: '/api/public/email-config-check',
+    path: '/api/public/email-config-check',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -266,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/subscription': typeof AppSubscriptionRoute
   '/wallet': typeof AppWalletRoute
   '/watchlist': typeof AppWatchlistRoute
+  '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -304,6 +312,7 @@ export interface FileRoutesByTo {
   '/subscription': typeof AppSubscriptionRoute
   '/wallet': typeof AppWalletRoute
   '/watchlist': typeof AppWatchlistRoute
+  '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -344,6 +353,7 @@ export interface FileRoutesById {
   '/_app/subscription': typeof AppSubscriptionRoute
   '/_app/wallet': typeof AppWalletRoute
   '/_app/watchlist': typeof AppWatchlistRoute
+  '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -384,6 +394,7 @@ export interface FileRouteTypes {
     | '/subscription'
     | '/wallet'
     | '/watchlist'
+    | '/api/public/email-config-check'
     | '/api/public/moyasar-webhook'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
@@ -422,6 +433,7 @@ export interface FileRouteTypes {
     | '/subscription'
     | '/wallet'
     | '/watchlist'
+    | '/api/public/email-config-check'
     | '/api/public/moyasar-webhook'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
@@ -461,6 +473,7 @@ export interface FileRouteTypes {
     | '/_app/subscription'
     | '/_app/wallet'
     | '/_app/watchlist'
+    | '/api/public/email-config-check'
     | '/api/public/moyasar-webhook'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
@@ -478,6 +491,7 @@ export interface RootRouteChildren {
   ServicesRoute: typeof ServicesRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  ApiPublicEmailConfigCheckRoute: typeof ApiPublicEmailConfigCheckRoute
   ApiPublicMoyasarWebhookRoute: typeof ApiPublicMoyasarWebhookRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -718,6 +732,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMoyasarWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/email-config-check': {
+      id: '/api/public/email-config-check'
+      path: '/api/public/email-config-check'
+      fullPath: '/api/public/email-config-check'
+      preLoaderRoute: typeof ApiPublicEmailConfigCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
@@ -813,6 +834,7 @@ const rootRouteChildren: RootRouteChildren = {
   ServicesRoute: ServicesRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  ApiPublicEmailConfigCheckRoute: ApiPublicEmailConfigCheckRoute,
   ApiPublicMoyasarWebhookRoute: ApiPublicMoyasarWebhookRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
