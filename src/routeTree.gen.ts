@@ -37,11 +37,15 @@ import { Route as AppDomainRouteImport } from './routes/_app/domain'
 import { Route as AppDepositRouteImport } from './routes/_app/deposit'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
+import { Route as AppBillingRouteImport } from './routes/_app/billing'
 import { Route as AppBankAccountsRouteImport } from './routes/_app/bank-accounts'
 import { Route as AppArchiveRouteImport } from './routes/_app/archive'
 import { Route as AppAlertsRouteImport } from './routes/_app/alerts'
 import { Route as AppAiDashboardRouteImport } from './routes/_app/ai-dashboard'
 import { Route as AppAdvisorRouteImport } from './routes/_app/advisor'
+import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
+import { Route as ApiWebhooksPaddleRouteImport } from './routes/api/webhooks/paddle'
+import { Route as ApiWebhooksLemonsqueezyRouteImport } from './routes/api/webhooks/lemonsqueezy'
 import { Route as ApiPublicMoyasarWebhookRouteImport } from './routes/api/public/moyasar-webhook'
 import { Route as ApiPublicEmailConfigCheckRouteImport } from './routes/api/public/email-config-check'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -188,6 +192,11 @@ const AppCalendarRoute = AppCalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBillingRoute = AppBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppBankAccountsRoute = AppBankAccountsRouteImport.update({
   id: '/bank-accounts',
   path: '/bank-accounts',
@@ -212,6 +221,21 @@ const AppAdvisorRoute = AppAdvisorRouteImport.update({
   id: '/advisor',
   path: '/advisor',
   getParentRoute: () => AppRoute,
+} as any)
+const ApiWebhooksStripeRoute = ApiWebhooksStripeRouteImport.update({
+  id: '/api/webhooks/stripe',
+  path: '/api/webhooks/stripe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhooksPaddleRoute = ApiWebhooksPaddleRouteImport.update({
+  id: '/api/webhooks/paddle',
+  path: '/api/webhooks/paddle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhooksLemonsqueezyRoute = ApiWebhooksLemonsqueezyRouteImport.update({
+  id: '/api/webhooks/lemonsqueezy',
+  path: '/api/webhooks/lemonsqueezy',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicMoyasarWebhookRoute = ApiPublicMoyasarWebhookRouteImport.update({
   id: '/api/public/moyasar-webhook',
@@ -262,6 +286,7 @@ export interface FileRoutesByFullPath {
   '/alerts': typeof AppAlertsRoute
   '/archive': typeof AppArchiveRoute
   '/bank-accounts': typeof AppBankAccountsRoute
+  '/billing': typeof AppBillingRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/deposit': typeof AppDepositRoute
@@ -282,6 +307,9 @@ export interface FileRoutesByFullPath {
   '/watchlist': typeof AppWatchlistRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
+  '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
+  '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
+  '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -302,6 +330,7 @@ export interface FileRoutesByTo {
   '/alerts': typeof AppAlertsRoute
   '/archive': typeof AppArchiveRoute
   '/bank-accounts': typeof AppBankAccountsRoute
+  '/billing': typeof AppBillingRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/deposit': typeof AppDepositRoute
@@ -322,6 +351,9 @@ export interface FileRoutesByTo {
   '/watchlist': typeof AppWatchlistRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
+  '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
+  '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
+  '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -344,6 +376,7 @@ export interface FileRoutesById {
   '/_app/alerts': typeof AppAlertsRoute
   '/_app/archive': typeof AppArchiveRoute
   '/_app/bank-accounts': typeof AppBankAccountsRoute
+  '/_app/billing': typeof AppBillingRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/deposit': typeof AppDepositRoute
@@ -364,6 +397,9 @@ export interface FileRoutesById {
   '/_app/watchlist': typeof AppWatchlistRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
+  '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
+  '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
+  '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -386,6 +422,7 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/archive'
     | '/bank-accounts'
+    | '/billing'
     | '/calendar'
     | '/dashboard'
     | '/deposit'
@@ -406,6 +443,9 @@ export interface FileRouteTypes {
     | '/watchlist'
     | '/api/public/email-config-check'
     | '/api/public/moyasar-webhook'
+    | '/api/webhooks/lemonsqueezy'
+    | '/api/webhooks/paddle'
+    | '/api/webhooks/stripe'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -426,6 +466,7 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/archive'
     | '/bank-accounts'
+    | '/billing'
     | '/calendar'
     | '/dashboard'
     | '/deposit'
@@ -446,6 +487,9 @@ export interface FileRouteTypes {
     | '/watchlist'
     | '/api/public/email-config-check'
     | '/api/public/moyasar-webhook'
+    | '/api/webhooks/lemonsqueezy'
+    | '/api/webhooks/paddle'
+    | '/api/webhooks/stripe'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -467,6 +511,7 @@ export interface FileRouteTypes {
     | '/_app/alerts'
     | '/_app/archive'
     | '/_app/bank-accounts'
+    | '/_app/billing'
     | '/_app/calendar'
     | '/_app/dashboard'
     | '/_app/deposit'
@@ -487,6 +532,9 @@ export interface FileRouteTypes {
     | '/_app/watchlist'
     | '/api/public/email-config-check'
     | '/api/public/moyasar-webhook'
+    | '/api/webhooks/lemonsqueezy'
+    | '/api/webhooks/paddle'
+    | '/api/webhooks/stripe'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -506,6 +554,9 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   ApiPublicEmailConfigCheckRoute: typeof ApiPublicEmailConfigCheckRoute
   ApiPublicMoyasarWebhookRoute: typeof ApiPublicMoyasarWebhookRoute
+  ApiWebhooksLemonsqueezyRoute: typeof ApiWebhooksLemonsqueezyRoute
+  ApiWebhooksPaddleRoute: typeof ApiWebhooksPaddleRoute
+  ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -710,6 +761,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCalendarRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/billing': {
+      id: '/_app/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof AppBillingRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/bank-accounts': {
       id: '/_app/bank-accounts'
       path: '/bank-accounts'
@@ -744,6 +802,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/advisor'
       preLoaderRoute: typeof AppAdvisorRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/webhooks/stripe': {
+      id: '/api/webhooks/stripe'
+      path: '/api/webhooks/stripe'
+      fullPath: '/api/webhooks/stripe'
+      preLoaderRoute: typeof ApiWebhooksStripeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/paddle': {
+      id: '/api/webhooks/paddle'
+      path: '/api/webhooks/paddle'
+      fullPath: '/api/webhooks/paddle'
+      preLoaderRoute: typeof ApiWebhooksPaddleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/lemonsqueezy': {
+      id: '/api/webhooks/lemonsqueezy'
+      path: '/api/webhooks/lemonsqueezy'
+      fullPath: '/api/webhooks/lemonsqueezy'
+      preLoaderRoute: typeof ApiWebhooksLemonsqueezyRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/moyasar-webhook': {
       id: '/api/public/moyasar-webhook'
@@ -796,6 +875,7 @@ interface AppRouteChildren {
   AppAlertsRoute: typeof AppAlertsRoute
   AppArchiveRoute: typeof AppArchiveRoute
   AppBankAccountsRoute: typeof AppBankAccountsRoute
+  AppBillingRoute: typeof AppBillingRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDepositRoute: typeof AppDepositRoute
@@ -822,6 +902,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAlertsRoute: AppAlertsRoute,
   AppArchiveRoute: AppArchiveRoute,
   AppBankAccountsRoute: AppBankAccountsRoute,
+  AppBillingRoute: AppBillingRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDepositRoute: AppDepositRoute,
@@ -857,6 +938,9 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   ApiPublicEmailConfigCheckRoute: ApiPublicEmailConfigCheckRoute,
   ApiPublicMoyasarWebhookRoute: ApiPublicMoyasarWebhookRoute,
+  ApiWebhooksLemonsqueezyRoute: ApiWebhooksLemonsqueezyRoute,
+  ApiWebhooksPaddleRoute: ApiWebhooksPaddleRoute,
+  ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
