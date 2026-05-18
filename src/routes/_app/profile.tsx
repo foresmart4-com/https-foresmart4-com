@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
+import { listUserApiKeys, removeUserApiKey, saveUserApiKey, type UserApiKeyMeta } from "@/lib/apiKeys.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,21 +27,23 @@ export const Route = createFileRoute("/_app/profile")({
 });
 
 interface Profile { display_name: string | null; language: string; preferred_currency: string }
-interface ApiKey { id: string; provider: string; api_key: string }
 
 function ProfilePage() {
   const { user } = useAuth();
   const { t, lang, setLang } = useI18n();
   const [p, setP] = useState<Profile>({ display_name: "", language: "ar", preferred_currency: "USD" });
-  const [keys, setKeys] = useState<ApiKey[]>([]);
+  const [keys, setKeys] = useState<UserApiKeyMeta[]>([]);
   const [newKey, setNewKey] = useState({ provider: "alphavantage", api_key: "" });
+  const listKeysFn = useServerFn(listUserApiKeys);
+  const saveKeyFn = useServerFn(saveUserApiKey);
+  const removeKeyFn = useServerFn(removeUserApiKey);
 
   const load = async () => {
     if (!user) return;
     const { data: pr } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
     if (pr) setP({ display_name: pr.display_name, language: pr.language, preferred_currency: pr.preferred_currency });
-    const { data: ks } = await supabase.from("user_api_keys").select("id, provider, api_key").eq("user_id", user.id);
-    if (ks) setKeys(ks as ApiKey[]);
+    const { keys: keyMeta } = await listKeysFn();
+    setKeys(keyMeta);
   };
   useEffect(() => { load(); }, [user]);
 
