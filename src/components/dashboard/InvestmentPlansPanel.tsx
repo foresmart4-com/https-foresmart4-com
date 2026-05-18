@@ -205,11 +205,11 @@ function CreatePlanDialog({ ar, open, setOpen, allocationInputs, onCreated, save
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm"><Plus className="mr-1 h-3 w-3" /> {ar ? "خطة جديدة" : "New Plan"}</Button>
+        <Button size="sm"><Plus className="mr-1 h-3 w-3" /> {ar ? "باقة جديدة" : "New Membership"}</Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{ar ? "إنشاء خطة استثمار" : "Create Investment Plan"}</DialogTitle>
+          <DialogTitle>{ar ? "إنشاء باقة تحليلات" : "Create Analytics Membership"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
