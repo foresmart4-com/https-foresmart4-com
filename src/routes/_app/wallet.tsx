@@ -11,11 +11,8 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine, Building, Plus, AlertCircle, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { QuickBuyPanel } from "@/components/QuickBuyPanel";
 import { AllocationPanel } from "@/components/AllocationPanel";
-import { ManualOperationForm } from "@/components/ManualOperationForm";
 import { AssetPnlPanel } from "@/components/AssetPnlPanel";
-import { WithdrawalSection } from "@/components/WithdrawalSection";
 import { RiskManagementPanel } from "@/components/RiskManagementPanel";
 import { PortfolioRiskDashboard } from "@/components/ForeSmartPanels";
 
