@@ -1,5 +1,5 @@
 // AES-256-GCM encryption helpers — SERVER ONLY. Keys never touch the client.
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync, createHash } from "crypto";
+import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "crypto";
 
 const ALGO = "aes-256-gcm";
 
@@ -12,15 +12,6 @@ function getSecret(): string {
 function getKey(): Buffer {
   // Deterministic 32-byte key derivation from the master secret.
   return scryptSync(getSecret(), "foresmart.vault.v1", 32);
-}
-
-export function deriveDeterministicKeyId(provider: string, plaintext: string): string {
-  return createHash("sha256")
-    .update(getSecret())
-    .update("foresmart.user-api-key.v1")
-    .update(provider)
-    .update(plaintext)
-    .digest("hex");
 }
 
 export interface EncryptedPayload {
