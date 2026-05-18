@@ -124,10 +124,10 @@ function ServicesPage() {
     <LegalPageShell
       titleAr="الخدمات"
       titleEn="Services"
-      subtitleAr="طبقات ذكاء اصطناعي مؤسسي مصمّمة للوضوح، الانضباط، وحماية رأس المال."
-      subtitleEn="Institutional AI intelligence layers — engineered for clarity, discipline, and capital protection."
-      badgeAr="منصة ذكاء اصطناعي مؤسسية"
-      badgeEn="Institutional AI Platform"
+      subtitleAr="منصة SaaS للتحليلات المالية بالذكاء الاصطناعي ورؤى السوق التعليمية — لا وساطة، لا حفظ أصول، لا إدارة استثمار."
+      subtitleEn="An AI financial analytics and educational market intelligence SaaS — no brokerage, no custody, no investment management."
+      badgeAr="تحليلات مالية بالذكاء الاصطناعي"
+      badgeEn="AI Financial Analytics SaaS"
     >
       {(lang) => (
         <div className="grid gap-5 md:grid-cols-2">
