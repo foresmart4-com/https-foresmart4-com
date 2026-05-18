@@ -38,7 +38,7 @@ const dict = {
     sma: "المتوسط المتحرك",
     aiAdvice: "نصيحة الذكاء الاصطناعي",
     askAdvisor: "اطلب نصيحة",
-    advisorPlaceholder: "اسأل عن أي استثمار، اخبار، أو سوق...",
+    advisorPlaceholder: "اسأل عن أي أصل أو خبر أو حركة سوقية لأغراض تحليلية وتعليمية...",
     send: "إرسال",
     createAlert: "إنشاء تنبيه",
     symbol: "الرمز",
