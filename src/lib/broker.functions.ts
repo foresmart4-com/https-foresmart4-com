@@ -3,6 +3,7 @@
 // safe simulated account so the UI keeps working.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const ActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("account"), mode: z.enum(["testnet", "live"]).default("testnet") }),

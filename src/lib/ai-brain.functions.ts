@@ -7,6 +7,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { callAIGateway } from "@/lib/ai-gateway.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 // ---------- Schemas ----------
 const AssetCtx = z.object({
