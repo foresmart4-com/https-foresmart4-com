@@ -3,6 +3,7 @@
 // safe simulated account so the UI keeps working.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const ActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("account"), mode: z.enum(["testnet", "live"]).default("testnet") }),
@@ -26,6 +27,7 @@ const ActionSchema = z.discriminatedUnion("action", [
 ]);
 
 export const brokerCall = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ActionSchema.parse(input))
   .handler(async ({ data }) => {
     const liveKey = process.env.BINANCE_API_KEY;
