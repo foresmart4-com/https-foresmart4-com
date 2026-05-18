@@ -27,6 +27,8 @@ import { AutonomousExecutionPanel } from "@/components/dashboard/AutonomousExecu
 import { MonitoringCommandCenter } from "@/components/dashboard/MonitoringCommandCenter";
 import { EmailDeliveryPanel } from "@/components/dashboard/EmailDeliveryPanel";
 import { SecurityCommandCenter } from "@/components/dashboard/SecurityCommandCenter";
+import { InvestmentPlansPanel } from "@/components/dashboard/InvestmentPlansPanel";
+import { ExecutionControlCenter } from "@/components/dashboard/ExecutionControlCenter";
 import { useAIMarketAnalyst, useAIMarketInsights } from "@/hooks/useAIBrain";
 import type { AssetKey } from "@/services/market/marketData";
 
@@ -454,6 +456,10 @@ function AIDashboardPage() {
         {data && <PrecisionPanel data={data} ar={ar} />}
 
         <AutonomousExecutionPanel data={data} ar={ar} />
+
+        <InvestmentPlansPanel data={data ?? null} ar={ar} />
+
+        <ExecutionControlCenter data={data ?? null} ar={ar} />
 
         <MonitoringCommandCenter data={data} ar={ar} />
 
