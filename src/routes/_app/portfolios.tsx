@@ -53,7 +53,7 @@ function PortfoliosPage() {
     <div className="container mx-auto max-w-6xl space-y-6 p-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl font-bold">{lang === "ar" ? "المحافظ الاستثمارية" : "Investment Portfolios"}</h1>
+          <h1 className="font-display text-3xl font-bold">{lang === "ar" ? "قوائم المتابعة" : "Watchlists"}</h1>
           <p className="text-sm text-muted-foreground">
             {lang === "ar" ? "أنشئ محافظ متعددة بحسب استراتيجيتك (نمو، دخل، مضاربة...)." : "Create multiple portfolios per strategy."}
           </p>
