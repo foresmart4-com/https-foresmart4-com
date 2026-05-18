@@ -475,6 +475,8 @@ function AIDashboardPage() {
 
         <EmailDeliveryPanel />
 
+        <InvitationSenderPanel ar={ar} />
+
         <SecurityCommandCenter data={data} ar={ar} />
 
         {/* Master Phase — Institutional AI Trading Ecosystem */}
