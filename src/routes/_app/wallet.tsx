@@ -220,7 +220,6 @@ function WalletPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <AllocationPanel />
-        <ManualOperationForm />
       </div>
 
       <AssetPnlPanel />
@@ -229,9 +228,6 @@ function WalletPage() {
 
       <PortfolioRiskDashboard />
 
-      <WithdrawalSection />
-
-      <QuickBuyPanel />
 
       <Card className="overflow-hidden">
         <header className="border-b border-border bg-muted/30 px-5 py-3 font-semibold">
