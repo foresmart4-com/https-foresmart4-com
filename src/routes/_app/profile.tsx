@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
+import { listUserApiKeys, removeUserApiKey, saveUserApiKey, type UserApiKeyMeta } from "@/lib/apiKeys.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,21 +27,23 @@ export const Route = createFileRoute("/_app/profile")({
 });
 
 interface Profile { display_name: string | null; language: string; preferred_currency: string }
-interface ApiKey { id: string; provider: string; api_key: string }
 
 function ProfilePage() {
   const { user } = useAuth();
   const { t, lang, setLang } = useI18n();
   const [p, setP] = useState<Profile>({ display_name: "", language: "ar", preferred_currency: "USD" });
-  const [keys, setKeys] = useState<ApiKey[]>([]);
+  const [keys, setKeys] = useState<UserApiKeyMeta[]>([]);
   const [newKey, setNewKey] = useState({ provider: "alphavantage", api_key: "" });
+  const listKeysFn = useServerFn(listUserApiKeys);
+  const saveKeyFn = useServerFn(saveUserApiKey);
+  const removeKeyFn = useServerFn(removeUserApiKey);
 
   const load = async () => {
     if (!user) return;
     const { data: pr } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
     if (pr) setP({ display_name: pr.display_name, language: pr.language, preferred_currency: pr.preferred_currency });
-    const { data: ks } = await supabase.from("user_api_keys").select("id, provider, api_key").eq("user_id", user.id);
-    if (ks) setKeys(ks as ApiKey[]);
+    const { keys: keyMeta } = await listKeysFn();
+    setKeys(keyMeta);
   };
   useEffect(() => { load(); }, [user]);
 
@@ -60,20 +64,20 @@ function ProfilePage() {
   const addKey = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !newKey.api_key) return;
-    const { error } = await supabase.from("user_api_keys").upsert(
-      { user_id: user.id, provider: newKey.provider, api_key: newKey.api_key },
-      { onConflict: "user_id,provider" },
-    );
-    if (error) toast.error(error.message);
-    else { toast.success(t("saved")); setNewKey({ ...newKey, api_key: "" }); load(); }
+    try {
+      await saveKeyFn({ data: { provider: newKey.provider, apiKey: newKey.api_key } });
+      toast.success(t("saved"));
+      setNewKey({ ...newKey, api_key: "" });
+      load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save API key");
+    }
   };
 
   const removeKey = async (id: string) => {
-    await supabase.from("user_api_keys").delete().eq("id", id);
+    await removeKeyFn({ data: { id } });
     load();
   };
-
-  const mask = (k: string) => (k.length <= 6 ? "••••" : `${k.slice(0, 3)}••••${k.slice(-3)}`);
 
   return (
     <div className="container mx-auto max-w-4xl p-6">
@@ -146,7 +150,7 @@ function ProfilePage() {
               <li key={k.id} className="flex items-center justify-between rounded-lg bg-muted/40 p-3">
                 <div>
                   <div className="font-semibold">{k.provider}</div>
-                  <div className="text-xs text-muted-foreground font-mono">{mask(k.api_key)}</div>
+                  <div className="text-xs text-muted-foreground font-mono">{k.key_hint}</div>
                 </div>
                 <Button size="icon" variant="ghost" aria-label={lang === "ar" ? "حذف المفتاح" : "Delete API key"} onClick={() => removeKey(k.id)}>
                   <Trash2 className="h-4 w-4 text-danger" />
