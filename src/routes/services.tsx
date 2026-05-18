@@ -10,9 +10,9 @@ export const Route = createFileRoute("/services")({
   head: () => ({
     meta: [
       { title: "Services — ForeSmart" },
-      { name: "description", content: "Institutional-grade AI market intelligence: quant analysis, opportunity detection, tactical execution, risk management, and security." },
+      { name: "description", content: "AI-powered financial analytics and educational market intelligence: signals, smart alerts, portfolio tracking, simulations and AI recommendations. No brokerage or investment management." },
       { property: "og:title", content: "Services — ForeSmart" },
-      { property: "og:description", content: "AI market intelligence, quant analysis, tactical execution, risk and security — built for institutional clarity." },
+      { property: "og:description", content: "AI market analytics, smart alerts, portfolio tracking, educational simulations — analytics SaaS, not a broker." },
     ],
     links: [{ rel: "canonical", href: "https://foresmart4.store/services" }],
   }),
