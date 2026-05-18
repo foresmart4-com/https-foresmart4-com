@@ -26,6 +26,7 @@ import { PrecisionPanel } from "@/components/dashboard/PrecisionPanel";
 import { AutonomousExecutionPanel } from "@/components/dashboard/AutonomousExecutionPanel";
 import { MonitoringCommandCenter } from "@/components/dashboard/MonitoringCommandCenter";
 import { EmailDeliveryPanel } from "@/components/dashboard/EmailDeliveryPanel";
+import { InvitationSenderPanel } from "@/components/dashboard/InvitationSenderPanel";
 import { SecurityCommandCenter } from "@/components/dashboard/SecurityCommandCenter";
 import { InvestmentPlansPanel } from "@/components/dashboard/InvestmentPlansPanel";
 import { ExecutionControlCenter } from "@/components/dashboard/ExecutionControlCenter";
