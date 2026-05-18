@@ -78,7 +78,7 @@ export async function runAutonomousCycle(
   try {
     const result = await placeOrder(client, {
       symbol: signal.symbol, side: signal.side, type: "MARKET",
-      quantity: qty, refPrice: signal.refPrice,
+      quantity: qty,
     });
     await supabaseAdmin.from("execution_history").insert({
       user_id: userId, broker: "binance", mode: client.mode,
