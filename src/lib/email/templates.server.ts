@@ -211,3 +211,37 @@ export function renderSecurityNotice(lang: Lang, p: SecurityNoticePayload): Rend
   const body = `<p>${escapeHtml(p.event)}</p><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:8px 0">${rows}</table>${button(t.cta, `${BRAND.url}/settings`, BRAND.warn)}<p style="color:${BRAND.muted};font-size:13px">${escapeHtml(t.hint)}</p>`;
   return { subject: t.subject, html: shell({ lang, title: t.title, preheader: p.event, accent: BRAND.warn, badgeAr: "أمان", badgeEn: "Security", body }) };
 }
+
+export interface InvitationPayload {
+  inviteUrl: string;
+  inviterName?: string;
+  personalMessage?: string;
+  expiresInDays?: number;
+}
+export function renderInvitation(lang: Lang, p: InvitationPayload): RenderResult {
+  const days = p.expiresInDays ?? 7;
+  const t = lang === "ar"
+    ? {
+        subject: `دعوة للانضمام إلى ForeSmart`,
+        title: p.inviterName ? `${p.inviterName} يدعوك للانضمام إلى ForeSmart` : "دعوة للانضمام إلى ForeSmart",
+        intro: "تمت دعوتك للوصول إلى منصة ForeSmart — منصة ذكاء اصطناعي مؤسسية للأسواق المالية. اضغط الزر أدناه لتفعيل حسابك.",
+        cta: "تفعيل الدعوة",
+        valid: `الرابط صالح لمدة ${days} أيام.`,
+        msgLabel: "رسالة شخصية",
+        fallback: "إذا لم يعمل الزر، انسخ هذا الرابط في متصفحك:",
+      }
+    : {
+        subject: `You're invited to ForeSmart`,
+        title: p.inviterName ? `${p.inviterName} invited you to ForeSmart` : "You're invited to ForeSmart",
+        intro: "You've been invited to ForeSmart — an institutional AI intelligence platform for global markets. Click below to activate your account.",
+        cta: "Accept Invitation",
+        valid: `This link is valid for ${days} days.`,
+        msgLabel: "Personal message",
+        fallback: "If the button doesn't work, copy this link into your browser:",
+      };
+  const personal = p.personalMessage
+    ? `<div style="margin:18px 0;padding:14px 16px;background:#0a0e18;border-${lang === "ar" ? "right" : "left"}:3px solid ${BRAND.primary};border-radius:8px"><div style="color:${BRAND.muted};font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${escapeHtml(t.msgLabel)}</div><div style="color:${BRAND.text};font-size:14px;line-height:1.6">${escapeHtml(p.personalMessage)}</div></div>`
+    : "";
+  const body = `<p>${escapeHtml(t.intro)}</p>${personal}${button(t.cta, p.inviteUrl)}<p style="color:${BRAND.muted};font-size:12px">${escapeHtml(t.valid)}</p><p style="color:${BRAND.muted};font-size:12px;word-break:break-all">${escapeHtml(t.fallback)}<br/><a href="${p.inviteUrl}" style="color:${BRAND.primary};text-decoration:none">${escapeHtml(p.inviteUrl)}</a></p>`;
+  return { subject: t.subject, html: shell({ lang, title: t.title, preheader: t.intro, badgeAr: "دعوة", badgeEn: "Invitation", body }) };
+}
