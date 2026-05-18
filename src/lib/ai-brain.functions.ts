@@ -100,6 +100,7 @@ export interface MarketInsightsOutput { insights: MarketInsightItem[] }
 // ---------- Server functions ----------
 
 export const aiMarketAnalyst = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input) => MarketContext.parse(input))
   .handler(async ({ data }) => {
     const ar = data.language === "ar";
@@ -122,6 +123,7 @@ Probabilistic language only. Frame risk vs. reward. No certainty.`;
   });
 
 export const aiNewsAnalysis = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input) => NewsAnalysisInput.parse(input))
   .handler(async ({ data }) => {
     const ar = data.language === "ar";
@@ -135,6 +137,7 @@ export const aiNewsAnalysis = createServerFn({ method: "POST" })
   });
 
 export const aiSignalExplainer = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input) => SignalInput.parse(input))
   .handler(async ({ data }) => {
     const ar = data.language === "ar";
@@ -148,6 +151,7 @@ export const aiSignalExplainer = createServerFn({ method: "POST" })
   });
 
 export const aiMarketInsights = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input) => MarketContext.parse(input))
   .handler(async ({ data }) => {
     const ar = data.language === "ar";

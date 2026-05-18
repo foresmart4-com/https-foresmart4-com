@@ -27,6 +27,7 @@ const ActionSchema = z.discriminatedUnion("action", [
 ]);
 
 export const brokerCall = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ActionSchema.parse(input))
   .handler(async ({ data }) => {
     const liveKey = process.env.BINANCE_API_KEY;
