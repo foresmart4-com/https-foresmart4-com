@@ -120,10 +120,11 @@ function AppLayout() {
         <PaymentTestModeBanner />
         <AccessGate>
           <Outlet />
-          <footer className="border-t border-border px-6 py-4 text-center text-[11px] text-muted-foreground">
-            ⚠ {t("disclaimerTitle")} — {t("disclaimerBody").slice(0, 140)}…
-          </footer>
         </AccessGate>
+        <div className="px-6 py-2 text-center text-[11px] text-muted-foreground">
+          ⚠ {t("disclaimerTitle")} — {t("disclaimerBody").slice(0, 140)}…
+        </div>
+        <LegalFooter />
       </main>
     </div>
   );
