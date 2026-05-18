@@ -1,17 +1,18 @@
-// Centralized environment configuration for client-side API keys.
-// All keys are optional — services fall back to local intelligence when missing.
+// Centralized environment configuration.
+// Third-party paid API keys (Finnhub, NewsAPI) are NOT exposed to the
+// client bundle. The corresponding services use keyless public APIs
+// (CoinGecko) or fall back to synthetic data.
 
 export const env = {
-  FINNHUB_API_KEY: import.meta.env.VITE_FINNHUB_API_KEY as string | undefined,
-  COINGECKO_API: (import.meta.env.VITE_COINGECKO_API as string | undefined) ?? "https://api.coingecko.com/api/v3",
-  NEWS_API_KEY: import.meta.env.VITE_NEWS_API_KEY as string | undefined,
-  // AI text analysis is routed through the Lovable AI gateway via server
-  // functions; no AI provider key is ever read on the client.
-
+  COINGECKO_API:
+    (import.meta.env.VITE_COINGECKO_API as string | undefined) ??
+    "https://api.coingecko.com/api/v3",
 } as const;
 
-export const hasFinnhub = () => Boolean(env.FINNHUB_API_KEY);
-export const hasNewsApi = () => Boolean(env.NEWS_API_KEY);
+// Retained as named exports so legacy callers still type-check.
+// Always return false on the client — secrets must never live in VITE_*.
+export const hasFinnhub = () => false;
+export const hasNewsApi = () => false;
 
 // Generic timed fetch with retry + JSON parse. Throws on non-2xx after retries.
 export async function fetchJson<T>(
