@@ -73,7 +73,13 @@ async function logInsert(args: SendArgs): Promise<string> {
   return data.id as string;
 }
 
-async function logUpdate(id: string, patch: Record<string, unknown>): Promise<void> {
+interface LogPatch {
+  status?: string;
+  provider_message_id?: string | null;
+  attempts?: number;
+  error_message?: string | null;
+}
+async function logUpdate(id: string, patch: LogPatch): Promise<void> {
   await supabaseAdmin.from("resend_email_log").update(patch).eq("id", id);
 }
 
