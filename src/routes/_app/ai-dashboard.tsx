@@ -30,6 +30,7 @@ import { SecurityCommandCenter } from "@/components/dashboard/SecurityCommandCen
 import { InvestmentPlansPanel } from "@/components/dashboard/InvestmentPlansPanel";
 import { ExecutionControlCenter } from "@/components/dashboard/ExecutionControlCenter";
 import { LiveCommandCenter } from "@/components/dashboard/LiveCommandCenter";
+import { CapitalProtectionPanel } from "@/components/dashboard/CapitalProtectionPanel";
 import { useAIMarketAnalyst, useAIMarketInsights } from "@/hooks/useAIBrain";
 import type { AssetKey } from "@/services/market/marketData";
 
@@ -461,6 +462,9 @@ function AIDashboardPage() {
         <InvestmentPlansPanel data={data ?? null} ar={ar} />
 
         <ExecutionControlCenter data={data ?? null} ar={ar} />
+
+        {/* Phase 3 — Capital Protection */}
+        <CapitalProtectionPanel ar={ar} />
 
         {/* Phase 2 — Live Command Center */}
         <LiveCommandCenter ar={ar} />
