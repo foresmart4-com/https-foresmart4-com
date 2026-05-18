@@ -65,17 +65,17 @@ export function buildPerformanceLearning(): PerformanceLearningReport {
   const falseBreakoutRate = brk.length ? Math.round((brkLoss / brk.length) * 100) : 0;
 
   const observations: PerformanceLearningObservation[] = [];
-  if (stats.trades === 0) observations.push({ label: "No closed trades yet" });
-  if (stats.profitFactor > 1.5) observations.push({ label: "Profit factor strong", detail: stats.profitFactor.toFixed(2) });
-  if (stats.profitFactor < 1) observations.push({ label: "Profit factor below 1 — strategy under review" });
-  if (highConfAccuracy >= 70) observations.push({ label: "High-confidence setups outperform" });
-  if (falseBreakoutRate > 50) observations.push({ label: "Breakout false-positive rate elevated" });
+  if (stats.trades === 0) observations.push({ kind: "insight", message: "No closed trades yet" });
+  if (stats.profitFactor > 1.5) observations.push({ kind: "strength", message: `Profit factor strong (${stats.profitFactor.toFixed(2)})` });
+  if (stats.profitFactor < 1) observations.push({ kind: "weakness", message: "Profit factor below 1 — strategy under review" });
+  if (highConfAccuracy >= 70) observations.push({ kind: "strength", message: "High-confidence setups outperform" });
+  if (falseBreakoutRate > 50) observations.push({ kind: "calibration", message: "Breakout false-positive rate elevated" });
 
   const modifiers: PerformanceLearningModifier[] = [];
-  if (stats.winRate > 0.55) modifiers.push({ label: "Confidence", delta: "+5%" });
-  if (stats.winRate < 0.45) modifiers.push({ label: "Confidence", delta: "−10%" });
-  if (falseBreakoutRate > 50) modifiers.push({ label: "Breakout setups", delta: "−15%" });
-  if (stats.expectancy > 0.01) modifiers.push({ label: "Size", delta: "+10%" });
+  if (stats.winRate > 0.55) modifiers.push({ delta: 5, reason: "Win-rate above target", regime: "all" });
+  if (stats.winRate < 0.45) modifiers.push({ delta: -10, reason: "Win-rate below target", regime: "all" });
+  if (falseBreakoutRate > 50) modifiers.push({ delta: -15, reason: "Breakout false positives", asset: "breakout" });
+  if (stats.expectancy > 0.01) modifiers.push({ delta: 10, reason: "Positive expectancy", volBucket: "all" });
 
   const hint = stats.trades === 0
     ? "Awaiting trade history to begin self-learning"
