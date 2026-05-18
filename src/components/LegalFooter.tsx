@@ -12,6 +12,7 @@ export function LegalFooter({ variant = "full", className = "" }: Props) {
     { to: "/services" as const, ar: "الخدمات", en: "Services" },
     { to: "/terms" as const, ar: "الشروط والأحكام", en: "Terms" },
     { to: "/privacy" as const, ar: "سياسة الخصوصية", en: "Privacy" },
+    { to: "/refund-policy" as const, ar: "سياسة الاسترداد", en: "Refund Policy" },
   ];
 
   if (variant === "inline") {
