@@ -11,6 +11,7 @@ import { TrendingUp, Eye, EyeOff, ArrowLeft, Mail, ShieldCheck, Sparkles } from 
 import { toast } from "sonner";
 import { MarketTicker } from "@/components/MarketTicker";
 import { InterestForm } from "@/components/InterestForm";
+import { LegalFooter } from "@/components/LegalFooter";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -231,6 +232,7 @@ function AuthPage() {
             </div>
           </div>
         </section>
+        <LegalFooter variant="inline" className="pb-6" />
       </main>
     </div>
   );
