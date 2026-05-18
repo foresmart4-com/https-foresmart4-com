@@ -11,7 +11,7 @@ const dict = {
     alerts: "التنبيهات",
     archive: "الأرشيف",
     profile: "الملف الشخصي",
-    advisor: "المستشار الذكي",
+    advisor: "رؤى AI",
     logout: "تسجيل الخروج",
     login: "تسجيل الدخول",
     signup: "إنشاء حساب",
