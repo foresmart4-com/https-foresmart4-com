@@ -462,6 +462,9 @@ function AIDashboardPage() {
 
         <ExecutionControlCenter data={data ?? null} ar={ar} />
 
+        {/* Phase 2 — Live Command Center */}
+        <LiveCommandCenter ar={ar} />
+
         <MonitoringCommandCenter data={data} ar={ar} />
 
         <EmailDeliveryPanel />
