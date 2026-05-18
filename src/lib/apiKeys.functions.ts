@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { encryptSecret, maskKey } from "@/services/security/encryption";
 
 const ApiKeyInput = z.object({
   provider: z.string().min(2).max(40).regex(/^[a-z0-9_-]+$/i),
@@ -31,6 +30,7 @@ export const saveUserApiKey = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ApiKeyInput.parse(input))
   .handler(async ({ data, context }) => {
+    const { encryptSecret, maskKey } = await import("@/services/security/encryption");
     const encrypted = encryptSecret(data.apiKey);
     const { error } = await context.supabase
       .from("user_api_keys")
