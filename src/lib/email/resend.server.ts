@@ -11,11 +11,13 @@ import {
   renderRiskAlert,
   renderSubscriptionNotice,
   renderSecurityNotice,
+  renderInvitation,
   type Lang,
   type AiAlertPayload,
   type RiskAlertPayload,
   type SubscriptionPayload,
   type SecurityNoticePayload,
+  type InvitationPayload,
 } from "./templates.server";
 
 const RESEND_API = "https://api.resend.com/emails";
@@ -23,7 +25,7 @@ export const PRIMARY_SENDER = "ForeSmart <foresmart4@foresmart4.com>";
 
 export type EmailCategory =
   | "test" | "auth" | "otp" | "password_reset"
-  | "ai_alert" | "risk_alert" | "subscription" | "security";
+  | "ai_alert" | "risk_alert" | "subscription" | "security" | "invitation";
 
 interface SendArgs {
   to: string;
@@ -244,4 +246,9 @@ export async function getEmailHealth(windowHours = 24): Promise<EmailHealth> {
     lastError: lastFailed?.error_message ?? null,
     lastSentAt: lastSent?.updated_at ?? null,
   };
+}
+
+export function sendInvitationEmail(to: string, payload: InvitationPayload, lang: Lang = "en", userId?: string) {
+  const t = renderInvitation(lang, payload);
+  return sendEmail({ to, subject: t.subject, html: t.html, template: "invitation", category: "invitation", lang, userId });
 }

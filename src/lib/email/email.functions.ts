@@ -11,6 +11,7 @@ import {
   sendSecurityEmail,
   sendOtpEmail,
   sendPasswordResetEmail,
+  sendInvitationEmail,
   getEmailHealth,
 } from "./resend.server";
 
@@ -143,4 +144,60 @@ export const getEmailHealthFn = createServerFn({ method: "GET" })
   .handler(async ({ context, data }) => {
     if (!(await isAdmin(context.userId))) throw new Error("Forbidden: admin only");
     return getEmailHealth(data.windowHours);
+  });
+
+// Admin sends invitation link to a client.
+// Generates a Supabase magic link / invite URL when redirectTo is provided,
+// otherwise sends a plain inviteUrl supplied by the admin.
+export const sendInvitationFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    to: emailSchema,
+    inviteUrl: z.string().url().max(2048).optional(),
+    redirectTo: z.string().url().max(2048).optional(),
+    inviterName: z.string().trim().max(80).optional(),
+    personalMessage: z.string().trim().max(500).optional(),
+    expiresInDays: z.number().int().min(1).max(30).default(7),
+    lang: langSchema,
+  }).refine((v) => !!v.inviteUrl || !!v.redirectTo, {
+    message: "Either inviteUrl or redirectTo must be provided",
+  }).parse(d))
+  .handler(async ({ context, data }) => {
+    if (!(await isAdmin(context.userId))) throw new Error("Forbidden: admin only");
+
+    let inviteUrl = data.inviteUrl ?? "";
+    // Try to generate an official Supabase invite link when redirectTo is provided.
+    if (!inviteUrl && data.redirectTo) {
+      try {
+        const { data: linkData, error } = await supabaseAdmin.auth.admin.generateLink({
+          type: "invite",
+          email: data.to,
+          options: { redirectTo: data.redirectTo },
+        });
+        if (error) throw error;
+        inviteUrl = linkData?.properties?.action_link ?? data.redirectTo;
+      } catch {
+        inviteUrl = data.redirectTo;
+      }
+    }
+    if (!inviteUrl) throw new Error("Could not resolve invite URL");
+
+    return sendInvitationEmail(
+      data.to,
+      {
+        inviteUrl,
+        inviterName: data.inviterName,
+        personalMessage: data.personalMessage,
+        expiresInDays: data.expiresInDays,
+      },
+      data.lang,
+      context.userId,
+    );
+  });
+
+// Admin-only: check whether the current user has admin role (used to gate UI).
+export const checkAdminFn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    return { isAdmin: await isAdmin(context.userId) };
   });
