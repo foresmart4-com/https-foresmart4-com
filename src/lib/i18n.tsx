@@ -84,7 +84,7 @@ const dict = {
   },
   en: {
     appName: "ForeSmart",
-    tagline: "AI analytics • Smarter insights • Better decisions",
+    tagline: "AI financial analytics • Educational insights • Market intelligence",
     dashboard: "Dashboard",
     markets: "Markets",
     alerts: "Alerts",
