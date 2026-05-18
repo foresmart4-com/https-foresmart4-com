@@ -23,7 +23,7 @@ interface PlanRow {
   target_markets: string[]; risk_level: string;
 }
 
-export function InvestmentPlansPanel({ data, ar }: { data: AnalysisState | null; ar: boolean }) {
+export function InvestmentPlansPanel({ data, ar }: { data: MarketIntel | null; ar: boolean }) {
   const fetchPlans = useServerFn(listInvestmentPlans);
   const savePlan = useServerFn(saveInvestmentPlan);
   const updateStatus = useServerFn(setPlanStatus);
