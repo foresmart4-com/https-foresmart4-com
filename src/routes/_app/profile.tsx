@@ -64,20 +64,20 @@ function ProfilePage() {
   const addKey = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !newKey.api_key) return;
-    const { error } = await supabase.from("user_api_keys").upsert(
-      { user_id: user.id, provider: newKey.provider, api_key: newKey.api_key },
-      { onConflict: "user_id,provider" },
-    );
-    if (error) toast.error(error.message);
-    else { toast.success(t("saved")); setNewKey({ ...newKey, api_key: "" }); load(); }
+    try {
+      await saveKeyFn({ data: { provider: newKey.provider, apiKey: newKey.api_key } });
+      toast.success(t("saved"));
+      setNewKey({ ...newKey, api_key: "" });
+      load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save API key");
+    }
   };
 
   const removeKey = async (id: string) => {
-    await supabase.from("user_api_keys").delete().eq("id", id);
+    await removeKeyFn({ data: { id } });
     load();
   };
-
-  const mask = (k: string) => (k.length <= 6 ? "••••" : `${k.slice(0, 3)}••••${k.slice(-3)}`);
 
   return (
     <div className="container mx-auto max-w-4xl p-6">
@@ -150,7 +150,7 @@ function ProfilePage() {
               <li key={k.id} className="flex items-center justify-between rounded-lg bg-muted/40 p-3">
                 <div>
                   <div className="font-semibold">{k.provider}</div>
-                  <div className="text-xs text-muted-foreground font-mono">{mask(k.api_key)}</div>
+                  <div className="text-xs text-muted-foreground font-mono">{k.key_hint}</div>
                 </div>
                 <Button size="icon" variant="ghost" aria-label={lang === "ar" ? "حذف المفتاح" : "Delete API key"} onClick={() => removeKey(k.id)}>
                   <Trash2 className="h-4 w-4 text-danger" />
