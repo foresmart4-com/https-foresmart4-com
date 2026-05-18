@@ -3,6 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { InterestForm } from "@/components/InterestForm";
+import { LegalFooter } from "@/components/LegalFooter";
 import { TrendingUp, Brain, Bell, Globe2, ShieldCheck, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -91,6 +92,7 @@ function Landing() {
           <InterestForm />
         </section>
       </main>
+      <LegalFooter />
     </div>
   );
 }
