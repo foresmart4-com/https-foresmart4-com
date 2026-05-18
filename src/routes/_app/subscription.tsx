@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Check, Crown, Sparkles, Settings, X } from "lucide-react";
 import { toast } from "sonner";
 import { StripeSubscriptionCheckout, type SubPriceId } from "@/components/StripeSubscriptionCheckout";
+import { LegalFooter } from "@/components/LegalFooter";
 
 export const Route = createFileRoute("/_app/subscription")({ component: SubscriptionPage });
 
@@ -187,6 +188,7 @@ function SubscriptionPage() {
           </Card>
         </>
       )}
+      <LegalFooter variant="inline" className="pt-8" />
     </div>
   );
 }
