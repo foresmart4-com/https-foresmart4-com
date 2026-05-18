@@ -55,8 +55,8 @@ export function LiveCommandCenter({ ar = false }: { ar?: boolean }) {
     try {
       const [pRes, perfRes, statRes] = await Promise.all([
         fetchPortfolio({ data: { mode } }).catch(() => ({ connected: false })),
-        fetchPerf({ data: {} }).catch(() => null),
-        fetchStatus({ data: {} }).catch(() => null),
+        fetchPerf().catch(() => null),
+        fetchStatus().catch(() => null),
       ]);
       const p = pRes as { connected: boolean; snapshot?: Snapshot };
       setConnected(p.connected);
@@ -86,7 +86,7 @@ export function LiveCommandCenter({ ar = false }: { ar?: boolean }) {
   };
   const handleResume = async () => {
     try {
-      await resumeFn({ data: {} });
+      await resumeFn();
       toast.success(ar ? "تم استئناف التداول" : "Trading resumed");
       refresh();
     } catch (e: unknown) {
