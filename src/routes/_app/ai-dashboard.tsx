@@ -31,6 +31,7 @@ import { InvestmentPlansPanel } from "@/components/dashboard/InvestmentPlansPane
 import { ExecutionControlCenter } from "@/components/dashboard/ExecutionControlCenter";
 import { LiveCommandCenter } from "@/components/dashboard/LiveCommandCenter";
 import { CapitalProtectionPanel } from "@/components/dashboard/CapitalProtectionPanel";
+import { MasterControlCenter } from "@/components/dashboard/MasterControlCenter";
 import { useAIMarketAnalyst, useAIMarketInsights } from "@/hooks/useAIBrain";
 import type { AssetKey } from "@/services/market/marketData";
 
@@ -474,6 +475,9 @@ function AIDashboardPage() {
         <EmailDeliveryPanel />
 
         <SecurityCommandCenter data={data} ar={ar} />
+
+        {/* Master Phase — Institutional AI Trading Ecosystem */}
+        <MasterControlCenter ar={ar} />
 
 
 
