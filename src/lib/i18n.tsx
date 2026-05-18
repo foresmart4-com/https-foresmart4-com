@@ -90,7 +90,7 @@ const dict = {
     alerts: "Alerts",
     archive: "Archive",
     profile: "Profile",
-    advisor: "AI Advisor",
+    advisor: "AI Insights",
     logout: "Sign out",
     login: "Sign in",
     signup: "Sign up",
