@@ -13,7 +13,7 @@ import { PLAN_TEMPLATES, getTemplate, type PlanType } from "@/services/investmen
 import { generateAllocation, type AllocationInput } from "@/services/investment/allocationEngine";
 import { projectPlan } from "@/services/investment/projectionEngine";
 import { listInvestmentPlans, saveInvestmentPlan, setPlanStatus } from "@/lib/realBroker.functions";
-import type { AnalysisState } from "@/services/analysis";
+import type { MarketIntel } from "@/services/analysis";
 
 interface PlanRow {
   id: string; name: string; plan_type: PlanType; duration_days: number;
