@@ -65,36 +65,13 @@ function buildAnalysis(headline: string, asset: string, sentiment: NewsSentiment
   return `AI read: ${dir} impulse for ${asset}. Monitor follow-through in correlated assets.`;
 }
 
-// ---------- NewsAPI ----------
-interface NewsApiArticle { title: string; description?: string; publishedAt: string; url: string; }
-interface NewsApiResponse { articles?: NewsApiArticle[]; }
-
-async function fetchFromNewsApi(limit: number): Promise<NewsItem[] | null> {
-  if (!hasNewsApi()) return null;
-  try {
-    const url = `https://newsapi.org/v2/top-headlines?category=business&language=en&pageSize=${limit}&apiKey=${env.NEWS_API_KEY}`;
-    const data = await fetchJson<NewsApiResponse>(url, { retries: 1, timeoutMs: 7000 });
-    if (!data.articles?.length) return null;
-    return data.articles.slice(0, limit).map((a, i) => {
-      const text = `${a.title} ${a.description ?? ""}`;
-      const { sentiment, pos, neg } = scoreText(text);
-      const polarity = Math.abs(pos - neg);
-      const { impact, impactScore, urgency } = scoreImpact(text, polarity);
-      const asset = detectAsset(text);
-      return {
-        id: `na-${Date.parse(a.publishedAt) || Date.now()}-${i}`,
-        headline: a.title,
-        sentiment, impact, impactScore, urgency, asset,
-        analysis: buildAnalysis(a.title, asset, sentiment),
-        publishedAt: Date.parse(a.publishedAt) || Date.now(),
-        source: "newsapi" as const,
-        url: a.url,
-      };
-    });
-  } catch {
-    return null;
-  }
+// ---------- NewsAPI (client-side disabled — keys never shipped to browser) ----------
+async function fetchFromNewsApi(_limit: number): Promise<NewsItem[] | null> {
+  // Server-side proxying is required to use NewsAPI safely.
+  // Until a server proxy is wired up, fall through to synthetic news.
+  return null;
 }
+
 
 // ---------- Synthetic fallback ----------
 const POOL: Array<Omit<NewsItem, "id" | "publishedAt" | "impactScore" | "urgency" | "source">> = [
