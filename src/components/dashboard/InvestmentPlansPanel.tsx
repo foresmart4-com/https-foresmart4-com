@@ -63,7 +63,7 @@ export function InvestmentPlansPanel({ data, ar }: { data: MarketIntel | null; a
             <Sparkles className="h-4 w-4" />
           </span>
           <h3 className="font-display text-lg font-bold">
-            {ar ? "خطط الاستثمار بالذكاء الاصطناعي" : "AI Investment Plans"}
+            {ar ? "باقات تحليلات الذكاء الاصطناعي" : "AI Analytics Memberships"}
           </h3>
         </div>
         <CreatePlanDialog
