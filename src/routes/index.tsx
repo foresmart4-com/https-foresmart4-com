@@ -9,10 +9,11 @@ import { TrendingUp, Brain, Bell, Globe2, ShieldCheck, Sparkles } from "lucide-r
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ForeSmart — AI Market Intelligence & Investment Signals" },
-      { name: "description", content: "AI-driven insights across global stocks, crypto, FX, metals and oil. Smart signals, alerts and a paper-trading wallet to grow your capital." },
-      { property: "og:title", content: "ForeSmart — AI Market Intelligence & Investment Signals" },
-      { property: "og:description", content: "AI-driven insights across global stocks, crypto, FX, metals and oil. Smart signals, alerts and a paper-trading wallet to grow your capital." },
+      { title: "ForeSmart — AI Financial Analytics & Market Intelligence Platform" },
+      { name: "description", content: "AI-powered financial analytics, market intelligence, smart signals and educational insights across global stocks, crypto, FX, metals and oil." },
+      { name: "keywords", content: "AI analytics platform, financial insights, market intelligence, AI signals, educational analytics" },
+      { property: "og:title", content: "ForeSmart — AI Financial Analytics Platform" },
+      { property: "og:description", content: "AI-powered analytics, smart market intelligence and educational insights for global markets." },
       { property: "og:url", content: "https://foresmart4.store/" },
     ],
     links: [{ rel: "canonical", href: "https://foresmart4.store/" }],
@@ -59,13 +60,13 @@ function Landing() {
           </h1>
           <p className="mt-6 text-lg text-muted-foreground">
             {lang === "ar"
-              ? "حلّل الأسواق، الأخبار، الجيوسياسة وسلاسل الإمداد. تنبيهات شراء وبيع ذكية لتنمية رأس مالك."
-              : "Analyze markets, news, geopolitics and supply chains. Smart buy/sell alerts to grow your capital."}
+              ? "منصة تحليلات مالية ذكية وذكاء سوق متقدم: حلّل الأسواق والأخبار والاتجاهات الكلية مع رؤى تعليمية مدعومة بالذكاء الاصطناعي."
+              : "AI-powered financial analytics and smart market intelligence platform. Analyze markets, news and macro trends with educational AI insights."}
           </p>
           <div className="mt-8 flex justify-center gap-3">
             <Link to="/auth">
               <Button size="lg" className="gradient-primary text-primary-foreground shadow-glow hover:opacity-90">
-                {t("signup")}
+                {lang === "ar" ? "ابدأ الآن" : "Get Started"}
               </Button>
             </Link>
             <Link to="/auth">

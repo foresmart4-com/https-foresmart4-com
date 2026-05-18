@@ -56,7 +56,7 @@ function SubscriptionPage() {
       <div className="text-center">
         <Badge className="mb-3 gap-1"><Sparkles className="h-3 w-3" />{lang === "ar" ? "تجربة 14 يوم مجاناً" : "14-day free trial"}</Badge>
         <h1 className="font-display text-4xl font-bold">
-          {lang === "ar" ? "خطط الاشتراك" : "Subscription Plans"}
+          {lang === "ar" ? "باقات العضوية" : "Membership Plans"}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {lang === "ar"
