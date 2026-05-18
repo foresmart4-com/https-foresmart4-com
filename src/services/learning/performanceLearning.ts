@@ -32,8 +32,17 @@ export function statsByRegime(): Record<string, PerfStats> {
 
 /* ---------- Legacy API (kept for backward compatibility) ---------- */
 
-export interface PerformanceLearningObservation { label: string; detail?: string; }
-export interface PerformanceLearningModifier { label: string; delta: string; }
+export interface PerformanceLearningObservation {
+  kind: "strength" | "weakness" | "calibration" | "insight";
+  message: string;
+}
+export interface PerformanceLearningModifier {
+  delta: number;             // signed integer in confidence points
+  reason: string;
+  asset?: string;
+  regime?: string;
+  volBucket?: string;
+}
 export interface PerformanceLearningReport {
   hint: string;
   highConfAccuracy: number;       // 0-100
