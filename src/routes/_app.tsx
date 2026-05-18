@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useAccess } from "@/lib/use-access";
 import { AccessGate } from "@/components/AccessGate";
+import { LegalFooter } from "@/components/LegalFooter";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, LineChart, Bell, Archive, User as UserIcon,
