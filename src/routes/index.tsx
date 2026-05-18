@@ -9,10 +9,11 @@ import { TrendingUp, Brain, Bell, Globe2, ShieldCheck, Sparkles } from "lucide-r
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ForeSmart — AI Market Intelligence & Investment Signals" },
-      { name: "description", content: "AI-driven insights across global stocks, crypto, FX, metals and oil. Smart signals, alerts and a paper-trading wallet to grow your capital." },
-      { property: "og:title", content: "ForeSmart — AI Market Intelligence & Investment Signals" },
-      { property: "og:description", content: "AI-driven insights across global stocks, crypto, FX, metals and oil. Smart signals, alerts and a paper-trading wallet to grow your capital." },
+      { title: "ForeSmart — AI Financial Analytics & Market Intelligence Platform" },
+      { name: "description", content: "AI-powered financial analytics, market intelligence, smart signals and educational insights across global stocks, crypto, FX, metals and oil." },
+      { name: "keywords", content: "AI analytics platform, financial insights, market intelligence, AI signals, educational analytics" },
+      { property: "og:title", content: "ForeSmart — AI Financial Analytics Platform" },
+      { property: "og:description", content: "AI-powered analytics, smart market intelligence and educational insights for global markets." },
       { property: "og:url", content: "https://foresmart4.store/" },
     ],
     links: [{ rel: "canonical", href: "https://foresmart4.store/" }],
