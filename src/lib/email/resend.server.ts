@@ -11,11 +11,13 @@ import {
   renderRiskAlert,
   renderSubscriptionNotice,
   renderSecurityNotice,
+  renderInvitation,
   type Lang,
   type AiAlertPayload,
   type RiskAlertPayload,
   type SubscriptionPayload,
   type SecurityNoticePayload,
+  type InvitationPayload,
 } from "./templates.server";
 
 const RESEND_API = "https://api.resend.com/emails";
