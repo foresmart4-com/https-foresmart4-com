@@ -117,7 +117,7 @@ const dict = {
     sma: "SMA",
     aiAdvice: "AI Advice",
     askAdvisor: "Ask advisor",
-    advisorPlaceholder: "Ask about any asset, news, or market...",
+    advisorPlaceholder: "Ask about any asset, news, or market for educational analytics...",
     send: "Send",
     createAlert: "Create alert",
     symbol: "Symbol",
