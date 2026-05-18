@@ -247,3 +247,8 @@ export async function getEmailHealth(windowHours = 24): Promise<EmailHealth> {
     lastSentAt: lastSent?.updated_at ?? null,
   };
 }
+
+export function sendInvitationEmail(to: string, payload: InvitationPayload, lang: Lang = "en", userId?: string) {
+  const t = renderInvitation(lang, payload);
+  return sendEmail({ to, subject: t.subject, html: t.html, template: "invitation", category: "invitation", lang, userId });
+}
