@@ -523,6 +523,54 @@ export type Database = {
         }
         Relationships: []
       }
+      resend_email_log: {
+        Row: {
+          attempts: number
+          category: string
+          created_at: string
+          error_message: string | null
+          id: string
+          lang: string
+          provider_message_id: string | null
+          recipient: string
+          status: string
+          subject: string
+          template: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          category: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          lang?: string
+          provider_message_id?: string | null
+          recipient: string
+          status?: string
+          subject: string
+          template: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          category?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          lang?: string
+          provider_message_id?: string | null
+          recipient?: string
+          status?: string
+          subject?: string
+          template?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       subscription_plans: {
         Row: {
           code: string
