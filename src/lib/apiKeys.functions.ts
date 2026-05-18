@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { deriveDeterministicKeyId, encryptSecret, maskKey } from "@/services/security/encryption";
+import { encryptSecret, maskKey } from "@/services/security/encryption";
 
 const ApiKeyInput = z.object({
   provider: z.string().min(2).max(40).regex(/^[a-z0-9_-]+$/i),
@@ -32,11 +32,9 @@ export const saveUserApiKey = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => ApiKeyInput.parse(input))
   .handler(async ({ data, context }) => {
     const encrypted = encryptSecret(data.apiKey);
-    const id = deriveDeterministicKeyId(data.provider, data.apiKey);
     const { error } = await context.supabase
       .from("user_api_keys")
       .upsert({
-        id,
         user_id: context.userId,
         provider: data.provider,
         encrypted_api_key: encrypted.ciphertext,
@@ -51,7 +49,7 @@ export const saveUserApiKey = createServerFn({ method: "POST" })
 
 export const removeUserApiKey = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ id: z.string().min(32).max(128) }).parse(input))
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("user_api_keys")
