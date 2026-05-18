@@ -5,7 +5,7 @@ type Lang = "ar" | "en";
 const dict = {
   ar: {
     appName: "ForeSmart",
-    tagline: "تنبؤ ذكي • قرارات أوضح • نمو حقيقي",
+    tagline: "تحليلات ذكية • رؤى أوضح • قرارات أفضل",
     dashboard: "لوحة التحكم",
     markets: "الأسواق",
     alerts: "التنبيهات",
