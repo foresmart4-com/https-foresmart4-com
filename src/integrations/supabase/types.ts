@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_decisions: {
+        Row: {
+          action: string
+          asset: string
+          confidence: number | null
+          context: Json | null
+          created_at: string
+          id: string
+          outcome: string | null
+          rationale: string | null
+          regime: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          asset: string
+          confidence?: number | null
+          context?: Json | null
+          created_at?: string
+          id?: string
+          outcome?: string | null
+          rationale?: string | null
+          regime?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          asset?: string
+          confidence?: number | null
+          context?: Json | null
+          created_at?: string
+          id?: string
+          outcome?: string | null
+          rationale?: string | null
+          regime?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       alerts: {
         Row: {
           active: boolean
@@ -46,6 +85,48 @@ export type Database = {
           symbol?: string
           target_price?: number
           triggered_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      autonomous_sessions: {
+        Row: {
+          ending_equity: number | null
+          id: string
+          metadata: Json | null
+          mode: string
+          started_at: string
+          starting_equity: number | null
+          status: string
+          stop_reason: string | null
+          stopped_at: string | null
+          strategy: string | null
+          user_id: string
+        }
+        Insert: {
+          ending_equity?: number | null
+          id?: string
+          metadata?: Json | null
+          mode?: string
+          started_at?: string
+          starting_equity?: number | null
+          status?: string
+          stop_reason?: string | null
+          stopped_at?: string | null
+          strategy?: string | null
+          user_id: string
+        }
+        Update: {
+          ending_equity?: number | null
+          id?: string
+          metadata?: Json | null
+          mode?: string
+          started_at?: string
+          starting_equity?: number | null
+          status?: string
+          stop_reason?: string | null
+          stopped_at?: string | null
+          strategy?: string | null
           user_id?: string
         }
         Relationships: []
@@ -118,6 +199,51 @@ export type Database = {
           institution_name?: string | null
           is_active?: boolean
           provider?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      broker_credentials: {
+        Row: {
+          auth_tag: string
+          broker: string
+          created_at: string
+          encrypted_api_key: string
+          encrypted_api_secret: string
+          id: string
+          is_active: boolean
+          iv: string
+          label: string | null
+          mode: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auth_tag: string
+          broker?: string
+          created_at?: string
+          encrypted_api_key: string
+          encrypted_api_secret: string
+          id?: string
+          is_active?: boolean
+          iv: string
+          label?: string | null
+          mode?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auth_tag?: string
+          broker?: string
+          created_at?: string
+          encrypted_api_key?: string
+          encrypted_api_secret?: string
+          id?: string
+          is_active?: boolean
+          iv?: string
+          label?: string | null
+          mode?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -236,6 +362,60 @@ export type Database = {
         }
         Relationships: []
       }
+      execution_history: {
+        Row: {
+          broker: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          mode: string
+          order_id: string | null
+          pnl: number | null
+          price: number | null
+          quantity: number
+          side: string
+          slippage_pct: number | null
+          status: string
+          symbol: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          broker?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          mode?: string
+          order_id?: string | null
+          pnl?: number | null
+          price?: number | null
+          quantity: number
+          side: string
+          slippage_pct?: number | null
+          status: string
+          symbol: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          broker?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          mode?: string
+          order_id?: string | null
+          pnl?: number | null
+          price?: number | null
+          quantity?: number
+          side?: string
+          slippage_pct?: number | null
+          status?: string
+          symbol?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       external_accounts: {
         Row: {
           address: string | null
@@ -311,6 +491,60 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           status?: string
+        }
+        Relationships: []
+      }
+      investment_plans: {
+        Row: {
+          ai_confidence: number | null
+          allocation: Json
+          capital_amount: number
+          created_at: string
+          currency: string
+          duration_days: number
+          id: string
+          name: string
+          plan_type: string
+          projection: Json
+          risk_level: string
+          status: string
+          target_markets: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_confidence?: number | null
+          allocation?: Json
+          capital_amount: number
+          created_at?: string
+          currency?: string
+          duration_days: number
+          id?: string
+          name: string
+          plan_type: string
+          projection?: Json
+          risk_level?: string
+          status?: string
+          target_markets?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_confidence?: number | null
+          allocation?: Json
+          capital_amount?: number
+          created_at?: string
+          currency?: string
+          duration_days?: number
+          id?: string
+          name?: string
+          plan_type?: string
+          projection?: Json
+          risk_level?: string
+          status?: string
+          target_markets?: string[]
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -469,6 +703,42 @@ export type Database = {
           },
         ]
       }
+      portfolio_snapshots: {
+        Row: {
+          available: number
+          captured_at: string
+          equity: number
+          exposure_pct: number | null
+          holdings: Json
+          id: string
+          pnl_day: number | null
+          pnl_total: number | null
+          user_id: string
+        }
+        Insert: {
+          available: number
+          captured_at?: string
+          equity: number
+          exposure_pct?: number | null
+          holdings?: Json
+          id?: string
+          pnl_day?: number | null
+          pnl_total?: number | null
+          user_id: string
+        }
+        Update: {
+          available?: number
+          captured_at?: string
+          equity?: number
+          exposure_pct?: number | null
+          holdings?: Json
+          id?: string
+          pnl_day?: number | null
+          pnl_total?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       portfolios: {
         Row: {
           base_currency: string
@@ -567,6 +837,39 @@ export type Database = {
           subject?: string
           template?: string
           updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      risk_events: {
+        Row: {
+          category: string
+          context: Json | null
+          created_at: string
+          id: string
+          message: string
+          resolved_at: string | null
+          severity: string
+          user_id: string | null
+        }
+        Insert: {
+          category: string
+          context?: Json | null
+          created_at?: string
+          id?: string
+          message: string
+          resolved_at?: string | null
+          severity: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          context?: Json | null
+          created_at?: string
+          id?: string
+          message?: string
+          resolved_at?: string | null
+          severity?: string
           user_id?: string | null
         }
         Relationships: []
