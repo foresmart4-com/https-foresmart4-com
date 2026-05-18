@@ -1070,23 +1070,32 @@ export type Database = {
       }
       user_api_keys: {
         Row: {
-          api_key: string
+          auth_tag: string
           created_at: string
+          encrypted_api_key: string
           id: string
+          iv: string
+          key_hint: string
           provider: string
           user_id: string
         }
         Insert: {
-          api_key: string
+          auth_tag: string
           created_at?: string
+          encrypted_api_key: string
           id?: string
+          iv: string
+          key_hint: string
           provider: string
           user_id: string
         }
         Update: {
-          api_key?: string
+          auth_tag?: string
           created_at?: string
+          encrypted_api_key?: string
           id?: string
+          iv?: string
+          key_hint?: string
           provider?: string
           user_id?: string
         }
