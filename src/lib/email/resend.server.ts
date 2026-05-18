@@ -25,7 +25,7 @@ export const PRIMARY_SENDER = "ForeSmart <foresmart4@foresmart4.com>";
 
 export type EmailCategory =
   | "test" | "auth" | "otp" | "password_reset"
-  | "ai_alert" | "risk_alert" | "subscription" | "security";
+  | "ai_alert" | "risk_alert" | "subscription" | "security" | "invitation";
 
 interface SendArgs {
   to: string;
