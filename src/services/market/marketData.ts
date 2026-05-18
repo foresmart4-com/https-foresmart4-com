@@ -86,22 +86,13 @@ async function fetchCryptoBatch(keys: AssetKey[]): Promise<Map<AssetKey, MarketQ
   return out;
 }
 
-// ---------- Finnhub ----------
-interface FinnhubQuote { c: number; pc: number; }
-
-async function fetchFinnhubOne(key: AssetKey): Promise<MarketQuote | null> {
-  if (!hasFinnhub()) return null;
-  const symbol = META[key].finnhubSymbol;
-  if (!symbol) return null;
-  try {
-    const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${env.FINNHUB_API_KEY}`;
-    const data = await fetchJson<FinnhubQuote>(url, { retries: 1, timeoutMs: 6000 });
-    if (!data.c || !data.pc) return null;
-    return deriveQuote(key, data.c, data.pc, "finnhub");
-  } catch {
-    return null;
-  }
+// ---------- Finnhub (client-side disabled — keys never shipped to browser) ----------
+async function fetchFinnhubOne(_key: AssetKey): Promise<MarketQuote | null> {
+  // Server-side proxying is required to use Finnhub safely.
+  // Until a server proxy is wired up, fall through to synthetic data.
+  return null;
 }
+
 
 // ---------- Synthetic fallback ----------
 function syntheticQuote(key: AssetKey): MarketQuote {

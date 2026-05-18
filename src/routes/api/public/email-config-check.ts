@@ -1,22 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PRIMARY_SENDER } from "@/lib/email/resend.server";
 
+// Minimal health probe — returns only whether email is configured.
+// Does NOT leak key prefix, length, sender, or runtime metadata.
 export const Route = createFileRoute("/api/public/email-config-check")({
   server: {
     handlers: {
       GET: async () => {
-        const key = process.env.RESEND_API_KEY ?? "";
-        return new Response(
-          JSON.stringify({
-            configured: !!key,
-            keyPrefix: key ? key.slice(0, 4) : null,
-            keyLength: key.length,
-            sender: PRIMARY_SENDER,
-            runtime: "production",
-            timestamp: new Date().toISOString(),
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        );
+        const configured = !!process.env.RESEND_API_KEY;
+        return new Response(JSON.stringify({ configured }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
       },
     },
   },
