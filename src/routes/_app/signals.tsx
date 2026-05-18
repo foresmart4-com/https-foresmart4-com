@@ -80,7 +80,7 @@ function SignalsPage() {
                 {lang === "ar" ? "محرك الإشارات الذكي" : "AI Signal Engine"}
               </div>
               <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">
-                <span className="text-gradient">{lang === "ar" ? "إشارات التداول" : "Trading Signals"}</span>
+                <span className="text-gradient">{lang === "ar" ? "إشارات السوق" : "Market Signals"}</span>
               </h1>
               <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
                 {lang === "ar"
