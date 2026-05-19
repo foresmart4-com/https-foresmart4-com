@@ -73,10 +73,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: React.ReactNode }) {
+  // Pre-hydration language bootstrap: sets <html lang/dir/class> from
+  // localStorage BEFORE React mounts to prevent any mixed-language flash.
+  const bootstrap = `(function(){try{var l=localStorage.getItem('lang');if(l!=='ar'&&l!=='en'){var n=(navigator.language||'').toLowerCase();l=n.indexOf('ar')===0?'ar':'en';}var h=document.documentElement;h.lang=l;h.dir=l==='ar'?'rtl':'ltr';h.classList.remove('lang-ar','lang-en');h.classList.add('lang-'+l);}catch(e){}})();`;
   return (
-    <html lang="ar" dir="rtl">
+    <html lang="ar" dir="rtl" className="lang-ar">
       <head><HeadContent /></head>
       <body>
+        <script dangerouslySetInnerHTML={{ __html: bootstrap }} />
         {children}
         <Scripts />
       </body>
