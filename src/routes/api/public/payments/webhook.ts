@@ -90,6 +90,11 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           return Response.json({ received: true });
         } catch (e) {
           console.error("Webhook error:", e);
+          const { logEvent } = await import("@/lib/observability/log.server");
+          await logEvent({
+            source: "webhook", severity: "error", eventType: "stripe_webhook_failed",
+            message: (e as Error).message, context: { env: rawEnv },
+          });
           return new Response("Webhook error", { status: 400 });
         }
       },
