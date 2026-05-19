@@ -94,8 +94,7 @@ export const Route = createFileRoute("/api/finnhub/stream")({
             if (pingTimer) clearInterval(pingTimer);
             try {
               for (const s of symbols) ws.send(JSON.stringify({ type: "unsubscribe", symbol: s }));
-              // @ts-expect-error workerd close()
-              ws.close();
+              (ws as unknown as { close: () => void }).close();
             } catch { /* ignore */ }
           },
         });
