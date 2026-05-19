@@ -38,6 +38,7 @@ function AppLayout() {
     { to: "/dashboard", icon: LayoutDashboard, label: t("nav.dashboard") },
     { to: "/ai-dashboard", icon: Brain, label: t("nav.aiDashboard") },
     { to: "/backtest-lab", icon: GraduationCap, label: t("nav.backtestLab") },
+    { to: "/data-fusion", icon: Layers, label: t("nav.dataFusion") },
     { to: "/markets", icon: LineChart, label: t("nav.markets") },
     { to: "/heatmap", icon: Flame, label: t("nav.heatmap") },
     { to: "/calendar", icon: CalendarDays, label: t("nav.calendar") },
