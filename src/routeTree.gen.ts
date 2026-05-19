@@ -21,6 +21,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppWatchlistRouteImport } from './routes/_app/watchlist'
 import { Route as AppWalletRouteImport } from './routes/_app/wallet'
+import { Route as AppSystemHealthRouteImport } from './routes/_app/system-health'
 import { Route as AppSubscriptionRouteImport } from './routes/_app/subscription'
 import { Route as AppSignalsRouteImport } from './routes/_app/signals'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
@@ -33,6 +34,7 @@ import { Route as AppMarketsRouteImport } from './routes/_app/markets'
 import { Route as AppHeatmapRouteImport } from './routes/_app/heatmap'
 import { Route as AppGrowthPlanRouteImport } from './routes/_app/growth-plan'
 import { Route as AppExternalAccountsRouteImport } from './routes/_app/external-accounts'
+import { Route as AppErrorLogsRouteImport } from './routes/_app/error-logs'
 import { Route as AppEmailDiagnosticsRouteImport } from './routes/_app/email-diagnostics'
 import { Route as AppDomainRouteImport } from './routes/_app/domain'
 import { Route as AppDepositRouteImport } from './routes/_app/deposit'
@@ -115,6 +117,11 @@ const AppWalletRoute = AppWalletRouteImport.update({
   path: '/wallet',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSystemHealthRoute = AppSystemHealthRouteImport.update({
+  id: '/system-health',
+  path: '/system-health',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSubscriptionRoute = AppSubscriptionRouteImport.update({
   id: '/subscription',
   path: '/subscription',
@@ -173,6 +180,11 @@ const AppGrowthPlanRoute = AppGrowthPlanRouteImport.update({
 const AppExternalAccountsRoute = AppExternalAccountsRouteImport.update({
   id: '/external-accounts',
   path: '/external-accounts',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppErrorLogsRoute = AppErrorLogsRouteImport.update({
+  id: '/error-logs',
+  path: '/error-logs',
   getParentRoute: () => AppRoute,
 } as any)
 const AppEmailDiagnosticsRoute = AppEmailDiagnosticsRouteImport.update({
@@ -311,6 +323,7 @@ export interface FileRoutesByFullPath {
   '/deposit': typeof AppDepositRoute
   '/domain': typeof AppDomainRoute
   '/email-diagnostics': typeof AppEmailDiagnosticsRoute
+  '/error-logs': typeof AppErrorLogsRoute
   '/external-accounts': typeof AppExternalAccountsRoute
   '/growth-plan': typeof AppGrowthPlanRoute
   '/heatmap': typeof AppHeatmapRoute
@@ -323,6 +336,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/signals': typeof AppSignalsRoute
   '/subscription': typeof AppSubscriptionRoute
+  '/system-health': typeof AppSystemHealthRoute
   '/wallet': typeof AppWalletRoute
   '/watchlist': typeof AppWatchlistRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
@@ -358,6 +372,7 @@ export interface FileRoutesByTo {
   '/deposit': typeof AppDepositRoute
   '/domain': typeof AppDomainRoute
   '/email-diagnostics': typeof AppEmailDiagnosticsRoute
+  '/error-logs': typeof AppErrorLogsRoute
   '/external-accounts': typeof AppExternalAccountsRoute
   '/growth-plan': typeof AppGrowthPlanRoute
   '/heatmap': typeof AppHeatmapRoute
@@ -370,6 +385,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/signals': typeof AppSignalsRoute
   '/subscription': typeof AppSubscriptionRoute
+  '/system-health': typeof AppSystemHealthRoute
   '/wallet': typeof AppWalletRoute
   '/watchlist': typeof AppWatchlistRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
@@ -407,6 +423,7 @@ export interface FileRoutesById {
   '/_app/deposit': typeof AppDepositRoute
   '/_app/domain': typeof AppDomainRoute
   '/_app/email-diagnostics': typeof AppEmailDiagnosticsRoute
+  '/_app/error-logs': typeof AppErrorLogsRoute
   '/_app/external-accounts': typeof AppExternalAccountsRoute
   '/_app/growth-plan': typeof AppGrowthPlanRoute
   '/_app/heatmap': typeof AppHeatmapRoute
@@ -419,6 +436,7 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/_app/signals': typeof AppSignalsRoute
   '/_app/subscription': typeof AppSubscriptionRoute
+  '/_app/system-health': typeof AppSystemHealthRoute
   '/_app/wallet': typeof AppWalletRoute
   '/_app/watchlist': typeof AppWatchlistRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
@@ -456,6 +474,7 @@ export interface FileRouteTypes {
     | '/deposit'
     | '/domain'
     | '/email-diagnostics'
+    | '/error-logs'
     | '/external-accounts'
     | '/growth-plan'
     | '/heatmap'
@@ -468,6 +487,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signals'
     | '/subscription'
+    | '/system-health'
     | '/wallet'
     | '/watchlist'
     | '/api/public/email-config-check'
@@ -503,6 +523,7 @@ export interface FileRouteTypes {
     | '/deposit'
     | '/domain'
     | '/email-diagnostics'
+    | '/error-logs'
     | '/external-accounts'
     | '/growth-plan'
     | '/heatmap'
@@ -515,6 +536,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signals'
     | '/subscription'
+    | '/system-health'
     | '/wallet'
     | '/watchlist'
     | '/api/public/email-config-check'
@@ -551,6 +573,7 @@ export interface FileRouteTypes {
     | '/_app/deposit'
     | '/_app/domain'
     | '/_app/email-diagnostics'
+    | '/_app/error-logs'
     | '/_app/external-accounts'
     | '/_app/growth-plan'
     | '/_app/heatmap'
@@ -563,6 +586,7 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/signals'
     | '/_app/subscription'
+    | '/_app/system-health'
     | '/_app/wallet'
     | '/_app/watchlist'
     | '/api/public/email-config-check'
@@ -686,6 +710,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWalletRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/system-health': {
+      id: '/_app/system-health'
+      path: '/system-health'
+      fullPath: '/system-health'
+      preLoaderRoute: typeof AppSystemHealthRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/subscription': {
       id: '/_app/subscription'
       path: '/subscription'
@@ -768,6 +799,13 @@ declare module '@tanstack/react-router' {
       path: '/external-accounts'
       fullPath: '/external-accounts'
       preLoaderRoute: typeof AppExternalAccountsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/error-logs': {
+      id: '/_app/error-logs'
+      path: '/error-logs'
+      fullPath: '/error-logs'
+      preLoaderRoute: typeof AppErrorLogsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/email-diagnostics': {
@@ -940,6 +978,7 @@ interface AppRouteChildren {
   AppDepositRoute: typeof AppDepositRoute
   AppDomainRoute: typeof AppDomainRoute
   AppEmailDiagnosticsRoute: typeof AppEmailDiagnosticsRoute
+  AppErrorLogsRoute: typeof AppErrorLogsRoute
   AppExternalAccountsRoute: typeof AppExternalAccountsRoute
   AppGrowthPlanRoute: typeof AppGrowthPlanRoute
   AppHeatmapRoute: typeof AppHeatmapRoute
@@ -952,6 +991,7 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppSignalsRoute: typeof AppSignalsRoute
   AppSubscriptionRoute: typeof AppSubscriptionRoute
+  AppSystemHealthRoute: typeof AppSystemHealthRoute
   AppWalletRoute: typeof AppWalletRoute
   AppWatchlistRoute: typeof AppWatchlistRoute
 }
@@ -969,6 +1009,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDepositRoute: AppDepositRoute,
   AppDomainRoute: AppDomainRoute,
   AppEmailDiagnosticsRoute: AppEmailDiagnosticsRoute,
+  AppErrorLogsRoute: AppErrorLogsRoute,
   AppExternalAccountsRoute: AppExternalAccountsRoute,
   AppGrowthPlanRoute: AppGrowthPlanRoute,
   AppHeatmapRoute: AppHeatmapRoute,
@@ -981,6 +1022,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppSignalsRoute: AppSignalsRoute,
   AppSubscriptionRoute: AppSubscriptionRoute,
+  AppSystemHealthRoute: AppSystemHealthRoute,
   AppWalletRoute: AppWalletRoute,
   AppWatchlistRoute: AppWatchlistRoute,
 }
@@ -1012,3 +1054,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
