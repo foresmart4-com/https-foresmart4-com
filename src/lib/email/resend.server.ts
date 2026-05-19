@@ -404,7 +404,7 @@ export interface RecentEmailRow {
   attempts: number;
   error_message: string | null;
   provider_message_id: string | null;
-  provider_response: unknown;
+  provider_response: any;
   created_at: string;
   updated_at: string;
 }
