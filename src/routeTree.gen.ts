@@ -45,6 +45,7 @@ import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppBillingMonitorRouteImport } from './routes/_app/billing-monitor'
 import { Route as AppBillingRouteImport } from './routes/_app/billing'
 import { Route as AppBankAccountsRouteImport } from './routes/_app/bank-accounts'
+import { Route as AppBacktestLabRouteImport } from './routes/_app/backtest-lab'
 import { Route as AppArchiveRouteImport } from './routes/_app/archive'
 import { Route as AppAlertsRouteImport } from './routes/_app/alerts'
 import { Route as AppAiDashboardRouteImport } from './routes/_app/ai-dashboard'
@@ -239,6 +240,11 @@ const AppBankAccountsRoute = AppBankAccountsRouteImport.update({
   path: '/bank-accounts',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBacktestLabRoute = AppBacktestLabRouteImport.update({
+  id: '/backtest-lab',
+  path: '/backtest-lab',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppArchiveRoute = AppArchiveRouteImport.update({
   id: '/archive',
   path: '/archive',
@@ -327,6 +333,7 @@ export interface FileRoutesByFullPath {
   '/ai-dashboard': typeof AppAiDashboardRoute
   '/alerts': typeof AppAlertsRoute
   '/archive': typeof AppArchiveRoute
+  '/backtest-lab': typeof AppBacktestLabRoute
   '/bank-accounts': typeof AppBankAccountsRoute
   '/billing': typeof AppBillingRoute
   '/billing-monitor': typeof AppBillingMonitorRoute
@@ -378,6 +385,7 @@ export interface FileRoutesByTo {
   '/ai-dashboard': typeof AppAiDashboardRoute
   '/alerts': typeof AppAlertsRoute
   '/archive': typeof AppArchiveRoute
+  '/backtest-lab': typeof AppBacktestLabRoute
   '/bank-accounts': typeof AppBankAccountsRoute
   '/billing': typeof AppBillingRoute
   '/billing-monitor': typeof AppBillingMonitorRoute
@@ -431,6 +439,7 @@ export interface FileRoutesById {
   '/_app/ai-dashboard': typeof AppAiDashboardRoute
   '/_app/alerts': typeof AppAlertsRoute
   '/_app/archive': typeof AppArchiveRoute
+  '/_app/backtest-lab': typeof AppBacktestLabRoute
   '/_app/bank-accounts': typeof AppBankAccountsRoute
   '/_app/billing': typeof AppBillingRoute
   '/_app/billing-monitor': typeof AppBillingMonitorRoute
@@ -484,6 +493,7 @@ export interface FileRouteTypes {
     | '/ai-dashboard'
     | '/alerts'
     | '/archive'
+    | '/backtest-lab'
     | '/bank-accounts'
     | '/billing'
     | '/billing-monitor'
@@ -535,6 +545,7 @@ export interface FileRouteTypes {
     | '/ai-dashboard'
     | '/alerts'
     | '/archive'
+    | '/backtest-lab'
     | '/bank-accounts'
     | '/billing'
     | '/billing-monitor'
@@ -587,6 +598,7 @@ export interface FileRouteTypes {
     | '/_app/ai-dashboard'
     | '/_app/alerts'
     | '/_app/archive'
+    | '/_app/backtest-lab'
     | '/_app/bank-accounts'
     | '/_app/billing'
     | '/_app/billing-monitor'
@@ -902,6 +914,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBankAccountsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/backtest-lab': {
+      id: '/_app/backtest-lab'
+      path: '/backtest-lab'
+      fullPath: '/backtest-lab'
+      preLoaderRoute: typeof AppBacktestLabRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/archive': {
       id: '/_app/archive'
       path: '/archive'
@@ -1008,6 +1027,7 @@ interface AppRouteChildren {
   AppAiDashboardRoute: typeof AppAiDashboardRoute
   AppAlertsRoute: typeof AppAlertsRoute
   AppArchiveRoute: typeof AppArchiveRoute
+  AppBacktestLabRoute: typeof AppBacktestLabRoute
   AppBankAccountsRoute: typeof AppBankAccountsRoute
   AppBillingRoute: typeof AppBillingRoute
   AppBillingMonitorRoute: typeof AppBillingMonitorRoute
@@ -1041,6 +1061,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAiDashboardRoute: AppAiDashboardRoute,
   AppAlertsRoute: AppAlertsRoute,
   AppArchiveRoute: AppArchiveRoute,
+  AppBacktestLabRoute: AppBacktestLabRoute,
   AppBankAccountsRoute: AppBankAccountsRoute,
   AppBillingRoute: AppBillingRoute,
   AppBillingMonitorRoute: AppBillingMonitorRoute,
