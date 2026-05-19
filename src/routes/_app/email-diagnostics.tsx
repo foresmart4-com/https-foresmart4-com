@@ -12,7 +12,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2, Mail, RefreshCw, ShieldAlert, Send, Server } from "lucide-react";
 
 export const Route = createFileRoute("/_app/email-diagnostics")({
