@@ -113,9 +113,22 @@
       radial-gradient(ellipse 60% 40% at 0% 100%, oklch(0.65 0.22 290 / 0.05), transparent 60%);
     background-attachment: fixed;
   }
-  [dir="rtl"] body { font-family: "Cairo", "Inter", sans-serif; }
+  /* Strict locale isolation: one font stack per language, applied globally. */
+  html.lang-ar, html.lang-ar body,
+  [dir="rtl"] body {
+    font-family: "Cairo", "Tajawal", system-ui, sans-serif;
+  }
+  html.lang-ar h1, html.lang-ar h2, html.lang-ar h3, html.lang-ar h4,
   [dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3, [dir="rtl"] h4 {
-    font-family: "Cairo", "Playfair Display", serif;
+    font-family: "Cairo", "Tajawal", serif;
+  }
+  html.lang-en, html.lang-en body {
+    font-family: "Inter", system-ui, sans-serif;
+  }
+  html.lang-en h1, html.lang-en h2, html.lang-en h3, html.lang-en h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    font-weight: 600;
   }
   h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.02em; font-weight: 600; }
 

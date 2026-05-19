@@ -8,6 +8,34 @@ type Dict = Record<string, unknown>;
 
 const DICTS: Record<Lang, Dict> = { en: en as Dict, ar: ar as Dict };
 
+// Dev-only collector of missing translation keys for the validation panel.
+const missingKeys = new Set<string>();
+export function getMissingTranslationKeys(): string[] {
+  return Array.from(missingKeys).sort();
+}
+
+/**
+ * Validate that every key present in `en` exists in `ar` (and vice-versa).
+ * Returns the list of mismatched paths. Use in tests or admin diagnostics.
+ */
+export function validateTranslations(): { onlyInEn: string[]; onlyInAr: string[] } {
+  const flatten = (d: Dict, prefix = ""): string[] => {
+    const out: string[] = [];
+    for (const [k, v] of Object.entries(d)) {
+      const path = prefix ? `${prefix}.${k}` : k;
+      if (typeof v === "string") out.push(path);
+      else if (v && typeof v === "object") out.push(...flatten(v as Dict, path));
+    }
+    return out;
+  };
+  const enKeys = new Set(flatten(DICTS.en));
+  const arKeys = new Set(flatten(DICTS.ar));
+  return {
+    onlyInEn: [...enKeys].filter((k) => !arKeys.has(k)),
+    onlyInAr: [...arKeys].filter((k) => !enKeys.has(k)),
+  };
+}
+
 interface Ctx {
   lang: Lang;
   setLang: (l: Lang) => void;
@@ -84,14 +112,25 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (typeof document !== "undefined") {
-      document.documentElement.lang = lang;
-      document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+      const h = document.documentElement;
+      h.lang = lang;
+      h.dir = lang === "ar" ? "rtl" : "ltr";
+      h.classList.remove("lang-ar", "lang-en");
+      h.classList.add(`lang-${lang}`);
     }
   }, [lang]);
 
   const setLang = useCallback((l: Lang) => {
     setLangState(l);
     try { if (typeof window !== "undefined") localStorage.setItem("lang", l); } catch { /* noop */ }
+    // Apply immediately so the next paint is in the new language.
+    if (typeof document !== "undefined") {
+      const h = document.documentElement;
+      h.lang = l;
+      h.dir = l === "ar" ? "rtl" : "ltr";
+      h.classList.remove("lang-ar", "lang-en");
+      h.classList.add(`lang-${l}`);
+    }
     // Persist to profile (fire-and-forget).
     supabase.auth.getSession().then(({ data: { session } }) => {
       const uid = session?.user?.id;
@@ -106,7 +145,19 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     const primary = lookup(DICTS[lang], key);
     if (primary !== undefined) return interpolate(primary, vars);
     const fallback = lookup(DICTS.en, key);
-    if (fallback !== undefined) return interpolate(fallback, vars);
+    if (fallback !== undefined) {
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.warn(`[i18n] missing '${lang}' translation for key: ${key} (using en fallback)`);
+        missingKeys.add(`${lang}:${key}`);
+      }
+      return interpolate(fallback, vars);
+    }
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.warn(`[i18n] missing translation for key: ${key}`);
+      missingKeys.add(`*:${key}`);
+    }
     return key;
   }, [lang]);
 
