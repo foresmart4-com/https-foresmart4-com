@@ -227,8 +227,8 @@ export function buildPerformance(records: CombinedRecord[]): PerformanceReport {
 
   const sd = stdev(returns, avg);
   const downSd = stdev(returns.filter((v) => v < 0), 0);
-  const sharpe = sd ? +((avg / sd) * Math.sqrt(252 / Math.max(1, returns.length))).toFixed(2) * Math.sqrt(returns.length) / Math.sqrt(returns.length) : 0;
-  const sortino = downSd ? +((avg / downSd) * Math.sqrt(252 / Math.max(1, returns.length))).toFixed(2) * Math.sqrt(returns.length) / Math.sqrt(returns.length) : 0;
+  const sharpe = sd ? (avg / sd) * Math.sqrt(252) : 0;
+  const sortino = downSd ? (avg / downSd) * Math.sqrt(252) : 0;
 
   // Equity curve / drawdown
   let peak = 0, equity = 0, maxDD = 0;
