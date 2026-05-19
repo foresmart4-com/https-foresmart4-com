@@ -33,6 +33,7 @@ import { Route as AppPaperTradingRouteImport } from './routes/_app/paper-trading
 import { Route as AppOpportunityScannerRouteImport } from './routes/_app/opportunity-scanner'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppMarketsRouteImport } from './routes/_app/markets'
+import { Route as AppMarketDataMonitorRouteImport } from './routes/_app/market-data-monitor'
 import { Route as AppHeatmapRouteImport } from './routes/_app/heatmap'
 import { Route as AppGrowthPlanRouteImport } from './routes/_app/growth-plan'
 import { Route as AppGlobalIntelRouteImport } from './routes/_app/global-intel'
@@ -63,6 +64,7 @@ import { Route as ApiWebhooksPaddleRouteImport } from './routes/api/webhooks/pad
 import { Route as ApiWebhooksLemonsqueezyRouteImport } from './routes/api/webhooks/lemonsqueezy'
 import { Route as ApiPublicMoyasarWebhookRouteImport } from './routes/api/public/moyasar-webhook'
 import { Route as ApiPublicEmailConfigCheckRouteImport } from './routes/api/public/email-config-check'
+import { Route as ApiFinnhubStreamRouteImport } from './routes/api/finnhub/stream'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -186,6 +188,11 @@ const AppMembersRoute = AppMembersRouteImport.update({
 const AppMarketsRoute = AppMarketsRouteImport.update({
   id: '/markets',
   path: '/markets',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMarketDataMonitorRoute = AppMarketDataMonitorRouteImport.update({
+  id: '/market-data-monitor',
+  path: '/market-data-monitor',
   getParentRoute: () => AppRoute,
 } as any)
 const AppHeatmapRoute = AppHeatmapRouteImport.update({
@@ -339,6 +346,11 @@ const ApiPublicEmailConfigCheckRoute =
     path: '/api/public/email-config-check',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiFinnhubStreamRoute = ApiFinnhubStreamRouteImport.update({
+  id: '/api/finnhub/stream',
+  path: '/api/finnhub/stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -402,6 +414,7 @@ export interface FileRoutesByFullPath {
   '/global-intel': typeof AppGlobalIntelRoute
   '/growth-plan': typeof AppGrowthPlanRoute
   '/heatmap': typeof AppHeatmapRoute
+  '/market-data-monitor': typeof AppMarketDataMonitorRoute
   '/markets': typeof AppMarketsRoute
   '/members': typeof AppMembersRoute
   '/opportunity-scanner': typeof AppOpportunityScannerRoute
@@ -416,6 +429,7 @@ export interface FileRoutesByFullPath {
   '/system-health': typeof AppSystemHealthRoute
   '/wallet': typeof AppWalletRoute
   '/watchlist': typeof AppWatchlistRoute
+  '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
@@ -462,6 +476,7 @@ export interface FileRoutesByTo {
   '/global-intel': typeof AppGlobalIntelRoute
   '/growth-plan': typeof AppGrowthPlanRoute
   '/heatmap': typeof AppHeatmapRoute
+  '/market-data-monitor': typeof AppMarketDataMonitorRoute
   '/markets': typeof AppMarketsRoute
   '/members': typeof AppMembersRoute
   '/opportunity-scanner': typeof AppOpportunityScannerRoute
@@ -476,6 +491,7 @@ export interface FileRoutesByTo {
   '/system-health': typeof AppSystemHealthRoute
   '/wallet': typeof AppWalletRoute
   '/watchlist': typeof AppWatchlistRoute
+  '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
@@ -524,6 +540,7 @@ export interface FileRoutesById {
   '/_app/global-intel': typeof AppGlobalIntelRoute
   '/_app/growth-plan': typeof AppGrowthPlanRoute
   '/_app/heatmap': typeof AppHeatmapRoute
+  '/_app/market-data-monitor': typeof AppMarketDataMonitorRoute
   '/_app/markets': typeof AppMarketsRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/opportunity-scanner': typeof AppOpportunityScannerRoute
@@ -538,6 +555,7 @@ export interface FileRoutesById {
   '/_app/system-health': typeof AppSystemHealthRoute
   '/_app/wallet': typeof AppWalletRoute
   '/_app/watchlist': typeof AppWatchlistRoute
+  '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
@@ -586,6 +604,7 @@ export interface FileRouteTypes {
     | '/global-intel'
     | '/growth-plan'
     | '/heatmap'
+    | '/market-data-monitor'
     | '/markets'
     | '/members'
     | '/opportunity-scanner'
@@ -600,6 +619,7 @@ export interface FileRouteTypes {
     | '/system-health'
     | '/wallet'
     | '/watchlist'
+    | '/api/finnhub/stream'
     | '/api/public/email-config-check'
     | '/api/public/moyasar-webhook'
     | '/api/webhooks/lemonsqueezy'
@@ -646,6 +666,7 @@ export interface FileRouteTypes {
     | '/global-intel'
     | '/growth-plan'
     | '/heatmap'
+    | '/market-data-monitor'
     | '/markets'
     | '/members'
     | '/opportunity-scanner'
@@ -660,6 +681,7 @@ export interface FileRouteTypes {
     | '/system-health'
     | '/wallet'
     | '/watchlist'
+    | '/api/finnhub/stream'
     | '/api/public/email-config-check'
     | '/api/public/moyasar-webhook'
     | '/api/webhooks/lemonsqueezy'
@@ -707,6 +729,7 @@ export interface FileRouteTypes {
     | '/_app/global-intel'
     | '/_app/growth-plan'
     | '/_app/heatmap'
+    | '/_app/market-data-monitor'
     | '/_app/markets'
     | '/_app/members'
     | '/_app/opportunity-scanner'
@@ -721,6 +744,7 @@ export interface FileRouteTypes {
     | '/_app/system-health'
     | '/_app/wallet'
     | '/_app/watchlist'
+    | '/api/finnhub/stream'
     | '/api/public/email-config-check'
     | '/api/public/moyasar-webhook'
     | '/api/webhooks/lemonsqueezy'
@@ -744,6 +768,7 @@ export interface RootRouteChildren {
   ServicesRoute: typeof ServicesRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  ApiFinnhubStreamRoute: typeof ApiFinnhubStreamRoute
   ApiPublicEmailConfigCheckRoute: typeof ApiPublicEmailConfigCheckRoute
   ApiPublicMoyasarWebhookRoute: typeof ApiPublicMoyasarWebhookRoute
   ApiWebhooksLemonsqueezyRoute: typeof ApiWebhooksLemonsqueezyRoute
@@ -924,6 +949,13 @@ declare module '@tanstack/react-router' {
       path: '/markets'
       fullPath: '/markets'
       preLoaderRoute: typeof AppMarketsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/market-data-monitor': {
+      id: '/_app/market-data-monitor'
+      path: '/market-data-monitor'
+      fullPath: '/market-data-monitor'
+      preLoaderRoute: typeof AppMarketDataMonitorRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/heatmap': {
@@ -1136,6 +1168,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEmailConfigCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/finnhub/stream': {
+      id: '/api/finnhub/stream'
+      path: '/api/finnhub/stream'
+      fullPath: '/api/finnhub/stream'
+      preLoaderRoute: typeof ApiFinnhubStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
@@ -1200,6 +1239,7 @@ interface AppRouteChildren {
   AppGlobalIntelRoute: typeof AppGlobalIntelRoute
   AppGrowthPlanRoute: typeof AppGrowthPlanRoute
   AppHeatmapRoute: typeof AppHeatmapRoute
+  AppMarketDataMonitorRoute: typeof AppMarketDataMonitorRoute
   AppMarketsRoute: typeof AppMarketsRoute
   AppMembersRoute: typeof AppMembersRoute
   AppOpportunityScannerRoute: typeof AppOpportunityScannerRoute
@@ -1242,6 +1282,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppGlobalIntelRoute: AppGlobalIntelRoute,
   AppGrowthPlanRoute: AppGrowthPlanRoute,
   AppHeatmapRoute: AppHeatmapRoute,
+  AppMarketDataMonitorRoute: AppMarketDataMonitorRoute,
   AppMarketsRoute: AppMarketsRoute,
   AppMembersRoute: AppMembersRoute,
   AppOpportunityScannerRoute: AppOpportunityScannerRoute,
@@ -1271,6 +1312,7 @@ const rootRouteChildren: RootRouteChildren = {
   ServicesRoute: ServicesRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  ApiFinnhubStreamRoute: ApiFinnhubStreamRoute,
   ApiPublicEmailConfigCheckRoute: ApiPublicEmailConfigCheckRoute,
   ApiPublicMoyasarWebhookRoute: ApiPublicMoyasarWebhookRoute,
   ApiWebhooksLemonsqueezyRoute: ApiWebhooksLemonsqueezyRoute,
