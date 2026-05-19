@@ -5,6 +5,7 @@
 // and ready for production providers to be wired by env.
 import type { RawSignal, Region } from "./types";
 import { runGdelt, gdeltEventsToSignals } from "@/services/providers/gdelt";
+import { getFinancialFeed, type EnrichedNewsItem } from "@/services/providers/newsapi";
 
 export interface DataProvider {
   id: string;
