@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { logAuthEvent } from "@/lib/auth-events.functions";
 
 interface AuthCtx {
   user: User | null;
@@ -14,6 +15,11 @@ interface AuthCtx {
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
+
+// Fire-and-forget; never let logging break auth UX
+function fireLog(payload: Parameters<typeof logAuthEvent>[0]["data"]) {
+  void logAuthEvent({ data: payload }).catch(() => {});
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -34,12 +40,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn: AuthCtx["signIn"] = async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      fireLog({ event_type: "signin_failed", status: "error", email, error_message: error.message });
+    } else {
+      fireLog({ event_type: "signin", status: "ok", email, user_id: data.user?.id ?? null });
+    }
     return { error: error?.message ?? null };
   };
 
   const signUp: AuthCtx["signUp"] = async (email, password, displayName) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -47,22 +58,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: { display_name: displayName },
       },
     });
+    if (error) {
+      fireLog({ event_type: "signup_failed", status: "error", email, error_message: error.message });
+    } else {
+      fireLog({ event_type: "signup", status: "ok", email, user_id: data.user?.id ?? null });
+    }
     return { error: error?.message ?? null };
   };
 
   const signOut = async () => {
+    const uid = user?.id ?? null;
+    const em = user?.email ?? null;
     await supabase.auth.signOut();
+    fireLog({ event_type: "signout", status: "ok", user_id: uid, email: em });
   };
 
   const resetPassword: AuthCtx["resetPassword"] = async (email) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: typeof window !== "undefined" ? `${window.location.origin}/reset-password` : undefined,
     });
+    fireLog({
+      event_type: "password_reset_request",
+      status: error ? "error" : "ok",
+      email,
+      error_message: error?.message ?? null,
+    });
     return { error: error?.message ?? null };
   };
 
   const updatePassword: AuthCtx["updatePassword"] = async (newPassword) => {
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+    fireLog({
+      event_type: "password_update",
+      status: error ? "error" : "ok",
+      user_id: data?.user?.id ?? user?.id ?? null,
+      email: user?.email ?? null,
+      error_message: error?.message ?? null,
+    });
     return { error: error?.message ?? null };
   };
 
