@@ -15,7 +15,6 @@ import { useI18n } from "@/lib/i18n";
 import { useMarketIntel } from "@/hooks/useMarketIntel";
 import { AnimatedNumber } from "@/components/dashboard/AnimatedNumber";
 import { ConfidenceBar, RiskHeat } from "@/components/dashboard/ConfidenceBar";
-import { LiveTicker } from "@/components/dashboard/LiveTicker";
 import { SegmentedTickerRibbons } from "@/components/dashboard/SegmentedTickerRibbons";
 import { FearGreedGauge } from "@/components/dashboard/FearGreedGauge";
 import { AICommandCenter } from "@/components/dashboard/AICommandCenter";
