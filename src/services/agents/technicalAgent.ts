@@ -8,16 +8,19 @@ export function runTechnicalAgent({ intel }: AgentContext): AgentSignal {
   let score = 0;
   let n = 0;
 
-  // Multi-timeframe agreement
+  // Multi-timeframe agreement — combine short and macro bias per asset
+  const tfBias = (t: { shortBias: string; macroBias: string }) =>
+    t.shortBias === t.macroBias ? t.shortBias : "neutral";
   for (const tf of intel.timeframes ?? []) {
-    const dir = tf.bias === "bullish" ? 1 : tf.bias === "bearish" ? -1 : 0;
+    const b = tfBias(tf);
+    const dir = b === "bullish" ? 1 : b === "bearish" ? -1 : 0;
     score += dir * (tf.agreement ?? 50) * 0.5;
     n++;
   }
   if (intel.timeframes?.length) {
-    const bull = intel.timeframes.filter((t) => t.bias === "bullish").length;
-    const bear = intel.timeframes.filter((t) => t.bias === "bearish").length;
-    drivers.push(`MTF agreement: ${bull} bull / ${bear} bear across ${intel.timeframes.length} frames`);
+    const bull = intel.timeframes.filter((t) => tfBias(t) === "bullish").length;
+    const bear = intel.timeframes.filter((t) => tfBias(t) === "bearish").length;
+    drivers.push(`MTF agreement: ${bull} bull / ${bear} bear across ${intel.timeframes.length} assets`);
     if (Math.abs(bull - bear) <= 1) flags.push("Mixed timeframe alignment — wait for confirmation");
   }
 
@@ -30,7 +33,7 @@ export function runTechnicalAgent({ intel }: AgentContext): AgentSignal {
   }
 
   // Breakout pressure
-  const squeeze = (intel.breakouts ?? []).filter((b) => b.squeezeIntensity > 60).length;
+  const squeeze = (intel.breakouts ?? []).filter((b) => b.squeeze > 60).length;
   if (squeeze) drivers.push(`${squeeze} assets in compression — breakout pressure`);
   const earlyMo = (intel.earlyMomentum ?? []).filter((m) => m.score > 65).length;
   if (earlyMo) { drivers.push(`${earlyMo} early-momentum candidates`); score += earlyMo * 3; }

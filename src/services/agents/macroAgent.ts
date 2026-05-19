@@ -27,20 +27,22 @@ export function runMacroAgent({ intel }: AgentContext): AgentSignal {
 
   // Macro-relevant events (rates, CPI, FOMC, central bank)
   const macroEvents = intel.events.filter((e) =>
-    /(rate|cpi|inflation|gdp|fomc|ecb|boj|payroll|jobs|fed)/i.test(`${e.title} ${e.description ?? ""}`),
+    e.category === "rates" || e.category === "inflation" ||
+    /(rate|cpi|inflation|gdp|fomc|ecb|boj|payroll|jobs|fed)/i.test(`${e.headline} ${e.reasoning ?? ""}`),
   );
   if (macroEvents.length) {
     drivers.push(`${macroEvents.length} macro events in window`);
-    const hi = macroEvents.filter((e) => e.impact === "high" || e.impactScore >= 70).length;
+    const hi = macroEvents.filter((e) => e.strength >= 70 || e.urgency >= 70).length;
     if (hi) flags.push(`${hi} high-impact macro events imminent — event-driven volatility likely`);
     score -= hi * 4; // event uncertainty trims bias
   }
 
   // Regime cross-check
-  if (intel.regime?.regime === "risk_off" || intel.regime?.regime === "panic") {
+  const regime = intel.regime?.regime;
+  if (regime === "Risk-Off" || regime === "Panic") {
     flags.push("Cross-asset regime risk-off");
     score -= 15;
-  } else if (intel.regime?.regime === "trending_bull") {
+  } else if (regime === "Trending Bullish" || regime === "Risk-On") {
     score += 10;
   }
 
