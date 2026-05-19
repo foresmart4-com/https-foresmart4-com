@@ -1,81 +1,71 @@
-# خطة التطوير الشامل لـ ForeSmart
+## Plan: Full i18n System + Growth Portfolio Restoration
 
-سأطوّر الواجهات الحالية فقط دون حذف أو إعادة تسمية أي صفحة/خيار موجود. كل الإضافات ستبني فوق البنية القائمة.
+### Part 1 — Centralized i18n Architecture
 
-## ما سيتم تنفيذه
+**1. Translation files**
+- Create `src/locales/ar.json` and `src/locales/en.json` with namespaces: `common`, `nav`, `dashboard`, `markets`, `subscription`, `portfolio`, `signals`, `alerts`, `settings`, `billing`, `footer`, `notifications`, `errors`, `empty`, `seo`.
+- Migrate every key currently in `src/lib/i18n.tsx` `dict` into these JSON files and expand with the missing surfaces.
 
-### 1. صفحة تسجيل الدخول (`src/routes/auth.tsx`)
-- خلفية داكنة فخمة مع شريط مؤشرات سوقية تجريبية متحركة (TASI, S&P 500, BTC, Gold...).
-- الإبقاء على عبارة "موقع خاص — التسجيل بدعوة وموافقة المالك".
-- إضافة زر **"طلب دعوة"** يفتح نموذج `InterestForm` الحالي.
-- لا تغيير في منطق المصادقة.
+**2. Rewrite `src/lib/i18n.tsx`**
+- Load both JSON dictionaries statically (small, fine to bundle).
+- `t(key)` accepts dot-paths like `dashboard.title`. Fallback chain: current lang → English → key.
+- Default language detection: 
+  1. Saved profile language (loaded post-auth via a new `useUserLanguage` effect)
+  2. `localStorage.lang`
+  3. `navigator.language.startsWith('ar') ? 'ar' : 'en'`
+- Persist to `localStorage` on every change.
+- Expose `formatDate`, `formatNumber`, `formatCurrency` helpers using `Intl` with `ar-SA` / `en-US` locales — for charts/tables/tooltips.
+- Keep the old flat `t(key)` API working for legacy callers by aliasing flat keys to `common.*`.
 
-### 2. لوحة التحكم (`src/routes/_app/dashboard.tsx`)
-- إضافة شريط 6 بطاقات KPI أعلى الصفحة:
-  - إجمالي رأس المال، الرصيد النقدي، قيمة المحفظة، الربح/الخسارة، العائد الشهري، درجة المخاطر.
-- رسم بياني احترافي لأداء المحفظة (Recharts AreaChart بيانات Mock).
-- قسم **"تنبيهات ForeSmart AI"** (قائمة تنبيهات تجريبية).
-- قسم **"أفضل فرص السوق اليوم"** (بطاقات للأصول الأعلى أداءً).
-- الإبقاء على شبكة الأسعار/الإشارة الحالية أسفل الإضافات.
+**3. Profile persistence**
+- Add `language` column to `profiles` table via migration (text, default `'ar'`, check `in ('ar','en')`).
+- On login (`auth.tsx` / root auth listener), fetch `profiles.language` and call `setLang` if present.
+- On `setLang`, if user is signed in, update `profiles.language` (fire-and-forget).
 
-### 3. صفحة الأسواق (`src/routes/_app/markets.tsx`)
-- إضافة جدول احترافي بأعلى الصفحة يحتوي:
-  - الأصول: أرامكو، الراجحي، TASI، S&P 500، Nasdaq، BTC، ETH، Gold، Oil.
-  - الأعمدة: الأصل، السعر، التغير، الاتجاه، إشارة AI، مستوى المخاطر، إجراء.
-  - ألوان خضراء/حمراء حسب التغير.
-- الإبقاء على التبويبات والمحتوى القائم.
+**4. Language selector**
+- Build `<LanguageSwitcher />` component (compact + full variants).
+- Mount in: Settings page, desktop sidebar footer (`_app.tsx`), mobile sidebar sheet.
 
-### 4. صفحة المحفظة (`src/routes/_app/wallet.tsx`)
-- إضافة لوحة **توزيع الأصول** (Pie/Donut): نقد، أسهم سعودية، أسهم أمريكية، عملات رقمية، ذهب وسلع.
-- إضافة **سجل العمليات**.
-- نموذج **"إضافة عملية"** (شراء/بيع/إيداع/سحب) مع احتساب الرسوم:
-  - تحويل < 1000 ريال → 5 ريال
-  - تحويل ≥ 1000 ريال → 10 ريال
-  - رسوم محفظة شهرية 0.1%.
-- الإبقاء على QuickBuy والوظائف الحالية.
+**5. RTL/LTR**
+- Already handled by current provider (`document.dir`). Verify all custom panels use logical properties (`ms-*`, `me-*`, `start/end`) — fix any `ml-/mr-/left-/right-` in headers, nav, footer.
 
-### 5. صفحة المستشار الذكي (`src/routes/_app/advisor.tsx`)
-- واجهة شات باسم **ForeSmart AI Analyst**.
-- أزرار أسئلة جاهزة (السوق السعودي، مقارنة الذهب/ناسداك، مخاطر أرامكو، توزيع متوازن).
-- ردود تجريبية احترافية الآن (مع الإبقاء على ربط Lovable AI إن وُجد).
-- شريط تنبيه: "التحليل مساعد ولا يعتبر توصية مالية ملزمة."
+**6. SEO**
+- Update each route's `head()` to return localized `title` + `description`. Where `head()` is static, convert to function reading the current lang from a server-safe lookup OR set `<title>` from inside the component via TanStack `useDocumentHead` equivalent. Practical approach: localize from inside the component using `useEffect` on `document.title` for the routes where SSR-time language can't be known.
 
-### 6. الإيداع/المحفظة - نموذج الإيداع
-- داخل صفحة المحفظة الحالية: نموذج إيداع موسّع (المبلغ، طريقة الدفع، ملاحظة).
-- الطرق: رابط دفع، تحويل بنكي يدوي، مدى/Visa/Mastercard، (Moyasar/PayTabs/Tap كخيارات مستقبلية).
-- حالة الطلب: **"قيد المراجعة"**.
-- نفس جدول الرسوم أعلاه.
+**7. Sweep hardcoded strings**
+- Pages to convert: `routes/_app/dashboard.tsx`, `markets.tsx`, `subscription.tsx`, `portfolios.tsx`, `signals.tsx`, `alerts.tsx`, `settings.tsx`, `billing.tsx`, plus `LegalFooter.tsx`, toast notifications, error boundaries, empty-state components.
+- Replace inline `lang === 'ar' ? 'X' : 'Y'` patterns with `t('namespace.key')`.
 
-### 7. صفحة الاشتراكات (`src/routes/_app/subscription.tsx`)
-- **تعديل الأسعار** حسب الطلب الجديد:
-  - **العادي**: 3 أشهر = 100، 6 أشهر = 150، سنة = 200 ريال.
-  - **Pro**: 3 أشهر = 150، 6 أشهر = 200، سنة = 300 ريال.
-- تجربة مجانية 14 يوم (موجودة).
-- جدول مقارنة مزايا بين العادي و Pro.
+### Part 2 — Growth Portfolio Restoration
 
-### 8. صفحة الإعدادات (`src/routes/_app/settings.tsx`)
-- إضافة (بدون حذف الموجود):
-  - العملة الافتراضية SAR.
-  - درجة المخاطر (Slider).
-  - إعدادات التنبيهات.
-  - بطاقة حالة الدعوة والموافقة.
+**1. Investigate**
+- Read `src/services/investment/planEngine.ts`, `routes/_app/portfolios.tsx`, dashboard summary components, and `InvestmentPlansPanel.tsx` to find where "Growth" was removed during the SaaS pivot.
 
-### 9. التصميم العام
-- RTL عربي، ثيم داكن فخم، بطاقات/جداول/رسوم بيانية بأسلوب منصات الاستثمار الحديثة.
-- استخدام tokens من `src/styles.css` فقط.
-- بيانات Mock منظمة في ملفات `src/lib/mock-*.ts` لسهولة استبدالها بـ APIs لاحقًا.
+**2. Restore Growth plan**
+- Add Growth plan entry alongside Starter/Pro/Elite (or as a portfolio risk profile: Conservative / **Growth** / Aggressive depending on existing schema).
+- Wire into:
+  - `portfolios.tsx` selector
+  - `InvestmentPlansPanel.tsx`
+  - Dashboard summary cards
+- Provide deterministic mock data when backend returns nothing: allocation, risk score, perf chart series, historical growth.
 
-## التفاصيل التقنية
+**3. Resilience**
+- Add try/catch + `console.error` around portfolio loading.
+- Loading skeleton + empty state (localized).
+- Both AR + EN labels in locale JSON under `portfolio.growth.*`.
 
-- **قاعدة البيانات**: تعديل أسعار خطط `subscription_plans` للقيم الجديدة + إضافة خطط Pro (`pro_quarterly`, `pro_semi_annual`, `pro_annual`). الحقول الجديدة: `tier` (basic/pro).
-- **Stripe**: ستحتاج لإنشاء/تحديث أسعار Stripe بـ lookup keys جديدة (`pro_quarterly_sar` …). سأنبهك بعد التطبيق.
-- **بيانات Mock**: ملف جديد `src/lib/mock-data.ts` يحوي السلاسل الزمنية والأصول والتنبيهات.
-- **لا تغيير**: `_app.tsx` (التنقل)، أسماء الصفحات، أسماء الـ routes، نظام الدعوة، تسجيل الدخول.
+**4. Constraints**
+- No theme, layout, or sidebar redesign.
+- No backend trading logic changes.
 
-## ما لن أفعله
-- لن أحذف أي صفحة أو خيار من القائمة.
-- لن أعيد التسمية.
-- لن أستبدل بنية التنقل.
-- لن أعد بناء التطبيق من الصفر.
+### Technical notes
 
-هل أبدأ التنفيذ؟
+- JSON imports: TanStack Start + Vite handle `import en from '@/locales/en.json'` natively.
+- The dict file is small enough (<50KB combined) to ship in the main bundle; no async loading needed.
+- For server-rendered SEO titles, default to Arabic (matches default) and let the client effect override post-hydration.
+- Existing `useI18n` consumers (~30+ files) keep working via the flat-key alias layer; new code uses dot paths.
+
+### Out of scope
+- No changes to design tokens, color palette, fonts, or component layouts.
+- No new routes.
+- No real-money / broker behavior changes.

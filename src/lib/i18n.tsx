@@ -1,185 +1,85 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import en from "@/locales/en.json";
+import ar from "@/locales/ar.json";
 
 type Lang = "ar" | "en";
+type Dict = Record<string, unknown>;
 
-const dict = {
-  ar: {
-    appName: "ForeSmart",
-    tagline: "تحليلات مالية بالذكاء الاصطناعي • رؤى تعليمية • ذكاء سوقي",
-    dashboard: "لوحة التحكم",
-    markets: "الأسواق",
-    alerts: "التنبيهات",
-    archive: "الأرشيف",
-    profile: "الملف الشخصي",
-    advisor: "رؤى AI",
-    logout: "تسجيل الخروج",
-    login: "تسجيل الدخول",
-    signup: "إنشاء حساب",
-    email: "البريد الإلكتروني",
-    password: "كلمة المرور",
-    displayName: "الاسم",
-    welcome: "مرحباً بك",
-    highToday: "أعلى سعر اليوم",
-    lowToday: "أقل سعر اليوم",
-    dailyChange: "التغير اليومي",
-    volume: "حجم التداول",
-    currencies: "العملات",
-    metals: "المعادن",
-    oil: "النفط",
-    crypto: "العملات الرقمية",
-    stocks: "الأسهم",
-    last24h: "آخر 24 ساعة",
-    selectAsset: "اختر أصلاً",
-    buy: "شراء",
-    sell: "بيع",
-    hold: "احتفاظ",
-    signal: "الإشارة",
-    rsi: "مؤشر القوة النسبية",
-    sma: "المتوسط المتحرك",
-    aiAdvice: "نصيحة الذكاء الاصطناعي",
-    askAdvisor: "اطلب نصيحة",
-    advisorPlaceholder: "اسأل عن أي أصل أو خبر أو حركة سوقية لأغراض تحليلية وتعليمية...",
-    send: "إرسال",
-    createAlert: "إنشاء تنبيه",
-    symbol: "الرمز",
-    condition: "الشرط",
-    above: "فوق",
-    below: "تحت",
-    targetPrice: "السعر المستهدف",
-    save: "حفظ",
-    delete: "حذف",
-    yourAlerts: "تنبيهاتك",
-    noAlerts: "لا توجد تنبيهات بعد",
-    archiveTitle: "أرشيف بيانات الأسواق",
-    snapshot: "حفظ لقطة",
-    capturedAt: "وقت الحفظ",
-    price: "السعر",
-    apiKeys: "مفاتيح API",
-    provider: "المزود",
-    apiKey: "المفتاح",
-    addKey: "إضافة مفتاح",
-    language: "اللغة",
-    preferredCurrency: "العملة المفضلة",
-    saved: "تم الحفظ",
-    loading: "جارٍ التحميل...",
-    asset: "الأصل",
-    change: "التغير",
-    quickAdvice: "نصائح سريعة",
-    refresh: "تحديث",
-    members: "الأعضاء",
-    pendingTitle: "حسابك قيد المراجعة",
-    pendingDesc: "هذا الموقع خاص. حسابك بانتظار موافقة المالك لتفعيل الاشتراك. سيتم إشعارك عند التفعيل.",
-    disclaimerTitle: "إخلاء المسؤولية",
-    disclaimerBody: "تقدم ForeSmart تحليلات مالية مدعومة بالذكاء الاصطناعي ورؤى تعليمية حول الأسواق فقط. لا نقدم خدمات وساطة أو حفظ أصول أو إدارة استثمارات أو تنفيذ صفقات بأموال حقيقية. جميع المحتويات والإشارات والتنبيهات والمحافظ المعروضة هي لأغراض تحليلية وتعليمية ومحاكاة افتراضية فقط، ولا تشكّل توصية أو استشارة مالية مرخصة. أنت وحدك المسؤول عن أي قرارات تتخذها بناءً على هذه التحليلات.",
-    iAccept: "أوافق وأتنازل عن حق المقاضاة",
-    mustAccept: "يجب الموافقة على إخلاء المسؤولية للمتابعة",
-    role: "الصلاحية",
-    activate: "تفعيل اشتراك",
-    revoke: "إلغاء",
-    member: "عضو",
-    admin: "مالك",
-    pending: "بانتظار التفعيل",
-    subscriber: "مشترك",
-    privateNotice: "موقع خاص — التسجيل بدعوة وموافقة المالك",
-  },
-  en: {
-    appName: "ForeSmart",
-    tagline: "AI financial analytics • Educational insights • Market intelligence",
-    dashboard: "Dashboard",
-    markets: "Markets",
-    alerts: "Alerts",
-    archive: "Archive",
-    profile: "Profile",
-    advisor: "AI Insights",
-    logout: "Sign out",
-    login: "Sign in",
-    signup: "Sign up",
-    email: "Email",
-    password: "Password",
-    displayName: "Name",
-    welcome: "Welcome",
-    highToday: "Today's High",
-    lowToday: "Today's Low",
-    dailyChange: "Daily Change",
-    volume: "Volume",
-    currencies: "Currencies",
-    metals: "Metals",
-    oil: "Oil",
-    crypto: "Crypto",
-    stocks: "Stocks",
-    last24h: "Last 24h",
-    selectAsset: "Select asset",
-    buy: "Buy",
-    sell: "Sell",
-    hold: "Hold",
-    signal: "Signal",
-    rsi: "RSI",
-    sma: "SMA",
-    aiAdvice: "AI Advice",
-    askAdvisor: "Ask advisor",
-    advisorPlaceholder: "Ask about any asset, news, or market for educational analytics...",
-    send: "Send",
-    createAlert: "Create alert",
-    symbol: "Symbol",
-    condition: "Condition",
-    above: "Above",
-    below: "Below",
-    targetPrice: "Target price",
-    save: "Save",
-    delete: "Delete",
-    yourAlerts: "Your alerts",
-    noAlerts: "No alerts yet",
-    archiveTitle: "Market data archive",
-    snapshot: "Save snapshot",
-    capturedAt: "Captured at",
-    price: "Price",
-    apiKeys: "API Keys",
-    provider: "Provider",
-    apiKey: "Key",
-    addKey: "Add key",
-    language: "Language",
-    preferredCurrency: "Preferred currency",
-    saved: "Saved",
-    loading: "Loading...",
-    asset: "Asset",
-    change: "Change",
-    quickAdvice: "Quick advice",
-    refresh: "Refresh",
-    members: "Members",
-    pendingTitle: "Account pending approval",
-    pendingDesc: "This is a private app. Your account is awaiting owner approval to activate your subscription.",
-    disclaimerTitle: "Disclaimer",
-    disclaimerBody: "ForeSmart provides AI-powered financial analytics and educational market insights only. No brokerage, custody, investment management, or real-money execution services are provided. All content, signals, alerts, and portfolios displayed are for analytical, educational, and simulated purposes only, and do not constitute licensed financial advice or a recommendation. You are solely responsible for any decisions you make based on this analysis.",
-    iAccept: "I accept and waive my right to sue",
-    mustAccept: "You must accept the disclaimer to continue",
-    role: "Role",
-    activate: "Activate subscription",
-    revoke: "Revoke",
-    member: "Member",
-    admin: "Owner",
-    pending: "Pending",
-    subscriber: "Subscriber",
-    privateNotice: "Private app — registration is by invitation and owner approval",
-  },
-} as const;
-
-type Key = keyof typeof dict.en;
+const DICTS: Record<Lang, Dict> = { en: en as Dict, ar: ar as Dict };
 
 interface Ctx {
   lang: Lang;
   setLang: (l: Lang) => void;
-  t: (k: Key) => string;
+  t: (key: string, vars?: Record<string, string | number>) => string;
   dir: "rtl" | "ltr";
+  formatNumber: (n: number, opts?: Intl.NumberFormatOptions) => string;
+  formatCurrency: (n: number, currency?: string) => string;
+  formatDate: (d: Date | string | number, opts?: Intl.DateTimeFormatOptions) => string;
 }
 
 const I18nContext = createContext<Ctx | null>(null);
 
+function lookup(dict: Dict, key: string): string | undefined {
+  if (key in dict && typeof (dict as any)[key] === "string") return (dict as any)[key] as string;
+  const parts = key.split(".");
+  let cur: any = dict;
+  for (const p of parts) {
+    if (cur == null || typeof cur !== "object") return undefined;
+    cur = cur[p];
+  }
+  return typeof cur === "string" ? cur : undefined;
+}
+
+function interpolate(s: string, vars?: Record<string, string | number>) {
+  if (!vars) return s;
+  return s.replace(/\{(\w+)\}/g, (_, k) => (vars[k] !== undefined ? String(vars[k]) : `{${k}}`));
+}
+
+function detectInitialLang(): Lang {
+  if (typeof window === "undefined") return "ar";
+  try {
+    const stored = localStorage.getItem("lang");
+    if (stored === "ar" || stored === "en") return stored;
+    const nav = (navigator.language || "").toLowerCase();
+    return nav.startsWith("ar") ? "ar" : "en";
+  } catch {
+    return "ar";
+  }
+}
+
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>("ar");
 
+  // Hydrate from localStorage / navigator after mount (SSR safe).
   useEffect(() => {
-    const stored = (typeof window !== "undefined" && localStorage.getItem("lang")) as Lang | null;
-    if (stored === "ar" || stored === "en") setLangState(stored);
+    setLangState(detectInitialLang());
+  }, []);
+
+  // Load saved language from user profile after auth.
+  useEffect(() => {
+    let cancelled = false;
+    const loadProfileLang = async (userId: string) => {
+      try {
+        const { data } = await supabase.from("profiles").select("language").eq("id", userId).maybeSingle();
+        if (cancelled) return;
+        const l = data?.language as Lang | undefined;
+        if (l === "ar" || l === "en") {
+          setLangState(l);
+          try { localStorage.setItem("lang", l); } catch { /* noop */ }
+        }
+      } catch (err) {
+        console.warn("[i18n] failed to load profile language", err);
+      }
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (session?.user?.id) void loadProfileLang(session.user.id);
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.id) void loadProfileLang(session.user.id);
+    });
+    return () => { cancelled = true; subscription.unsubscribe(); };
   }, []);
 
   useEffect(() => {
@@ -189,14 +89,42 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     }
   }, [lang]);
 
-  const setLang = (l: Lang) => {
+  const setLang = useCallback((l: Lang) => {
     setLangState(l);
-    if (typeof window !== "undefined") localStorage.setItem("lang", l);
-  };
+    try { if (typeof window !== "undefined") localStorage.setItem("lang", l); } catch { /* noop */ }
+    // Persist to profile (fire-and-forget).
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const uid = session?.user?.id;
+      if (!uid) return;
+      supabase.from("profiles").upsert({ id: uid, language: l, updated_at: new Date().toISOString() }).then(({ error }) => {
+        if (error) console.warn("[i18n] failed to persist language", error.message);
+      });
+    });
+  }, []);
 
-  const t = (k: Key) => dict[lang][k] ?? k;
+  const t = useCallback((key: string, vars?: Record<string, string | number>) => {
+    const primary = lookup(DICTS[lang], key);
+    if (primary !== undefined) return interpolate(primary, vars);
+    const fallback = lookup(DICTS.en, key);
+    if (fallback !== undefined) return interpolate(fallback, vars);
+    return key;
+  }, [lang]);
+
+  const formatters = useMemo(() => {
+    const locale = lang === "ar" ? "ar-SA" : "en-US";
+    return {
+      formatNumber: (n: number, opts?: Intl.NumberFormatOptions) => new Intl.NumberFormat(locale, opts).format(n),
+      formatCurrency: (n: number, currency = "USD") =>
+        new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 2 }).format(n),
+      formatDate: (d: Date | string | number, opts?: Intl.DateTimeFormatOptions) => {
+        const date = d instanceof Date ? d : new Date(d);
+        return new Intl.DateTimeFormat(locale, opts ?? { dateStyle: "medium" }).format(date);
+      },
+    };
+  }, [lang]);
+
   return (
-    <I18nContext.Provider value={{ lang, setLang, t, dir: lang === "ar" ? "rtl" : "ltr" }}>
+    <I18nContext.Provider value={{ lang, setLang, t, dir: lang === "ar" ? "rtl" : "ltr", ...formatters }}>
       {children}
     </I18nContext.Provider>
   );
