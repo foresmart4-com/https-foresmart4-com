@@ -39,6 +39,8 @@ export function decryptSecret(p: EncryptedPayload): string {
 }
 
 export function maskKey(key: string): string {
-  if (!key || key.length < 8) return "••••••••";
-  return `${key.slice(0, 4)}••••${key.slice(-4)}`;
+  // Fully masked — never expose any portion of the original secret.
+  // Length hint only (clamped) so users can sanity-check what they pasted.
+  const len = Math.min(Math.max(key?.length ?? 0, 0), 64);
+  return `•••••••• (${len} chars)`;
 }
