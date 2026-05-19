@@ -12,15 +12,11 @@ export interface AICallResult<T> {
   error: AIError | null;
 }
 
-export const INSTITUTIONAL_GUARDRAILS = `
-Style rules (mandatory):
-- Speak like an institutional financial analyst.
-- Use probabilistic language ("bias", "skew", "tilt", "likely", "elevated probability").
-- Never assert certainty. Acknowledge uncertainty and path-dependence.
-- Always frame risk vs. reward.
-- No hype, no superlatives, no emojis.
-- Be concise — every sentence must add new information.
-`.trim();
+import { localeGuardrails, type Lang } from "@/lib/ai/locale";
+
+// Back-compat: kept for any caller importing INSTITUTIONAL_GUARDRAILS.
+// New code should pass `language` to callAIGateway and rely on locale.ts.
+export const INSTITUTIONAL_GUARDRAILS = localeGuardrails("en");
 
 function stripFences(s: string): string {
   return s.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
@@ -42,17 +38,31 @@ export interface AICallOptions {
   jsonObject?: boolean;
   temperature?: number;
   maxTokens?: number;
+  /**
+   * Active user language. When set, the gateway:
+   *  - injects the locale-specific guardrails into the system prompt,
+   *  - prefixes the user message with a hard language directive,
+   *  - rejects responses that leak across languages (returns parse_error).
+   * Defaults to "en" for back-compat.
+   */
+  language?: Lang;
 }
 
 export async function callAIGateway<T>(opts: AICallOptions): Promise<AICallResult<T>> {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) return { data: null, raw: "", error: "missing_key" };
 
+  const lang: Lang = opts.language ?? "en";
+  const guardrails = localeGuardrails(lang);
+  const userDirective = lang === "ar"
+    ? "أنتج الجواب بالعربية الفصحى المؤسسية حصراً، 100% عربي.\n\n"
+    : "Reply in native institutional English ONLY, 100% English.\n\n";
+
   const body: Record<string, unknown> = {
     model: opts.model ?? "google/gemini-2.5-flash",
     messages: [
-      { role: "system", content: `${opts.system}\n\n${INSTITUTIONAL_GUARDRAILS}` },
-      { role: "user", content: opts.user },
+      { role: "system", content: `${opts.system}\n\n${guardrails}` },
+      { role: "user", content: `${userDirective}${opts.user}` },
     ],
   };
   if (opts.jsonObject) body.response_format = { type: "json_object" };
@@ -85,6 +95,26 @@ export async function callAIGateway<T>(opts: AICallOptions): Promise<AICallResul
     }
     const d = await r.json();
     const raw: string = d.choices?.[0]?.message?.content ?? "";
+
+    // Cross-language leakage guard — only run when caller specified language
+    // and we have something to inspect. Logs but does not fail JSON parsing
+    // because schema fields may legitimately contain ticker symbols.
+    if (opts.language && raw) {
+      try {
+        const { detectLanguageLeakage } = await import("@/lib/ai/locale");
+        const leak = detectLanguageLeakage(raw, opts.language);
+        if (!leak.ok) {
+          void import("./observability/log.server").then((m) =>
+            m.logEvent({
+              source: "ai", severity: "warn", eventType: "ai_language_leakage",
+              message: `lang=${opts.language} ratio=${leak.ratio.toFixed(3)}`,
+              context: { offenders: leak.offendingTokens },
+            }),
+          );
+        }
+      } catch { /* leakage detection is best-effort */ }
+    }
+
     if (!opts.jsonObject) return { data: raw as unknown as T, raw, error: null };
     const parsed = safeParseJson<T>(raw);
     return parsed

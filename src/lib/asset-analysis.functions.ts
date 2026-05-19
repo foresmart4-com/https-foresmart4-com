@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { localeGuardrails, rtlNumberHint, resolveLang } from "@/lib/ai/locale";
 
 export interface AssetVerdict {
   action: "buy" | "sell" | "hold" | "watch";
@@ -64,25 +65,22 @@ export const analyzeAsset = createServerFn({ method: "POST" })
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) return { verdict: null as AssetVerdict | null, error: "ai_not_configured" };
 
-    const sys = data.language === "ar"
+    const lang = resolveLang(data);
+    const baseSys = lang === "ar"
       ? `أنت محلل أسواق محترف شامل. أعطِ توصية شراء/بيع/احتفاظ/مراقبة لأصل واحد بناءً على جميع المتغيرات الممكنة:
 - الاقتصاد الكلي: أسعار الفائدة (الفيدرالي، ساما، البنوك المركزية)، التضخم، قوة الدولار DXY، السندات، السيولة العالمية.
 - الجيوسياسة: الحروب، العقوبات، اتفاقيات أوبك+، التوترات في الخليج وبحر الصين والشرق الأوسط، الانتخابات.
 - العوامل القطاعية والشركة: الأرباح، التوجيهات، الاندماجات، أخبار المنتجات، سلاسل الإمداد.
-- الموسمية والدورات: نهاية/بداية السنة المالية، موسم الحج والعمرة، رمضان، الصيف، عطلات الأعياد، دورة الأرباح ربع السنوية، دورة Halving للبيتكوين، دورة الذهب الموسمية (الطلب الهندي/الصيني، موسم الزفاف).
-- المناخ والطبيعة: موجات الحر والبرد (تؤثر على الطاقة والغاز والقمح)، الأعاصير والفيضانات (النفط والتأمين والزراعة)، الجفاف (السلع الزراعية)، ظاهرة النينيو/النينيا.
-- النشاط الشمسي ودورة الشمس: التوهجات الشمسية والعواصف المغناطيسية (تأثيرها على الأقمار والاتصالات وشبكات الكهرباء وبالتالي شركات التكنولوجيا والطاقة).
-- الفنّي: الاتجاه، المتوسطات (50/200)، RSI، الدعم/المقاومة، الحجم، فجوات السعر.
-- معنويات السوق: مؤشر الخوف والطمع، تدفقات ETF، نسب الرافعة، تموضع المضاربين (COT).
-- مخاوف السوق وعدم اليقين: مؤشر التقلب VIX و MOVE، فروقات ائتمان السندات، مخاوف الركود، أزمات بنكية أو سيولة، عدم وضوح سياسة الفيدرالي، مخاطر تخلف الديون السيادية، الحرب التجارية والتعريفات، عدم اليقين السياسي/الانتخابي، تقلبات العملات، صدمات غير متوقعة (Black Swans).
-- الفنّي: الاتجاه، المتوسطات (50/200)، RSI، الدعم/المقاومة، الحجم، فجوات السعر.
-اذكر دائماً مستوى عدم اليقين العام في السوق (منخفض/متوسط/مرتفع) في الحقل uncertaintyLevel، وأبرز 2-3 من المخاوف الحالية في marketFears. كن صريحاً: إذا كان عدم اليقين مرتفعاً جداً قلّل حجم الصفقة المقترح أو أوصِ بالمراقبة. اذكر في drivers أهم 4-6 عوامل فعّالة الآن، وفي risks 3-5 مخاطر. اكتب كل النصوص بالعربية الفصحى. استخدم دائماً الأداة asset_verdict.`
+- الموسمية والدورات: نهاية/بداية السنة المالية، موسم الحج والعمرة، رمضان، الصيف، دورة الأرباح ربع السنوية، دورة Halving للبيتكوين، دورة الذهب الموسمية.
+- المناخ والطبيعة، النشاط الشمسي، الفنّي (RSI، المتوسطات، الدعم/المقاومة)، معنويات السوق، مخاوف عدم اليقين (VIX، MOVE، فروقات الائتمان).
+اذكر دائماً مستوى عدم اليقين العام (منخفض/متوسط/مرتفع) في uncertaintyLevel، وأبرز 2-3 من المخاوف الحالية في marketFears. drivers يحوي 4-6 عوامل فعّالة الآن، وrisks 3-5 مخاطر. اكتب كل النصوص بالعربية الفصحى المؤسسية. استخدم دائماً الأداة asset_verdict.`
       : `You are a comprehensive markets analyst. Give a buy/sell/hold/watch verdict for ONE asset using ALL relevant variables:
-- Macro, Geopolitics, Sector/company, Seasonality & cycles, Climate, Solar activity (as before).
+- Macro, Geopolitics, Sector/company, Seasonality & cycles, Climate, Solar activity.
 - Market fears & uncertainty: VIX, MOVE index, credit spreads, recession fears, bank/liquidity crises, Fed policy ambiguity, sovereign default risk, trade wars & tariffs, political/election uncertainty, FX volatility, black-swan shocks.
 - Sentiment: fear & greed, ETF flows, leverage, COT positioning.
 - Technicals: trend, MAs, RSI, S/R, volume.
 Always set uncertaintyLevel (low/medium/high) and list 2-3 current marketFears. If uncertainty is high, reduce position size or recommend watch. arabicSummary must always be in Arabic. Always call asset_verdict.`;
+    const sys = `${baseSys}\n\n${localeGuardrails(lang)}\n\n${rtlNumberHint(lang)}`;
 
     const user = `Asset: ${data.name ?? data.symbol} (${data.symbol})
 Category: ${data.category}

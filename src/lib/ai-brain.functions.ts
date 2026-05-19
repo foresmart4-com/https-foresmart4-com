@@ -8,6 +8,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { callAIGateway } from "@/lib/ai-gateway.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { buildLocaleSystemPrompt, resolveLang } from "@/lib/ai/locale";
 
 // ---------- Schemas ----------
 const AssetCtx = z.object({
@@ -103,15 +104,14 @@ export const aiMarketAnalyst = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => MarketContext.parse(input))
   .handler(async ({ data }) => {
-    const ar = data.language === "ar";
-    const sys = ar
-      ? `أنت محلل سوق مالي مؤسسي. حلّل السياق الشامل وأرجع JSON صالحاً فقط بالمخطط:
-{ "outlook": string, "bullishShifts": string[], "bearishShifts": string[], "macroInterpretation": string, "riskAnalysis": string, "capitalRotation": string, "confidence": number }
-لا تستخدم لغة تأكيدية. استخدم لغة احتمالية، واذكر المخاطر دائماً.`
-      : `You are an institutional market analyst. Analyse the full cross-asset context. Reply with valid JSON ONLY matching:
-{ "outlook": string, "bullishShifts": string[], "bearishShifts": string[], "macroInterpretation": string, "riskAnalysis": string, "capitalRotation": string, "confidence": number }
-Probabilistic language only. Frame risk vs. reward. No certainty.`;
-
+    const lang = resolveLang(data);
+    const schema = `{ "outlook": string, "bullishShifts": string[], "bearishShifts": string[], "macroInterpretation": string, "riskAnalysis": string, "capitalRotation": string, "confidence": number }`;
+    const sys = buildLocaleSystemPrompt({
+      lang, surface: "market_analyst", schema,
+      extra: lang === "ar"
+        ? "حلّل السياق الشامل عبر الأصول وقدّم رؤية مؤسسية متكاملة. الحقل confidence رقم من 0 إلى 100."
+        : "Analyse the full cross-asset context and produce a complete institutional view. The 'confidence' field is a 0-100 number.",
+    });
     const user = JSON.stringify({
       sentiment: data.sentiment,
       quotes: data.quotes,
@@ -119,53 +119,57 @@ Probabilistic language only. Frame risk vs. reward. No certainty.`;
       correlations: data.correlations.slice(0, 5),
       opportunities: data.opportunities.slice(0, 5),
     });
-    return callAIGateway<MarketAnalystOutput>({ system: sys, user, jsonObject: true, maxTokens: 900 });
+    return callAIGateway<MarketAnalystOutput>({ system: sys, user, jsonObject: true, maxTokens: 900, language: lang });
   });
 
 export const aiNewsAnalysis = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => NewsAnalysisInput.parse(input))
   .handler(async ({ data }) => {
-    const ar = data.language === "ar";
-    const sys = ar
-      ? `أنت محلل أخبار مالية. حلّل الخبر التالي وأرجع JSON صالحاً فقط:
-{ "whyItMatters": string, "affectedAssets": string[], "shortTermImpact": string, "mediumTermImpact": string, "uncertainty": string }`
-      : `You are a financial news analyst. Analyse the headline below. Reply with valid JSON ONLY:
-{ "whyItMatters": string, "affectedAssets": string[], "shortTermImpact": string, "mediumTermImpact": string, "uncertainty": string }`;
+    const lang = resolveLang(data);
+    const schema = `{ "whyItMatters": string, "affectedAssets": string[], "shortTermImpact": string, "mediumTermImpact": string, "uncertainty": string }`;
+    const sys = buildLocaleSystemPrompt({
+      lang, surface: "news_analyst", schema,
+      extra: lang === "ar"
+        ? "حلّل الخبر التالي من منظور مؤسسي مع التركيز على التأثير على الأسواق."
+        : "Analyse the headline from an institutional perspective focused on market impact.",
+    });
     const user = JSON.stringify(data);
-    return callAIGateway<NewsAnalysisOutput>({ system: sys, user, jsonObject: true, maxTokens: 500 });
+    return callAIGateway<NewsAnalysisOutput>({ system: sys, user, jsonObject: true, maxTokens: 500, language: lang });
   });
 
 export const aiSignalExplainer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => SignalInput.parse(input))
   .handler(async ({ data }) => {
-    const ar = data.language === "ar";
-    const sys = ar
-      ? `أنت متداول مؤسسي. اشرح سبب هذه الإشارة بناءً على البيانات وأرجع JSON صالحاً فقط:
-{ "reasoning": string, "confidenceExplanation": string, "riskReward": string }`
-      : `You are an institutional trader. Explain why this signal exists from the inputs. Reply with valid JSON ONLY:
-{ "reasoning": string, "confidenceExplanation": string, "riskReward": string }`;
+    const lang = resolveLang(data);
+    const schema = `{ "reasoning": string, "confidenceExplanation": string, "riskReward": string }`;
+    const sys = buildLocaleSystemPrompt({
+      lang, surface: "signal_explainer", schema,
+      extra: lang === "ar"
+        ? "اشرح منطق الإشارة بناءً على المؤشرات الفنية ومعنويات السوق المرفقة."
+        : "Explain the signal logic from the attached technicals and sentiment.",
+    });
     const user = JSON.stringify(data);
-    return callAIGateway<SignalExplanationOutput>({ system: sys, user, jsonObject: true, maxTokens: 450 });
+    return callAIGateway<SignalExplanationOutput>({ system: sys, user, jsonObject: true, maxTokens: 450, language: lang });
   });
 
 export const aiMarketInsights = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => MarketContext.parse(input))
   .handler(async ({ data }) => {
-    const ar = data.language === "ar";
-    const sys = ar
-      ? `أنت محلل استثمار مؤسسي. أنتج 5 رؤى قصيرة دوّارة (جملة واحدة لكل رؤية) عن السوق الحالي. أرجع JSON صالحاً فقط:
-{ "insights": [{ "text": string, "asset": string|null, "tone": "bullish"|"bearish"|"neutral" }] }
-استخدم لغة احتمالية.`
-      : `You are an institutional analyst. Produce 5 short rotating insights (one sentence each) about the current market. Reply with valid JSON ONLY:
-{ "insights": [{ "text": string, "asset": string|null, "tone": "bullish"|"bearish"|"neutral" }] }
-Probabilistic language only.`;
+    const lang = resolveLang(data);
+    const schema = `{ "insights": [{ "text": string, "asset": string|null, "tone": "bullish"|"bearish"|"neutral" }] }`;
+    const sys = buildLocaleSystemPrompt({
+      lang, surface: "market_insights", schema,
+      extra: lang === "ar"
+        ? "أنتج 5 رؤى قصيرة دوّارة (جملة واحدة لكل رؤية) عن السوق الحالي."
+        : "Produce 5 short rotating insights (one sentence each) about the current market.",
+    });
     const user = JSON.stringify({
       sentiment: data.sentiment,
       quotes: data.quotes.slice(0, 7),
       news: data.news.slice(0, 4),
     });
-    return callAIGateway<MarketInsightsOutput>({ system: sys, user, jsonObject: true, maxTokens: 500 });
+    return callAIGateway<MarketInsightsOutput>({ system: sys, user, jsonObject: true, maxTokens: 500, language: lang });
   });
