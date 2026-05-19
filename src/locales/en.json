@@ -123,7 +123,8 @@
     "profile": "Profile",
     "settings": "Settings",
     "billing": "Billing",
-    "backtestLab": "Backtest Lab"
+    "backtestLab": "Backtest Lab",
+    "dataFusion": "Data Fusion"
   },
 
   "backtest": {
