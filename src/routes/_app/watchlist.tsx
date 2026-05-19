@@ -109,13 +109,32 @@ function WatchlistPage() {
                 <Button size="icon" variant="ghost" aria-label={lang === "ar" ? "حذف" : "Delete"} onClick={() => remove(it.id)}><Trash2 className="h-4 w-4" /></Button>
               </div>
               {q ? (
-                <div className="flex items-baseline gap-2">
-                  <div className="text-xl font-bold">{q.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-                  <div className={"text-sm font-medium flex items-center " + (up ? "text-emerald-500" : "text-rose-500")}>
-                    {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                    {q.change.toFixed(2)}%
+                <>
+                  <div className="flex items-baseline gap-2">
+                    <div className="text-xl font-bold">{q.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                    <div className={"text-sm font-medium flex items-center " + (up ? "text-emerald-500" : "text-rose-500")}>
+                      {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                      {q.change.toFixed(2)}%
+                    </div>
                   </div>
-                </div>
+                  {(() => {
+                    const c = q.change;
+                    const signal = c >= 2 ? "BUY" : c <= -2 ? "SELL" : "HOLD";
+                    const tone = signal === "BUY" ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/30"
+                      : signal === "SELL" ? "bg-rose-500/15 text-rose-500 border-rose-500/30"
+                      : "bg-muted text-muted-foreground border-border";
+                    const label = lang === "ar"
+                      ? (signal === "BUY" ? "إشارة شراء" : signal === "SELL" ? "إشارة بيع" : "محايد")
+                      : signal;
+                    return (
+                      <div className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-semibold ${tone}`}>
+                        <Bell className="h-3 w-3" />
+                        {label}
+                        <span className="text-[10px] opacity-70 ms-1">({c.toFixed(2)}%)</span>
+                      </div>
+                    );
+                  })()}
+                </>
               ) : (
                 <div className="text-xs text-muted-foreground">{lang === "ar" ? "لا يوجد سعر مباشر" : "No live quote"}</div>
               )}
