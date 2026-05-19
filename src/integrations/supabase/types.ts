@@ -967,6 +967,48 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_health_log: {
+        Row: {
+          avg_latency_ms: number | null
+          error_rate: number | null
+          id: string
+          last_success_age_s: number | null
+          metadata: Json
+          provider: string
+          rate_limited: number
+          recorded_at: string
+          stale_state: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          avg_latency_ms?: number | null
+          error_rate?: number | null
+          id?: string
+          last_success_age_s?: number | null
+          metadata?: Json
+          provider?: string
+          rate_limited?: number
+          recorded_at?: string
+          stale_state?: string | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          avg_latency_ms?: number | null
+          error_rate?: number | null
+          id?: string
+          last_success_age_s?: number | null
+          metadata?: Json
+          provider?: string
+          rate_limited?: number
+          recorded_at?: string
+          stale_state?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       resend_email_log: {
         Row: {
           attempts: number
