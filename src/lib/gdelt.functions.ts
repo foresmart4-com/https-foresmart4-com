@@ -57,7 +57,7 @@ export const aiGdeltBriefing = createServerFn({ method: "POST" })
   "watch": [ string ]
 }`;
     const system = buildLocaleSystemPrompt({
-      lang, surface: "gdelt_briefing", schema,
+      lang, surface: "global_macro", schema,
       extra: lang === "ar"
         ? "narrative من 3-5 جمل. ركّز على الأسواق (الطاقة، الذهب، الشحن، عملات الأسواق الناشئة)."
         : "'narrative' is 3-5 sentences. Focus on market impact (energy, gold, shipping, EM FX).",
