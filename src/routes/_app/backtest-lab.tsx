@@ -8,8 +8,8 @@ export const Route = createFileRoute("/_app/backtest-lab")({
 });
 
 function BacktestLabRoute() {
-  const { isAdmin, hasAccess } = useAccess();
-  if (!hasAccess && !isAdmin) return <AccessGate />;
+  const { isAdmin, canAccess } = useAccess();
+  if (!canAccess && !isAdmin) return <AccessGate>{null}</AccessGate>;
   return (
     <div className="mx-auto w-full max-w-7xl space-y-4 p-4 md:p-6">
       <BacktestLabPanel />
