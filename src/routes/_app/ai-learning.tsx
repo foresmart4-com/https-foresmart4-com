@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { aiMemory } from "@/services/learning/aiMemory";
-import { statsFor, statsByRegime } from "@/services/learning/performanceLearning";
 import {
   agentScores,
   strategyScores,
@@ -14,11 +13,14 @@ import {
   metaTuneThreshold,
   failureAnalysis,
   falsePositives,
+  regimeStatsSince,
+  overallStats,
 } from "@/services/learning/selfLearningEngine";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   GraduationCap, Target, Activity, TrendingUp, Award, AlertTriangle,
   Brain, Trophy, Gauge, LineChart as LineIcon, Zap, ShieldAlert, Radar,
@@ -34,30 +36,43 @@ export const Route = createFileRoute("/_app/ai-learning")({
   }),
 });
 
+type RangeKey = "24h" | "7d" | "30d" | "all";
+const RANGE_MS: Record<RangeKey, number | undefined> = {
+  "24h": 24 * 60 * 60 * 1000,
+  "7d": 7 * 24 * 60 * 60 * 1000,
+  "30d": 30 * 24 * 60 * 60 * 1000,
+  all: undefined,
+};
+
 function AILearningPage() {
   const { lang } = useI18n();
   const ar = lang === "ar";
   const [tick, setTick] = useState(0);
+  const [range, setRange] = useState<RangeKey>("7d");
 
   const data = useMemo(() => {
-    const r = aiMemory.list();
+    const since = RANGE_MS[range];
+    const all = aiMemory.list();
+    const recent = since ? all.filter((r) => r.ts >= Date.now() - since) : all;
     return {
-      rows: r,
-      overall: statsFor(r),
-      byRegime: statsByRegime(),
-      recent: r.slice(0, 20),
-      agents: agentScores(),
-      strategies: strategyScores(),
-      cal: calibration(),
-      eceVal: ece(),
-      drift: driftReport(30),
-      sim: replay(),
-      mem: memorySummary(),
-      meta: metaTuneThreshold(),
-      failures: failureAnalysis(10),
-      fps: falsePositives(),
+      rows: recent,
+      overall: overallStats(since),
+      byRegime: regimeStatsSince(since),
+      recent: recent.slice(0, 20),
+      agents: agentScores(since),
+      strategies: strategyScores(since),
+      cal: calibration(since),
+      eceVal: ece(since),
+      drift: driftReport(30, since),
+      sim: replay(undefined, since),
+      mem: memorySummary(since),
+      meta: metaTuneThreshold(since),
+      failures: failureAnalysis(10, since),
+      fps: falsePositives(since),
     };
-  }, [tick]);
+    // re-runs when tick (Refresh) or range changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick, range]);
 
   const { overall, byRegime, recent, agents, strategies, cal, eceVal, drift, sim, mem, meta, failures, fps } = data;
 
