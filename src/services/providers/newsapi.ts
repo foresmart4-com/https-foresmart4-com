@@ -19,7 +19,16 @@
  *  - Lightweight sentiment (lexicon-based) and market-impact / urgency tags.
  */
 
-import { createHash } from "node:crypto";
+// Lightweight FNV-1a hash — avoids node:crypto so this module can be bundled
+// safely on the edge/client without pulling Node built-ins.
+function fnv1aHex(input: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+  }
+  return h.toString(16).padStart(8, "0");
+}
 
 const BASE = "https://newsapi.org/v2";
 
