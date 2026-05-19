@@ -16,8 +16,8 @@ interface AuthCtx {
 
 const Ctx = createContext<AuthCtx | null>(null);
 
-// Fire-and-forget; never let logging break auth UX
-function fireLog(payload: Parameters<typeof logAuthEvent>[0]["data"]) {
+type LogPayload = Parameters<typeof logAuthEvent>[0] extends { data: infer T } ? T : never;
+function fireLog(payload: LogPayload) {
   void logAuthEvent({ data: payload }).catch(() => {});
 }
 
