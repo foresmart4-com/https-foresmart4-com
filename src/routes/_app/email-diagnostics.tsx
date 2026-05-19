@@ -28,7 +28,7 @@ function statusColor(s: string) {
 }
 
 function EmailDiagnosticsPage() {
-  const { toast } = useToast();
+  
   const checkAdmin = useServerFn(checkAdminFn);
   const health = useServerFn(getEmailHealthFn);
   const recent = useServerFn(getRecentEmailsFn);
@@ -86,9 +86,9 @@ function EmailDiagnosticsPage() {
             onClick={async () => {
               try {
                 const r: any = await sendTest({ data: { lang: "en" } });
-                toast({ title: r?.success ? "Test sent" : "Test failed", description: r?.error ?? r?.messageId });
+                toast(String(r?.success ? "Test sent" : "Test failed") + (r?.error ?? r?.messageId ? ': ' + String(r?.error ?? r?.messageId) : ''));
                 logQ.refetch();
-              } catch (e: any) { toast({ title: "Error", description: e?.message }); }
+              } catch (e: any) { toast(String("Error") + (e?.message ? ': ' + String(e?.message) : '')); }
             }}
           >
             <Send className="h-3 w-3 mr-1" /> Send Test
@@ -175,9 +175,9 @@ function EmailDiagnosticsPage() {
                         <Button size="sm" variant="outline" onClick={async () => {
                           try {
                             const res: any = await retry({ data: { logId: r.id } });
-                            toast({ title: res?.success ? "Retried" : "Retry failed", description: res?.error ?? res?.messageId });
+                            toast(String(res?.success ? "Retried" : "Retry failed") + (res?.error ?? res?.messageId ? ': ' + String(res?.error ?? res?.messageId) : ''));
                             logQ.refetch();
-                          } catch (e: any) { toast({ title: "Error", description: e?.message }); }
+                          } catch (e: any) { toast(String("Error") + (e?.message ? ': ' + String(e?.message) : '')); }
                         }}>
                           <RefreshCw className="h-3 w-3 mr-1" /> Retry
                         </Button>
