@@ -1,11 +1,13 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccess, type AppRole } from "@/lib/use-access";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Users, Check, X } from "lucide-react";
 import { toast } from "sonner";
+import { setUserRoleFn } from "@/lib/members.functions";
 
 export const Route = createFileRoute("/_app/members")({
   component: MembersPage,
