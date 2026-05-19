@@ -125,7 +125,8 @@
     "billing": "الفوترة",
     "backtestLab": "مختبر الاختبار الخلفي",
     "dataFusion": "دمج البيانات",
-    "decisionEngine": "محرك القرار"
+    "decisionEngine": "محرك القرار",
+    "globalIntel": "الذكاء العالمي"
   },
 
   "backtest": {
