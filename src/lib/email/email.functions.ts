@@ -201,3 +201,89 @@ export const checkAdminFn = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     return { isAdmin: await isAdmin(context.userId) };
   });
+
+// ============ Extended hardened endpoints ============
+import {
+  sendWelcomeEmail,
+  sendTrialEmail,
+  sendNotificationEmail,
+  getRecentEmails,
+  retryEmail,
+  detectLang,
+} from "./resend.server";
+
+export const sendWelcomeFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    to: emailSchema.optional(),
+    name: z.string().trim().max(80).optional(),
+    dashboardUrl: z.string().url().optional(),
+    lang: langSchema.optional(),
+  }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { data: { user } } = await context.supabase.auth.getUser();
+    const to = data.to ?? user?.email;
+    if (!to) throw new Error("No recipient");
+    if (!(await isAdmin(context.userId)) && to !== user?.email) throw new Error("Forbidden");
+    const lang = data.lang ?? await detectLang(context.userId);
+    return sendWelcomeEmail(to, { name: data.name, dashboardUrl: data.dashboardUrl }, lang, context.userId);
+  });
+
+export const sendTrialFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    to: emailSchema.optional(),
+    event: z.enum(["started", "ending_soon", "ended"]),
+    endsAt: z.string().max(40).optional(),
+    daysLeft: z.number().int().min(0).max(365).optional(),
+    lang: langSchema.optional(),
+  }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { data: { user } } = await context.supabase.auth.getUser();
+    const to = data.to ?? user?.email;
+    if (!to) throw new Error("No recipient");
+    if (!(await isAdmin(context.userId)) && to !== user?.email) throw new Error("Forbidden");
+    const lang = data.lang ?? await detectLang(context.userId);
+    return sendTrialEmail(to, { event: data.event, endsAt: data.endsAt, daysLeft: data.daysLeft }, lang, context.userId);
+  });
+
+export const sendNotificationFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    to: emailSchema.optional(),
+    title: z.string().min(1).max(140),
+    message: z.string().min(1).max(800),
+    ctaLabel: z.string().max(60).optional(),
+    ctaUrl: z.string().url().optional(),
+    lang: langSchema.optional(),
+  }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { data: { user } } = await context.supabase.auth.getUser();
+    const to = data.to ?? user?.email;
+    if (!to) throw new Error("No recipient");
+    if (!(await isAdmin(context.userId)) && to !== user?.email) throw new Error("Forbidden");
+    const lang = data.lang ?? await detectLang(context.userId);
+    return sendNotificationEmail(to, {
+      title: data.title, message: data.message,
+      ctaLabel: data.ctaLabel, ctaUrl: data.ctaUrl,
+    }, lang, context.userId);
+  });
+
+export const getRecentEmailsFn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    limit: z.number().int().min(1).max(200).default(50),
+    status: z.enum(["sent", "failed", "pending", "rate_limited"]).optional(),
+  }).parse(d ?? {}))
+  .handler(async ({ context, data }) => {
+    if (!(await isAdmin(context.userId))) throw new Error("Forbidden: admin only");
+    return getRecentEmails(data.limit, data.status);
+  });
+
+export const retryEmailFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ logId: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    if (!(await isAdmin(context.userId))) throw new Error("Forbidden: admin only");
+    return retryEmail(data.logId);
+  });
