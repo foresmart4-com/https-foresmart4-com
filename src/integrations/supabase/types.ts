@@ -203,6 +203,45 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_events: {
+        Row: {
+          created_at: string
+          encrypted: boolean
+          id: string
+          integrity_ok: boolean | null
+          kind: string
+          notes: string | null
+          retention_days: number | null
+          size_bytes: number | null
+          status: string
+          storage_location: string | null
+        }
+        Insert: {
+          created_at?: string
+          encrypted?: boolean
+          id?: string
+          integrity_ok?: boolean | null
+          kind: string
+          notes?: string | null
+          retention_days?: number | null
+          size_bytes?: number | null
+          status: string
+          storage_location?: string | null
+        }
+        Update: {
+          created_at?: string
+          encrypted?: boolean
+          id?: string
+          integrity_ok?: boolean | null
+          kind?: string
+          notes?: string | null
+          retention_days?: number | null
+          size_bytes?: number | null
+          status?: string
+          storage_location?: string | null
+        }
+        Relationships: []
+      }
       bank_account_secrets: {
         Row: {
           bank_account_id: string
