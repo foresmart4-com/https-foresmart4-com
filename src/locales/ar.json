@@ -123,7 +123,8 @@
     "profile": "الملف الشخصي",
     "settings": "الضبط",
     "billing": "الفوترة",
-    "backtestLab": "مختبر الاختبار الخلفي"
+    "backtestLab": "مختبر الاختبار الخلفي",
+    "dataFusion": "دمج البيانات"
   },
 
   "backtest": {
