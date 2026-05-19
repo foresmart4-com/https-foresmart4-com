@@ -278,7 +278,7 @@ export async function getTimeSeries(symbol: string, interval: Interval = "1day",
 
 export interface TwelveDataIndicatorPoint { datetime: string; value: string }
 export interface TwelveDataIndicator {
-  meta: Record<string, unknown>;
+  meta: Record<string, string | number | null>;
   values: TwelveDataIndicatorPoint[];
   status: string;
 }
