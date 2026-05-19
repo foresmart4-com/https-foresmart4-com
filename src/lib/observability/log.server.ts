@@ -32,7 +32,7 @@ export async function logEvent(input: LogEventInput): Promise<void> {
       severity: input.severity,
       event_type: input.eventType,
       message: input.message?.slice(0, 2000) ?? null,
-      context: safeContext(input.context),
+      context: safeContext(input.context) as never,
       user_id: input.userId ?? null,
       request_id: input.requestId ?? null,
       fingerprint: input.fingerprint ?? null,
