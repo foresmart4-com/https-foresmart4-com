@@ -236,6 +236,12 @@ export async function sendEmail(args: SendArgs): Promise<SendResult> {
   });
   // Surface failure in server logs so it never silently disappears
   console.error("[email] send failed", { to: args.to, category: args.category, error: errMsg });
+  void import("../observability/log.server").then((m) =>
+    m.logEvent({
+      source: "email", severity: "error", eventType: "email_send_failed",
+      message: errMsg, context: { to: args.to, category: args.category, template: args.template },
+    }),
+  );
   return { success: false, error: errMsg, logId, attempts: maxAttempts };
 }
 

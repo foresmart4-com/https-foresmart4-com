@@ -65,11 +65,22 @@ export async function callAIGateway<T>(opts: AICallOptions): Promise<AICallResul
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    if (r.status === 429) return { data: null, raw: "", error: "rate_limited" };
+    if (r.status === 429) {
+      void import("./observability/log.server").then((m) =>
+        m.logEvent({ source: "ai", severity: "warn", eventType: "ai_rate_limited", context: { status: 429 } }),
+      );
+      return { data: null, raw: "", error: "rate_limited" };
+    }
     if (r.status === 402) return { data: null, raw: "", error: "payment_required" };
     if (!r.ok) {
       const t = await r.text();
       console.error("[ai-gateway] error", r.status, t);
+      void import("./observability/log.server").then((m) =>
+        m.logEvent({
+          source: "ai", severity: "error", eventType: "ai_error",
+          message: `status=${r.status}`, context: { body: t.slice(0, 500) },
+        }),
+      );
       return { data: null, raw: "", error: "ai_error" };
     }
     const d = await r.json();
@@ -81,6 +92,9 @@ export async function callAIGateway<T>(opts: AICallOptions): Promise<AICallResul
       : { data: null, raw, error: "parse_error" };
   } catch (e) {
     console.error("[ai-gateway] network error", e);
+    void import("./observability/log.server").then((m) =>
+      m.logEvent({ source: "ai", severity: "error", eventType: "ai_network_error", message: (e as Error).message }),
+    );
     return { data: null, raw: "", error: "network_error" };
   }
 }

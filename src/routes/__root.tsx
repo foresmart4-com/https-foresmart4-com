@@ -86,6 +86,10 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  if (typeof window !== "undefined") {
+    // Lazy install once per browser session.
+    void import("@/lib/observability/client").then((m) => m.installClientObservability());
+  }
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider>

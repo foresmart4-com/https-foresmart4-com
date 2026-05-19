@@ -21,6 +21,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppWatchlistRouteImport } from './routes/_app/watchlist'
 import { Route as AppWalletRouteImport } from './routes/_app/wallet'
+import { Route as AppSystemHealthRouteImport } from './routes/_app/system-health'
 import { Route as AppSubscriptionRouteImport } from './routes/_app/subscription'
 import { Route as AppSignalsRouteImport } from './routes/_app/signals'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
@@ -33,12 +34,15 @@ import { Route as AppMarketsRouteImport } from './routes/_app/markets'
 import { Route as AppHeatmapRouteImport } from './routes/_app/heatmap'
 import { Route as AppGrowthPlanRouteImport } from './routes/_app/growth-plan'
 import { Route as AppExternalAccountsRouteImport } from './routes/_app/external-accounts'
+import { Route as AppErrorLogsRouteImport } from './routes/_app/error-logs'
+import { Route as AppEmailMonitorRouteImport } from './routes/_app/email-monitor'
 import { Route as AppEmailDiagnosticsRouteImport } from './routes/_app/email-diagnostics'
 import { Route as AppDomainRouteImport } from './routes/_app/domain'
 import { Route as AppDepositRouteImport } from './routes/_app/deposit'
 import { Route as AppDbDiagnosticsRouteImport } from './routes/_app/db-diagnostics'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
+import { Route as AppBillingMonitorRouteImport } from './routes/_app/billing-monitor'
 import { Route as AppBillingRouteImport } from './routes/_app/billing'
 import { Route as AppBankAccountsRouteImport } from './routes/_app/bank-accounts'
 import { Route as AppArchiveRouteImport } from './routes/_app/archive'
@@ -54,6 +58,7 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as ApiPublicAlertsEvaluateRouteImport } from './routes/api/public/alerts/evaluate'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -112,6 +117,11 @@ const AppWatchlistRoute = AppWatchlistRouteImport.update({
 const AppWalletRoute = AppWalletRouteImport.update({
   id: '/wallet',
   path: '/wallet',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSystemHealthRoute = AppSystemHealthRouteImport.update({
+  id: '/system-health',
+  path: '/system-health',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSubscriptionRoute = AppSubscriptionRouteImport.update({
@@ -174,6 +184,16 @@ const AppExternalAccountsRoute = AppExternalAccountsRouteImport.update({
   path: '/external-accounts',
   getParentRoute: () => AppRoute,
 } as any)
+const AppErrorLogsRoute = AppErrorLogsRouteImport.update({
+  id: '/error-logs',
+  path: '/error-logs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEmailMonitorRoute = AppEmailMonitorRouteImport.update({
+  id: '/email-monitor',
+  path: '/email-monitor',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEmailDiagnosticsRoute = AppEmailDiagnosticsRouteImport.update({
   id: '/email-diagnostics',
   path: '/email-diagnostics',
@@ -202,6 +222,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
 const AppCalendarRoute = AppCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBillingMonitorRoute = AppBillingMonitorRouteImport.update({
+  id: '/billing-monitor',
+  path: '/billing-monitor',
   getParentRoute: () => AppRoute,
 } as any)
 const AppBillingRoute = AppBillingRouteImport.update({
@@ -282,6 +307,11 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicAlertsEvaluateRoute = ApiPublicAlertsEvaluateRouteImport.update({
+  id: '/api/public/alerts/evaluate',
+  path: '/api/public/alerts/evaluate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -299,12 +329,15 @@ export interface FileRoutesByFullPath {
   '/archive': typeof AppArchiveRoute
   '/bank-accounts': typeof AppBankAccountsRoute
   '/billing': typeof AppBillingRoute
+  '/billing-monitor': typeof AppBillingMonitorRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/db-diagnostics': typeof AppDbDiagnosticsRoute
   '/deposit': typeof AppDepositRoute
   '/domain': typeof AppDomainRoute
   '/email-diagnostics': typeof AppEmailDiagnosticsRoute
+  '/email-monitor': typeof AppEmailMonitorRoute
+  '/error-logs': typeof AppErrorLogsRoute
   '/external-accounts': typeof AppExternalAccountsRoute
   '/growth-plan': typeof AppGrowthPlanRoute
   '/heatmap': typeof AppHeatmapRoute
@@ -317,6 +350,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/signals': typeof AppSignalsRoute
   '/subscription': typeof AppSubscriptionRoute
+  '/system-health': typeof AppSystemHealthRoute
   '/wallet': typeof AppWalletRoute
   '/watchlist': typeof AppWatchlistRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
@@ -324,6 +358,7 @@ export interface FileRoutesByFullPath {
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
+  '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -345,12 +380,15 @@ export interface FileRoutesByTo {
   '/archive': typeof AppArchiveRoute
   '/bank-accounts': typeof AppBankAccountsRoute
   '/billing': typeof AppBillingRoute
+  '/billing-monitor': typeof AppBillingMonitorRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/db-diagnostics': typeof AppDbDiagnosticsRoute
   '/deposit': typeof AppDepositRoute
   '/domain': typeof AppDomainRoute
   '/email-diagnostics': typeof AppEmailDiagnosticsRoute
+  '/email-monitor': typeof AppEmailMonitorRoute
+  '/error-logs': typeof AppErrorLogsRoute
   '/external-accounts': typeof AppExternalAccountsRoute
   '/growth-plan': typeof AppGrowthPlanRoute
   '/heatmap': typeof AppHeatmapRoute
@@ -363,6 +401,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/signals': typeof AppSignalsRoute
   '/subscription': typeof AppSubscriptionRoute
+  '/system-health': typeof AppSystemHealthRoute
   '/wallet': typeof AppWalletRoute
   '/watchlist': typeof AppWatchlistRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
@@ -370,6 +409,7 @@ export interface FileRoutesByTo {
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
+  '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -393,12 +433,15 @@ export interface FileRoutesById {
   '/_app/archive': typeof AppArchiveRoute
   '/_app/bank-accounts': typeof AppBankAccountsRoute
   '/_app/billing': typeof AppBillingRoute
+  '/_app/billing-monitor': typeof AppBillingMonitorRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/db-diagnostics': typeof AppDbDiagnosticsRoute
   '/_app/deposit': typeof AppDepositRoute
   '/_app/domain': typeof AppDomainRoute
   '/_app/email-diagnostics': typeof AppEmailDiagnosticsRoute
+  '/_app/email-monitor': typeof AppEmailMonitorRoute
+  '/_app/error-logs': typeof AppErrorLogsRoute
   '/_app/external-accounts': typeof AppExternalAccountsRoute
   '/_app/growth-plan': typeof AppGrowthPlanRoute
   '/_app/heatmap': typeof AppHeatmapRoute
@@ -411,6 +454,7 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/_app/signals': typeof AppSignalsRoute
   '/_app/subscription': typeof AppSubscriptionRoute
+  '/_app/system-health': typeof AppSystemHealthRoute
   '/_app/wallet': typeof AppWalletRoute
   '/_app/watchlist': typeof AppWatchlistRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
@@ -418,6 +462,7 @@ export interface FileRoutesById {
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
+  '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -441,12 +486,15 @@ export interface FileRouteTypes {
     | '/archive'
     | '/bank-accounts'
     | '/billing'
+    | '/billing-monitor'
     | '/calendar'
     | '/dashboard'
     | '/db-diagnostics'
     | '/deposit'
     | '/domain'
     | '/email-diagnostics'
+    | '/email-monitor'
+    | '/error-logs'
     | '/external-accounts'
     | '/growth-plan'
     | '/heatmap'
@@ -459,6 +507,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signals'
     | '/subscription'
+    | '/system-health'
     | '/wallet'
     | '/watchlist'
     | '/api/public/email-config-check'
@@ -466,6 +515,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
+    | '/api/public/alerts/evaluate'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -487,12 +537,15 @@ export interface FileRouteTypes {
     | '/archive'
     | '/bank-accounts'
     | '/billing'
+    | '/billing-monitor'
     | '/calendar'
     | '/dashboard'
     | '/db-diagnostics'
     | '/deposit'
     | '/domain'
     | '/email-diagnostics'
+    | '/email-monitor'
+    | '/error-logs'
     | '/external-accounts'
     | '/growth-plan'
     | '/heatmap'
@@ -505,6 +558,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signals'
     | '/subscription'
+    | '/system-health'
     | '/wallet'
     | '/watchlist'
     | '/api/public/email-config-check'
@@ -512,6 +566,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
+    | '/api/public/alerts/evaluate'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -534,12 +589,15 @@ export interface FileRouteTypes {
     | '/_app/archive'
     | '/_app/bank-accounts'
     | '/_app/billing'
+    | '/_app/billing-monitor'
     | '/_app/calendar'
     | '/_app/dashboard'
     | '/_app/db-diagnostics'
     | '/_app/deposit'
     | '/_app/domain'
     | '/_app/email-diagnostics'
+    | '/_app/email-monitor'
+    | '/_app/error-logs'
     | '/_app/external-accounts'
     | '/_app/growth-plan'
     | '/_app/heatmap'
@@ -552,6 +610,7 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/signals'
     | '/_app/subscription'
+    | '/_app/system-health'
     | '/_app/wallet'
     | '/_app/watchlist'
     | '/api/public/email-config-check'
@@ -559,6 +618,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
+    | '/api/public/alerts/evaluate'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -581,6 +641,7 @@ export interface RootRouteChildren {
   ApiWebhooksLemonsqueezyRoute: typeof ApiWebhooksLemonsqueezyRoute
   ApiWebhooksPaddleRoute: typeof ApiWebhooksPaddleRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
+  ApiPublicAlertsEvaluateRoute: typeof ApiPublicAlertsEvaluateRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -673,6 +734,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWalletRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/system-health': {
+      id: '/_app/system-health'
+      path: '/system-health'
+      fullPath: '/system-health'
+      preLoaderRoute: typeof AppSystemHealthRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/subscription': {
       id: '/_app/subscription'
       path: '/subscription'
@@ -757,6 +825,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppExternalAccountsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/error-logs': {
+      id: '/_app/error-logs'
+      path: '/error-logs'
+      fullPath: '/error-logs'
+      preLoaderRoute: typeof AppErrorLogsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/email-monitor': {
+      id: '/_app/email-monitor'
+      path: '/email-monitor'
+      fullPath: '/email-monitor'
+      preLoaderRoute: typeof AppEmailMonitorRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/email-diagnostics': {
       id: '/_app/email-diagnostics'
       path: '/email-diagnostics'
@@ -797,6 +879,13 @@ declare module '@tanstack/react-router' {
       path: '/calendar'
       fullPath: '/calendar'
       preLoaderRoute: typeof AppCalendarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/billing-monitor': {
+      id: '/_app/billing-monitor'
+      path: '/billing-monitor'
+      fullPath: '/billing-monitor'
+      preLoaderRoute: typeof AppBillingMonitorRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/billing': {
@@ -904,6 +993,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/alerts/evaluate': {
+      id: '/api/public/alerts/evaluate'
+      path: '/api/public/alerts/evaluate'
+      fullPath: '/api/public/alerts/evaluate'
+      preLoaderRoute: typeof ApiPublicAlertsEvaluateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -914,12 +1010,15 @@ interface AppRouteChildren {
   AppArchiveRoute: typeof AppArchiveRoute
   AppBankAccountsRoute: typeof AppBankAccountsRoute
   AppBillingRoute: typeof AppBillingRoute
+  AppBillingMonitorRoute: typeof AppBillingMonitorRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDbDiagnosticsRoute: typeof AppDbDiagnosticsRoute
   AppDepositRoute: typeof AppDepositRoute
   AppDomainRoute: typeof AppDomainRoute
   AppEmailDiagnosticsRoute: typeof AppEmailDiagnosticsRoute
+  AppEmailMonitorRoute: typeof AppEmailMonitorRoute
+  AppErrorLogsRoute: typeof AppErrorLogsRoute
   AppExternalAccountsRoute: typeof AppExternalAccountsRoute
   AppGrowthPlanRoute: typeof AppGrowthPlanRoute
   AppHeatmapRoute: typeof AppHeatmapRoute
@@ -932,6 +1031,7 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppSignalsRoute: typeof AppSignalsRoute
   AppSubscriptionRoute: typeof AppSubscriptionRoute
+  AppSystemHealthRoute: typeof AppSystemHealthRoute
   AppWalletRoute: typeof AppWalletRoute
   AppWatchlistRoute: typeof AppWatchlistRoute
 }
@@ -943,12 +1043,15 @@ const AppRouteChildren: AppRouteChildren = {
   AppArchiveRoute: AppArchiveRoute,
   AppBankAccountsRoute: AppBankAccountsRoute,
   AppBillingRoute: AppBillingRoute,
+  AppBillingMonitorRoute: AppBillingMonitorRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDbDiagnosticsRoute: AppDbDiagnosticsRoute,
   AppDepositRoute: AppDepositRoute,
   AppDomainRoute: AppDomainRoute,
   AppEmailDiagnosticsRoute: AppEmailDiagnosticsRoute,
+  AppEmailMonitorRoute: AppEmailMonitorRoute,
+  AppErrorLogsRoute: AppErrorLogsRoute,
   AppExternalAccountsRoute: AppExternalAccountsRoute,
   AppGrowthPlanRoute: AppGrowthPlanRoute,
   AppHeatmapRoute: AppHeatmapRoute,
@@ -961,6 +1064,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppSignalsRoute: AppSignalsRoute,
   AppSubscriptionRoute: AppSubscriptionRoute,
+  AppSystemHealthRoute: AppSystemHealthRoute,
   AppWalletRoute: AppWalletRoute,
   AppWatchlistRoute: AppWatchlistRoute,
 }
@@ -983,6 +1087,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWebhooksLemonsqueezyRoute: ApiWebhooksLemonsqueezyRoute,
   ApiWebhooksPaddleRoute: ApiWebhooksPaddleRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
+  ApiPublicAlertsEvaluateRoute: ApiPublicAlertsEvaluateRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
