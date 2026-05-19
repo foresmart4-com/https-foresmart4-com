@@ -26,6 +26,7 @@ import { Route as AppSubscriptionRouteImport } from './routes/_app/subscription'
 import { Route as AppSignalsRouteImport } from './routes/_app/signals'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppScannerRouteImport } from './routes/_app/scanner'
+import { Route as AppProviderHealthRouteImport } from './routes/_app/provider-health'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppPortfoliosRouteImport } from './routes/_app/portfolios'
 import { Route as AppPortfolioAiRouteImport } from './routes/_app/portfolio-ai'
@@ -153,6 +154,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
 const AppScannerRoute = AppScannerRouteImport.update({
   id: '/scanner',
   path: '/scanner',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProviderHealthRoute = AppProviderHealthRouteImport.update({
+  id: '/provider-health',
+  path: '/provider-health',
   getParentRoute: () => AppRoute,
 } as any)
 const AppProfileRoute = AppProfileRouteImport.update({
@@ -422,6 +428,7 @@ export interface FileRoutesByFullPath {
   '/portfolio-ai': typeof AppPortfolioAiRoute
   '/portfolios': typeof AppPortfoliosRoute
   '/profile': typeof AppProfileRoute
+  '/provider-health': typeof AppProviderHealthRoute
   '/scanner': typeof AppScannerRoute
   '/settings': typeof AppSettingsRoute
   '/signals': typeof AppSignalsRoute
@@ -484,6 +491,7 @@ export interface FileRoutesByTo {
   '/portfolio-ai': typeof AppPortfolioAiRoute
   '/portfolios': typeof AppPortfoliosRoute
   '/profile': typeof AppProfileRoute
+  '/provider-health': typeof AppProviderHealthRoute
   '/scanner': typeof AppScannerRoute
   '/settings': typeof AppSettingsRoute
   '/signals': typeof AppSignalsRoute
@@ -548,6 +556,7 @@ export interface FileRoutesById {
   '/_app/portfolio-ai': typeof AppPortfolioAiRoute
   '/_app/portfolios': typeof AppPortfoliosRoute
   '/_app/profile': typeof AppProfileRoute
+  '/_app/provider-health': typeof AppProviderHealthRoute
   '/_app/scanner': typeof AppScannerRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/signals': typeof AppSignalsRoute
@@ -612,6 +621,7 @@ export interface FileRouteTypes {
     | '/portfolio-ai'
     | '/portfolios'
     | '/profile'
+    | '/provider-health'
     | '/scanner'
     | '/settings'
     | '/signals'
@@ -674,6 +684,7 @@ export interface FileRouteTypes {
     | '/portfolio-ai'
     | '/portfolios'
     | '/profile'
+    | '/provider-health'
     | '/scanner'
     | '/settings'
     | '/signals'
@@ -737,6 +748,7 @@ export interface FileRouteTypes {
     | '/_app/portfolio-ai'
     | '/_app/portfolios'
     | '/_app/profile'
+    | '/_app/provider-health'
     | '/_app/scanner'
     | '/_app/settings'
     | '/_app/signals'
@@ -900,6 +912,13 @@ declare module '@tanstack/react-router' {
       path: '/scanner'
       fullPath: '/scanner'
       preLoaderRoute: typeof AppScannerRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/provider-health': {
+      id: '/_app/provider-health'
+      path: '/provider-health'
+      fullPath: '/provider-health'
+      preLoaderRoute: typeof AppProviderHealthRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/profile': {
@@ -1247,6 +1266,7 @@ interface AppRouteChildren {
   AppPortfolioAiRoute: typeof AppPortfolioAiRoute
   AppPortfoliosRoute: typeof AppPortfoliosRoute
   AppProfileRoute: typeof AppProfileRoute
+  AppProviderHealthRoute: typeof AppProviderHealthRoute
   AppScannerRoute: typeof AppScannerRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppSignalsRoute: typeof AppSignalsRoute
@@ -1290,6 +1310,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPortfolioAiRoute: AppPortfolioAiRoute,
   AppPortfoliosRoute: AppPortfoliosRoute,
   AppProfileRoute: AppProfileRoute,
+  AppProviderHealthRoute: AppProviderHealthRoute,
   AppScannerRoute: AppScannerRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSignalsRoute: AppSignalsRoute,
