@@ -39,7 +39,6 @@ export const logProviderHealth = createServerFn({ method: "POST" })
   });
 
 const TimelineInput = z.object({
-const TimelineInput = z.object({
   hours: z.number().int().min(1).max(168),
   provider: z.string().min(1).max(40),
 });
