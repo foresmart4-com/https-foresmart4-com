@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   LayoutDashboard, LineChart, Bell, Archive, User as UserIcon,
-  Brain, LogOut, Globe2, Menu, TrendingUp, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap, Eye, Search, Flame, CalendarDays, GraduationCap, Layers,
+  Brain, LogOut, Globe2, Menu, TrendingUp, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap, Eye, Search, Flame, CalendarDays, GraduationCap, Layers, Cpu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
@@ -38,6 +38,7 @@ function AppLayout() {
     { to: "/dashboard", icon: LayoutDashboard, label: t("nav.dashboard") },
     { to: "/ai-dashboard", icon: Brain, label: t("nav.aiDashboard") },
     { to: "/backtest-lab", icon: GraduationCap, label: t("nav.backtestLab") },
+    { to: "/decision-engine", icon: Cpu, label: t("nav.decisionEngine") },
     { to: "/data-fusion", icon: Layers, label: t("nav.dataFusion") },
     { to: "/markets", icon: LineChart, label: t("nav.markets") },
     { to: "/heatmap", icon: Flame, label: t("nav.heatmap") },

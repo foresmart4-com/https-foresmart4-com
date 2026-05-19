@@ -124,7 +124,8 @@
     "settings": "Settings",
     "billing": "Billing",
     "backtestLab": "Backtest Lab",
-    "dataFusion": "Data Fusion"
+    "dataFusion": "Data Fusion",
+    "decisionEngine": "Decision Engine"
   },
 
   "backtest": {

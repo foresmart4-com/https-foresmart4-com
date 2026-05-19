@@ -124,7 +124,8 @@
     "settings": "الضبط",
     "billing": "الفوترة",
     "backtestLab": "مختبر الاختبار الخلفي",
-    "dataFusion": "دمج البيانات"
+    "dataFusion": "دمج البيانات",
+    "decisionEngine": "محرك القرار"
   },
 
   "backtest": {

@@ -39,6 +39,7 @@ import { Route as AppEmailMonitorRouteImport } from './routes/_app/email-monitor
 import { Route as AppEmailDiagnosticsRouteImport } from './routes/_app/email-diagnostics'
 import { Route as AppDomainRouteImport } from './routes/_app/domain'
 import { Route as AppDepositRouteImport } from './routes/_app/deposit'
+import { Route as AppDecisionEngineRouteImport } from './routes/_app/decision-engine'
 import { Route as AppDbDiagnosticsRouteImport } from './routes/_app/db-diagnostics'
 import { Route as AppDataFusionRouteImport } from './routes/_app/data-fusion'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
@@ -211,6 +212,11 @@ const AppDepositRoute = AppDepositRouteImport.update({
   path: '/deposit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDecisionEngineRoute = AppDecisionEngineRouteImport.update({
+  id: '/decision-engine',
+  path: '/decision-engine',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDbDiagnosticsRoute = AppDbDiagnosticsRouteImport.update({
   id: '/db-diagnostics',
   path: '/db-diagnostics',
@@ -347,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AppDashboardRoute
   '/data-fusion': typeof AppDataFusionRoute
   '/db-diagnostics': typeof AppDbDiagnosticsRoute
+  '/decision-engine': typeof AppDecisionEngineRoute
   '/deposit': typeof AppDepositRoute
   '/domain': typeof AppDomainRoute
   '/email-diagnostics': typeof AppEmailDiagnosticsRoute
@@ -400,6 +407,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AppDashboardRoute
   '/data-fusion': typeof AppDataFusionRoute
   '/db-diagnostics': typeof AppDbDiagnosticsRoute
+  '/decision-engine': typeof AppDecisionEngineRoute
   '/deposit': typeof AppDepositRoute
   '/domain': typeof AppDomainRoute
   '/email-diagnostics': typeof AppEmailDiagnosticsRoute
@@ -455,6 +463,7 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/data-fusion': typeof AppDataFusionRoute
   '/_app/db-diagnostics': typeof AppDbDiagnosticsRoute
+  '/_app/decision-engine': typeof AppDecisionEngineRoute
   '/_app/deposit': typeof AppDepositRoute
   '/_app/domain': typeof AppDomainRoute
   '/_app/email-diagnostics': typeof AppEmailDiagnosticsRoute
@@ -510,6 +519,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/data-fusion'
     | '/db-diagnostics'
+    | '/decision-engine'
     | '/deposit'
     | '/domain'
     | '/email-diagnostics'
@@ -563,6 +573,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/data-fusion'
     | '/db-diagnostics'
+    | '/decision-engine'
     | '/deposit'
     | '/domain'
     | '/email-diagnostics'
@@ -617,6 +628,7 @@ export interface FileRouteTypes {
     | '/_app/dashboard'
     | '/_app/data-fusion'
     | '/_app/db-diagnostics'
+    | '/_app/decision-engine'
     | '/_app/deposit'
     | '/_app/domain'
     | '/_app/email-diagnostics'
@@ -884,6 +896,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDepositRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/decision-engine': {
+      id: '/_app/decision-engine'
+      path: '/decision-engine'
+      fullPath: '/decision-engine'
+      preLoaderRoute: typeof AppDecisionEngineRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/db-diagnostics': {
       id: '/_app/db-diagnostics'
       path: '/db-diagnostics'
@@ -1054,6 +1073,7 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppDataFusionRoute: typeof AppDataFusionRoute
   AppDbDiagnosticsRoute: typeof AppDbDiagnosticsRoute
+  AppDecisionEngineRoute: typeof AppDecisionEngineRoute
   AppDepositRoute: typeof AppDepositRoute
   AppDomainRoute: typeof AppDomainRoute
   AppEmailDiagnosticsRoute: typeof AppEmailDiagnosticsRoute
@@ -1089,6 +1109,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppDataFusionRoute: AppDataFusionRoute,
   AppDbDiagnosticsRoute: AppDbDiagnosticsRoute,
+  AppDecisionEngineRoute: AppDecisionEngineRoute,
   AppDepositRoute: AppDepositRoute,
   AppDomainRoute: AppDomainRoute,
   AppEmailDiagnosticsRoute: AppEmailDiagnosticsRoute,
