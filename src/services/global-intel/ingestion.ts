@@ -4,6 +4,7 @@
 // upstream key is configured, so the system is operational immediately
 // and ready for production providers to be wired by env.
 import type { RawSignal, Region } from "./types";
+import { runGdelt, gdeltEventsToSignals } from "@/services/providers/gdelt";
 
 export interface DataProvider {
   id: string;
@@ -111,8 +112,22 @@ const socialProvider: DataProvider = synth("social.sentiment", "social", 0.6, ()
   }));
 });
 
+// GDELT real geopolitical feed (fallback-safe — empty list on failure).
+const gdeltProvider: DataProvider = {
+  id: "gdelt.doc",
+  category: "geopolitical",
+  reliability: 0.82,
+  fetch: async () => {
+    try {
+      const snap = await runGdelt({ timespan: "24h", maxRecords: 75 });
+      if (!snap.ok && !snap.events.length) return [];
+      return gdeltEventsToSignals(snap.events);
+    } catch { return []; }
+  },
+};
+
 export const DEFAULT_PROVIDERS: DataProvider[] = [
-  marketProvider, geoProvider, econProvider, weatherProvider,
+  marketProvider, geoProvider, gdeltProvider, econProvider, weatherProvider,
   commodityProvider, cryptoProvider, newsProvider, socialProvider,
 ];
 
