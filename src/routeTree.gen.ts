@@ -55,6 +55,7 @@ import { Route as AppArchiveRouteImport } from './routes/_app/archive'
 import { Route as AppAlertsRouteImport } from './routes/_app/alerts'
 import { Route as AppAlertCenterRouteImport } from './routes/_app/alert-center'
 import { Route as AppAiValidationRouteImport } from './routes/_app/ai-validation'
+import { Route as AppAiLearningRouteImport } from './routes/_app/ai-learning'
 import { Route as AppAiDashboardRouteImport } from './routes/_app/ai-dashboard'
 import { Route as AppAdvisorRouteImport } from './routes/_app/advisor'
 import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
@@ -297,6 +298,11 @@ const AppAiValidationRoute = AppAiValidationRouteImport.update({
   path: '/ai-validation',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAiLearningRoute = AppAiLearningRouteImport.update({
+  id: '/ai-learning',
+  path: '/ai-learning',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAiDashboardRoute = AppAiDashboardRouteImport.update({
   id: '/ai-dashboard',
   path: '/ai-dashboard',
@@ -373,6 +379,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/advisor': typeof AppAdvisorRoute
   '/ai-dashboard': typeof AppAiDashboardRoute
+  '/ai-learning': typeof AppAiLearningRoute
   '/ai-validation': typeof AppAiValidationRoute
   '/alert-center': typeof AppAlertCenterRoute
   '/alerts': typeof AppAlertsRoute
@@ -432,6 +439,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/advisor': typeof AppAdvisorRoute
   '/ai-dashboard': typeof AppAiDashboardRoute
+  '/ai-learning': typeof AppAiLearningRoute
   '/ai-validation': typeof AppAiValidationRoute
   '/alert-center': typeof AppAlertCenterRoute
   '/alerts': typeof AppAlertsRoute
@@ -493,6 +501,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_app/advisor': typeof AppAdvisorRoute
   '/_app/ai-dashboard': typeof AppAiDashboardRoute
+  '/_app/ai-learning': typeof AppAiLearningRoute
   '/_app/ai-validation': typeof AppAiValidationRoute
   '/_app/alert-center': typeof AppAlertCenterRoute
   '/_app/alerts': typeof AppAlertsRoute
@@ -554,6 +563,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/advisor'
     | '/ai-dashboard'
+    | '/ai-learning'
     | '/ai-validation'
     | '/alert-center'
     | '/alerts'
@@ -613,6 +623,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/advisor'
     | '/ai-dashboard'
+    | '/ai-learning'
     | '/ai-validation'
     | '/alert-center'
     | '/alerts'
@@ -673,6 +684,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/_app/advisor'
     | '/_app/ai-dashboard'
+    | '/_app/ai-learning'
     | '/_app/ai-validation'
     | '/_app/alert-center'
     | '/_app/alerts'
@@ -1068,6 +1080,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAiValidationRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/ai-learning': {
+      id: '/_app/ai-learning'
+      path: '/ai-learning'
+      fullPath: '/ai-learning'
+      preLoaderRoute: typeof AppAiLearningRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/ai-dashboard': {
       id: '/_app/ai-dashboard'
       path: '/ai-dashboard'
@@ -1158,6 +1177,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppAdvisorRoute: typeof AppAdvisorRoute
   AppAiDashboardRoute: typeof AppAiDashboardRoute
+  AppAiLearningRoute: typeof AppAiLearningRoute
   AppAiValidationRoute: typeof AppAiValidationRoute
   AppAlertCenterRoute: typeof AppAlertCenterRoute
   AppAlertsRoute: typeof AppAlertsRoute
@@ -1199,6 +1219,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAdvisorRoute: AppAdvisorRoute,
   AppAiDashboardRoute: AppAiDashboardRoute,
+  AppAiLearningRoute: AppAiLearningRoute,
   AppAiValidationRoute: AppAiValidationRoute,
   AppAlertCenterRoute: AppAlertCenterRoute,
   AppAlertsRoute: AppAlertsRoute,
