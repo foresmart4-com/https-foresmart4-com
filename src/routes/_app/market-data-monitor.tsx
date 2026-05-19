@@ -109,8 +109,7 @@ function MarketDataMonitorPage() {
               errorRate: typeof h.errorRate === "number" ? h.errorRate : null,
               rateLimited: Number(h.rateLimited ?? 0),
               lastSuccessAgeS: oldestOkAgeS,
-              rateLimited_alt: undefined,
-            } as unknown as Parameters<typeof callLog>[0]["data"],
+            },
           });
         } catch { /* swallow */ }
       }
