@@ -146,5 +146,13 @@ export const allProviderHealth = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async () => ({
     ...allProvidersHealth(),
+    gdelt: gdeltProviderHealth(),
+    routing: {
+      marketChosen: selectMarketProvider(),
+      macroChosen: selectMacroProvider(),
+    },
+    failoverEvents: lastFailoverEvents(25),
     individual: { twelvedata: tdHealth(), alphavantage: avHealth(), newsapi: naHealth() },
+    generatedAt: Date.now(),
   }));
+
