@@ -34,6 +34,8 @@ import { LiveCommandCenter } from "@/components/dashboard/LiveCommandCenter";
 import { CapitalProtectionPanel } from "@/components/dashboard/CapitalProtectionPanel";
 import { MasterControlCenter } from "@/components/dashboard/MasterControlCenter";
 import { MarketIntelligencePanel } from "@/components/dashboard/MarketIntelligencePanel";
+import { DynamicAIBrainPanel } from "@/components/dashboard/DynamicAIBrainPanel";
+import { BackupStatusPanel } from "@/components/dashboard/BackupStatusPanel";
 import { useAIMarketAnalyst, useAIMarketInsights } from "@/hooks/useAIBrain";
 import type { AssetKey } from "@/services/market/marketData";
 
@@ -454,6 +456,8 @@ function AIDashboardPage() {
 
         {/* AI Market Intelligence Engine — Scanner, Alerts, Optimization, Macro, Backtest */}
         <MarketIntelligencePanel ar={ar} />
+        <DynamicAIBrainPanel ar={ar} />
+        <BackupStatusPanel ar={ar} />
 
         {/* Edge Discovery Center — Early momentum, breakouts, liquidity, whales, ranked ops */}
         {data && <EdgeCommandCenter data={data} ar={ar} />}
