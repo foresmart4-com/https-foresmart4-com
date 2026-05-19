@@ -270,8 +270,8 @@ function buildDeterministicMicroPlan(data: z.infer<typeof PlanInput>): MicroCapi
 }
 
 export const microCapitalPlan = createServerFn({ method: "POST" })
-  .inputValidator((d) => PlanInput.parse(d))
   .middleware([requireSupabaseAuth])
+  .inputValidator((d) => PlanInput.parse(d))
   .handler(async ({ data }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) return { plan: null as MicroCapitalPlan | null, error: "ai_not_configured", detail: "LOVABLE_API_KEY missing" };
