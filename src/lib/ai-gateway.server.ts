@@ -38,17 +38,31 @@ export interface AICallOptions {
   jsonObject?: boolean;
   temperature?: number;
   maxTokens?: number;
+  /**
+   * Active user language. When set, the gateway:
+   *  - injects the locale-specific guardrails into the system prompt,
+   *  - prefixes the user message with a hard language directive,
+   *  - rejects responses that leak across languages (returns parse_error).
+   * Defaults to "en" for back-compat.
+   */
+  language?: Lang;
 }
 
 export async function callAIGateway<T>(opts: AICallOptions): Promise<AICallResult<T>> {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) return { data: null, raw: "", error: "missing_key" };
 
+  const lang: Lang = opts.language ?? "en";
+  const guardrails = localeGuardrails(lang);
+  const userDirective = lang === "ar"
+    ? "أنتج الجواب بالعربية الفصحى المؤسسية حصراً، 100% عربي.\n\n"
+    : "Reply in native institutional English ONLY, 100% English.\n\n";
+
   const body: Record<string, unknown> = {
     model: opts.model ?? "google/gemini-2.5-flash",
     messages: [
-      { role: "system", content: `${opts.system}\n\n${INSTITUTIONAL_GUARDRAILS}` },
-      { role: "user", content: opts.user },
+      { role: "system", content: `${opts.system}\n\n${guardrails}` },
+      { role: "user", content: `${userDirective}${opts.user}` },
     ],
   };
   if (opts.jsonObject) body.response_format = { type: "json_object" };
