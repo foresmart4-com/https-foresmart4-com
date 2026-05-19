@@ -12,15 +12,11 @@ export interface AICallResult<T> {
   error: AIError | null;
 }
 
-export const INSTITUTIONAL_GUARDRAILS = `
-Style rules (mandatory):
-- Speak like an institutional financial analyst.
-- Use probabilistic language ("bias", "skew", "tilt", "likely", "elevated probability").
-- Never assert certainty. Acknowledge uncertainty and path-dependence.
-- Always frame risk vs. reward.
-- No hype, no superlatives, no emojis.
-- Be concise — every sentence must add new information.
-`.trim();
+import { localeGuardrails, type Lang } from "@/lib/ai/locale";
+
+// Back-compat: kept for any caller importing INSTITUTIONAL_GUARDRAILS.
+// New code should pass `language` to callAIGateway and rely on locale.ts.
+export const INSTITUTIONAL_GUARDRAILS = localeGuardrails("en");
 
 function stripFences(s: string): string {
   return s.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
