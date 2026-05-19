@@ -1306,7 +1306,39 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      broker_credentials_meta: {
+        Row: {
+          broker: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          label: string | null
+          mode: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          broker?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          label?: string | null
+          mode?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          broker?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          label?: string | null
+          mode?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       current_role: {
