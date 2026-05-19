@@ -49,7 +49,38 @@ function AILearningPage() {
   const { lang } = useI18n();
   const ar = lang === "ar";
   const [tick, setTick] = useState(0);
-  const [range, setRange] = useState<RangeKey>("7d");
+  const [storageKey, setStorageKey] = useState<string>("foresmart.ai-learning.range:anon");
+  const [range, setRangeState] = useState<RangeKey>(() => {
+    if (typeof window === "undefined") return "7d";
+    const v = window.localStorage.getItem("foresmart.ai-learning.range:anon");
+    return (v === "24h" || v === "7d" || v === "30d" || v === "all") ? v : "7d";
+  });
+  const setRange = (v: RangeKey) => {
+    setRangeState(v);
+    try { window.localStorage.setItem(storageKey, v); } catch {}
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data }) => {
+      if (cancelled) return;
+      const key = `foresmart.ai-learning.range:${data.user?.id ?? "anon"}`;
+      setStorageKey(key);
+      try {
+        const v = window.localStorage.getItem(key);
+        if (v === "24h" || v === "7d" || v === "30d" || v === "all") setRangeState(v);
+      } catch {}
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      const key = `foresmart.ai-learning.range:${session?.user?.id ?? "anon"}`;
+      setStorageKey(key);
+      try {
+        const v = window.localStorage.getItem(key);
+        if (v === "24h" || v === "7d" || v === "30d" || v === "all") setRangeState(v);
+      } catch {}
+    });
+    return () => { cancelled = true; sub.subscription.unsubscribe(); };
+  }, []);
 
   const data = useMemo(() => {
     const since = RANGE_MS[range];
