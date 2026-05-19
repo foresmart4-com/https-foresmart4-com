@@ -125,7 +125,8 @@
     "billing": "Billing",
     "backtestLab": "Backtest Lab",
     "dataFusion": "Data Fusion",
-    "decisionEngine": "Decision Engine"
+    "decisionEngine": "Decision Engine",
+    "globalIntel": "Global Intelligence"
   },
 
   "backtest": {

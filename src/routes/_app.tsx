@@ -40,6 +40,7 @@ function AppLayout() {
     { to: "/backtest-lab", icon: GraduationCap, label: t("nav.backtestLab") },
     { to: "/decision-engine", icon: Cpu, label: t("nav.decisionEngine") },
     { to: "/data-fusion", icon: Layers, label: t("nav.dataFusion") },
+    { to: "/global-intel", icon: Globe2, label: t("nav.globalIntel") },
     { to: "/markets", icon: LineChart, label: t("nav.markets") },
     { to: "/heatmap", icon: Flame, label: t("nav.heatmap") },
     { to: "/calendar", icon: CalendarDays, label: t("nav.calendar") },
