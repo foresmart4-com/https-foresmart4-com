@@ -16,6 +16,7 @@ import { useMarketIntel } from "@/hooks/useMarketIntel";
 import { AnimatedNumber } from "@/components/dashboard/AnimatedNumber";
 import { ConfidenceBar, RiskHeat } from "@/components/dashboard/ConfidenceBar";
 import { SegmentedTickerRibbons } from "@/components/dashboard/SegmentedTickerRibbons";
+import { MarketHeatmap } from "@/components/dashboard/MarketHeatmap";
 import { FearGreedGauge } from "@/components/dashboard/FearGreedGauge";
 import { AICommandCenter } from "@/components/dashboard/AICommandCenter";
 import { QuantPanel } from "@/components/dashboard/QuantPanel";
@@ -186,6 +187,9 @@ function AIDashboardPage() {
 
         {/* Segmented institutional ticker ribbons (Crypto / Indices / Commodities / FX) */}
         <SegmentedTickerRibbons quotes={data?.quotes ?? []} ar={ar} />
+
+        {/* Institutional market heatmap */}
+        <MarketHeatmap quotes={data?.quotes ?? []} ar={ar} />
 
         {isError && (
           <GlassCard className="border-danger/40 p-3 text-sm text-danger">
