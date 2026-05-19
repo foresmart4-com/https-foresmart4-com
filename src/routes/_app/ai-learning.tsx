@@ -90,10 +90,26 @@ function AILearningPage() {
               : "Outcome tracking · calibration · reinforcement · strategy ranking · regime adaptation · drift detection · agent weighting · replay · meta-tuning."}
           </p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => setTick((t) => t + 1)}>
-          {ar ? "تحديث" : "Refresh"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Tabs value={range} onValueChange={(v) => setRange(v as RangeKey)}>
+            <TabsList className="h-8">
+              <TabsTrigger value="24h" className="text-xs px-2 py-0.5">24h</TabsTrigger>
+              <TabsTrigger value="7d" className="text-xs px-2 py-0.5">7d</TabsTrigger>
+              <TabsTrigger value="30d" className="text-xs px-2 py-0.5">30d</TabsTrigger>
+              <TabsTrigger value="all" className="text-xs px-2 py-0.5">{ar ? "الكل" : "All"}</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Button size="sm" variant="outline" onClick={() => setTick((t) => t + 1)}>
+            {ar ? "تحديث" : "Refresh"}
+          </Button>
+        </div>
       </div>
+
+      <p className="text-xs text-muted-foreground -mt-2">
+        {ar
+          ? `النطاق الزمني: ${range === "all" ? "الكل" : range} · ${data.rows.length} سجل`
+          : `Range: ${range} · ${data.rows.length} entries in window`}
+      </p>
 
       {/* KPIs */}
       <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
