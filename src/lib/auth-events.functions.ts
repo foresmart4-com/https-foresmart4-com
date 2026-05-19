@@ -1,8 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getRequestHeader } from "@tanstack/react-start/server";
 
+// Client may only declare WHAT happened. Identity (user_id/email) is derived
+// server-side from the Supabase session — never trusted from the client.
 const EventType = z.enum([
   "signup",
   "signup_failed",
@@ -16,14 +19,11 @@ const EventType = z.enum([
 const Input = z.object({
   event_type: EventType,
   status: z.enum(["ok", "error"]).default("ok"),
-  user_id: z.string().uuid().nullable().optional(),
-  email: z.string().email().max(255).nullable().optional(),
   error_message: z.string().max(500).nullable().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
 });
 
 // In-memory IP rate limiter (best-effort per Worker instance).
-// Caps audit-log writes to prevent log poisoning / DoS.
 const RL_WINDOW_MS = 60_000;
 const RL_MAX_PER_IP = 20;
 const rlMap = new Map<string, { count: number; resetAt: number }>();
@@ -35,8 +35,28 @@ function rateLimited(ip: string): boolean {
     return false;
   }
   cur.count += 1;
-  if (cur.count > RL_MAX_PER_IP) return true;
-  return false;
+  return cur.count > RL_MAX_PER_IP;
+}
+
+async function deriveIdentityFromSession(): Promise<{ user_id: string | null; email: string | null }> {
+  try {
+    const authHeader = getRequestHeader("authorization");
+    if (!authHeader?.startsWith("Bearer ")) return { user_id: null, email: null };
+    const token = authHeader.slice(7).trim();
+    if (!token) return { user_id: null, email: null };
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+    if (!url || !key) return { user_id: null, email: null };
+    const sb = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data, error } = await sb.auth.getUser(token);
+    if (error || !data?.user) return { user_id: null, email: null };
+    return { user_id: data.user.id, email: data.user.email ?? null };
+  } catch {
+    return { user_id: null, email: null };
+  }
 }
 
 export const logAuthEvent = createServerFn({ method: "POST" })
@@ -50,16 +70,16 @@ export const logAuthEvent = createServerFn({ method: "POST" })
       const ua = getRequestHeader("user-agent") ?? null;
 
       if (rateLimited(ip)) {
-        // Drop silently — never block real auth flows, never let an attacker
-        // flood the audit log. Periodic spam is logged as a counter only.
         return { ok: false, rate_limited: true };
       }
+
+      const { user_id, email } = await deriveIdentityFromSession();
 
       await supabaseAdmin.from("auth_events").insert({
         event_type: data.event_type,
         status: data.status,
-        user_id: data.user_id ?? null,
-        email: data.email ?? null,
+        user_id,
+        email,
         error_message: data.error_message ?? null,
         ip_address: ip === "unknown" ? null : ip,
         user_agent: ua,
@@ -67,7 +87,6 @@ export const logAuthEvent = createServerFn({ method: "POST" })
       });
       return { ok: true };
     } catch (err) {
-      // never let logging break auth flows
       console.error("logAuthEvent failed", err);
       return { ok: false };
     }
