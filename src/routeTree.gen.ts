@@ -40,6 +40,7 @@ import { Route as AppEmailDiagnosticsRouteImport } from './routes/_app/email-dia
 import { Route as AppDomainRouteImport } from './routes/_app/domain'
 import { Route as AppDepositRouteImport } from './routes/_app/deposit'
 import { Route as AppDbDiagnosticsRouteImport } from './routes/_app/db-diagnostics'
+import { Route as AppDataFusionRouteImport } from './routes/_app/data-fusion'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppBillingMonitorRouteImport } from './routes/_app/billing-monitor'
@@ -215,6 +216,11 @@ const AppDbDiagnosticsRoute = AppDbDiagnosticsRouteImport.update({
   path: '/db-diagnostics',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDataFusionRoute = AppDataFusionRouteImport.update({
+  id: '/data-fusion',
+  path: '/data-fusion',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -339,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/billing-monitor': typeof AppBillingMonitorRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
+  '/data-fusion': typeof AppDataFusionRoute
   '/db-diagnostics': typeof AppDbDiagnosticsRoute
   '/deposit': typeof AppDepositRoute
   '/domain': typeof AppDomainRoute
@@ -391,6 +398,7 @@ export interface FileRoutesByTo {
   '/billing-monitor': typeof AppBillingMonitorRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
+  '/data-fusion': typeof AppDataFusionRoute
   '/db-diagnostics': typeof AppDbDiagnosticsRoute
   '/deposit': typeof AppDepositRoute
   '/domain': typeof AppDomainRoute
@@ -445,6 +453,7 @@ export interface FileRoutesById {
   '/_app/billing-monitor': typeof AppBillingMonitorRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/data-fusion': typeof AppDataFusionRoute
   '/_app/db-diagnostics': typeof AppDbDiagnosticsRoute
   '/_app/deposit': typeof AppDepositRoute
   '/_app/domain': typeof AppDomainRoute
@@ -499,6 +508,7 @@ export interface FileRouteTypes {
     | '/billing-monitor'
     | '/calendar'
     | '/dashboard'
+    | '/data-fusion'
     | '/db-diagnostics'
     | '/deposit'
     | '/domain'
@@ -551,6 +561,7 @@ export interface FileRouteTypes {
     | '/billing-monitor'
     | '/calendar'
     | '/dashboard'
+    | '/data-fusion'
     | '/db-diagnostics'
     | '/deposit'
     | '/domain'
@@ -604,6 +615,7 @@ export interface FileRouteTypes {
     | '/_app/billing-monitor'
     | '/_app/calendar'
     | '/_app/dashboard'
+    | '/_app/data-fusion'
     | '/_app/db-diagnostics'
     | '/_app/deposit'
     | '/_app/domain'
@@ -879,6 +891,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDbDiagnosticsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/data-fusion': {
+      id: '/_app/data-fusion'
+      path: '/data-fusion'
+      fullPath: '/data-fusion'
+      preLoaderRoute: typeof AppDataFusionRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -1033,6 +1052,7 @@ interface AppRouteChildren {
   AppBillingMonitorRoute: typeof AppBillingMonitorRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppDataFusionRoute: typeof AppDataFusionRoute
   AppDbDiagnosticsRoute: typeof AppDbDiagnosticsRoute
   AppDepositRoute: typeof AppDepositRoute
   AppDomainRoute: typeof AppDomainRoute
@@ -1067,6 +1087,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppBillingMonitorRoute: AppBillingMonitorRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppDataFusionRoute: AppDataFusionRoute,
   AppDbDiagnosticsRoute: AppDbDiagnosticsRoute,
   AppDepositRoute: AppDepositRoute,
   AppDomainRoute: AppDomainRoute,
