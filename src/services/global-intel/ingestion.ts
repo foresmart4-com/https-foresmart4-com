@@ -90,19 +90,57 @@ const cryptoProvider: DataProvider = synth("crypto.aggregator", "crypto", 0.92, 
   }));
 });
 
-const newsProvider: DataProvider = synth("news.stream", "news", 0.75, () => {
-  const items = [
-    "Fed minutes hint at extended pause",
-    "Major bank revises year-end target higher",
-    "Semiconductor demand outlook strengthens",
-    "Energy majors curb capex amid price weakness",
-  ];
-  return items.map((title) => ({
-    source: "news.stream", category: "news", reliability: 0.75,
-    title, payload: { sentiment: (Math.random() - 0.4) * 2 },
-    ts: Date.now(), timestamp: Date.now(),
-  }));
-});
+// NewsAPI real financial / macro / geopolitics feed.
+// Falls back to a small synthetic list when the key is unconfigured or the
+// endpoint fails — keeps downstream consensus engines warm.
+const SYNTH_NEWS: string[] = [
+  "Fed minutes hint at extended pause",
+  "Major bank revises year-end target higher",
+  "Semiconductor demand outlook strengthens",
+  "Energy majors curb capex amid price weakness",
+];
+function newsItemToSignal(item: EnrichedNewsItem): RawSignal {
+  const polarity = item.sentiment; // -1..1
+  const reliability = item.sourceReliability;
+  const region: Region =
+    item.category === "geopolitics" ? "GLOBAL" :
+    item.category === "central-bank" ? "US" :
+    item.category === "energy" ? "GLOBAL" : "GLOBAL";
+  return {
+    source: `newsapi:${item.source}`,
+    category: "news",
+    reliability,
+    region,
+    title: item.title,
+    payload: {
+      sentiment: polarity,
+      impact: item.impact,
+      urgency: item.urgency,
+      category: item.category,
+      url: item.url,
+    },
+    ts: item.ts,
+    timestamp: item.ts,
+  };
+}
+const newsProvider: DataProvider = {
+  id: "news.newsapi",
+  category: "news",
+  reliability: 0.85,
+  fetch: async () => {
+    try {
+      const items = await getFinancialFeed();
+      if (items.length === 0) throw new Error("empty feed");
+      return items.slice(0, 50).map(newsItemToSignal);
+    } catch {
+      return SYNTH_NEWS.map((title) => ({
+        source: "news.fallback", category: "news", reliability: 0.55,
+        title, payload: { sentiment: (Math.random() - 0.4) * 2 },
+        ts: Date.now(), timestamp: Date.now(),
+      }));
+    }
+  },
+};
 
 const socialProvider: DataProvider = synth("social.sentiment", "social", 0.6, () => {
   return Array.from({ length: 4 }, (_, i) => ({
