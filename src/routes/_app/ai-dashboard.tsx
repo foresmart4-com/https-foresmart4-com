@@ -37,6 +37,8 @@ import { MarketIntelligencePanel } from "@/components/dashboard/MarketIntelligen
 import { DynamicAIBrainPanel } from "@/components/dashboard/DynamicAIBrainPanel";
 import { InstitutionalIntelligencePanel } from "@/components/dashboard/InstitutionalIntelligencePanel";
 import { BackupStatusPanel } from "@/components/dashboard/BackupStatusPanel";
+import { AIValidationPanel } from "@/components/dashboard/AIValidationPanel";
+import { GlobalOpportunityScanner } from "@/components/dashboard/GlobalOpportunityScanner";
 import { useAIMarketAnalyst, useAIMarketInsights } from "@/hooks/useAIBrain";
 import type { AssetKey } from "@/services/market/marketData";
 
@@ -459,6 +461,8 @@ function AIDashboardPage() {
         {/* AI Market Intelligence Engine — Scanner, Alerts, Optimization, Macro, Backtest */}
         <MarketIntelligencePanel ar={ar} />
         <DynamicAIBrainPanel ar={ar} />
+        <GlobalOpportunityScanner />
+        <AIValidationPanel />
         <BackupStatusPanel ar={ar} />
 
         {/* Edge Discovery Center — Early momentum, breakouts, liquidity, whales, ranked ops */}
