@@ -42,6 +42,7 @@ import { Route as AppDepositRouteImport } from './routes/_app/deposit'
 import { Route as AppDbDiagnosticsRouteImport } from './routes/_app/db-diagnostics'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
+import { Route as AppBillingMonitorRouteImport } from './routes/_app/billing-monitor'
 import { Route as AppBillingRouteImport } from './routes/_app/billing'
 import { Route as AppBankAccountsRouteImport } from './routes/_app/bank-accounts'
 import { Route as AppArchiveRouteImport } from './routes/_app/archive'
@@ -223,6 +224,11 @@ const AppCalendarRoute = AppCalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBillingMonitorRoute = AppBillingMonitorRouteImport.update({
+  id: '/billing-monitor',
+  path: '/billing-monitor',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppBillingRoute = AppBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -323,6 +329,7 @@ export interface FileRoutesByFullPath {
   '/archive': typeof AppArchiveRoute
   '/bank-accounts': typeof AppBankAccountsRoute
   '/billing': typeof AppBillingRoute
+  '/billing-monitor': typeof AppBillingMonitorRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/db-diagnostics': typeof AppDbDiagnosticsRoute
@@ -373,6 +380,7 @@ export interface FileRoutesByTo {
   '/archive': typeof AppArchiveRoute
   '/bank-accounts': typeof AppBankAccountsRoute
   '/billing': typeof AppBillingRoute
+  '/billing-monitor': typeof AppBillingMonitorRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/db-diagnostics': typeof AppDbDiagnosticsRoute
@@ -425,6 +433,7 @@ export interface FileRoutesById {
   '/_app/archive': typeof AppArchiveRoute
   '/_app/bank-accounts': typeof AppBankAccountsRoute
   '/_app/billing': typeof AppBillingRoute
+  '/_app/billing-monitor': typeof AppBillingMonitorRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/db-diagnostics': typeof AppDbDiagnosticsRoute
@@ -477,6 +486,7 @@ export interface FileRouteTypes {
     | '/archive'
     | '/bank-accounts'
     | '/billing'
+    | '/billing-monitor'
     | '/calendar'
     | '/dashboard'
     | '/db-diagnostics'
@@ -527,6 +537,7 @@ export interface FileRouteTypes {
     | '/archive'
     | '/bank-accounts'
     | '/billing'
+    | '/billing-monitor'
     | '/calendar'
     | '/dashboard'
     | '/db-diagnostics'
@@ -578,6 +589,7 @@ export interface FileRouteTypes {
     | '/_app/archive'
     | '/_app/bank-accounts'
     | '/_app/billing'
+    | '/_app/billing-monitor'
     | '/_app/calendar'
     | '/_app/dashboard'
     | '/_app/db-diagnostics'
@@ -869,6 +881,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCalendarRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/billing-monitor': {
+      id: '/_app/billing-monitor'
+      path: '/billing-monitor'
+      fullPath: '/billing-monitor'
+      preLoaderRoute: typeof AppBillingMonitorRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/billing': {
       id: '/_app/billing'
       path: '/billing'
@@ -991,6 +1010,7 @@ interface AppRouteChildren {
   AppArchiveRoute: typeof AppArchiveRoute
   AppBankAccountsRoute: typeof AppBankAccountsRoute
   AppBillingRoute: typeof AppBillingRoute
+  AppBillingMonitorRoute: typeof AppBillingMonitorRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDbDiagnosticsRoute: typeof AppDbDiagnosticsRoute
@@ -1023,6 +1043,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppArchiveRoute: AppArchiveRoute,
   AppBankAccountsRoute: AppBankAccountsRoute,
   AppBillingRoute: AppBillingRoute,
+  AppBillingMonitorRoute: AppBillingMonitorRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDbDiagnosticsRoute: AppDbDiagnosticsRoute,
