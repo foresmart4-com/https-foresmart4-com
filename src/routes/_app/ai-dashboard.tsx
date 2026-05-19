@@ -15,7 +15,7 @@ import { useI18n } from "@/lib/i18n";
 import { useMarketIntel } from "@/hooks/useMarketIntel";
 import { AnimatedNumber } from "@/components/dashboard/AnimatedNumber";
 import { ConfidenceBar, RiskHeat } from "@/components/dashboard/ConfidenceBar";
-import { LiveTicker } from "@/components/dashboard/LiveTicker";
+import { SegmentedTickerRibbons } from "@/components/dashboard/SegmentedTickerRibbons";
 import { FearGreedGauge } from "@/components/dashboard/FearGreedGauge";
 import { AICommandCenter } from "@/components/dashboard/AICommandCenter";
 import { QuantPanel } from "@/components/dashboard/QuantPanel";
@@ -184,8 +184,8 @@ function AIDashboardPage() {
           </div>
         </GlassCard>
 
-        {/* Live ticker */}
-        <LiveTicker quotes={data?.quotes ?? []} />
+        {/* Segmented institutional ticker ribbons (Crypto / Indices / Commodities / FX) */}
+        <SegmentedTickerRibbons quotes={data?.quotes ?? []} ar={ar} />
 
         {isError && (
           <GlassCard className="border-danger/40 p-3 text-sm text-danger">
