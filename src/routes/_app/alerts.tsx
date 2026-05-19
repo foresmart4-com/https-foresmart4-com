@@ -105,7 +105,7 @@ function AlertsPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>{t("condition")}</Label>
-              <Select value={form.condition} onValueChange={(v) => setForm({ ...form, condition: v })}>
+              <Select value={form.condition} onValueChange={(v) => setForm({ ...form, condition: v as "above" | "below" })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="above">{t("above")}</SelectItem>
