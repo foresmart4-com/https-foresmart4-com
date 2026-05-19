@@ -117,10 +117,15 @@ export const askAdvisor = createServerFn({ method: "POST" })
     if (!apiKey) {
       return { structured: null, raw: "", error: "AI gateway is not configured." };
     }
-    const sys = data.language === "ar" ? sysAr : sysEn;
-    const userMsg = data.context
+    const lang = resolveLang(data);
+    const baseSys = lang === "ar" ? sysAr : sysEn;
+    const sys = `${baseSys}\n\n${localeGuardrails(lang)}\n\n${rtlNumberHint(lang)}`;
+    const langDirective = lang === "ar"
+      ? "أنتج الجواب بالعربية الفصحى المؤسسية حصراً، 100% عربي.\n\n"
+      : "Reply in native institutional English ONLY, 100% English.\n\n";
+    const userMsg = langDirective + (data.context
       ? `${data.question}\n\nMarket context:\n${data.context}`
-      : data.question;
+      : data.question);
 
     try {
       const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
