@@ -16,5 +16,5 @@ export const runDbHealthCheck = createServerFn({ method: "POST" })
     }
     const { data, error } = await supabaseAdmin.rpc("db_health_check");
     if (error) throw new Error(error.message);
-    return data as Record<string, unknown>;
+    return { report: data as unknown };
   });
