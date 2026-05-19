@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { localeGuardrails, rtlNumberHint, resolveLang } from "@/lib/ai/locale";
 
 export interface AssetVerdict {
   action: "buy" | "sell" | "hold" | "watch";
