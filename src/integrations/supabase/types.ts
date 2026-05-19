@@ -275,6 +275,36 @@ export type Database = {
         }
         Relationships: []
       }
+      email_rate_limit: {
+        Row: {
+          category: string
+          count: number
+          created_at: string
+          id: string
+          recipient: string
+          user_id: string | null
+          window_start: string
+        }
+        Insert: {
+          category: string
+          count?: number
+          created_at?: string
+          id?: string
+          recipient: string
+          user_id?: string | null
+          window_start?: string
+        }
+        Update: {
+          category?: string
+          count?: number
+          created_at?: string
+          id?: string
+          recipient?: string
+          user_id?: string | null
+          window_start?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -802,6 +832,7 @@ export type Database = {
           id: string
           lang: string
           provider_message_id: string | null
+          provider_response: Json | null
           recipient: string
           status: string
           subject: string
@@ -817,6 +848,7 @@ export type Database = {
           id?: string
           lang?: string
           provider_message_id?: string | null
+          provider_response?: Json | null
           recipient: string
           status?: string
           subject: string
@@ -832,6 +864,7 @@ export type Database = {
           id?: string
           lang?: string
           provider_message_id?: string | null
+          provider_response?: Json | null
           recipient?: string
           status?: string
           subject?: string
