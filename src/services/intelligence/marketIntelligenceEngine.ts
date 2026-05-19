@@ -202,9 +202,9 @@ export function scoreRisk(input: { volatility: number; sentiment: number; regime
 
 export function computeConfidence(input: { stats: TimeframeStat[]; sentiment: SentimentBreakdown; regime: RegimeDetection }): number {
   const alignment = (() => {
-    const dirs = input.stats.map((s) => (s.trend === "up" ? 1 : s.trend === "down" ? -1 : 0));
+    const dirs: number[] = input.stats.map((s) => (s.trend === "up" ? 1 : s.trend === "down" ? -1 : 0));
     if (!dirs.length) return 0;
-    const sum = Math.abs(dirs.reduce((a, b) => a + b, 0));
+    const sum = Math.abs(dirs.reduce<number>((a, b) => a + b, 0));
     return Math.round((sum / dirs.length) * 100);
   })();
   const sentimentWeight = Math.min(100, input.sentiment.total * 6);
