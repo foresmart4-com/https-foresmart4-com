@@ -263,11 +263,9 @@ export function urgencyOf(article: NewsApiArticle): number {
 // ---------- Dedup ----------
 const seenHashes = new Map<string, number>();
 function hashOf(a: NewsApiArticle): string {
-  const h = createHash("sha1");
-  h.update((a.url || "").trim().toLowerCase());
-  h.update("|");
-  h.update((a.title || "").trim().toLowerCase());
-  return h.digest("hex").slice(0, 16);
+  const url = (a.url || "").trim().toLowerCase();
+  const title = (a.title || "").trim().toLowerCase();
+  return (fnv1aHex(url) + fnv1aHex(title)).slice(0, 16);
 }
 function dedup(articles: NewsApiArticle[]): NewsApiArticle[] {
   const now = Date.now();
