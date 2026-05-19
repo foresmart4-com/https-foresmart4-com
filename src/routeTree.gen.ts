@@ -35,6 +35,7 @@ import { Route as AppHeatmapRouteImport } from './routes/_app/heatmap'
 import { Route as AppGrowthPlanRouteImport } from './routes/_app/growth-plan'
 import { Route as AppExternalAccountsRouteImport } from './routes/_app/external-accounts'
 import { Route as AppErrorLogsRouteImport } from './routes/_app/error-logs'
+import { Route as AppEmailMonitorRouteImport } from './routes/_app/email-monitor'
 import { Route as AppEmailDiagnosticsRouteImport } from './routes/_app/email-diagnostics'
 import { Route as AppDomainRouteImport } from './routes/_app/domain'
 import { Route as AppDepositRouteImport } from './routes/_app/deposit'
@@ -187,6 +188,11 @@ const AppErrorLogsRoute = AppErrorLogsRouteImport.update({
   path: '/error-logs',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEmailMonitorRoute = AppEmailMonitorRouteImport.update({
+  id: '/email-monitor',
+  path: '/email-monitor',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEmailDiagnosticsRoute = AppEmailDiagnosticsRouteImport.update({
   id: '/email-diagnostics',
   path: '/email-diagnostics',
@@ -323,6 +329,7 @@ export interface FileRoutesByFullPath {
   '/deposit': typeof AppDepositRoute
   '/domain': typeof AppDomainRoute
   '/email-diagnostics': typeof AppEmailDiagnosticsRoute
+  '/email-monitor': typeof AppEmailMonitorRoute
   '/error-logs': typeof AppErrorLogsRoute
   '/external-accounts': typeof AppExternalAccountsRoute
   '/growth-plan': typeof AppGrowthPlanRoute
@@ -372,6 +379,7 @@ export interface FileRoutesByTo {
   '/deposit': typeof AppDepositRoute
   '/domain': typeof AppDomainRoute
   '/email-diagnostics': typeof AppEmailDiagnosticsRoute
+  '/email-monitor': typeof AppEmailMonitorRoute
   '/error-logs': typeof AppErrorLogsRoute
   '/external-accounts': typeof AppExternalAccountsRoute
   '/growth-plan': typeof AppGrowthPlanRoute
@@ -423,6 +431,7 @@ export interface FileRoutesById {
   '/_app/deposit': typeof AppDepositRoute
   '/_app/domain': typeof AppDomainRoute
   '/_app/email-diagnostics': typeof AppEmailDiagnosticsRoute
+  '/_app/email-monitor': typeof AppEmailMonitorRoute
   '/_app/error-logs': typeof AppErrorLogsRoute
   '/_app/external-accounts': typeof AppExternalAccountsRoute
   '/_app/growth-plan': typeof AppGrowthPlanRoute
@@ -474,6 +483,7 @@ export interface FileRouteTypes {
     | '/deposit'
     | '/domain'
     | '/email-diagnostics'
+    | '/email-monitor'
     | '/error-logs'
     | '/external-accounts'
     | '/growth-plan'
@@ -523,6 +533,7 @@ export interface FileRouteTypes {
     | '/deposit'
     | '/domain'
     | '/email-diagnostics'
+    | '/email-monitor'
     | '/error-logs'
     | '/external-accounts'
     | '/growth-plan'
@@ -573,6 +584,7 @@ export interface FileRouteTypes {
     | '/_app/deposit'
     | '/_app/domain'
     | '/_app/email-diagnostics'
+    | '/_app/email-monitor'
     | '/_app/error-logs'
     | '/_app/external-accounts'
     | '/_app/growth-plan'
@@ -808,6 +820,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppErrorLogsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/email-monitor': {
+      id: '/_app/email-monitor'
+      path: '/email-monitor'
+      fullPath: '/email-monitor'
+      preLoaderRoute: typeof AppEmailMonitorRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/email-diagnostics': {
       id: '/_app/email-diagnostics'
       path: '/email-diagnostics'
@@ -978,6 +997,7 @@ interface AppRouteChildren {
   AppDepositRoute: typeof AppDepositRoute
   AppDomainRoute: typeof AppDomainRoute
   AppEmailDiagnosticsRoute: typeof AppEmailDiagnosticsRoute
+  AppEmailMonitorRoute: typeof AppEmailMonitorRoute
   AppErrorLogsRoute: typeof AppErrorLogsRoute
   AppExternalAccountsRoute: typeof AppExternalAccountsRoute
   AppGrowthPlanRoute: typeof AppGrowthPlanRoute
@@ -1009,6 +1029,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDepositRoute: AppDepositRoute,
   AppDomainRoute: AppDomainRoute,
   AppEmailDiagnosticsRoute: AppEmailDiagnosticsRoute,
+  AppEmailMonitorRoute: AppEmailMonitorRoute,
   AppErrorLogsRoute: AppErrorLogsRoute,
   AppExternalAccountsRoute: AppExternalAccountsRoute,
   AppGrowthPlanRoute: AppGrowthPlanRoute,
