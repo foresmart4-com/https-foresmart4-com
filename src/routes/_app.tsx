@@ -1,12 +1,13 @@
 import { createFileRoute, Outlet, Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { LoginRequired } from "@/components/LoginRequired";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useAccess } from "@/lib/use-access";
 import { AccessGate } from "@/components/AccessGate";
 import { LegalFooter } from "@/components/LegalFooter";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   LayoutDashboard, LineChart, Bell, Archive, User as UserIcon,
   Brain, LogOut, Globe2, Menu, TrendingUp, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap, Eye, Search, Flame, CalendarDays, GraduationCap,
@@ -25,6 +26,10 @@ function AppLayout() {
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Auto-close mobile drawer on navigation
+  useEffect(() => { setMobileOpen(false); }, [path]);
 
   if (loading) return <div className="grid min-h-screen place-items-center text-muted-foreground">{t("loading")}</div>;
   if (!user) return <LoginRequired />;
@@ -56,11 +61,55 @@ function AppLayout() {
 
   const handleSignOut = async () => { await signOut(); navigate({ to: "/" }); };
 
+  const NavList = ({ onItemClick }: { onItemClick?: () => void }) => (
+    <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-2">
+      {items.map((it) => {
+        const active = path === it.to;
+        return (
+          <Link
+            key={it.to}
+            to={it.to}
+            onClick={onItemClick}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors min-h-11",
+              active
+                ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+            )}
+          >
+            <it.icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
+            {!collapsed && <span className="truncate">{it.label}</span>}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+
+  const SidebarFooter = () => (
+    <div className="space-y-1 border-t border-sidebar-border p-2">
+      <button
+        onClick={() => setLang(lang === "ar" ? "en" : "ar")}
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/60 min-h-11"
+      >
+        <Globe2 className="h-4 w-4 shrink-0" />
+        {!collapsed && <span>{lang === "ar" ? "English" : "العربية"}</span>}
+      </button>
+      <button
+        onClick={handleSignOut}
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/60 min-h-11"
+      >
+        <LogOut className="h-4 w-4 shrink-0" />
+        {!collapsed && <span>{t("logout")}</span>}
+      </button>
+    </div>
+  );
+
   return (
     <div className="flex min-h-screen w-full bg-background">
+      {/* Desktop sidebar */}
       <aside
         className={cn(
-          "sticky top-0 flex h-screen flex-col border-border bg-sidebar text-sidebar-foreground transition-all duration-200",
+          "sticky top-0 hidden h-screen flex-col border-border bg-sidebar text-sidebar-foreground transition-all duration-200 md:flex",
           dir === "rtl" ? "border-s" : "border-e",
           collapsed ? "w-16" : "w-64",
         )}
@@ -74,60 +123,64 @@ function AppLayout() {
               <span className="font-display text-base font-bold truncate">{t("appName")}</span>
             </Link>
           )}
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCollapsed((c) => !c)}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Toggle sidebar" onClick={() => setCollapsed((c) => !c)}>
             <Menu className="h-4 w-4" />
           </Button>
         </div>
-
-        <nav className="flex-1 space-y-1 px-2">
-          {items.map((it) => {
-            const active = path === it.to;
-            return (
-              <Link
-                key={it.to}
-                to={it.to}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
-                )}
-              >
-                <it.icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
-                {!collapsed && <span className="truncate">{it.label}</span>}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="space-y-1 border-t border-sidebar-border p-2">
-          <button
-            onClick={() => setLang(lang === "ar" ? "en" : "ar")}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/60"
-          >
-            <Globe2 className="h-4 w-4 shrink-0" />
-            {!collapsed && <span>{lang === "ar" ? "English" : "العربية"}</span>}
-          </button>
-          <button
-            onClick={handleSignOut}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/60"
-          >
-            <LogOut className="h-4 w-4 shrink-0" />
-            {!collapsed && <span>{t("logout")}</span>}
-          </button>
-        </div>
+        <NavList />
+        <SidebarFooter />
       </aside>
 
-      <main className="flex-1 overflow-x-hidden">
-        <PaymentTestModeBanner />
-        <AccessGate>
-          <Outlet />
-        </AccessGate>
-        <div className="px-6 py-2 text-center text-[11px] text-muted-foreground">
-          ⚠ {t("disclaimerTitle")} — {t("disclaimerBody").slice(0, 140)}…
-        </div>
-        <LegalFooter />
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Mobile top bar */}
+        <header className="sticky top-0 z-40 flex items-center justify-between gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur md:hidden">
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Open menu">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side={dir === "rtl" ? "right" : "left"}
+              className="flex w-[85vw] max-w-xs flex-col bg-sidebar p-0 text-sidebar-foreground"
+            >
+              <div className="flex items-center gap-2 px-4 py-4 border-b border-sidebar-border">
+                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg gradient-primary shadow-glow">
+                  <TrendingUp className="h-4 w-4 text-primary-foreground" />
+                </div>
+                <span className="font-display text-base font-bold truncate">{t("appName")}</span>
+              </div>
+              <NavList onItemClick={() => setMobileOpen(false)} />
+              <SidebarFooter />
+            </SheetContent>
+          </Sheet>
+
+          <Link to="/dashboard" className="flex items-center gap-2 truncate">
+            <span className="font-display text-sm font-bold truncate">{t("appName")}</span>
+          </Link>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10"
+            aria-label="Toggle language"
+            onClick={() => setLang(lang === "ar" ? "en" : "ar")}
+          >
+            <Globe2 className="h-5 w-5" />
+          </Button>
+        </header>
+
+        <main className="min-w-0 flex-1 overflow-x-hidden">
+          <PaymentTestModeBanner />
+          <AccessGate>
+            <Outlet />
+          </AccessGate>
+          <div className="px-4 sm:px-6 py-2 text-center text-[11px] text-muted-foreground">
+            ⚠ {t("disclaimerTitle")} — {t("disclaimerBody").slice(0, 140)}…
+          </div>
+          <LegalFooter />
+        </main>
+      </div>
     </div>
   );
 }
