@@ -4,8 +4,13 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "crypt
 const ALGO = "aes-256-gcm";
 
 function getSecret(): string {
-  const secret = process.env.VAULT_MASTER_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!secret) throw new Error("VAULT_MASTER_KEY missing");
+  const secret = process.env.VAULT_MASTER_KEY;
+  if (!secret || secret.length < 16) {
+    throw new Error(
+      "VAULT_MASTER_KEY missing or too short. Set a dedicated 32+ byte secret " +
+        "(openssl rand -base64 32) in Cloud → Secrets. Never reuse the Supabase service role key.",
+    );
+  }
   return secret;
 }
 
