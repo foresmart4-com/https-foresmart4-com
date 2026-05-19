@@ -1,5 +1,5 @@
 // Analytics Plan Engine — generates AI analytics membership templates.
-export type PlanType = "conservative" | "balanced" | "aggressive" | "ai_adaptive" | "custom";
+export type PlanType = "conservative" | "balanced" | "growth" | "aggressive" | "ai_adaptive" | "custom";
 export type RiskLevel = "low" | "medium" | "high" | "adaptive";
 
 export interface PlanTemplate {
@@ -36,6 +36,15 @@ export const PLAN_TEMPLATES: PlanTemplate[] = [
     targetMarkets: ["BTC", "ETH", "SPX", "XAU"],
     expectedAnnualReturnPct: [12, 22], expectedVolatilityPct: 22, drawdownTolerancePct: 10,
     rebalanceCadenceDays: 10, aiConfidenceBaseline: 72,
+  },
+  {
+    type: "growth", name: "Growth Analytics", nameAr: "تحليلات النمو",
+    description: "AI growth-tilted analytics across tech, crypto and gold for long-term compounding insights.",
+    descriptionAr: "تحليلات نمو ذكية عبر التكنولوجيا والعملات الرقمية والذهب لرؤى تراكمية طويلة الأمد.",
+    defaultDurationDays: 365, riskLevel: "medium",
+    targetMarkets: ["BTC", "ETH", "NDX", "XAU", "SPX"],
+    expectedAnnualReturnPct: [18, 35], expectedVolatilityPct: 28, drawdownTolerancePct: 15,
+    rebalanceCadenceDays: 7, aiConfidenceBaseline: 74,
   },
   {
     type: "aggressive", name: "Elite Analytics", nameAr: "تحليلات النخبة",
