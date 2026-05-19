@@ -1,4 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
 
 interface EconEvent {
   date: string; time: string; country: string; flag: string;
@@ -9,7 +11,8 @@ interface EconEvent {
 // Try Trading Economics free guest endpoint; fall back to a curated rolling weekly schedule.
 async function fetchLive(): Promise<EconEvent[] | null> {
   try {
-    const r = await fetch("https://api.tradingeconomics.com/calendar?c=guest:guest&f=json", {
+    const cred = process.env.TRADING_ECONOMICS_KEY || "guest:guest";
+    const r = await fetch(`https://api.tradingeconomics.com/calendar?c=${cred}&f=json`, {
       signal: AbortSignal.timeout(4000),
     });
     if (!r.ok) return null;
@@ -76,8 +79,10 @@ function syntheticWeekly(): EconEvent[] {
   });
 }
 
-export const getEconomicEvents = createServerFn({ method: "GET" }).handler(async () => {
-  const live = await fetchLive();
-  const events = (live && live.length > 0) ? live : syntheticWeekly();
-  return { events, fetchedAt: Date.now() };
-});
+export const getEconomicEvents = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const live = await fetchLive();
+    const events = (live && live.length > 0) ? live : syntheticWeekly();
+    return { events, fetchedAt: Date.now() };
+  });

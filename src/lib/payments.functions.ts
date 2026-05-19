@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { computeTopupFees } from "./moyasar.server";
 import { type StripeEnv, createStripeClient, resolveOrCreateCustomer } from "./stripe.server";
+import { assertSafeReturnUrl } from "./security/safeRedirect";
 
 const MIN_TOPUP_SAR = 150;
 
@@ -44,9 +45,11 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
+    const safeReturnUrl = assertSafeReturnUrl(data.returnUrl);
     const { userId } = context;
     const env = data.environment as StripeEnv;
     const stripe = createStripeClient(env);
+
 
     const prices = await stripe.prices.list({ lookup_keys: [data.priceId] });
     if (!prices.data.length) throw new Error("Price not found in Stripe");
@@ -63,7 +66,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       line_items: [{ price: stripePrice.id, quantity: 1 }],
       mode: "subscription",
       ui_mode: "embedded_page",
-      return_url: data.returnUrl,
+      return_url: safeReturnUrl,
       customer: customerId,
       subscription_data: {
         trial_period_days: 14,
@@ -84,6 +87,7 @@ export const createBillingPortalSession = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
+    const safeReturnUrl = assertSafeReturnUrl(data.returnUrl);
     const env = data.environment as StripeEnv;
     const { data: sub } = await context.supabase
       .from("subscriptions")
@@ -102,7 +106,7 @@ export const createBillingPortalSession = createServerFn({ method: "POST" })
     const stripe = createStripeClient(env);
     const portal = await stripe.billingPortal.sessions.create({
       customer: sub.stripe_customer_id,
-      return_url: data.returnUrl,
+      return_url: safeReturnUrl,
     });
     return portal.url;
   });

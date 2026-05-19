@@ -12,26 +12,48 @@ async function assertAdmin(userId: string) {
   }
 }
 
-// Public: report a frontend crash (rate-limited, no auth required so we can
-// capture pre-login errors). Stored as low-trust info.
+// Public: report a frontend crash. No auth required (pre-login errors), but
+// per-fingerprint dedup + per-process rate limit guard against DoS / log spam.
+const CE_DEDUP_MS = 60_000;
+const CE_RATE_MS = 60_000;
+const CE_RATE_MAX = 60;
+const ceDedup = new Map<string, number>();
+let ceWindowStart = Date.now();
+let ceWindowCount = 0;
+
 export const reportClientError = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
-      message: z.string().min(1).max(2000),
-      stack: z.string().max(8000).optional(),
-      url: z.string().max(2000).optional(),
+      message: z.string().min(1).max(800),
+      stack: z.string().max(4000).optional(),
+      url: z.string().max(1000).optional(),
       kind: z.enum(["js_crash", "unhandled_rejection", "react_error", "manual"]).default("js_crash"),
       context: z.record(z.unknown()).optional(),
     }),
   )
   .handler(async ({ data }) => {
+    const now = Date.now();
+    // global window rate limit (per Worker instance)
+    if (now - ceWindowStart > CE_RATE_MS) { ceWindowStart = now; ceWindowCount = 0; }
+    ceWindowCount += 1;
+    if (ceWindowCount > CE_RATE_MAX) return { ok: true, deduped: true };
+
+    const fp = hashFingerprint(`${data.kind}:${data.message}`);
+    const last = ceDedup.get(fp) ?? 0;
+    if (now - last < CE_DEDUP_MS) return { ok: true, deduped: true };
+    ceDedup.set(fp, now);
+    // bound map size
+    if (ceDedup.size > 500) {
+      for (const [k, v] of ceDedup) if (now - v > CE_DEDUP_MS) ceDedup.delete(k);
+    }
+
     await logEvent({
       source: "frontend",
       severity: "error",
       eventType: data.kind,
       message: data.message,
       context: { stack: data.stack, url: data.url, ...(data.context ?? {}) },
-      fingerprint: hashFingerprint(`${data.kind}:${data.message}`),
+      fingerprint: fp,
     });
     return { ok: true };
   });
