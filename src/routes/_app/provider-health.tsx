@@ -19,7 +19,10 @@ export const Route = createFileRoute("/_app/provider-health")({
   }),
 });
 
-type Aggregate = Awaited<ReturnType<typeof allProviderHealth>>;
+type Aggregate = {
+  routing: { marketChosen: string; macroChosen: string };
+  failoverEvents: Array<{ ts: number; kind: string; primary: string; chosen: string; reason: string }>;
+} & Record<string, unknown>;
 type ProviderRow = {
   id: string;
   status: "healthy" | "degraded" | "down" | "unknown";
