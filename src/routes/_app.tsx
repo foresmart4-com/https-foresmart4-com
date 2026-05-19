@@ -62,6 +62,7 @@ function AppLayout() {
     { to: "/portfolio-ai", icon: Briefcase, label: t("nav.portfolioAI") },
     { to: "/ai-learning", icon: Brain, label: t("nav.aiLearning") },
     { to: "/market-data-monitor", icon: Activity, label: lang === "ar" ? "مراقب بيانات السوق" : "Market Data Monitor" },
+    { to: "/provider-health", icon: Activity, label: lang === "ar" ? "صحة المزودين" : "Provider Health" },
     { to: "/archive", icon: Archive, label: t("nav.archive") },
     ...(isAdmin ? [{ to: "/members", icon: Users, label: t("nav.members") }] : []),
     { to: "/profile", icon: UserIcon, label: t("nav.profile") },

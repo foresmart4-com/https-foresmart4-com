@@ -59,3 +59,27 @@ export const getProviderHealthTimeline = createServerFn({ method: "POST" })
     if (error) return { ok: false as const, error: error.message, rows: [] };
     return { ok: true as const, rows: rows ?? [] };
   });
+
+const AllTimelineInput = z.object({
+  hours: z.number().int().min(1).max(168),
+  providers: z.array(z.string().min(1).max(40)).min(1).max(12),
+});
+
+/** Multi-provider timeline for the authenticated user — used by /provider-health. */
+export const getAllProviderHealthTimeline = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => AllTimelineInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const since = new Date(Date.now() - data.hours * 3_600_000).toISOString();
+    const { data: rows, error } = await supabase
+      .from("provider_health_log")
+      .select("id, provider, status, stale_state, avg_latency_ms, error_rate, rate_limited, last_success_age_s, recorded_at")
+      .in("provider", data.providers)
+      .gte("recorded_at", since)
+      .order("recorded_at", { ascending: false })
+      .limit(2000);
+    if (error) return { ok: false as const, error: "Could not load timeline", rows: [] };
+    return { ok: true as const, rows: rows ?? [] };
+  });
+

@@ -62,6 +62,24 @@ export function allProvidersHealth() {
 
 type ProviderId = "finnhub" | "twelvedata" | "alphavantage" | "newsapi";
 
+// Lightweight failover log — useful for debugging which adapter served the
+// request when production logs surface a rollup / runtime error tied to a
+// specific module. Kept in-memory; surfaced via lastFailoverEvents().
+type FailoverEvent = {
+  ts: number; kind: "market" | "macro";
+  primary: ProviderId; chosen: ProviderId; reason: string;
+};
+const FAILOVER_LOG: FailoverEvent[] = [];
+function logFailover(e: FailoverEvent) {
+  FAILOVER_LOG.push(e);
+  if (FAILOVER_LOG.length > 200) FAILOVER_LOG.splice(0, FAILOVER_LOG.length - 200);
+  // Stable, greppable line for worker logs.
+  console.info(`[providers.failover] kind=${e.kind} primary=${e.primary} chosen=${e.chosen} reason="${e.reason}"`);
+}
+export function lastFailoverEvents(limit = 50): FailoverEvent[] {
+  return FAILOVER_LOG.slice(-limit).reverse();
+}
+
 /**
  * Resilient routing helper for market quotes.
  * Picks the highest-scoring healthy provider, falling through to backups when
@@ -71,18 +89,29 @@ export function selectMarketProvider(): ProviderId {
   const fh = fhHealth(); const td = tdHealth(); const av = avHealth();
   const primaryOk = fh.configured && fh.status === "healthy";
   if (primaryOk) return "finnhub";
-  // Primary degraded → prefer TwelveData by failoverScore, else AV.
   const tdReady = td.configured && td.status !== "down";
   const avReady = av.configured && av.status !== "down";
-  if (tdReady && avReady) return td.failoverScore >= av.failoverScore ? "twelvedata" : "alphavantage";
-  if (tdReady) return "twelvedata";
-  if (avReady) return "alphavantage";
-  // Last resort — still try Finnhub even if degraded.
-  return "finnhub";
+  let chosen: ProviderId = "finnhub";
+  let reason = `finnhub ${fh.status} configured=${fh.configured}`;
+  if (tdReady && avReady) {
+    chosen = td.failoverScore >= av.failoverScore ? "twelvedata" : "alphavantage";
+    reason = `failoverScore td=${td.failoverScore} av=${av.failoverScore}`;
+  } else if (tdReady) { chosen = "twelvedata"; reason = `av down/unconfigured`; }
+  else if (avReady) { chosen = "alphavantage"; reason = `td down/unconfigured`; }
+  logFailover({ ts: Date.now(), kind: "market", primary: "finnhub", chosen, reason });
+  return chosen;
 }
 
-/** Macro routing: AlphaVantage primary, Finnhub fallback (general news / status). */
+/** Macro routing: AlphaVantage primary, Finnhub fallback. */
 export function selectMacroProvider(): "alphavantage" | "finnhub" {
   const av = avHealth();
-  return av.configured && av.status !== "down" ? "alphavantage" : "finnhub";
+  const chosen = av.configured && av.status !== "down" ? "alphavantage" : "finnhub";
+  if (chosen !== "alphavantage") {
+    logFailover({
+      ts: Date.now(), kind: "macro", primary: "alphavantage", chosen,
+      reason: `av configured=${av.configured} status=${av.status}`,
+    });
+  }
+  return chosen;
 }
+
