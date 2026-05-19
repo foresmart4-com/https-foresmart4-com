@@ -112,6 +112,17 @@ function softmax(values: number[], temperature = 1): number[] {
 }
 
 // ───────────────────────────────────────────────────────────────
+// Time-window helpers
+// ───────────────────────────────────────────────────────────────
+/** Returns memory rows; if `sinceMs` is provided, only rows with ts >= cutoff. */
+function listSince(sinceMs?: number): TradeMemoryEntry[] {
+  const rows = aiMemory.list();
+  if (!sinceMs) return rows;
+  const cutoff = Date.now() - sinceMs;
+  return rows.filter((r) => r.ts >= cutoff);
+}
+
+// ───────────────────────────────────────────────────────────────
 // 1. Outcome tracking (delegates to aiMemory)
 // ───────────────────────────────────────────────────────────────
 export function recordRecommendation(rec: Omit<Recommendation, "id" | "ts">) {
@@ -133,8 +144,8 @@ export function closeRecommendation(id: string, exitPrice: number) {
 // ───────────────────────────────────────────────────────────────
 // 2. Confidence calibration (10 bins of 10%)
 // ───────────────────────────────────────────────────────────────
-export function calibration(): CalibrationBin[] {
-  const rows = aiMemory.list().filter((r) => r.outcome !== "open" && typeof r.confidence === "number");
+export function calibration(sinceMs?: number): CalibrationBin[] {
+  const rows = listSince(sinceMs).filter((r) => r.outcome !== "open" && typeof r.confidence === "number");
   const bins: CalibrationBin[] = Array.from({ length: 10 }, (_, i) => ({
     bucket: `${i * 10}-${(i + 1) * 10}`,
     predicted: 0,
@@ -160,8 +171,8 @@ export function calibration(): CalibrationBin[] {
 }
 
 /** Expected Calibration Error (lower is better). */
-export function ece(): number {
-  const bins = calibration();
+export function ece(sinceMs?: number): number {
+  const bins = calibration(sinceMs);
   const total = bins.reduce((s, b) => s + b.count, 0) || 1;
   return bins.reduce((s, b) => s + (b.count / total) * Math.abs(b.gap), 0);
 }
@@ -173,8 +184,8 @@ function tagValue(tags: string[] | undefined, prefix: string): string | undefine
   return tags?.find((t) => t.startsWith(prefix))?.slice(prefix.length);
 }
 
-export function agentScores(): AgentScore[] {
-  const rows = aiMemory.list();
+export function agentScores(sinceMs?: number): AgentScore[] {
+  const rows = listSince(sinceMs);
   const byAgent = new Map<string, TradeMemoryEntry[]>();
   for (const r of rows) {
     const a = tagValue(r.tags, "agent:") ?? "unknown";
@@ -183,7 +194,6 @@ export function agentScores(): AgentScore[] {
   }
   const raw = Array.from(byAgent.entries()).map(([agent, rs]) => {
     const s = stats(rs);
-    // Reinforcement = profit factor scaled by sharpe + experience prior
     const reinforcement =
       s.profitFactor * (1 + Math.max(-1, Math.min(1, s.sharpe))) * Math.log1p(s.trades);
     return { agent, ...s, reinforcement, weight: 0 };
@@ -197,8 +207,8 @@ export function agentScores(): AgentScore[] {
 // ───────────────────────────────────────────────────────────────
 // 4 + 5. Strategy ranking + Regime adaptation
 // ───────────────────────────────────────────────────────────────
-export function strategyScores(): StrategyScore[] {
-  const rows = aiMemory.list();
+export function strategyScores(sinceMs?: number): StrategyScore[] {
+  const rows = listSince(sinceMs);
   const byStrat = new Map<string, TradeMemoryEntry[]>();
   for (const r of rows) {
     const s = tagValue(r.tags, "strategy:") ?? "default";
@@ -207,7 +217,6 @@ export function strategyScores(): StrategyScore[] {
   }
   const raw = Array.from(byStrat.entries()).map(([strategy, rs]) => {
     const s = stats(rs);
-    // Find regime with highest win rate for this strategy
     const byRegime = new Map<string, TradeMemoryEntry[]>();
     for (const r of rs) {
       const k = r.regime ?? "unknown";
@@ -227,22 +236,31 @@ export function strategyScores(): StrategyScore[] {
     return { strategy, ...s, bestRegime, reinforcement, weight: 0, rank: 0 };
   });
   const weights = softmax(raw.map((r) => r.reinforcement), 1.5);
-  const ranked = raw
+  return raw
     .map((r, i) => ({ ...r, weight: weights[i] ?? 0 }))
     .sort((a, b) => b.reinforcement - a.reinforcement)
     .map((r, i) => ({ ...r, rank: i + 1 }));
-  return ranked;
 }
 
 // ───────────────────────────────────────────────────────────────
 // 6. Drift auto-detection
+// Compares the most recent `sinceMs` window against everything older.
+// Falls back to count-based split when no time window is given.
 // ───────────────────────────────────────────────────────────────
-export function driftReport(windowSize = 30): DriftReport {
-  const rows = aiMemory.list().filter((r) => r.outcome !== "open");
-  const recent = rows.slice(0, windowSize);
-  const baseline = rows.slice(windowSize);
+export function driftReport(windowSize = 30, sinceMs?: number): DriftReport {
+  const all = aiMemory.list().filter((r) => r.outcome !== "open");
+  let recent: TradeMemoryEntry[];
+  let baseline: TradeMemoryEntry[];
+  if (sinceMs) {
+    const cutoff = Date.now() - sinceMs;
+    recent = all.filter((r) => r.ts >= cutoff);
+    baseline = all.filter((r) => r.ts < cutoff);
+  } else {
+    recent = all.slice(0, windowSize);
+    baseline = all.slice(windowSize);
+  }
   const s1 = stats(recent);
-  const s0 = stats(baseline.length ? baseline : rows);
+  const s0 = stats(baseline.length ? baseline : all);
   const p = s0.winRate || 0.5;
   const n = Math.max(1, s1.trades);
   const se = Math.sqrt((p * (1 - p)) / n);
@@ -253,19 +271,21 @@ export function driftReport(windowSize = 30): DriftReport {
     baselineWinRate: s0.winRate,
     delta: s1.winRate - s0.winRate,
     z,
-    window: windowSize,
+    window: sinceMs ?? windowSize,
   };
 }
 
 // ───────────────────────────────────────────────────────────────
 // 8. Historical replay simulation
 // ───────────────────────────────────────────────────────────────
-export function replay(filter?: { strategy?: string; agent?: string; regime?: string }): ReplayResult {
-  let rows = aiMemory.list().filter((r) => r.outcome !== "open");
+export function replay(
+  filter?: { strategy?: string; agent?: string; regime?: string },
+  sinceMs?: number,
+): ReplayResult {
+  let rows = listSince(sinceMs).filter((r) => r.outcome !== "open");
   if (filter?.strategy) rows = rows.filter((r) => tagValue(r.tags, "strategy:") === filter.strategy);
   if (filter?.agent) rows = rows.filter((r) => tagValue(r.tags, "agent:") === filter.agent);
   if (filter?.regime) rows = rows.filter((r) => r.regime === filter.regime);
-  // chronological replay
   rows = [...rows].sort((a, b) => a.ts - b.ts);
   const s = stats(rows);
   let eq = 0;
@@ -292,8 +312,8 @@ export function replay(filter?: { strategy?: string; agent?: string; regime?: st
 // ───────────────────────────────────────────────────────────────
 // 9. Continuous learning memory — accessor + retention summary
 // ───────────────────────────────────────────────────────────────
-export function memorySummary() {
-  const rows = aiMemory.list();
+export function memorySummary(sinceMs?: number) {
+  const rows = listSince(sinceMs);
   const open = rows.filter((r) => r.outcome === "open").length;
   const closed = rows.length - open;
   const oldest = rows.length ? Math.min(...rows.map((r) => r.ts)) : Date.now();
@@ -309,14 +329,14 @@ export function memorySummary() {
 // 10. Meta-learning — auto-tune confidence threshold
 // ───────────────────────────────────────────────────────────────
 export interface MetaTune {
-  threshold: number;    // 0..1
+  threshold: number;
   expectancy: number;
   trades: number;
-  improvement: number;  // vs no-threshold
+  improvement: number;
 }
 
-export function metaTuneThreshold(): MetaTune {
-  const rows = aiMemory.list().filter((r) => r.outcome !== "open" && typeof r.confidence === "number");
+export function metaTuneThreshold(sinceMs?: number): MetaTune {
+  const rows = listSince(sinceMs).filter((r) => r.outcome !== "open" && typeof r.confidence === "number");
   const baseline = stats(rows).expectancy;
   let best: MetaTune = { threshold: 0, expectancy: baseline, trades: rows.length, improvement: 0 };
   for (let t = 0.1; t <= 0.95; t += 0.05) {
@@ -350,8 +370,8 @@ export interface FailureRow {
   reason: string;
 }
 
-export function failureAnalysis(limit = 10): FailureRow[] {
-  const rows = aiMemory.list().filter((r) => r.outcome === "loss");
+export function failureAnalysis(limit = 10, sinceMs?: number): FailureRow[] {
+  const rows = listSince(sinceMs).filter((r) => r.outcome === "loss");
   return rows
     .map<FailureRow>((r) => ({
       id: r.id,
@@ -369,6 +389,23 @@ export function failureAnalysis(limit = 10): FailureRow[] {
 }
 
 /** False positives: high confidence (>=0.7) that resulted in losses. */
-export function falsePositives(): FailureRow[] {
-  return failureAnalysis(50).filter((r) => r.confidence >= 0.7);
+export function falsePositives(sinceMs?: number): FailureRow[] {
+  return failureAnalysis(50, sinceMs).filter((r) => r.confidence >= 0.7);
+}
+
+// ───────────────────────────────────────────────────────────────
+// Regime stats over a time window (mirrors statsByRegime but windowed)
+// ───────────────────────────────────────────────────────────────
+export function regimeStatsSince(sinceMs?: number) {
+  const rows = listSince(sinceMs);
+  const groups: Record<string, TradeMemoryEntry[]> = {};
+  for (const r of rows) (groups[r.regime ?? "unknown"] ??= []).push(r);
+  const out: Record<string, ReturnType<typeof stats>> = {};
+  for (const [k, v] of Object.entries(groups)) out[k] = stats(v);
+  return out;
+}
+
+/** Overall stats (windowed). */
+export function overallStats(sinceMs?: number) {
+  return stats(listSince(sinceMs));
 }
