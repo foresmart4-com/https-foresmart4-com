@@ -159,7 +159,7 @@ function EmailDiagnosticsPage() {
                 </tr>
               </thead>
               <tbody>
-                {(logQ.data ?? []).map((r: any) => (
+                {((logQ.data as any[]) ?? []).map((r: any) => (
                   <tr key={r.id} className="border-b border-border/40 hover:bg-muted/30">
                     <td className="p-2 whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
                     <td className="p-2"><Badge variant="outline" className={statusColor(r.status)}>{r.status}</Badge></td>
@@ -185,7 +185,7 @@ function EmailDiagnosticsPage() {
                     </td>
                   </tr>
                 ))}
-                {(logQ.data ?? []).length === 0 && (
+                {((logQ.data as any[]) ?? []).length === 0 && (
                   <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No emails logged yet.</td></tr>
                 )}
               </tbody>
