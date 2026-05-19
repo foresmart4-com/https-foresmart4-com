@@ -110,7 +110,7 @@ interface LogPatch {
   provider_response?: unknown;
 }
 async function logUpdate(id: string, patch: LogPatch): Promise<void> {
-  await supabaseAdmin.from("resend_email_log").update(patch).eq("id", id);
+  await supabaseAdmin.from("resend_email_log").update(patch as any).eq("id", id);
 }
 
 // ============ Rate limiting ============
