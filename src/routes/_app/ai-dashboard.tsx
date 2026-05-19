@@ -35,6 +35,7 @@ import { CapitalProtectionPanel } from "@/components/dashboard/CapitalProtection
 import { MasterControlCenter } from "@/components/dashboard/MasterControlCenter";
 import { MarketIntelligencePanel } from "@/components/dashboard/MarketIntelligencePanel";
 import { DynamicAIBrainPanel } from "@/components/dashboard/DynamicAIBrainPanel";
+import { InstitutionalIntelligencePanel } from "@/components/dashboard/InstitutionalIntelligencePanel";
 import { BackupStatusPanel } from "@/components/dashboard/BackupStatusPanel";
 import { useAIMarketAnalyst, useAIMarketInsights } from "@/hooks/useAIBrain";
 import type { AssetKey } from "@/services/market/marketData";
@@ -450,6 +451,7 @@ function AIDashboardPage() {
 
         {/* AI Command Center — Opportunities, Correlations, Events, Reasoning, Alerts */}
         {data && <AICommandCenter data={data} ar={ar} />}
+        <InstitutionalIntelligencePanel intel={data} ar={ar} />
 
         {/* Quant Intelligence Layer */}
         {data && <QuantPanel data={data} ar={ar} />}
