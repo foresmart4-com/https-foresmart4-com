@@ -12,6 +12,7 @@ export interface RawSignal {
   title: string;
   payload: Record<string, unknown>;
   timestamp: number;
+  ts: number;
   reliability: number;       // 0..1 source-level reliability
 }
 
