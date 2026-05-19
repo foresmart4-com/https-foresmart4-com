@@ -28,6 +28,7 @@ import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppScannerRouteImport } from './routes/_app/scanner'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppPortfoliosRouteImport } from './routes/_app/portfolios'
+import { Route as AppPortfolioAiRouteImport } from './routes/_app/portfolio-ai'
 import { Route as AppPaperTradingRouteImport } from './routes/_app/paper-trading'
 import { Route as AppOpportunityScannerRouteImport } from './routes/_app/opportunity-scanner'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
@@ -52,7 +53,9 @@ import { Route as AppBankAccountsRouteImport } from './routes/_app/bank-accounts
 import { Route as AppBacktestLabRouteImport } from './routes/_app/backtest-lab'
 import { Route as AppArchiveRouteImport } from './routes/_app/archive'
 import { Route as AppAlertsRouteImport } from './routes/_app/alerts'
+import { Route as AppAlertCenterRouteImport } from './routes/_app/alert-center'
 import { Route as AppAiValidationRouteImport } from './routes/_app/ai-validation'
+import { Route as AppAiLearningRouteImport } from './routes/_app/ai-learning'
 import { Route as AppAiDashboardRouteImport } from './routes/_app/ai-dashboard'
 import { Route as AppAdvisorRouteImport } from './routes/_app/advisor'
 import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
@@ -158,6 +161,11 @@ const AppProfileRoute = AppProfileRouteImport.update({
 const AppPortfoliosRoute = AppPortfoliosRouteImport.update({
   id: '/portfolios',
   path: '/portfolios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPortfolioAiRoute = AppPortfolioAiRouteImport.update({
+  id: '/portfolio-ai',
+  path: '/portfolio-ai',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPaperTradingRoute = AppPaperTradingRouteImport.update({
@@ -280,9 +288,19 @@ const AppAlertsRoute = AppAlertsRouteImport.update({
   path: '/alerts',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAlertCenterRoute = AppAlertCenterRouteImport.update({
+  id: '/alert-center',
+  path: '/alert-center',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAiValidationRoute = AppAiValidationRouteImport.update({
   id: '/ai-validation',
   path: '/ai-validation',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAiLearningRoute = AppAiLearningRouteImport.update({
+  id: '/ai-learning',
+  path: '/ai-learning',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAiDashboardRoute = AppAiDashboardRouteImport.update({
@@ -361,7 +379,9 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/advisor': typeof AppAdvisorRoute
   '/ai-dashboard': typeof AppAiDashboardRoute
+  '/ai-learning': typeof AppAiLearningRoute
   '/ai-validation': typeof AppAiValidationRoute
+  '/alert-center': typeof AppAlertCenterRoute
   '/alerts': typeof AppAlertsRoute
   '/archive': typeof AppArchiveRoute
   '/backtest-lab': typeof AppBacktestLabRoute
@@ -386,6 +406,7 @@ export interface FileRoutesByFullPath {
   '/members': typeof AppMembersRoute
   '/opportunity-scanner': typeof AppOpportunityScannerRoute
   '/paper-trading': typeof AppPaperTradingRoute
+  '/portfolio-ai': typeof AppPortfolioAiRoute
   '/portfolios': typeof AppPortfoliosRoute
   '/profile': typeof AppProfileRoute
   '/scanner': typeof AppScannerRoute
@@ -418,7 +439,9 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/advisor': typeof AppAdvisorRoute
   '/ai-dashboard': typeof AppAiDashboardRoute
+  '/ai-learning': typeof AppAiLearningRoute
   '/ai-validation': typeof AppAiValidationRoute
+  '/alert-center': typeof AppAlertCenterRoute
   '/alerts': typeof AppAlertsRoute
   '/archive': typeof AppArchiveRoute
   '/backtest-lab': typeof AppBacktestLabRoute
@@ -443,6 +466,7 @@ export interface FileRoutesByTo {
   '/members': typeof AppMembersRoute
   '/opportunity-scanner': typeof AppOpportunityScannerRoute
   '/paper-trading': typeof AppPaperTradingRoute
+  '/portfolio-ai': typeof AppPortfolioAiRoute
   '/portfolios': typeof AppPortfoliosRoute
   '/profile': typeof AppProfileRoute
   '/scanner': typeof AppScannerRoute
@@ -477,7 +501,9 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_app/advisor': typeof AppAdvisorRoute
   '/_app/ai-dashboard': typeof AppAiDashboardRoute
+  '/_app/ai-learning': typeof AppAiLearningRoute
   '/_app/ai-validation': typeof AppAiValidationRoute
+  '/_app/alert-center': typeof AppAlertCenterRoute
   '/_app/alerts': typeof AppAlertsRoute
   '/_app/archive': typeof AppArchiveRoute
   '/_app/backtest-lab': typeof AppBacktestLabRoute
@@ -502,6 +528,7 @@ export interface FileRoutesById {
   '/_app/members': typeof AppMembersRoute
   '/_app/opportunity-scanner': typeof AppOpportunityScannerRoute
   '/_app/paper-trading': typeof AppPaperTradingRoute
+  '/_app/portfolio-ai': typeof AppPortfolioAiRoute
   '/_app/portfolios': typeof AppPortfoliosRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/scanner': typeof AppScannerRoute
@@ -536,7 +563,9 @@ export interface FileRouteTypes {
     | '/terms'
     | '/advisor'
     | '/ai-dashboard'
+    | '/ai-learning'
     | '/ai-validation'
+    | '/alert-center'
     | '/alerts'
     | '/archive'
     | '/backtest-lab'
@@ -561,6 +590,7 @@ export interface FileRouteTypes {
     | '/members'
     | '/opportunity-scanner'
     | '/paper-trading'
+    | '/portfolio-ai'
     | '/portfolios'
     | '/profile'
     | '/scanner'
@@ -593,7 +623,9 @@ export interface FileRouteTypes {
     | '/terms'
     | '/advisor'
     | '/ai-dashboard'
+    | '/ai-learning'
     | '/ai-validation'
+    | '/alert-center'
     | '/alerts'
     | '/archive'
     | '/backtest-lab'
@@ -618,6 +650,7 @@ export interface FileRouteTypes {
     | '/members'
     | '/opportunity-scanner'
     | '/paper-trading'
+    | '/portfolio-ai'
     | '/portfolios'
     | '/profile'
     | '/scanner'
@@ -651,7 +684,9 @@ export interface FileRouteTypes {
     | '/terms'
     | '/_app/advisor'
     | '/_app/ai-dashboard'
+    | '/_app/ai-learning'
     | '/_app/ai-validation'
+    | '/_app/alert-center'
     | '/_app/alerts'
     | '/_app/archive'
     | '/_app/backtest-lab'
@@ -676,6 +711,7 @@ export interface FileRouteTypes {
     | '/_app/members'
     | '/_app/opportunity-scanner'
     | '/_app/paper-trading'
+    | '/_app/portfolio-ai'
     | '/_app/portfolios'
     | '/_app/profile'
     | '/_app/scanner'
@@ -855,6 +891,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPortfoliosRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/portfolio-ai': {
+      id: '/_app/portfolio-ai'
+      path: '/portfolio-ai'
+      fullPath: '/portfolio-ai'
+      preLoaderRoute: typeof AppPortfolioAiRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/paper-trading': {
       id: '/_app/paper-trading'
       path: '/paper-trading'
@@ -1023,11 +1066,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAlertsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/alert-center': {
+      id: '/_app/alert-center'
+      path: '/alert-center'
+      fullPath: '/alert-center'
+      preLoaderRoute: typeof AppAlertCenterRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/ai-validation': {
       id: '/_app/ai-validation'
       path: '/ai-validation'
       fullPath: '/ai-validation'
       preLoaderRoute: typeof AppAiValidationRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/ai-learning': {
+      id: '/_app/ai-learning'
+      path: '/ai-learning'
+      fullPath: '/ai-learning'
+      preLoaderRoute: typeof AppAiLearningRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/ai-dashboard': {
@@ -1120,7 +1177,9 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppAdvisorRoute: typeof AppAdvisorRoute
   AppAiDashboardRoute: typeof AppAiDashboardRoute
+  AppAiLearningRoute: typeof AppAiLearningRoute
   AppAiValidationRoute: typeof AppAiValidationRoute
+  AppAlertCenterRoute: typeof AppAlertCenterRoute
   AppAlertsRoute: typeof AppAlertsRoute
   AppArchiveRoute: typeof AppArchiveRoute
   AppBacktestLabRoute: typeof AppBacktestLabRoute
@@ -1145,6 +1204,7 @@ interface AppRouteChildren {
   AppMembersRoute: typeof AppMembersRoute
   AppOpportunityScannerRoute: typeof AppOpportunityScannerRoute
   AppPaperTradingRoute: typeof AppPaperTradingRoute
+  AppPortfolioAiRoute: typeof AppPortfolioAiRoute
   AppPortfoliosRoute: typeof AppPortfoliosRoute
   AppProfileRoute: typeof AppProfileRoute
   AppScannerRoute: typeof AppScannerRoute
@@ -1159,7 +1219,9 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAdvisorRoute: AppAdvisorRoute,
   AppAiDashboardRoute: AppAiDashboardRoute,
+  AppAiLearningRoute: AppAiLearningRoute,
   AppAiValidationRoute: AppAiValidationRoute,
+  AppAlertCenterRoute: AppAlertCenterRoute,
   AppAlertsRoute: AppAlertsRoute,
   AppArchiveRoute: AppArchiveRoute,
   AppBacktestLabRoute: AppBacktestLabRoute,
@@ -1184,6 +1246,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppMembersRoute: AppMembersRoute,
   AppOpportunityScannerRoute: AppOpportunityScannerRoute,
   AppPaperTradingRoute: AppPaperTradingRoute,
+  AppPortfolioAiRoute: AppPortfolioAiRoute,
   AppPortfoliosRoute: AppPortfoliosRoute,
   AppProfileRoute: AppProfileRoute,
   AppScannerRoute: AppScannerRoute,
@@ -1222,13 +1285,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
