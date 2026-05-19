@@ -89,6 +89,39 @@ export type Database = {
         }
         Relationships: []
       }
+      alerts_fired: {
+        Row: {
+          acknowledged_at: string | null
+          created_at: string
+          details: Json
+          id: string
+          notified: boolean
+          rule_key: string
+          severity: string
+          title: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          notified?: boolean
+          rule_key: string
+          severity: string
+          title: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          notified?: boolean
+          rule_key?: string
+          severity?: string
+          title?: string
+        }
+        Relationships: []
+      }
       auth_events: {
         Row: {
           created_at: string
@@ -1083,6 +1116,45 @@ export type Database = {
         }
         Relationships: []
       }
+      system_events: {
+        Row: {
+          context: Json
+          created_at: string
+          event_type: string
+          fingerprint: string | null
+          id: string
+          message: string | null
+          request_id: string | null
+          severity: string
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          event_type: string
+          fingerprint?: string | null
+          id?: string
+          message?: string | null
+          request_id?: string | null
+          severity: string
+          source: string
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          event_type?: string
+          fingerprint?: string | null
+          id?: string
+          message?: string | null
+          request_id?: string | null
+          severity?: string
+          source?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       trade_signals: {
         Row: {
           action: string
@@ -1419,6 +1491,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      system_health_snapshot: { Args: never; Returns: Json }
       wallet_apply_order: {
         Args: { _amount: number; _side: string; _user_id: string }
         Returns: {
