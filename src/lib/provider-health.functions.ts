@@ -9,14 +9,13 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const SampleInput = z.object({
-  provider: z.string().min(1).max(40).default("finnhub"),
+  provider: z.string().min(1).max(40),
   status: z.enum(["healthy", "degraded", "down", "unknown"]),
   staleState: z.enum(["fresh", "stale", "down"]).nullable().optional(),
   avgLatencyMs: z.number().int().min(0).max(120000).nullable().optional(),
   errorRate: z.number().min(0).max(1).nullable().optional(),
-  rateLimited: z.number().int().min(0).max(1_000_000).default(0),
+  rateLimited: z.number().int().min(0).max(1_000_000),
   lastSuccessAgeS: z.number().int().min(0).max(86400 * 7).nullable().optional(),
-  metadata: z.record(z.string().max(60), z.any()).optional(),
 });
 
 export const logProviderHealth = createServerFn({ method: "POST" })
@@ -33,7 +32,7 @@ export const logProviderHealth = createServerFn({ method: "POST" })
       error_rate: data.errorRate ?? null,
       rate_limited: data.rateLimited,
       last_success_age_s: data.lastSuccessAgeS ?? null,
-      metadata: data.metadata ?? {},
+      metadata: {},
     });
     if (error) return { ok: false as const, error: error.message };
     return { ok: true as const };
