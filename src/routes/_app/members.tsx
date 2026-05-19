@@ -1,11 +1,13 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccess, type AppRole } from "@/lib/use-access";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Users, Check, X } from "lucide-react";
 import { toast } from "sonner";
+import { setUserRoleFn } from "@/lib/members.functions";
 
 export const Route = createFileRoute("/_app/members")({
   component: MembersPage,
@@ -43,16 +45,18 @@ function MembersPage() {
   if (loading) return null;
   if (!isAdmin) return <Navigate to="/dashboard" />;
 
+  const setUserRole = useServerFn(setUserRoleFn);
   const setRole = async (user_id: string, newRole: AppRole) => {
-    // Remove existing non-admin roles, then add the new one
-    await supabase.from("user_roles").delete().eq("user_id", user_id).neq("role", "admin");
-    if (newRole !== "admin") {
-      const { error } = await supabase.from("user_roles").insert({ user_id, role: newRole });
-      if (error) { toast.error(error.message); return; }
+    if (newRole === "admin") return;
+    try {
+      await setUserRole({ data: { user_id, role: newRole } });
+      toast.success(t("saved"));
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed");
     }
-    toast.success(t("saved"));
-    load();
   };
+
 
   return (
     <div className="container mx-auto max-w-5xl p-6">
