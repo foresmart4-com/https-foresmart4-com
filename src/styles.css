@@ -132,6 +132,15 @@
   }
   h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.02em; font-weight: 600; }
 
+  /* Mobile QA: no horizontal scroll on the document */
+  html, body { overflow-x: hidden; max-width: 100vw; }
+  /* Prevent media and code blocks from busting the viewport */
+  img, video, canvas, svg { max-width: 100%; height: auto; }
+  pre, code { white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
+  /* Auto-scroll any raw table within main so it never blows out the layout */
+  main table { display: table; max-width: 100%; }
+  main > * { min-width: 0; }
+
   /* Subtle ornamental scrollbar */
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -140,6 +149,16 @@
     border-radius: 999px;
   }
   ::-webkit-scrollbar-thumb:hover { background: oklch(0.79 0.13 85 / 0.5); }
+
+  /* Touch targets on mobile (WCAG ~44px) */
+  @media (max-width: 768px) {
+    button, [role="button"], a.btn, .tap-target { min-height: 44px; }
+  }
+}
+
+@layer utilities {
+  /* Horizontal scroller helper for wide tables on small screens */
+  .table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
 
 @layer utilities {
