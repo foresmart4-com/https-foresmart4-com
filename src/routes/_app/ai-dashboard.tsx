@@ -17,6 +17,7 @@ import { AnimatedNumber } from "@/components/dashboard/AnimatedNumber";
 import { ConfidenceBar, RiskHeat } from "@/components/dashboard/ConfidenceBar";
 import { SegmentedTickerRibbons } from "@/components/dashboard/SegmentedTickerRibbons";
 import { MarketHeatmap } from "@/components/dashboard/MarketHeatmap";
+import { LiveReasoningStream } from "@/components/dashboard/LiveReasoningStream";
 import { FearGreedGauge } from "@/components/dashboard/FearGreedGauge";
 import { AICommandCenter } from "@/components/dashboard/AICommandCenter";
 import { QuantPanel } from "@/components/dashboard/QuantPanel";
@@ -190,6 +191,9 @@ function AIDashboardPage() {
 
         {/* Institutional market heatmap */}
         <MarketHeatmap quotes={data?.quotes ?? []} ar={ar} />
+
+        {/* Live AI reasoning stream */}
+        <LiveReasoningStream quotes={data?.quotes ?? []} ar={ar} />
 
         {isError && (
           <GlassCard className="border-danger/40 p-3 text-sm text-danger">
