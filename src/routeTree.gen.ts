@@ -28,6 +28,7 @@ import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppScannerRouteImport } from './routes/_app/scanner'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppPortfoliosRouteImport } from './routes/_app/portfolios'
+import { Route as AppPortfolioAiRouteImport } from './routes/_app/portfolio-ai'
 import { Route as AppPaperTradingRouteImport } from './routes/_app/paper-trading'
 import { Route as AppOpportunityScannerRouteImport } from './routes/_app/opportunity-scanner'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
@@ -158,6 +159,11 @@ const AppProfileRoute = AppProfileRouteImport.update({
 const AppPortfoliosRoute = AppPortfoliosRouteImport.update({
   id: '/portfolios',
   path: '/portfolios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPortfolioAiRoute = AppPortfolioAiRouteImport.update({
+  id: '/portfolio-ai',
+  path: '/portfolio-ai',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPaperTradingRoute = AppPaperTradingRouteImport.update({
@@ -386,6 +392,7 @@ export interface FileRoutesByFullPath {
   '/members': typeof AppMembersRoute
   '/opportunity-scanner': typeof AppOpportunityScannerRoute
   '/paper-trading': typeof AppPaperTradingRoute
+  '/portfolio-ai': typeof AppPortfolioAiRoute
   '/portfolios': typeof AppPortfoliosRoute
   '/profile': typeof AppProfileRoute
   '/scanner': typeof AppScannerRoute
@@ -443,6 +450,7 @@ export interface FileRoutesByTo {
   '/members': typeof AppMembersRoute
   '/opportunity-scanner': typeof AppOpportunityScannerRoute
   '/paper-trading': typeof AppPaperTradingRoute
+  '/portfolio-ai': typeof AppPortfolioAiRoute
   '/portfolios': typeof AppPortfoliosRoute
   '/profile': typeof AppProfileRoute
   '/scanner': typeof AppScannerRoute
@@ -502,6 +510,7 @@ export interface FileRoutesById {
   '/_app/members': typeof AppMembersRoute
   '/_app/opportunity-scanner': typeof AppOpportunityScannerRoute
   '/_app/paper-trading': typeof AppPaperTradingRoute
+  '/_app/portfolio-ai': typeof AppPortfolioAiRoute
   '/_app/portfolios': typeof AppPortfoliosRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/scanner': typeof AppScannerRoute
@@ -561,6 +570,7 @@ export interface FileRouteTypes {
     | '/members'
     | '/opportunity-scanner'
     | '/paper-trading'
+    | '/portfolio-ai'
     | '/portfolios'
     | '/profile'
     | '/scanner'
@@ -618,6 +628,7 @@ export interface FileRouteTypes {
     | '/members'
     | '/opportunity-scanner'
     | '/paper-trading'
+    | '/portfolio-ai'
     | '/portfolios'
     | '/profile'
     | '/scanner'
@@ -676,6 +687,7 @@ export interface FileRouteTypes {
     | '/_app/members'
     | '/_app/opportunity-scanner'
     | '/_app/paper-trading'
+    | '/_app/portfolio-ai'
     | '/_app/portfolios'
     | '/_app/profile'
     | '/_app/scanner'
@@ -853,6 +865,13 @@ declare module '@tanstack/react-router' {
       path: '/portfolios'
       fullPath: '/portfolios'
       preLoaderRoute: typeof AppPortfoliosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/portfolio-ai': {
+      id: '/_app/portfolio-ai'
+      path: '/portfolio-ai'
+      fullPath: '/portfolio-ai'
+      preLoaderRoute: typeof AppPortfolioAiRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/paper-trading': {
@@ -1145,6 +1164,7 @@ interface AppRouteChildren {
   AppMembersRoute: typeof AppMembersRoute
   AppOpportunityScannerRoute: typeof AppOpportunityScannerRoute
   AppPaperTradingRoute: typeof AppPaperTradingRoute
+  AppPortfolioAiRoute: typeof AppPortfolioAiRoute
   AppPortfoliosRoute: typeof AppPortfoliosRoute
   AppProfileRoute: typeof AppProfileRoute
   AppScannerRoute: typeof AppScannerRoute
@@ -1184,6 +1204,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppMembersRoute: AppMembersRoute,
   AppOpportunityScannerRoute: AppOpportunityScannerRoute,
   AppPaperTradingRoute: AppPaperTradingRoute,
+  AppPortfolioAiRoute: AppPortfolioAiRoute,
   AppPortfoliosRoute: AppPortfoliosRoute,
   AppProfileRoute: AppProfileRoute,
   AppScannerRoute: AppScannerRoute,
