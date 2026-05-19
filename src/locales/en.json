@@ -76,7 +76,6 @@
   "pending": "Pending",
   "subscriber": "Subscriber",
   "privateNotice": "Private app — registration is by invitation and owner approval",
-
   "common": {
     "save": "Save",
     "cancel": "Cancel",
@@ -99,7 +98,6 @@
     "english": "English",
     "arabic": "العربية"
   },
-
   "nav": {
     "dashboard": "Dashboard",
     "aiDashboard": "AI Dashboard",
@@ -126,9 +124,11 @@
     "backtestLab": "Backtest Lab",
     "dataFusion": "Data Fusion",
     "decisionEngine": "Decision Engine",
-    "globalIntel": "Global Intelligence"
+    "globalIntel": "Global Intelligence",
+    "alertCenter": "Alert Center",
+    "portfolioAI": "AI Portfolio",
+    "aiLearning": "AI Learning"
   },
-
   "backtest": {
     "title": "AI Backtest & Simulation Lab",
     "subtitle": "Historical replay, strategy benchmarking, regime stress tests and AI accuracy analytics.",
@@ -165,7 +165,6 @@
     "diversification": "Diversification",
     "running": "Running simulation…"
   },
-
   "portfolio": {
     "title": "Watchlists",
     "subtitle": "Create multiple portfolios per strategy.",
@@ -198,17 +197,14 @@
       "added": "Growth portfolio added to your watchlists"
     }
   },
-
   "signals": {
     "title": "Market Signals",
     "empty": "No active signals right now."
   },
-
   "alertsPage": {
     "title": "Alerts",
     "empty": "No alerts yet."
   },
-
   "settings": {
     "title": "Settings",
     "preferences": "Preferences",
@@ -221,30 +217,25 @@
     "high": "High",
     "languageSaved": "Language updated"
   },
-
   "billing": {
     "title": "Billing",
     "currentPlan": "Current plan",
     "invoices": "Invoices",
     "manage": "Manage subscription"
   },
-
   "footer": {
     "disclaimer": "ForeSmart provides AI-powered financial analytics and educational market insights only. No brokerage, custody, investment management, or real-money trading services are offered."
   },
-
   "errors": {
     "generic": "Something went wrong.",
     "network": "Network error. Please retry.",
     "unauthorized": "You need to sign in to continue.",
     "loadFailed": "Failed to load data."
   },
-
   "empty": {
     "noData": "No data available yet.",
     "noResults": "No results found."
   },
-
   "seo": {
     "homeTitle": "ForeSmart — AI Financial Analytics & Market Intelligence",
     "homeDescription": "AI-powered financial analytics, educational market insights, and smart market intelligence for traders and investors."
