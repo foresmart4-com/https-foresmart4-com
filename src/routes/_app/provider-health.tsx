@@ -76,7 +76,7 @@ function ProviderHealthPage() {
   const refresh = async () => {
     setLoading(true); setErr(null);
     try {
-      const data = await callHealth();
+      const data = (await callHealth()) as unknown as Aggregate;
       setAgg(data);
       // Archive a sample per provider for the per-user timeline.
       await Promise.allSettled(rowsFromAgg(data).map((r) => callLog({ data: {
