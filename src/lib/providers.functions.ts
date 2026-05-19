@@ -31,7 +31,8 @@ import {
   getFinancialFeed as naFinancialFeed,
   providerHealth as naHealth,
 } from "@/services/providers/newsapi";
-import { allProvidersHealth } from "@/services/providers";
+import { allProvidersHealth, selectMarketProvider, selectMacroProvider, lastFailoverEvents } from "@/services/providers";
+import { gdeltProviderHealth } from "@/services/providers/gdelt";
 
 const Sym = z.string().min(1).max(20).regex(/^[A-Za-z0-9.:/_-]+$/);
 
