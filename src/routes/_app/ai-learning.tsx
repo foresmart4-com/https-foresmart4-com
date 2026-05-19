@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   GraduationCap, Target, Activity, TrendingUp, Award, AlertTriangle,
   Brain, Trophy, Gauge, LineChart as LineIcon, Zap, ShieldAlert, Radar,
@@ -82,29 +83,76 @@ function AILearningPage() {
     return () => { cancelled = true; sub.subscription.unsubscribe(); };
   }, []);
 
+  // Optional dimension filters (within the selected time range)
+  const [strategyFilter, setStrategyFilter] = useState<string>("all");
+  const [agentFilter, setAgentFilter] = useState<string>("all");
+  const [regimeFilter, setRegimeFilter] = useState<string>("all");
+
+  const tagVal = (tags: string[] | undefined, prefix: string) =>
+    tags?.find((t) => t.startsWith(prefix))?.slice(prefix.length);
+
   const data = useMemo(() => {
     const since = RANGE_MS[range];
     const all = aiMemory.list();
-    const recent = since ? all.filter((r) => r.ts >= Date.now() - since) : all;
+    const inRange = since ? all.filter((r) => r.ts >= Date.now() - since) : all;
+
+    // Build filter option lists from in-range data
+    const strategies = Array.from(new Set(inRange.map((r) => tagVal(r.tags, "strategy:") ?? "default"))).sort();
+    const agentsOpts = Array.from(new Set(inRange.map((r) => tagVal(r.tags, "agent:") ?? "unknown"))).sort();
+    const regimesOpts = Array.from(new Set(inRange.map((r) => r.regime ?? "unknown"))).sort();
+
+    // Apply dimension filters to the row set used by displayed breakdowns
+    const filtered = inRange.filter((r) => {
+      const strat = tagVal(r.tags, "strategy:") ?? "default";
+      const ag = tagVal(r.tags, "agent:") ?? "unknown";
+      const reg = r.regime ?? "unknown";
+      if (strategyFilter !== "all" && strat !== strategyFilter) return false;
+      if (agentFilter !== "all" && ag !== agentFilter) return false;
+      if (regimeFilter !== "all" && reg !== regimeFilter) return false;
+      return true;
+    });
+
+    // Per-dimension scores still come from the engine (range-scoped),
+    // then filtered to the selected slice so the user sees a focused view.
+    const agentsAll = agentScores(since);
+    const strategiesAll = strategyScores(since);
+    const byRegimeAll = regimeStatsSince(since);
+
+    const agentsList = agentFilter === "all" ? agentsAll : agentsAll.filter((a) => a.agent === agentFilter);
+    const stratList = strategyFilter === "all" ? strategiesAll : strategiesAll.filter((s) => s.strategy === strategyFilter);
+    const regimeMap = regimeFilter === "all"
+      ? byRegimeAll
+      : Object.fromEntries(Object.entries(byRegimeAll).filter(([k]) => k === regimeFilter));
+
+    // Failure & false-positive sets also filtered by the same dimensions
+    const failuresAll = failureAnalysis(50, since);
+    const fpsAll = falsePositives(since);
+    const matchDims = (row: { strategy?: string; agent?: string; regime?: string }) => {
+      if (strategyFilter !== "all" && (row.strategy ?? "default") !== strategyFilter) return false;
+      if (agentFilter !== "all" && (row.agent ?? "unknown") !== agentFilter) return false;
+      if (regimeFilter !== "all" && (row.regime ?? "unknown") !== regimeFilter) return false;
+      return true;
+    };
+
     return {
-      rows: recent,
+      rows: filtered,
       overall: overallStats(since),
-      byRegime: regimeStatsSince(since),
-      recent: recent.slice(0, 20),
-      agents: agentScores(since),
-      strategies: strategyScores(since),
+      byRegime: regimeMap,
+      recent: filtered.slice(0, 20),
+      agents: agentsList,
+      strategies: stratList,
       cal: calibration(since),
       eceVal: ece(since),
       drift: driftReport(30, since),
       sim: replay(undefined, since),
       mem: memorySummary(since),
       meta: metaTuneThreshold(since),
-      failures: failureAnalysis(10, since),
-      fps: falsePositives(since),
+      failures: failuresAll.filter(matchDims).slice(0, 10),
+      fps: fpsAll.filter(matchDims),
+      opts: { strategies, agents: agentsOpts, regimes: regimesOpts },
     };
-    // re-runs when tick (Refresh) or range changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tick, range]);
+  }, [tick, range, strategyFilter, agentFilter, regimeFilter]);
 
   const { overall, byRegime, recent, agents, strategies, cal, eceVal, drift, sim, mem, meta, failures, fps } = data;
 
@@ -137,10 +185,42 @@ function AILearningPage() {
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground -mt-2">
+      {/* Dimension filters: strategy / agent / regime — scoped to current range */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-muted-foreground">{ar ? "فلترة حسب:" : "Filter by:"}</span>
+        <Select value={strategyFilter} onValueChange={setStrategyFilter}>
+          <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder={ar ? "الاستراتيجية" : "Strategy"} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{ar ? "كل الاستراتيجيات" : "All strategies"}</SelectItem>
+            {data.opts.strategies.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={agentFilter} onValueChange={setAgentFilter}>
+          <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder={ar ? "الوكيل" : "Agent"} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{ar ? "كل الوكلاء" : "All agents"}</SelectItem>
+            {data.opts.agents.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={regimeFilter} onValueChange={setRegimeFilter}>
+          <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder={ar ? "النظام السوقي" : "Regime"} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{ar ? "كل الأنظمة" : "All regimes"}</SelectItem>
+            {data.opts.regimes.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {(strategyFilter !== "all" || agentFilter !== "all" || regimeFilter !== "all") && (
+          <Button size="sm" variant="ghost" className="h-8 text-xs"
+            onClick={() => { setStrategyFilter("all"); setAgentFilter("all"); setRegimeFilter("all"); }}>
+            {ar ? "مسح الفلاتر" : "Clear filters"}
+          </Button>
+        )}
+      </div>
+
+      <p className="text-xs text-muted-foreground">
         {ar
-          ? `النطاق الزمني: ${range === "all" ? "الكل" : range} · ${data.rows.length} سجل`
-          : `Range: ${range} · ${data.rows.length} entries in window`}
+          ? `النطاق الزمني: ${range === "all" ? "الكل" : range} · ${data.rows.length} سجل ضمن الفلاتر`
+          : `Range: ${range} · ${data.rows.length} entries matching filters`}
       </p>
 
       {/* KPIs */}
