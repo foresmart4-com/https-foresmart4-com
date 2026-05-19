@@ -16,9 +16,23 @@ interface AuthCtx {
 
 const Ctx = createContext<AuthCtx | null>(null);
 
-type LogPayload = Parameters<typeof logAuthEvent>[0] extends { data: infer T } ? T : never;
+type AuthEventType =
+  | "signup" | "signup_failed"
+  | "signin" | "signin_failed"
+  | "signout"
+  | "password_reset_request" | "password_update";
+
+interface LogPayload {
+  event_type: AuthEventType;
+  status?: "ok" | "error";
+  user_id?: string | null;
+  email?: string | null;
+  error_message?: string | null;
+  metadata?: Record<string, unknown>;
+}
+
 function fireLog(payload: LogPayload) {
-  void logAuthEvent({ data: payload }).catch(() => {});
+  void logAuthEvent({ data: payload as never }).catch(() => {});
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
