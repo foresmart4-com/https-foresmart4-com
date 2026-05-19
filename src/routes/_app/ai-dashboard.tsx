@@ -452,6 +452,9 @@ function AIDashboardPage() {
         {/* Quant Intelligence Layer */}
         {data && <QuantPanel data={data} ar={ar} />}
 
+        {/* AI Market Intelligence Engine — Scanner, Alerts, Optimization, Macro, Backtest */}
+        <MarketIntelligencePanel ar={ar} />
+
         {/* Edge Discovery Center — Early momentum, breakouts, liquidity, whales, ranked ops */}
         {data && <EdgeCommandCenter data={data} ar={ar} />}
 
