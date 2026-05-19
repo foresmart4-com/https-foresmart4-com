@@ -185,10 +185,42 @@ function AILearningPage() {
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground -mt-2">
+      {/* Dimension filters: strategy / agent / regime — scoped to current range */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-muted-foreground">{ar ? "فلترة حسب:" : "Filter by:"}</span>
+        <Select value={strategyFilter} onValueChange={setStrategyFilter}>
+          <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder={ar ? "الاستراتيجية" : "Strategy"} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{ar ? "كل الاستراتيجيات" : "All strategies"}</SelectItem>
+            {data.opts.strategies.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={agentFilter} onValueChange={setAgentFilter}>
+          <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder={ar ? "الوكيل" : "Agent"} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{ar ? "كل الوكلاء" : "All agents"}</SelectItem>
+            {data.opts.agents.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={regimeFilter} onValueChange={setRegimeFilter}>
+          <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder={ar ? "النظام السوقي" : "Regime"} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{ar ? "كل الأنظمة" : "All regimes"}</SelectItem>
+            {data.opts.regimes.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {(strategyFilter !== "all" || agentFilter !== "all" || regimeFilter !== "all") && (
+          <Button size="sm" variant="ghost" className="h-8 text-xs"
+            onClick={() => { setStrategyFilter("all"); setAgentFilter("all"); setRegimeFilter("all"); }}>
+            {ar ? "مسح الفلاتر" : "Clear filters"}
+          </Button>
+        )}
+      </div>
+
+      <p className="text-xs text-muted-foreground">
         {ar
-          ? `النطاق الزمني: ${range === "all" ? "الكل" : range} · ${data.rows.length} سجل`
-          : `Range: ${range} · ${data.rows.length} entries in window`}
+          ? `النطاق الزمني: ${range === "all" ? "الكل" : range} · ${data.rows.length} سجل ضمن الفلاتر`
+          : `Range: ${range} · ${data.rows.length} entries matching filters`}
       </p>
 
       {/* KPIs */}
