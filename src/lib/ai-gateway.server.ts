@@ -95,6 +95,26 @@ export async function callAIGateway<T>(opts: AICallOptions): Promise<AICallResul
     }
     const d = await r.json();
     const raw: string = d.choices?.[0]?.message?.content ?? "";
+
+    // Cross-language leakage guard — only run when caller specified language
+    // and we have something to inspect. Logs but does not fail JSON parsing
+    // because schema fields may legitimately contain ticker symbols.
+    if (opts.language && raw) {
+      try {
+        const { detectLanguageLeakage } = await import("@/lib/ai/locale");
+        const leak = detectLanguageLeakage(raw, opts.language);
+        if (!leak.ok) {
+          void import("./observability/log.server").then((m) =>
+            m.logEvent({
+              source: "ai", severity: "warn", eventType: "ai_language_leakage",
+              message: `lang=${opts.language} ratio=${leak.ratio.toFixed(3)}`,
+              context: { offenders: leak.offendingTokens },
+            }),
+          );
+        }
+      } catch { /* leakage detection is best-effort */ }
+    }
+
     if (!opts.jsonObject) return { data: raw as unknown as T, raw, error: null };
     const parsed = safeParseJson<T>(raw);
     return parsed
