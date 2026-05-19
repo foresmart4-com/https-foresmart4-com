@@ -165,19 +165,24 @@ export const sendInvitationFn = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     if (!(await isAdmin(context.userId))) throw new Error("Forbidden: admin only");
 
-    let inviteUrl = data.inviteUrl ?? "";
+    // Enforce origin allowlist on any URL we forward to Supabase auth or email.
+    const { assertSafeReturnUrl } = await import("../security/safeRedirect");
+    const safeInvite = data.inviteUrl ? assertSafeReturnUrl(data.inviteUrl) : "";
+    const safeRedirect = data.redirectTo ? assertSafeReturnUrl(data.redirectTo) : "";
+
+    let inviteUrl = safeInvite;
     // Try to generate an official Supabase invite link when redirectTo is provided.
-    if (!inviteUrl && data.redirectTo) {
+    if (!inviteUrl && safeRedirect) {
       try {
         const { data: linkData, error } = await supabaseAdmin.auth.admin.generateLink({
           type: "invite",
           email: data.to,
-          options: { redirectTo: data.redirectTo },
+          options: { redirectTo: safeRedirect },
         });
         if (error) throw error;
-        inviteUrl = linkData?.properties?.action_link ?? data.redirectTo;
+        inviteUrl = linkData?.properties?.action_link ?? safeRedirect;
       } catch {
-        inviteUrl = data.redirectTo;
+        inviteUrl = safeRedirect;
       }
     }
     if (!inviteUrl) throw new Error("Could not resolve invite URL");
