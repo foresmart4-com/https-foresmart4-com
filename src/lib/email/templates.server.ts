@@ -245,3 +245,59 @@ export function renderInvitation(lang: Lang, p: InvitationPayload): RenderResult
   const body = `<p>${escapeHtml(t.intro)}</p>${personal}${button(t.cta, p.inviteUrl)}<p style="color:${BRAND.muted};font-size:12px">${escapeHtml(t.valid)}</p><p style="color:${BRAND.muted};font-size:12px;word-break:break-all">${escapeHtml(t.fallback)}<br/><a href="${p.inviteUrl}" style="color:${BRAND.primary};text-decoration:none">${escapeHtml(p.inviteUrl)}</a></p>`;
   return { subject: t.subject, html: shell({ lang, title: t.title, preheader: t.intro, badgeAr: "دعوة", badgeEn: "Invitation", body }) };
 }
+
+// ============ Welcome + Trial + Billing + Notification ============
+
+export interface WelcomePayload { name?: string; dashboardUrl?: string; }
+export function renderWelcome(lang: Lang, p: WelcomePayload = {}): RenderResult {
+  const url = p.dashboardUrl ?? `${BRAND.url}/ai-dashboard`;
+  const t = lang === "ar"
+    ? { subject: `أهلاً بك في ${BRAND.name}`, title: p.name ? `أهلاً ${p.name}` : `أهلاً بك في ${BRAND.name}`, body: "تم تفعيل حسابك بنجاح. ابدأ الآن باستكشاف لوحات الذكاء الاصطناعي ومراقبة الأسواق على مدار الساعة.", cta: "الانتقال إلى لوحة التحكم" }
+    : { subject: `Welcome to ${BRAND.name}`, title: p.name ? `Welcome, ${p.name}` : `Welcome to ${BRAND.name}`, body: "Your account is ready. Start exploring AI intelligence dashboards and 24/7 market monitoring.", cta: "Open Dashboard" };
+  return { subject: t.subject, html: shell({ lang, title: t.title, preheader: t.title, badgeAr: "مرحباً", badgeEn: "Welcome", body: `<p>${escapeHtml(t.body)}</p>${button(t.cta, url)}` }) };
+}
+
+export interface TrialPayload { event: "started" | "ending_soon" | "ended"; endsAt?: string; daysLeft?: number; }
+export function renderTrial(lang: Lang, p: TrialPayload): RenderResult {
+  const map: Record<TrialPayload["event"], { ar: string; en: string }> = {
+    started: { ar: "بدأت تجربتك المجانية", en: "Your free trial has started" },
+    ending_soon: { ar: "تجربتك المجانية على وشك الانتهاء", en: "Your free trial is ending soon" },
+    ended: { ar: "انتهت تجربتك المجانية", en: "Your free trial has ended" },
+  };
+  const label = map[p.event][lang];
+  const t = lang === "ar"
+    ? { subject: label, days: "الأيام المتبقية", ends: "تاريخ الانتهاء", cta: "إدارة الاشتراك", body: p.event === "ended" ? "للاستمرار في الوصول إلى الذكاء المؤسسي، قم بترقية اشتراكك الآن." : "استفد من تجربتك المجانية واستكشف جميع لوحات التحليل المتقدمة." }
+    : { subject: label, days: "Days remaining", ends: "Ends at", cta: "Manage Subscription", body: p.event === "ended" ? "To continue accessing institutional intelligence, upgrade your subscription now." : "Make the most of your free trial — explore every advanced analytics panel." };
+  const rows = [
+    p.daysLeft !== undefined ? row(t.days, String(p.daysLeft)) : "",
+    p.endsAt ? row(t.ends, p.endsAt) : "",
+  ].join("");
+  const body = `<p>${escapeHtml(t.body)}</p>${rows ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:8px 0">${rows}</table>` : ""}${button(t.cta, `${BRAND.url}/subscription`)}`;
+  return { subject: t.subject, html: shell({ lang, title: label, preheader: label, badgeAr: "تجربة مجانية", badgeEn: "Free Trial", body }) };
+}
+
+export interface NotificationPayload { title: string; message: string; ctaLabel?: string; ctaUrl?: string; }
+export function renderNotification(lang: Lang, p: NotificationPayload): RenderResult {
+  const body = `<p>${escapeHtml(p.message)}</p>${p.ctaLabel && p.ctaUrl ? button(p.ctaLabel, p.ctaUrl) : ""}`;
+  return { subject: p.title, html: shell({ lang, title: p.title, preheader: p.message.slice(0, 120), badgeAr: "إشعار", badgeEn: "Notification", body }) };
+}
+
+// Plain text fallback (improves deliverability and supports text-only readers)
+export function htmlToText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|tr|h1|h2|h3|li)>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n\s*\n+/g, "\n\n")
+    .trim()
+    .slice(0, 4000);
+}
