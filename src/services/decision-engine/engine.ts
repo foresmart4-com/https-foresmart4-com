@@ -57,15 +57,14 @@ export function runDecisionEngine(
     profile.riskAppetite === "aggressive" ? 1.2 :
     profile.riskAppetite === "conservative" ? 0.7 : 1;
 
-  const quant = baseAgents.find((a) => a.id === "quant");
-  const portfolio = baseAgents.find((a) => a.id === "portfolio");
-  const portRows: Array<{ asset: string; current: number; suggested: number }> =
-    // @ts-expect-error portfolioAgent injects allocation onto its signal payload
-    portfolio?.allocation ?? [];
-  // @ts-expect-error quantAgent attaches metrics array
-  const qmList: Array<{ symbol: string; sharpe: number; beta: number; var95: number; monteCarlo: { p50: number } }>
-    // @ts-expect-error see above
-    = quant?.metrics?.perAsset ?? [];
+  const quant = baseAgents.find((a) => a.id === "quant") as unknown as
+    | { metrics?: { perAsset?: Array<{ symbol: string; sharpe: number; beta: number; var95: number; monteCarlo: { p50: number } }> } }
+    | undefined;
+  const portfolio = baseAgents.find((a) => a.id === "portfolio") as unknown as
+    | { allocation?: Array<{ asset: string; current: number; suggested: number }> }
+    | undefined;
+  const portRows = portfolio?.allocation ?? [];
+  const qmList = quant?.metrics?.perAsset ?? [];
 
   const maxRecs = opts.maxRecommendations ?? 8;
   const now = Date.now();
@@ -89,8 +88,9 @@ export function runDecisionEngine(
       suggested * aggression * conflictPenalty * uncertaintyPenalty,
     ));
 
-    const horizon = (sig.horizon ?? "short").toString();
-    const ttlMin = opts.ttlMinutes ?? HORIZON_TTL[horizon] ?? HORIZON_TTL.short;
+    // Horizon comes from urgency heuristics (Signal has no explicit horizon).
+    const horizonKey = sig.urgency >= 70 ? "short" : sig.urgency >= 40 ? "medium" : "long";
+    const ttlMin = opts.ttlMinutes ?? HORIZON_TTL[horizonKey];
     const expiresAt = now + ttlMin * 60_000;
 
     const rationaleParts = [
@@ -108,9 +108,6 @@ export function runDecisionEngine(
       assetName: sig.assetName,
       action,
       sizePct: +sizePct.toFixed(1),
-      entryHint: sig.entry ?? undefined,
-      stopHint: sig.stop ?? undefined,
-      targetHint: sig.target ?? undefined,
       confidence: Math.min(95, Math.round(sig.confidence * 0.4 + calib.confidence * 0.6)),
       rawConfidence: calib.rawConfidence,
       uncertainty: unc,
