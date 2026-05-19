@@ -126,6 +126,6 @@ function SectionCard({
 }
 
 function countIssues(r: Report): number {
-  const sum = (s: Section) => Object.values(s).reduce((a, v) => a + (Number(v) > 0 ? 1 : 0), 0);
+  const sum = (s: Section) => Object.values(s).reduce<number>((a, v) => a + (Number(v) > 0 ? 1 : 0), 0);
   return sum(r.orphans) + sum(r.duplicates) + (Number(r.rls.public_tables_without_rls) > 0 ? 1 : 0) + (Number(r.rls.tables_rls_no_policy) > 0 ? 1 : 0);
 }
