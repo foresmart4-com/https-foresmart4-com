@@ -8,6 +8,34 @@ type Dict = Record<string, unknown>;
 
 const DICTS: Record<Lang, Dict> = { en: en as Dict, ar: ar as Dict };
 
+// Dev-only collector of missing translation keys for the validation panel.
+const missingKeys = new Set<string>();
+export function getMissingTranslationKeys(): string[] {
+  return Array.from(missingKeys).sort();
+}
+
+/**
+ * Validate that every key present in `en` exists in `ar` (and vice-versa).
+ * Returns the list of mismatched paths. Use in tests or admin diagnostics.
+ */
+export function validateTranslations(): { onlyInEn: string[]; onlyInAr: string[] } {
+  const flatten = (d: Dict, prefix = ""): string[] => {
+    const out: string[] = [];
+    for (const [k, v] of Object.entries(d)) {
+      const path = prefix ? `${prefix}.${k}` : k;
+      if (typeof v === "string") out.push(path);
+      else if (v && typeof v === "object") out.push(...flatten(v as Dict, path));
+    }
+    return out;
+  };
+  const enKeys = new Set(flatten(DICTS.en));
+  const arKeys = new Set(flatten(DICTS.ar));
+  return {
+    onlyInEn: [...enKeys].filter((k) => !arKeys.has(k)),
+    onlyInAr: [...arKeys].filter((k) => !enKeys.has(k)),
+  };
+}
+
 interface Ctx {
   lang: Lang;
   setLang: (l: Lang) => void;
