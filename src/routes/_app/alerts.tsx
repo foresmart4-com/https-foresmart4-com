@@ -37,12 +37,19 @@ function AlertsPage() {
   const { user } = useAuth();
   const { t, lang } = useI18n();
   const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [form, setForm] = useState({ symbol: "BTC", asset_name: "Bitcoin", condition: "above", target_price: "" });
+  const [form, setForm] = useState({ symbol: "BTC", asset_name: "Bitcoin", condition: "above" as "above" | "below", target_price: "" });
+  const listFn = useServerFn(listAlerts);
+  const createFn = useServerFn(createAlert);
+  const deleteFn = useServerFn(deleteAlert);
 
   const load = async () => {
     if (!user) return;
-    const { data } = await supabase.from("alerts").select("*").order("created_at", { ascending: false });
-    if (data) setAlerts(data as Alert[]);
+    try {
+      const res = await listFn();
+      setAlerts((res.alerts ?? []) as Alert[]);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   };
   useEffect(() => { load(); }, [user]);
 
@@ -51,21 +58,30 @@ function AlertsPage() {
     if (!user) return;
     const price = parseFloat(form.target_price);
     if (!price) return;
-    const { error } = await supabase.from("alerts").insert({
-      user_id: user.id,
-      symbol: form.symbol,
-      asset_name: form.asset_name,
-      condition: form.condition,
-      target_price: price,
-    });
-    if (error) toast.error(error.message);
-    else { toast.success(t("saved")); setForm({ ...form, target_price: "" }); load(); }
+    try {
+      await createFn({ data: {
+        symbol: form.symbol,
+        asset_name: form.asset_name,
+        condition: form.condition,
+        target_price: price,
+      }});
+      toast.success(t("saved"));
+      setForm({ ...form, target_price: "" });
+      load();
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
   };
 
   const remove = async (id: string) => {
-    await supabase.from("alerts").delete().eq("id", id);
-    load();
+    try {
+      await deleteFn({ data: { id } });
+      load();
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
   };
+
 
   return (
     <div className="container mx-auto max-w-5xl p-6">
