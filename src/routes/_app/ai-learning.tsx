@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   GraduationCap, Target, Activity, TrendingUp, Award, AlertTriangle,
   Brain, Trophy, Gauge, LineChart as LineIcon, Zap, ShieldAlert, Radar,
