@@ -10,20 +10,34 @@ const ApiKeyInput = z.object({
 export interface UserApiKeyMeta {
   id: string;
   provider: string;
+  /** Length-only placeholder — NEVER any substring of the real key. */
   key_hint: string;
+  created_at: string;
 }
 
 export const listUserApiKeys = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    // Explicit column allowlist — encrypted_api_key / iv / auth_tag are
+    // never selected, even though RLS would block direct client reads too.
     const { data, error } = await context.supabase
       .from("user_api_keys")
-      .select("id, provider, key_hint")
+      .select("id, provider, key_hint, created_at")
       .eq("user_id", context.userId)
       .order("created_at", { ascending: false });
 
     if (error) throw new Error("Unable to load API key metadata");
-    return { keys: (data ?? []) as UserApiKeyMeta[] };
+
+    // Defense-in-depth: strip key_hint to a length-only marker before returning,
+    // so even a legacy row with old-style hints cannot leak characters.
+    const keys = (data ?? []).map((k) => ({
+      id: k.id as string,
+      provider: k.provider as string,
+      created_at: k.created_at as string,
+      key_hint: "•••••••• (hidden)",
+    })) satisfies UserApiKeyMeta[];
+
+    return { keys };
   });
 
 export const saveUserApiKey = createServerFn({ method: "POST" })
