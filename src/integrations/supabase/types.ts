@@ -122,6 +122,39 @@ export type Database = {
         }
         Relationships: []
       }
+      api_key_audit: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          ip_address: string | null
+          provider: string
+          result: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          provider: string
+          result?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          provider?: string
+          result?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       auth_events: {
         Row: {
           created_at: string
@@ -1259,6 +1292,10 @@ export type Database = {
           id: string
           iv: string
           key_hint: string
+          last_test_at: string | null
+          last_test_error: string | null
+          last_test_result: string | null
+          last_used_at: string | null
           provider: string
           user_id: string
         }
@@ -1269,6 +1306,10 @@ export type Database = {
           id?: string
           iv: string
           key_hint: string
+          last_test_at?: string | null
+          last_test_error?: string | null
+          last_test_result?: string | null
+          last_used_at?: string | null
           provider: string
           user_id: string
         }
@@ -1279,6 +1320,10 @@ export type Database = {
           id?: string
           iv?: string
           key_hint?: string
+          last_test_at?: string | null
+          last_test_error?: string | null
+          last_test_result?: string | null
+          last_used_at?: string | null
           provider?: string
           user_id?: string
         }
