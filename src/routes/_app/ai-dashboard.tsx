@@ -475,6 +475,12 @@ function AIDashboardPage() {
 
         <EmailDeliveryPanel />
 
+        <div className="px-4">
+          <a href="/email-diagnostics" className="inline-flex items-center text-sm text-primary underline hover:no-underline">
+            {ar ? "← فتح صفحة تشخيص البريد الكاملة" : "→ Open full Email Diagnostics page"}
+          </a>
+        </div>
+
         <InvitationSenderPanel ar={ar} />
 
         <SecurityCommandCenter data={data} ar={ar} />
