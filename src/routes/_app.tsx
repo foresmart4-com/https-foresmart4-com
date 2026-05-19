@@ -10,10 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   LayoutDashboard, LineChart, Bell, Archive, User as UserIcon,
-  Brain, LogOut, Globe2, Menu, TrendingUp, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap, Eye, Search, Flame, CalendarDays, GraduationCap, Layers, Cpu,
+  Brain, LogOut, Globe2, Menu, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap, Eye, Search, Flame, CalendarDays, GraduationCap, Layers, Cpu, Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+import brandLogo from "@/assets/foresmart4-logo.png";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -60,6 +61,7 @@ function AppLayout() {
     { to: "/alert-center", icon: Bell, label: t("nav.alertCenter") },
     { to: "/portfolio-ai", icon: Briefcase, label: t("nav.portfolioAI") },
     { to: "/ai-learning", icon: Brain, label: t("nav.aiLearning") },
+    { to: "/market-data-monitor", icon: Activity, label: lang === "ar" ? "مراقب بيانات السوق" : "Market Data Monitor" },
     { to: "/archive", icon: Archive, label: t("nav.archive") },
     ...(isAdmin ? [{ to: "/members", icon: Users, label: t("nav.members") }] : []),
     { to: "/profile", icon: UserIcon, label: t("nav.profile") },
@@ -122,12 +124,14 @@ function AppLayout() {
         )}
       >
         <div className="flex items-center justify-between gap-2 px-3 py-4">
-          {!collapsed && (
+          {!collapsed ? (
             <Link to="/dashboard" className="flex items-center gap-2 truncate">
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg gradient-primary shadow-glow">
-                <TrendingUp className="h-4 w-4 text-primary-foreground" />
-              </div>
+              <img src={brandLogo} alt={t("appName")} className="h-9 w-9 shrink-0 rounded-lg object-contain" />
               <span className="font-display text-base font-bold truncate">{t("appName")}</span>
+            </Link>
+          ) : (
+            <Link to="/dashboard" className="mx-auto">
+              <img src={brandLogo} alt={t("appName")} className="h-8 w-8 rounded-lg object-contain" />
             </Link>
           )}
           <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Toggle sidebar" onClick={() => setCollapsed((c) => !c)}>
@@ -152,9 +156,7 @@ function AppLayout() {
               className="flex w-[85vw] max-w-xs flex-col bg-sidebar p-0 text-sidebar-foreground"
             >
               <div className="flex items-center gap-2 px-4 py-4 border-b border-sidebar-border">
-                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg gradient-primary shadow-glow">
-                  <TrendingUp className="h-4 w-4 text-primary-foreground" />
-                </div>
+                <img src={brandLogo} alt={t("appName")} className="h-9 w-9 shrink-0 rounded-lg object-contain" />
                 <span className="font-display text-base font-bold truncate">{t("appName")}</span>
               </div>
               <NavList onItemClick={() => setMobileOpen(false)} />
@@ -163,6 +165,7 @@ function AppLayout() {
           </Sheet>
 
           <Link to="/dashboard" className="flex items-center gap-2 truncate">
+            <img src={brandLogo} alt={t("appName")} className="h-7 w-7 rounded-md object-contain" />
             <span className="font-display text-sm font-bold truncate">{t("appName")}</span>
           </Link>
 
