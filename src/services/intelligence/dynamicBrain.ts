@@ -2,7 +2,7 @@
 // explainability, memory, and economic impact into one client-safe engine.
 // Pure functions over scanned assets; deterministic when given the same inputs.
 
-import { scanMarket, type ScannedAsset } from "./marketScanner";
+import { scanAll, type ScannedAsset } from "./marketScanner";
 import { aiMemory, type TradeMemoryEntry } from "@/services/learning/aiMemory";
 
 export type Bias = "long" | "short" | "neutral";
@@ -204,7 +204,7 @@ export interface BrainSnapshot {
 }
 
 export function generateBrainSnapshot(): BrainSnapshot {
-  const assets = scanMarket();
+  const assets = scanAll();
   const memory = aiMemory.list();
   return {
     generatedAt: Date.now(),
