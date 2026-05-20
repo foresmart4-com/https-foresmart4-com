@@ -1,115 +1,36 @@
-import { createFileRoute, useSearch, Link } from "@tanstack/react-router";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
-import { getWallet, getBankAccounts } from "@/lib/wallet.functions";
-import { initiateTopup, previewTopupFees } from "@/lib/payments.functions";
+import { useState } from "react";
+import { getBankAccounts } from "@/lib/wallet.functions";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { toast } from "sonner";
-import { Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine, Building, Plus, AlertCircle, Crown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { AllocationPanel } from "@/components/AllocationPanel";
-import { AssetPnlPanel } from "@/components/AssetPnlPanel";
-import { RiskManagementPanel } from "@/components/RiskManagementPanel";
-import { PortfolioRiskDashboard } from "@/components/ForeSmartPanels";
+import { Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine, Building, Plus, Crown } from "lucide-react";
 import { BinanceBalancesPanel } from "@/components/BinanceBalancesPanel";
 
 export const Route = createFileRoute("/_app/wallet")({
   component: WalletPage,
-  validateSearch: (s: Record<string, unknown>) => ({ deposit: s.deposit as string | undefined }),
 });
-
-const MIN_TOPUP = 150;
 
 function WalletPage() {
   const { lang, dir } = useI18n();
-  const search = useSearch({ from: "/_app/wallet" });
   const [amount, setAmount] = useState("150");
-  const [activeTopup, setActiveTopup] = useState<{ topupId: string; amountSar: number; pk: string | null } | null>(null);
-  const formRef = useRef<HTMLDivElement>(null);
 
-  const walletFn = useServerFn(getWallet);
   const banksFn = useServerFn(getBankAccounts);
-  const previewFn = useServerFn(previewTopupFees);
-  const initiateFn = useServerFn(initiateTopup);
 
-  const { data, refetch } = useQuery({ queryKey: ["wallet"], queryFn: () => walletFn() });
   const { data: banks } = useQuery({ queryKey: ["banks"], queryFn: () => banksFn() });
-  const amt = Number(amount) || 0;
-  const { data: feesPreview } = useQuery({
-    queryKey: ["fees", amt],
-    queryFn: () => previewFn({ data: { amountSar: amt } }),
-    enabled: amt >= 1,
-  });
-
-  const initiate = useMutation({
-    mutationFn: () => initiateFn({ data: { amountSar: amt } }),
-    onSuccess: (res) => {
-      setActiveTopup({ topupId: res.topupId, amountSar: res.amountSar, pk: res.publishableKey });
-      setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  useEffect(() => {
-    if (!activeTopup?.pk) return;
-    if (!document.getElementById("moyasar-css")) {
-      const link = document.createElement("link");
-      link.id = "moyasar-css";
-      link.rel = "stylesheet";
-      link.href = "https://cdn.moyasar.com/mpf/1.15.1/moyasar.css";
-      document.head.appendChild(link);
-    }
-    const ensure = () => {
-      const M = (window as any).Moyasar;
-      if (!M) return false;
-      M.init({
-        element: ".mysr-form",
-        amount: Math.round(activeTopup.amountSar * 100),
-        currency: "SAR",
-        description: lang === "ar" ? `شحن المحفظة ${activeTopup.amountSar} ريال` : `Top-up ${activeTopup.amountSar} SAR`,
-        publishable_api_key: activeTopup.pk,
-        callback_url: `${window.location.origin}/wallet?deposit=success`,
-        methods: ["creditcard", "applepay", "stcpay"],
-        metadata: {
-          purpose: "wallet_topup",
-          topup_id: activeTopup.topupId,
-        },
-      });
-      return true;
-    };
-    if (!ensure()) {
-      const s = document.createElement("script");
-      s.src = "https://cdn.moyasar.com/mpf/1.15.1/moyasar.js";
-      s.async = true;
-      s.onload = ensure;
-      document.body.appendChild(s);
-    }
-  }, [activeTopup, lang]);
-
-  const handleDeposit = () => {
-    if (amt < MIN_TOPUP) { toast.error(lang === "ar" ? `الحد الأدنى ${MIN_TOPUP} ريال` : `Min ${MIN_TOPUP} SAR`); return; }
-    initiate.mutate();
-  };
-
-  if (search.deposit === "success" && data) setTimeout(() => refetch(), 1500);
-
-  const wallet = data?.wallet;
-  const tx = data?.transactions ?? [];
-  const fees = feesPreview?.fees;
 
   return (
     <div className="container mx-auto max-w-6xl space-y-6 p-6" dir={dir}>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-3xl font-bold">{lang === "ar" ? "المحفظة التجريبية" : "Demo Portfolio"}</h1>
+          <h1 className="font-display text-3xl font-bold">{lang === "ar" ? "محفظة Binance الحقيقية" : "Real Binance Wallet"}</h1>
           <p className="text-sm text-muted-foreground">
             {lang === "ar"
-              ? "أرصدة تجريبية ومقاييس تحليلية لأغراض التعلم والمحاكاة فقط — لا تدفقات أموال حقيقية."
-              : "Demo balances and analytics metrics for learning and simulation only — no real-money flows."}
+              ? "يتم جلب الأرصدة مباشرة من Binance عبر server functions فقط، بدون كشف مفاتيح السر للواجهة."
+              : "Balances are fetched directly from Binance through server functions only, without exposing secret keys to the UI."}
           </p>
         </div>
         <div className="flex gap-2">
@@ -119,9 +40,11 @@ function WalletPage() {
 
       <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
         {lang === "ar"
-          ? "تنبيه: ForeSmart منصة تحليلات بالذكاء الاصطناعي — تم تعطيل الإيداع والسحب والتنفيذ بأموال حقيقية. جميع الأرقام أدناه هي محاكاة افتراضية تعليمية."
-          : "Notice: ForeSmart is an AI analytics platform — deposits, withdrawals, and real-money execution are disabled. All figures below are educational simulations."}
+          ? "تنبيه: هذه الصفحة تعرض أرصدة Binance الحقيقية للقراءة فقط. الإيداع والسحب والتداول المباشر معطّلة، و LIVE_TRADING_ENABLED=false."
+          : "Notice: this page displays real Binance balances as read-only. Deposits, withdrawals, and live trading are disabled, and LIVE_TRADING_ENABLED=false."}
       </div>
+
+      <BinanceBalancesPanel />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="gradient-card p-6 md:col-span-2">
@@ -129,12 +52,12 @@ function WalletPage() {
             <div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <WalletIcon className="h-4 w-4" />
-                {lang === "ar" ? "الرصيد التجريبي" : "Demo balance"}
+                {lang === "ar" ? "عمليات المحفظة" : "Wallet operations"}
               </div>
-              <div className="mt-2 font-display text-4xl font-bold">
-                {Number(wallet?.balance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              <div className="mt-2 font-display text-2xl font-bold">
+                {lang === "ar" ? "الإيداع والسحب معطّلان" : "Deposits and withdrawals disabled"}
               </div>
-              <div className="mt-1 text-xs text-muted-foreground">{wallet?.currency ?? "SAR"} · {lang === "ar" ? "محاكاة" : "simulated"}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{lang === "ar" ? "الدفع مخصص للاشتراكات فقط." : "Payments are for subscriptions only."}</div>
             </div>
           </div>
 
@@ -157,8 +80,8 @@ function WalletPage() {
 
           <p className="mt-3 text-[11px] text-muted-foreground">
             {lang === "ar"
-              ? "ForeSmart لا يقدم خدمات وساطة أو حفظ أصول أو إدارة استثمار. الأرصدة الظاهرة هنا تجريبية وتُستخدم لأغراض التحليل والتعلم فقط."
-              : "ForeSmart does not provide brokerage, custody, or investment management. Balances shown here are demo-only for analytics and learning."}
+              ? "لا يتم تنفيذ أوامر شراء أو بيع من هذه الصفحة. عرض الأرصدة فقط طالما التداول المباشر غير مفعّل."
+              : "No buy or sell orders are executed from this page. Balances are display-only while live trading is disabled."}
           </p>
         </Card>
 
@@ -192,75 +115,6 @@ function WalletPage() {
           )}
         </Card>
       </div>
-
-      {activeTopup && !activeTopup.pk && (
-        <Card className="border-warning/40 bg-warning/5 p-4">
-          <div className="flex gap-3">
-            <AlertCircle className="h-5 w-5 shrink-0 text-warning" />
-            <div className="text-sm">
-              <p className="font-semibold">{lang === "ar" ? "بوابة الدفع غير مفعّلة بعد" : "Payment gateway not configured"}</p>
-              <p className="mt-1 text-muted-foreground">
-                {lang === "ar"
-                  ? "أنشئ حساباً في moyasar.com، احصل على المفاتيح من Settings → API Keys، ثم أبلغ المساعد لربطها."
-                  : "Create a Moyasar account, get the keys from Settings → API Keys, then ask the assistant to wire them in."}
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {activeTopup?.pk && (
-        <Card ref={formRef as any} className="p-6">
-          <h3 className="mb-4 font-display text-lg font-bold">{lang === "ar" ? "إتمام الدفع" : "Complete payment"}</h3>
-          <div className="mysr-form" />
-        </Card>
-      )}
-
-      <BinanceBalancesPanel />
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <AllocationPanel />
-      </div>
-
-      <AssetPnlPanel />
-
-      <RiskManagementPanel />
-
-      <PortfolioRiskDashboard />
-
-
-      <Card className="overflow-hidden">
-        <header className="border-b border-border bg-muted/30 px-5 py-3 font-semibold">
-          {lang === "ar" ? "آخر المعاملات" : "Recent transactions"}
-        </header>
-        <table className="w-full text-sm">
-          <thead className="bg-muted/20 text-xs uppercase text-muted-foreground">
-            <tr>
-              <th className="px-4 py-2 text-start">{lang === "ar" ? "النوع" : "Type"}</th>
-              <th className="px-4 py-2 text-start">{lang === "ar" ? "المرجع" : "Reference"}</th>
-              <th className="px-4 py-2 text-end">{lang === "ar" ? "المبلغ" : "Amount"}</th>
-              <th className="px-4 py-2 text-end">{lang === "ar" ? "الحالة" : "Status"}</th>
-              <th className="px-4 py-2 text-end">{lang === "ar" ? "التاريخ" : "Date"}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tx.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">{lang === "ar" ? "لا معاملات بعد" : "No transactions yet"}</td></tr>
-            )}
-            {tx.map((t: any) => (
-              <tr key={t.id} className="border-t border-border">
-                <td className="px-4 py-2 capitalize">{t.type}</td>
-                <td className="px-4 py-2 text-muted-foreground">{t.reference ?? "—"}</td>
-                <td className={cn("px-4 py-2 text-end font-medium", ["deposit","sell"].includes(t.type) ? "text-success" : "text-danger")}>
-                  {["deposit","sell"].includes(t.type) ? "+" : "-"}{Number(t.amount).toFixed(2)} {t.currency}
-                </td>
-                <td className="px-4 py-2 text-end text-xs">{t.status}</td>
-                <td className="px-4 py-2 text-end text-xs text-muted-foreground">{new Date(t.created_at).toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
     </div>
   );
 }
