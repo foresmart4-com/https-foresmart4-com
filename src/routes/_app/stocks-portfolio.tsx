@@ -153,7 +153,7 @@ function AccountCard({ account, dailyPnl, maxOrder, dailyLimit, emergencyStop, o
     <Card className="grid gap-3 p-4 md:grid-cols-5">
       <Stat label={ar ? "الحساب" : "Account"} value={account.accountId} mono />
       <Stat label={ar ? "النقد" : "Cash"} value={fmtUsd(account.cash, account.currency)} />
-      <Stat label={ar ? "حقوق الملكية" : "Equity"} value={fmtUsd(account.equity, account.currency)} />
+      <Stat label={ar ? "قيمة المحفظة" : "Portfolio Value"} value={fmtUsd(account.equity, account.currency)} />
       <Stat label={ar ? "قوة الشراء" : "Buying Power"} value={fmtUsd(account.buyingPower, account.currency)} />
       <div className="rounded-md border border-border bg-muted/20 p-2">
         <div className="text-[11px] uppercase text-muted-foreground">{ar ? "P&L اليومي" : "Daily P&L"}</div>
