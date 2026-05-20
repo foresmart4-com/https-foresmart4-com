@@ -92,7 +92,9 @@ export const reportClientError = createServerFn({ method: "POST" })
     } catch { /* noop */ }
     const ipHash = hashFingerprint(`ip:${ip}`);
 
-    // Per-process IP cap (fast path)
+    // Per-process fast path (cheap pre-filter). Authoritative limit below
+    // is enforced by Supabase via rate_limit_hit() and survives worker
+    // restarts and horizontal scaling.
     const ipBucket = ceIpBuckets.get(ip);
     if (!ipBucket || ipBucket.resetAt < now) {
       ceIpBuckets.set(ip, { count: 1, resetAt: now + CE_RATE_MS });
@@ -103,23 +105,32 @@ export const reportClientError = createServerFn({ method: "POST" })
     if (ceIpBuckets.size > 1000) {
       for (const [k, b] of ceIpBuckets) if (b.resetAt < now) ceIpBuckets.delete(k);
     }
-
     if (now - ceWindowStart > CE_RATE_MS) { ceWindowStart = now; ceWindowCount = 0; }
     ceWindowCount += 1;
     if (ceWindowCount > CE_RATE_MAX) return { ok: true, deduped: true };
 
-    // Persistent IP cap across worker restarts / horizontal scaling.
-    // Counts recent client-error events for this IP hash within the window.
+    // Authoritative distributed rate limit (per-IP + global) via Postgres.
+    // Atomic increment-and-check; consistent across all Worker instances.
     try {
-      const sinceIso = new Date(now - CE_RATE_MS).toISOString();
-      const { count: recent } = await supabaseAdmin
-        .from("system_events")
-        .select("id", { count: "exact", head: true })
-        .eq("source", "frontend")
-        .gt("created_at", sinceIso)
-        .filter("context->>ip_hash", "eq", ipHash);
-      if ((recent ?? 0) >= CE_IP_MAX) return { ok: true, deduped: true };
-    } catch { /* fail-open: in-memory cap above still applies */ }
+      const windowSec = Math.floor(CE_RATE_MS / 1000);
+      const [ipR, globalR] = await Promise.all([
+        supabaseAdmin.rpc("rate_limit_hit", {
+          _bucket_key: `client_error:ip:${ipHash}`,
+          _window_seconds: windowSec,
+          _max_hits: CE_IP_MAX,
+        }),
+        supabaseAdmin.rpc("rate_limit_hit", {
+          _bucket_key: "client_error:global",
+          _window_seconds: windowSec,
+          _max_hits: CE_RATE_MAX,
+        }),
+      ]);
+      const ipAllowed = ipR.data?.[0]?.allowed ?? true;
+      const globalAllowed = globalR.data?.[0]?.allowed ?? true;
+      if (!ipAllowed || !globalAllowed) return { ok: true, deduped: true };
+    } catch { /* fail-closed on DB error to avoid log flood */
+      return { ok: true, deduped: true };
+    }
 
     const fp = hashFingerprint(`${data.kind}:${data.message}`);
     const last = ceDedup.get(fp) ?? 0;
