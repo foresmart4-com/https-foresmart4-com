@@ -16,7 +16,7 @@ import {
   triggerStockEmergencyStop, resumeStockTrading,
   getRecentStockDecisions, previewStockOrderRisk,
 } from "@/lib/stockBroker.functions";
-import { Briefcase, RefreshCw, ShieldAlert, Shield, AlertTriangle, Building2, LineChart } from "lucide-react";
+import { Briefcase, RefreshCw, ShieldAlert, Shield, AlertTriangle, Building2, LineChart, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/stocks-portfolio")({
   head: () => ({
