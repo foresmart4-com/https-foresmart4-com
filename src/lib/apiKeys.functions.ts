@@ -119,14 +119,14 @@ export const removeUserApiKey = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     try {
-      const { data: row } = await context.supabase
+      const { data: row } = await supabaseAdmin
         .from("user_api_keys")
         .select("provider")
         .eq("id", data.id)
         .eq("user_id", context.userId)
         .maybeSingle();
 
-      const { error } = await context.supabase
+      const { error } = await supabaseAdmin
         .from("user_api_keys")
         .delete()
         .eq("id", data.id)
