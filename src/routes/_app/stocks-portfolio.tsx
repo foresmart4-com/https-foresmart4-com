@@ -37,10 +37,17 @@ function StocksPortfolioPage() {
   const cancelOrderFn = useServerFn(cancelStockOrder);
   const eStopFn = useServerFn(triggerStockEmergencyStop);
   const resumeFn = useServerFn(resumeStockTrading);
+  const decisionsFn = useServerFn(getRecentStockDecisions);
+  const previewRiskFn = useServerFn(previewStockOrderRisk);
 
   const portfolio = useQuery({
     queryKey: ["stocks-portfolio"],
     queryFn: () => fetchPortfolio(),
+    refetchInterval: 30_000,
+  });
+  const decisions = useQuery({
+    queryKey: ["stock-decisions"],
+    queryFn: () => decisionsFn({ data: { limit: 15 } }),
     refetchInterval: 30_000,
   });
 
