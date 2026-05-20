@@ -52,7 +52,7 @@ export const listUserApiKeys = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     try {
-      const { data, error } = await context.supabase
+      const { data, error } = await supabaseAdmin
         .from("user_api_keys")
         .select("id, provider, created_at, last_used_at, last_test_at, last_test_result")
         .eq("user_id", context.userId)
