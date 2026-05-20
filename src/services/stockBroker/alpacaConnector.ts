@@ -32,7 +32,7 @@ function sanitizeAlpacaUrl(raw: string | undefined, fallback: string): string {
 function readFirstEnv(...names: string[]): string {
   for (const name of names) {
     const value = process.env[name]?.trim();
-    if (value) return value;
+    if (value) return value.replace(/^[A-Z_]+\s*=\s*/i, "").replace(/^["']|["']$/g, "");
   }
   return "";
 }
