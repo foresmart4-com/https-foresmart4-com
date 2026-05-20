@@ -156,7 +156,7 @@ export const testUserApiKey = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     try {
-      const { data: row, error: readErr } = await context.supabase
+      const { data: row, error: readErr } = await supabaseAdmin
         .from("user_api_keys")
         .select("provider, encrypted_api_key, iv, auth_tag")
         .eq("id", data.id)
