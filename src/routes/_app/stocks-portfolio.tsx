@@ -90,7 +90,10 @@ function StocksPortfolioPage() {
           </p>
         </div>
         <Button variant="outline" onClick={() => portfolio.refetch()} disabled={portfolio.isFetching} className="gap-2">
-          <RefreshCw className={`h-4 w-4 ${portfolio.isFetching ? "animate-spin" : ""}`} /> {ar ? "تحديث" : "Refresh"}
+          <RefreshCw className={`h-4 w-4 ${portfolio.isFetching ? "animate-spin" : ""}`} />
+          {data && "provider" in data && data.provider === "alpaca"
+            ? (ar ? "مزامنة Alpaca" : "Sync Alpaca")
+            : (ar ? "تحديث" : "Refresh")}
         </Button>
       </header>
 
