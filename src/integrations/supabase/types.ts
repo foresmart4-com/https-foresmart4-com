@@ -827,6 +827,48 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_events: {
+        Row: {
+          created_at: string
+          environment: string
+          error: string | null
+          event_id: string | null
+          event_type: string
+          id: string
+          payload: Json
+          provider: string
+          resource_id: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          environment?: string
+          error?: string | null
+          event_id?: string | null
+          event_type: string
+          id?: string
+          payload?: Json
+          provider: string
+          resource_id?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+          error?: string | null
+          event_id?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          provider?: string
+          resource_id?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       portfolio_holdings: {
         Row: {
           asset_name: string | null
@@ -1179,9 +1221,12 @@ export type Database = {
           environment: string
           id: string
           moyasar_payment_id: string | null
+          paypal_order_id: string | null
+          paypal_subscription_id: string | null
           plan_id: string
           price_id: string | null
           product_id: string | null
+          provider: string
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -1199,9 +1244,12 @@ export type Database = {
           environment?: string
           id?: string
           moyasar_payment_id?: string | null
+          paypal_order_id?: string | null
+          paypal_subscription_id?: string | null
           plan_id: string
           price_id?: string | null
           product_id?: string | null
+          provider?: string
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -1219,9 +1267,12 @@ export type Database = {
           environment?: string
           id?: string
           moyasar_payment_id?: string | null
+          paypal_order_id?: string | null
+          paypal_subscription_id?: string | null
           plan_id?: string
           price_id?: string | null
           product_id?: string | null
+          provider?: string
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null

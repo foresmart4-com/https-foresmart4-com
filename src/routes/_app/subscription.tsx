@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Check, Crown, Sparkles, Settings, X } from "lucide-react";
 import { toast } from "sonner";
 import { StripeSubscriptionCheckout, type SubPriceId } from "@/components/StripeSubscriptionCheckout";
+import { PayPalCheckoutButton } from "@/components/PayPalCheckoutButton";
 import { LegalFooter } from "@/components/LegalFooter";
 
 export const Route = createFileRoute("/_app/subscription")({ component: SubscriptionPage });
@@ -127,10 +128,28 @@ function SubscriptionPage() {
           </div>
           <p className="mb-4 text-sm text-muted-foreground">
             {lang === "ar"
-              ? "لن يتم خصم أي مبلغ خلال الـ 14 يوماً الأولى. يتم التجديد تلقائياً بعدها ما لم تلغِ."
-              : "No charge for 14 days. Auto-renews after the trial unless cancelled."}
+              ? "اختر طريقة الدفع. لن يتم خصم أي مبلغ خلال فترة التجربة عبر البطاقة."
+              : "Choose a payment method. Card subscriptions include a 14-day free trial."}
           </p>
           <StripeSubscriptionCheckout priceId={selectedPrice} returnUrl={`${window.location.origin}/subscription?checkout=success`} />
+          <div className="my-4 flex items-center gap-3 text-xs uppercase text-muted-foreground">
+            <div className="h-px flex-1 bg-border" />
+            {lang === "ar" ? "أو" : "or"}
+            <div className="h-px flex-1 bg-border" />
+          </div>
+          {/* PayPal alternative — maps SubPriceId back to plan code */}
+          <PayPalCheckoutButton
+            planCode={
+              (Object.entries(PRICE_MAP).find(([, v]) => v === selectedPrice)?.[0] ?? "quarterly") as
+                | "quarterly" | "semi_annual" | "annual"
+                | "pro_quarterly" | "pro_semi_annual" | "pro_annual"
+            }
+          />
+          <p className="mt-2 text-center text-[11px] text-muted-foreground">
+            {lang === "ar"
+              ? "الدفع عبر PayPal يفعّل الاشتراك فوراً (بدون فترة تجربة)."
+              : "PayPal payments activate the subscription immediately (no free trial)."}
+          </p>
         </Card>
       ) : (
         <>
