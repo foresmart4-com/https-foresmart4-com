@@ -1051,6 +1051,24 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_counters: {
+        Row: {
+          bucket_key: string
+          count: number
+          window_start: string
+        }
+        Insert: {
+          bucket_key: string
+          count?: number
+          window_start: string
+        }
+        Update: {
+          bucket_key?: string
+          count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       resend_email_log: {
         Row: {
           attempts: number
@@ -1692,6 +1710,17 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      rate_limit_hit: {
+        Args: {
+          _bucket_key: string
+          _max_hits: number
+          _window_seconds: number
+        }
+        Returns: {
+          allowed: boolean
+          current_count: number
+        }[]
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
