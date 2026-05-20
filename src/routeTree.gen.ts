@@ -23,6 +23,7 @@ import { Route as AppWatchlistRouteImport } from './routes/_app/watchlist'
 import { Route as AppWalletRouteImport } from './routes/_app/wallet'
 import { Route as AppSystemHealthRouteImport } from './routes/_app/system-health'
 import { Route as AppSubscriptionRouteImport } from './routes/_app/subscription'
+import { Route as AppStocksPortfolioRouteImport } from './routes/_app/stocks-portfolio'
 import { Route as AppSignalsRouteImport } from './routes/_app/signals'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppScannerRouteImport } from './routes/_app/scanner'
@@ -144,6 +145,11 @@ const AppSystemHealthRoute = AppSystemHealthRouteImport.update({
 const AppSubscriptionRoute = AppSubscriptionRouteImport.update({
   id: '/subscription',
   path: '/subscription',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppStocksPortfolioRoute = AppStocksPortfolioRouteImport.update({
+  id: '/stocks-portfolio',
+  path: '/stocks-portfolio',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSignalsRoute = AppSignalsRouteImport.update({
@@ -467,6 +473,7 @@ export interface FileRoutesByFullPath {
   '/scanner': typeof AppScannerRoute
   '/settings': typeof AppSettingsRoute
   '/signals': typeof AppSignalsRoute
+  '/stocks-portfolio': typeof AppStocksPortfolioRoute
   '/subscription': typeof AppSubscriptionRoute
   '/system-health': typeof AppSystemHealthRoute
   '/wallet': typeof AppWalletRoute
@@ -535,6 +542,7 @@ export interface FileRoutesByTo {
   '/scanner': typeof AppScannerRoute
   '/settings': typeof AppSettingsRoute
   '/signals': typeof AppSignalsRoute
+  '/stocks-portfolio': typeof AppStocksPortfolioRoute
   '/subscription': typeof AppSubscriptionRoute
   '/system-health': typeof AppSystemHealthRoute
   '/wallet': typeof AppWalletRoute
@@ -605,6 +613,7 @@ export interface FileRoutesById {
   '/_app/scanner': typeof AppScannerRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/signals': typeof AppSignalsRoute
+  '/_app/stocks-portfolio': typeof AppStocksPortfolioRoute
   '/_app/subscription': typeof AppSubscriptionRoute
   '/_app/system-health': typeof AppSystemHealthRoute
   '/_app/wallet': typeof AppWalletRoute
@@ -675,6 +684,7 @@ export interface FileRouteTypes {
     | '/scanner'
     | '/settings'
     | '/signals'
+    | '/stocks-portfolio'
     | '/subscription'
     | '/system-health'
     | '/wallet'
@@ -743,6 +753,7 @@ export interface FileRouteTypes {
     | '/scanner'
     | '/settings'
     | '/signals'
+    | '/stocks-portfolio'
     | '/subscription'
     | '/system-health'
     | '/wallet'
@@ -812,6 +823,7 @@ export interface FileRouteTypes {
     | '/_app/scanner'
     | '/_app/settings'
     | '/_app/signals'
+    | '/_app/stocks-portfolio'
     | '/_app/subscription'
     | '/_app/system-health'
     | '/_app/wallet'
@@ -953,6 +965,13 @@ declare module '@tanstack/react-router' {
       path: '/subscription'
       fullPath: '/subscription'
       preLoaderRoute: typeof AppSubscriptionRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/stocks-portfolio': {
+      id: '/_app/stocks-portfolio'
+      path: '/stocks-portfolio'
+      fullPath: '/stocks-portfolio'
+      preLoaderRoute: typeof AppStocksPortfolioRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/signals': {
@@ -1371,6 +1390,7 @@ interface AppRouteChildren {
   AppScannerRoute: typeof AppScannerRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppSignalsRoute: typeof AppSignalsRoute
+  AppStocksPortfolioRoute: typeof AppStocksPortfolioRoute
   AppSubscriptionRoute: typeof AppSubscriptionRoute
   AppSystemHealthRoute: typeof AppSystemHealthRoute
   AppWalletRoute: typeof AppWalletRoute
@@ -1419,6 +1439,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppScannerRoute: AppScannerRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSignalsRoute: AppSignalsRoute,
+  AppStocksPortfolioRoute: AppStocksPortfolioRoute,
   AppSubscriptionRoute: AppSubscriptionRoute,
   AppSystemHealthRoute: AppSystemHealthRoute,
   AppWalletRoute: AppWalletRoute,
