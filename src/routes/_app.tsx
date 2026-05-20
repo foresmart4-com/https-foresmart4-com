@@ -81,11 +81,13 @@ function AppLayout() {
     <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-2">
       {items.map((it) => {
         const active = path === it.to;
-        return (
+        const link = (
           <Link
             key={it.to}
             to={it.to}
             onClick={onItemClick}
+            aria-label={it.label}
+            title={it.hint}
             className={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors min-h-11",
               active
@@ -96,6 +98,15 @@ function AppLayout() {
             <it.icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
             {!collapsed && <span className="truncate">{it.label}</span>}
           </Link>
+        );
+        return (
+          <Tooltip key={it.to} delayDuration={250}>
+            <TooltipTrigger asChild>{link}</TooltipTrigger>
+            <TooltipContent side={dir === "rtl" ? "left" : "right"} className="max-w-xs">
+              <div className="text-xs font-semibold">{it.label}</div>
+              <div className="text-[11px] text-muted-foreground">{it.hint}</div>
+            </TooltipContent>
+          </Tooltip>
         );
       })}
     </nav>
