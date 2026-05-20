@@ -32,14 +32,14 @@ export function BinanceBalancesPanel() {
           {data && (
             <Badge variant={connected ? "default" : "destructive"} className="gap-1">
               {connected ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-              {connected ? (ar ? "متصل" : "Connected") : (ar ? "خطأ" : "Error")}
+              {connected ? "Binance Connected" : ar ? "خطأ في Binance" : "Binance Error"}
             </Badge>
           )}
           {data && (
             <Badge variant="outline" className="uppercase">{data.mode}</Badge>
           )}
           {data && !data.liveTradingEnabled && (
-            <Badge variant="secondary">{ar ? "للقراءة فقط" : "Read-only"}</Badge>
+            <Badge variant="secondary">LIVE_TRADING_ENABLED=false</Badge>
           )}
         </div>
         <Button
@@ -50,7 +50,7 @@ export function BinanceBalancesPanel() {
           className="gap-2"
         >
           <RefreshCw className={`h-4 w-4 ${q.isFetching ? "animate-spin" : ""}`} />
-          {ar ? "تحديث" : "Refresh"}
+          {ar ? "مزامنة Binance" : "Sync Binance"}
         </Button>
       </div>
 
@@ -65,7 +65,7 @@ export function BinanceBalancesPanel() {
           <p className="text-sm text-muted-foreground">{ar ? "جارٍ المزامنة..." : "Syncing..."}</p>
         ) : connected && data!.balances.length === 0 ? (
           <p className="rounded-md border border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
-            {ar ? "لا توجد أرصدة حالية في حساب Binance." : "No current balances in your Binance account."}
+            {ar ? "الاتصال ناجح لكن لا توجد أرصدة حالية." : "Connection successful, but there are no current balances."}
           </p>
         ) : connected ? (
           <div className="overflow-hidden rounded-md border border-border">
