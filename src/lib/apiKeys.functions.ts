@@ -52,7 +52,7 @@ export const listUserApiKeys = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     try {
-      const { data, error } = await context.supabase
+      const { data, error } = await supabaseAdmin
         .from("user_api_keys")
         .select("id, provider, created_at, last_used_at, last_test_at, last_test_result")
         .eq("user_id", context.userId)
@@ -88,7 +88,7 @@ export const saveUserApiKey = createServerFn({ method: "POST" })
     try {
       const { encryptSecret, maskKey } = await import("@/services/security/encryption");
       const encrypted = encryptSecret(data.apiKey);
-      const { error } = await context.supabase
+      const { error } = await supabaseAdmin
         .from("user_api_keys")
         .upsert({
           user_id: context.userId,
@@ -119,14 +119,14 @@ export const removeUserApiKey = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     try {
-      const { data: row } = await context.supabase
+      const { data: row } = await supabaseAdmin
         .from("user_api_keys")
         .select("provider")
         .eq("id", data.id)
         .eq("user_id", context.userId)
         .maybeSingle();
 
-      const { error } = await context.supabase
+      const { error } = await supabaseAdmin
         .from("user_api_keys")
         .delete()
         .eq("id", data.id)
@@ -156,7 +156,7 @@ export const testUserApiKey = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     try {
-      const { data: row, error: readErr } = await context.supabase
+      const { data: row, error: readErr } = await supabaseAdmin
         .from("user_api_keys")
         .select("provider, encrypted_api_key, iv, auth_tag")
         .eq("id", data.id)

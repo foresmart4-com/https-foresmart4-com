@@ -20,7 +20,15 @@ const Input = z.object({
   event_type: EventType,
   status: z.enum(["ok", "error"]).default("ok"),
   error_message: z.string().max(500).nullable().optional(),
-  metadata: z.record(z.string(), z.any()).optional(),
+  metadata: z
+    .record(
+      z.string().max(40),
+      z.union([z.string().max(200), z.number(), z.boolean(), z.null()]),
+    )
+    .refine((v) => Object.keys(v).length <= 10, {
+      message: "metadata exceeds 10 keys",
+    })
+    .optional(),
 });
 
 // In-memory IP rate limiter (per-Worker fast path). Authoritative limit
