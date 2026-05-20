@@ -88,7 +88,7 @@ export const saveUserApiKey = createServerFn({ method: "POST" })
     try {
       const { encryptSecret, maskKey } = await import("@/services/security/encryption");
       const encrypted = encryptSecret(data.apiKey);
-      const { error } = await context.supabase
+      const { error } = await supabaseAdmin
         .from("user_api_keys")
         .upsert({
           user_id: context.userId,
