@@ -16,7 +16,7 @@ import {
   triggerStockEmergencyStop, resumeStockTrading,
   getRecentStockDecisions, previewStockOrderRisk,
 } from "@/lib/stockBroker.functions";
-import { Briefcase, RefreshCw, ShieldAlert, Shield, AlertTriangle, Building2, LineChart } from "lucide-react";
+import { Briefcase, RefreshCw, ShieldAlert, Shield, AlertTriangle, Building2, LineChart, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/stocks-portfolio")({
   head: () => ({
@@ -90,7 +90,10 @@ function StocksPortfolioPage() {
           </p>
         </div>
         <Button variant="outline" onClick={() => portfolio.refetch()} disabled={portfolio.isFetching} className="gap-2">
-          <RefreshCw className={`h-4 w-4 ${portfolio.isFetching ? "animate-spin" : ""}`} /> {ar ? "تحديث" : "Refresh"}
+          <RefreshCw className={`h-4 w-4 ${portfolio.isFetching ? "animate-spin" : ""}`} />
+          {data && "provider" in data && data.provider === "alpaca"
+            ? (ar ? "مزامنة Alpaca" : "Sync Alpaca")
+            : (ar ? "تحديث" : "Refresh")}
         </Button>
       </header>
 
@@ -99,6 +102,12 @@ function StocksPortfolioPage() {
           <Building2 className="h-4 w-4" />
           <AlertDescription className="flex flex-wrap items-center gap-2 text-sm">
             <Badge variant="secondary" className="uppercase">{data.provider}</Badge>
+            {configured && (
+              <Badge variant="default" className="gap-1 bg-success text-success-foreground">
+                <CheckCircle2 className="h-3 w-3" />
+                {data.provider === "alpaca" ? (ar ? "Alpaca متصل" : "Alpaca Connected") : (ar ? "متصل" : "Connected")}
+              </Badge>
+            )}
             <Badge variant={data.liveTradingEnabled ? "default" : "outline"}>
               {data.liveTradingEnabled ? (ar ? "تداول حقيقي مفعّل" : "Live trading ON") : (ar ? "معاينة فقط — LIVE_TRADING_ENABLED=false" : "Preview only — LIVE_TRADING_ENABLED=false")}
             </Badge>
@@ -144,7 +153,7 @@ function AccountCard({ account, dailyPnl, maxOrder, dailyLimit, emergencyStop, o
     <Card className="grid gap-3 p-4 md:grid-cols-5">
       <Stat label={ar ? "الحساب" : "Account"} value={account.accountId} mono />
       <Stat label={ar ? "النقد" : "Cash"} value={fmtUsd(account.cash, account.currency)} />
-      <Stat label={ar ? "حقوق الملكية" : "Equity"} value={fmtUsd(account.equity, account.currency)} />
+      <Stat label={ar ? "قيمة المحفظة" : "Portfolio Value"} value={fmtUsd(account.equity, account.currency)} />
       <Stat label={ar ? "قوة الشراء" : "Buying Power"} value={fmtUsd(account.buyingPower, account.currency)} />
       <div className="rounded-md border border-border bg-muted/20 p-2">
         <div className="text-[11px] uppercase text-muted-foreground">{ar ? "P&L اليومي" : "Daily P&L"}</div>

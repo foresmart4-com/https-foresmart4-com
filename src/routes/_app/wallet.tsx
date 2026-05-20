@@ -38,13 +38,34 @@ function WalletPage() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
-        {lang === "ar"
-          ? "تنبيه: هذه الصفحة تعرض أرصدة Binance الحقيقية للقراءة فقط. الإيداع والسحب والتداول المباشر معطّلة، و LIVE_TRADING_ENABLED=false."
-          : "Notice: this page displays real Binance balances as read-only. Deposits, withdrawals, and live trading are disabled, and LIVE_TRADING_ENABLED=false."}
-      </div>
+      {isBinance && (
+        <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
+          {lang === "ar"
+            ? "تنبيه: هذه الصفحة تعرض أرصدة Binance الحقيقية للقراءة فقط. الإيداع والسحب والتداول المباشر معطّلة، و LIVE_TRADING_ENABLED=false."
+            : "Notice: this page displays real Binance balances as read-only. Deposits, withdrawals, and live trading are disabled, and LIVE_TRADING_ENABLED=false."}
+        </div>
+      )}
 
       {isBinance && <WalletBinanceBalancesPanel mode={brokerRuntime?.mode ?? "live"} />}
+
+      {!isBinance && (
+        <Card className="gradient-card p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <CheckCircle2 className="h-4 w-4 text-success" />
+                {lang === "ar" ? `وسيط الأسهم النشط: ${brokerRuntime?.provider ?? "alpaca"}` : `Active stock broker: ${brokerRuntime?.provider ?? "alpaca"}`}
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {lang === "ar"
+                  ? "محفظة Binance مخفية لأن BROKER_PROVIDER ليس binance. اعرض حساب Alpaca في صفحة محفظة الأسهم."
+                  : "Binance wallet is hidden because BROKER_PROVIDER is not binance. View your Alpaca account on the Stocks Portfolio page."}
+              </p>
+            </div>
+            <Link to="/stocks-portfolio"><Button className="gap-2"><Coins className="h-4 w-4" />{lang === "ar" ? "محفظة الأسهم" : "Open Stocks Portfolio"}</Button></Link>
+          </div>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="gradient-card p-6">
