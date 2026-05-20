@@ -55,10 +55,15 @@ function StocksPortfolioPage() {
   const place = useMutation({
     mutationFn: (input: OrderPayload) => placeOrderFn({ data: input }),
     onSuccess: (r) => {
-      if (r.ok && r.status === "preview") toast.success(ar ? "معاينة الأمر فقط (التنفيذ الحي معطّل)" : "Preview only (live trading disabled)");
+      if (r.ok && r.status === "preview") {
+        const allowed = (r as { allowed?: boolean }).allowed !== false;
+        if (allowed) toast.success(ar ? "معاينة الأمر (LIVE معطّل) — مسموح به" : "Preview only (LIVE off) — allowed");
+        else toast.error(ar ? `الأمر مرفوض: ${r.reason ?? ""}` : `Order rejected: ${r.reason ?? ""}`);
+      }
       else if (r.ok && r.status === "placed") toast.success(ar ? "تم إرسال الأمر" : "Order placed");
       else if (!r.ok) toast.error((r as { reason?: string }).reason ?? (ar ? "فشل الأمر" : "Order failed"));
       qc.invalidateQueries({ queryKey: ["stocks-portfolio"] });
+      qc.invalidateQueries({ queryKey: ["stock-decisions"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
