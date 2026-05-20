@@ -15,6 +15,7 @@ import { AllocationPanel } from "@/components/AllocationPanel";
 import { AssetPnlPanel } from "@/components/AssetPnlPanel";
 import { RiskManagementPanel } from "@/components/RiskManagementPanel";
 import { PortfolioRiskDashboard } from "@/components/ForeSmartPanels";
+import { BinanceBalancesPanel } from "@/components/BinanceBalancesPanel";
 
 export const Route = createFileRoute("/_app/wallet")({
   component: WalletPage,
@@ -214,6 +215,8 @@ function WalletPage() {
           <div className="mysr-form" />
         </Card>
       )}
+
+      <BinanceBalancesPanel />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <AllocationPanel />
