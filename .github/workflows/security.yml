@@ -1,0 +1,66 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1" # Weekly Monday 06:00 UTC
+
+jobs:
+  audit:
+    name: Dependency & Secret Audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies (frozen)
+        run: bun install --frozen-lockfile
+
+      # 1. Dependency vulnerabilities — fail on high/critical
+      - name: npm audit (high+critical)
+        run: |
+          bunx --bun npm audit --audit-level=high --omit=dev || {
+            echo "::error::High or critical vulnerabilities detected in dependencies."
+            exit 1
+          }
+
+      # 2. Secret scan — Gitleaks
+      - name: Gitleaks secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 3. Static analysis — Semgrep with security ruleset
+      - name: Semgrep (OWASP + security-audit)
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/owasp-top-ten
+            p/typescript
+            p/react
+
+      # 4. Custom check: no hard-coded service-role / secret keys in source
+      - name: Forbid leaked secret patterns
+        run: |
+          if rg -n --hidden \
+              -g '!**/node_modules/**' \
+              -g '!**/dist/**' \
+              -g '!**/.git/**' \
+              -e 'SUPABASE_SERVICE_ROLE_KEY\s*=\s*"ey' \
+              -e 'sk_live_[A-Za-z0-9]{20,}' \
+              -e 'rk_live_[A-Za-z0-9]{20,}' \
+              .; then
+            echo "::error::Hard-coded production secrets detected."
+            exit 1
+          fi
