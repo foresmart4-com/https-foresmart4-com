@@ -71,6 +71,7 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as ApiPublicPaymentsPaypalWebhookRouteImport } from './routes/api/public/payments/paypal-webhook'
 import { Route as ApiPublicAlertsEvaluateRouteImport } from './routes/api/public/alerts/evaluate'
 
 const TermsRoute = TermsRouteImport.update({
@@ -385,6 +386,12 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicPaymentsPaypalWebhookRoute =
+  ApiPublicPaymentsPaypalWebhookRouteImport.update({
+    id: '/api/public/payments/paypal-webhook',
+    path: '/api/public/payments/paypal-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicAlertsEvaluateRoute = ApiPublicAlertsEvaluateRouteImport.update({
   id: '/api/public/alerts/evaluate',
   path: '/api/public/alerts/evaluate',
@@ -450,6 +457,7 @@ export interface FileRoutesByFullPath {
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
+  '/api/public/payments/paypal-webhook': typeof ApiPublicPaymentsPaypalWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -514,6 +522,7 @@ export interface FileRoutesByTo {
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
+  '/api/public/payments/paypal-webhook': typeof ApiPublicPaymentsPaypalWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -580,6 +589,7 @@ export interface FileRoutesById {
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
+  '/api/public/payments/paypal-webhook': typeof ApiPublicPaymentsPaypalWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -646,6 +656,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
     | '/api/public/alerts/evaluate'
+    | '/api/public/payments/paypal-webhook'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -710,6 +721,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
     | '/api/public/alerts/evaluate'
+    | '/api/public/payments/paypal-webhook'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -775,6 +787,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
     | '/api/public/alerts/evaluate'
+    | '/api/public/payments/paypal-webhook'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -799,6 +812,7 @@ export interface RootRouteChildren {
   ApiWebhooksPaddleRoute: typeof ApiWebhooksPaddleRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
   ApiPublicAlertsEvaluateRoute: typeof ApiPublicAlertsEvaluateRoute
+  ApiPublicPaymentsPaypalWebhookRoute: typeof ApiPublicPaymentsPaypalWebhookRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -1241,6 +1255,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/payments/paypal-webhook': {
+      id: '/api/public/payments/paypal-webhook'
+      path: '/api/public/payments/paypal-webhook'
+      fullPath: '/api/public/payments/paypal-webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsPaypalWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/alerts/evaluate': {
       id: '/api/public/alerts/evaluate'
       path: '/api/public/alerts/evaluate'
@@ -1361,6 +1382,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWebhooksPaddleRoute: ApiWebhooksPaddleRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
   ApiPublicAlertsEvaluateRoute: ApiPublicAlertsEvaluateRoute,
+  ApiPublicPaymentsPaypalWebhookRoute: ApiPublicPaymentsPaypalWebhookRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
