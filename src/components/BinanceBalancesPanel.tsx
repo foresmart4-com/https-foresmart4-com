@@ -65,7 +65,7 @@ export function BinanceBalancesPanel() {
           <p className="text-sm text-muted-foreground">{ar ? "جارٍ المزامنة..." : "Syncing..."}</p>
         ) : connected && data!.balances.length === 0 ? (
           <p className="rounded-md border border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
-            {ar ? "الاتصال ناجح لكن لا توجد أرصدة حالية." : "Connection successful, but there are no current balances."}
+            {ar ? "الاتصال ناجح لكن لا توجد أرصدة حالية" : "Connection successful, but there are no current balances"}
           </p>
         ) : connected ? (
           <div className="overflow-hidden rounded-md border border-border">
