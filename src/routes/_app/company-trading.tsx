@@ -44,7 +44,7 @@ function CompanyTradingPage() {
   const { data: audit } = useQuery({ queryKey: ["company-trading-audit"], queryFn: () => getAudit() });
 
   const mut = useMutation({
-    mutationFn: (patch: Parameters<typeof updCfg>[0]["data"]) => updCfg({ data: patch }),
+    mutationFn: (patch: Parameters<typeof updateCompanyTradingConfig>[0]["data"]) => updCfg({ data: patch }),
     onSuccess: () => {
       toast.success("Company trading settings updated");
       qc.invalidateQueries({ queryKey: ["company-trading-config"] });
