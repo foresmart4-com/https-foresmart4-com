@@ -30,14 +30,19 @@ function sanitizeAlpacaUrl(raw: string | undefined, fallback: string): string {
 }
 
 export function readAlpacaConfig(): AlpacaConfig {
-  // Accept both common env-var names so user-saved secrets keep working.
-  const apiKey = (process.env.ALPACA_API_KEY_ID ?? process.env.ALPACA_API_KEY ?? "").trim();
-  const apiSecret = (process.env.ALPACA_API_SECRET_KEY ?? process.env.ALPACA_SECRET_KEY ?? "").trim();
-  if (!apiKey || !apiSecret) throw new BrokerConfigError("Alpaca credentials not configured");
-
-  // Force Paper endpoint for stocks portfolio (no live trading yet)
+  // Explicit fallback: prefer the user's primary secret names, then Alpaca's *_ID/*_SECRET_KEY aliases.
+  const apiKey = (process.env.ALPACA_API_KEY ?? process.env.ALPACA_API_KEY_ID ?? "").trim();
+  const apiSecret = (process.env.ALPACA_SECRET_KEY ?? process.env.ALPACA_API_SECRET_KEY ?? "").trim();
   const baseUrl = sanitizeAlpacaUrl(process.env.ALPACA_BASE_URL, "https://paper-api.alpaca.markets");
   const dataUrl = sanitizeAlpacaUrl(process.env.ALPACA_DATA_URL, "https://data.alpaca.markets");
+
+  console.info("Alpaca config", {
+    hasKey: Boolean(apiKey),
+    hasSecret: Boolean(apiSecret),
+    baseUrl,
+  });
+
+  if (!apiKey || !apiSecret) throw new BrokerConfigError("Alpaca credentials not configured");
   return { apiKey, apiSecret, baseUrl, dataUrl };
 }
 
