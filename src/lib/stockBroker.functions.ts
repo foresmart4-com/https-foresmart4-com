@@ -160,7 +160,21 @@ export const placeStockOrder = createServerFn({ method: "POST" })
     // Preview branch — always when live trading is disabled
     if (!STOCK_LIVE_TRADING_ENABLED || !risk.allowed) {
       const reason = risk.allowed ? "LIVE_TRADING_ENABLED=false — preview only" : (risk.reason ?? "rejected");
+      const status = !risk.allowed ? "preview_rejected" : "preview_allowed";
       await audit(context.userId, "stock_order_preview", risk.allowed ? "ok" : "error", reason);
+      try {
+        await supabaseAdmin.from("execution_history").insert({
+          user_id: context.userId, broker: rt.provider, mode: "preview",
+          symbol: data.symbol.toUpperCase(), type: data.type, side: data.side.toUpperCase(),
+          quantity: data.qty, price: data.limitPrice ?? refPrice, status, order_id: null,
+          metadata: {
+            source: "stock-broker", refPrice, notionalUsd: risk.notionalUsd,
+            allowed: risk.allowed, reason, dailyPnlUsd: risk.dailyPnlUsd,
+            limits: { maxOrderNotionalUsd: risk.config.maxOrderNotionalUsd, dailyLossLimitUsd: risk.config.dailyLossLimitUsd },
+            emergencyStop: risk.emergencyStopActive, timeInForce: data.timeInForce,
+          },
+        } as never);
+      } catch { /* best-effort */ }
       return {
         ok: true as const,
         status: "preview" as const,
@@ -172,6 +186,7 @@ export const placeStockOrder = createServerFn({ method: "POST" })
         },
         risk,
         reason,
+        allowed: risk.allowed,
       };
     }
 
