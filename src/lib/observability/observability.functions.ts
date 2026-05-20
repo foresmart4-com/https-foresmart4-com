@@ -90,6 +90,9 @@ export const reportClientError = createServerFn({ method: "POST" })
         getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ||
         "unknown";
     } catch { /* noop */ }
+    const ipHash = hashFingerprint(`ip:${ip}`);
+
+    // Per-process IP cap (fast path)
     const ipBucket = ceIpBuckets.get(ip);
     if (!ipBucket || ipBucket.resetAt < now) {
       ceIpBuckets.set(ip, { count: 1, resetAt: now + CE_RATE_MS });
@@ -104,6 +107,19 @@ export const reportClientError = createServerFn({ method: "POST" })
     if (now - ceWindowStart > CE_RATE_MS) { ceWindowStart = now; ceWindowCount = 0; }
     ceWindowCount += 1;
     if (ceWindowCount > CE_RATE_MAX) return { ok: true, deduped: true };
+
+    // Persistent IP cap across worker restarts / horizontal scaling.
+    // Counts recent client-error events for this IP hash within the window.
+    try {
+      const sinceIso = new Date(now - CE_RATE_MS).toISOString();
+      const { count: recent } = await supabaseAdmin
+        .from("system_events")
+        .select("id", { count: "exact", head: true })
+        .eq("source", "frontend")
+        .gt("created_at", sinceIso)
+        .filter("context->>ip_hash", "eq", ipHash);
+      if ((recent ?? 0) >= CE_IP_MAX) return { ok: true, deduped: true };
+    } catch { /* fail-open: in-memory cap above still applies */ }
 
     const fp = hashFingerprint(`${data.kind}:${data.message}`);
     const last = ceDedup.get(fp) ?? 0;
@@ -125,11 +141,13 @@ export const reportClientError = createServerFn({ method: "POST" })
         ...(data.stack ? { stack: data.stack.slice(0, 1500) } : {}),
         ...(safeUrl ? { url: safeUrl } : {}),
         ...safeContext,
+        ip_hash: ipHash,
       },
       fingerprint: fp,
     });
     return { ok: true };
   });
+
 
 function hashFingerprint(s: string): string {
   let h = 0;
