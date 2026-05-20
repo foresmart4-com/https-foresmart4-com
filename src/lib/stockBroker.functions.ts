@@ -160,7 +160,21 @@ export const placeStockOrder = createServerFn({ method: "POST" })
     // Preview branch — always when live trading is disabled
     if (!STOCK_LIVE_TRADING_ENABLED || !risk.allowed) {
       const reason = risk.allowed ? "LIVE_TRADING_ENABLED=false — preview only" : (risk.reason ?? "rejected");
+      const status = !risk.allowed ? "preview_rejected" : "preview_allowed";
       await audit(context.userId, "stock_order_preview", risk.allowed ? "ok" : "error", reason);
+      try {
+        await supabaseAdmin.from("execution_history").insert({
+          user_id: context.userId, broker: rt.provider, mode: "preview",
+          symbol: data.symbol.toUpperCase(), type: data.type, side: data.side.toUpperCase(),
+          quantity: data.qty, price: data.limitPrice ?? refPrice, status, order_id: null,
+          metadata: {
+            source: "stock-broker", refPrice, notionalUsd: risk.notionalUsd,
+            allowed: risk.allowed, reason, dailyPnlUsd: risk.dailyPnlUsd,
+            limits: { maxOrderNotionalUsd: risk.config.maxOrderNotionalUsd, dailyLossLimitUsd: risk.config.dailyLossLimitUsd },
+            emergencyStop: risk.emergencyStopActive, timeInForce: data.timeInForce,
+          },
+        } as never);
+      } catch { /* best-effort */ }
       return {
         ok: true as const,
         status: "preview" as const,
@@ -172,6 +186,7 @@ export const placeStockOrder = createServerFn({ method: "POST" })
         },
         risk,
         reason,
+        allowed: risk.allowed,
       };
     }
 
@@ -228,6 +243,47 @@ export const triggerStockEmergencyStop = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await recordStockRiskEvent(context.userId, "critical", "EMERGENCY_STOP", data.reason, { source: "stocks" });
     return { ok: true as const };
+  });
+
+export const getRecentStockDecisions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => z.object({ limit: z.number().int().min(1).max(50).default(15) }).parse(i ?? {}))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await supabaseAdmin
+      .from("execution_history")
+      .select("id, created_at, broker, mode, symbol, side, type, quantity, price, status, metadata")
+      .eq("user_id", context.userId)
+      .in("mode", ["preview", "live"])
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) return { ok: false as const, reason: error.message, decisions: [] };
+    return { ok: true as const, decisions: rows ?? [] };
+  });
+
+export const previewStockOrderRisk = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => OrderInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const rt = getStockBrokerRuntime();
+    if (!rt.configured) return notConfigured();
+    let refPrice = data.limitPrice ?? 0;
+    try {
+      if (!refPrice) {
+        const q = await createStockBroker().getQuote(data.symbol);
+        refPrice = q.last || q.ask || q.bid || 0;
+      }
+    } catch (e) {
+      return { ok: false as const, status: "error" as const, provider: rt.provider, reason: (e as Error).message };
+    }
+    if (!refPrice) {
+      return { ok: false as const, status: "error" as const, provider: rt.provider, reason: "Reference price unavailable" };
+    }
+    const risk = await evaluateStockOrderRisk({
+      userId: context.userId,
+      order: { ...data, symbol: data.symbol.toUpperCase() },
+      refPrice,
+    });
+    return { ok: true as const, status: "evaluated" as const, provider: rt.provider, refPrice, risk };
   });
 
 export const resumeStockTrading = createServerFn({ method: "POST" })

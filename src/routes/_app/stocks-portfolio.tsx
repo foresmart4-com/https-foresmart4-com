@@ -14,6 +14,7 @@ import { useI18n } from "@/lib/i18n";
 import {
   getBrokerPortfolio, placeStockOrder, cancelStockOrder,
   triggerStockEmergencyStop, resumeStockTrading,
+  getRecentStockDecisions, previewStockOrderRisk,
 } from "@/lib/stockBroker.functions";
 import { Briefcase, RefreshCw, ShieldAlert, Shield, AlertTriangle, Building2, LineChart } from "lucide-react";
 
@@ -36,10 +37,17 @@ function StocksPortfolioPage() {
   const cancelOrderFn = useServerFn(cancelStockOrder);
   const eStopFn = useServerFn(triggerStockEmergencyStop);
   const resumeFn = useServerFn(resumeStockTrading);
+  const decisionsFn = useServerFn(getRecentStockDecisions);
+  const previewRiskFn = useServerFn(previewStockOrderRisk);
 
   const portfolio = useQuery({
     queryKey: ["stocks-portfolio"],
     queryFn: () => fetchPortfolio(),
+    refetchInterval: 30_000,
+  });
+  const decisions = useQuery({
+    queryKey: ["stock-decisions"],
+    queryFn: () => decisionsFn({ data: { limit: 15 } }),
     refetchInterval: 30_000,
   });
 
@@ -47,10 +55,15 @@ function StocksPortfolioPage() {
   const place = useMutation({
     mutationFn: (input: OrderPayload) => placeOrderFn({ data: input }),
     onSuccess: (r) => {
-      if (r.ok && r.status === "preview") toast.success(ar ? "معاينة الأمر فقط (التنفيذ الحي معطّل)" : "Preview only (live trading disabled)");
+      if (r.ok && r.status === "preview") {
+        const allowed = (r as { allowed?: boolean }).allowed !== false;
+        if (allowed) toast.success(ar ? "معاينة الأمر (LIVE معطّل) — مسموح به" : "Preview only (LIVE off) — allowed");
+        else toast.error(ar ? `الأمر مرفوض: ${r.reason ?? ""}` : `Order rejected: ${r.reason ?? ""}`);
+      }
       else if (r.ok && r.status === "placed") toast.success(ar ? "تم إرسال الأمر" : "Order placed");
       else if (!r.ok) toast.error((r as { reason?: string }).reason ?? (ar ? "فشل الأمر" : "Order failed"));
       qc.invalidateQueries({ queryKey: ["stocks-portfolio"] });
+      qc.invalidateQueries({ queryKey: ["stock-decisions"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -105,10 +118,16 @@ function StocksPortfolioPage() {
             onResume={async () => { await resumeFn(); toast.message(ar ? "تم استئناف التداول" : "Trading resumed"); qc.invalidateQueries({ queryKey: ["stocks-portfolio"] }); }}
           />
 
-          <OrderTicket onSubmit={(o) => place.mutate(o)} pending={place.isPending} liveTradingEnabled={data.liveTradingEnabled} />
+          <OrderTicket
+            onSubmit={(o) => place.mutate(o)}
+            onPreviewRisk={(o) => previewRiskFn({ data: o })}
+            pending={place.isPending}
+            liveTradingEnabled={data.liveTradingEnabled}
+          />
 
           <PositionsTable positions={data.positions} />
           <OrdersTable orders={data.orders} onCancel={(id) => cancel.mutate(id)} canCancel={data.liveTradingEnabled} />
+          <DecisionsTable rows={(decisions.data && "decisions" in decisions.data ? decisions.data.decisions : []) as DecisionRow[]} />
         </>
       )}
     </div>
@@ -144,8 +163,18 @@ function AccountCard({ account, dailyPnl, maxOrder, dailyLimit, emergencyStop, o
   );
 }
 
-function OrderTicket({ onSubmit, pending, liveTradingEnabled }: {
-  onSubmit: (o: { symbol: string; side: "buy" | "sell"; type: "market" | "limit"; qty: number; limitPrice?: number; timeInForce: "day" | "gtc" }) => void;
+type OrderInput = { symbol: string; side: "buy" | "sell"; type: "market" | "limit"; qty: number; limitPrice?: number; timeInForce: "day" | "gtc" };
+type RiskPreview = {
+  ok: boolean;
+  status?: string;
+  reason?: string;
+  refPrice?: number;
+  risk?: { allowed: boolean; reason?: string; notionalUsd: number; dailyPnlUsd: number; emergencyStopActive: boolean; config: { maxOrderNotionalUsd: number; dailyLossLimitUsd: number } };
+};
+
+function OrderTicket({ onSubmit, onPreviewRisk, pending, liveTradingEnabled }: {
+  onSubmit: (o: OrderInput) => void;
+  onPreviewRisk: (o: OrderInput) => Promise<RiskPreview>;
   pending: boolean; liveTradingEnabled: boolean;
 }) {
   const { lang } = useI18n(); const ar = lang === "ar";
@@ -155,6 +184,21 @@ function OrderTicket({ onSubmit, pending, liveTradingEnabled }: {
   const [qty, setQty] = useState("1");
   const [limitPrice, setLimitPrice] = useState("");
   const [tif, setTif] = useState<"day" | "gtc">("day");
+  const [preview, setPreview] = useState<RiskPreview | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const buildOrder = (): OrderInput => ({
+    symbol, side, type, qty: Number(qty),
+    limitPrice: type === "limit" ? Number(limitPrice) : undefined,
+    timeInForce: tif,
+  });
+  const invalid = !symbol || !(Number(qty) > 0) || (type === "limit" && !(Number(limitPrice) > 0));
+  const handleCheck = async () => {
+    setChecking(true);
+    try { setPreview(await onPreviewRisk(buildOrder())); }
+    catch (e) { setPreview({ ok: false, reason: (e as Error).message }); }
+    finally { setChecking(false); }
+  };
 
   return (
     <Card className="p-4 space-y-3">
@@ -194,16 +238,109 @@ function OrderTicket({ onSubmit, pending, liveTradingEnabled }: {
           </Select>
         </Field>
       </div>
-      <Button
-        disabled={pending || !symbol || !(Number(qty) > 0) || (type === "limit" && !(Number(limitPrice) > 0))}
-        onClick={() => onSubmit({
-          symbol, side, type, qty: Number(qty),
-          limitPrice: type === "limit" ? Number(limitPrice) : undefined,
-          timeInForce: tif,
-        })}
-      >
-        {pending ? (ar ? "جارٍ..." : "Submitting...") : liveTradingEnabled ? (ar ? "إرسال الأمر" : "Submit Order") : (ar ? "معاينة الأمر" : "Preview Order")}
-      </Button>
+
+      <RiskGuardPreview preview={preview} />
+
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" disabled={invalid || checking} onClick={handleCheck}>
+          <Shield className="h-4 w-4 me-1" /> {checking ? (ar ? "فحص..." : "Checking…") : (ar ? "فحص المخاطر" : "Check Risk")}
+        </Button>
+        <Button
+          disabled={pending || invalid}
+          onClick={() => onSubmit(buildOrder())}
+        >
+          {pending ? (ar ? "جارٍ..." : "Submitting...") : liveTradingEnabled ? (ar ? "إرسال الأمر" : "Submit Order") : (ar ? "معاينة الأمر" : "Preview Order")}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+function RiskGuardPreview({ preview }: { preview: RiskPreview | null }) {
+  const { lang } = useI18n(); const ar = lang === "ar";
+  if (!preview) {
+    return (
+      <div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
+        {ar ? "اضغط «فحص المخاطر» قبل الإرسال لمعرفة الحد الأقصى وحد الخسارة وحالة الإيقاف الطارئ." : "Click «Check Risk» before submit to see max size, daily loss and emergency-stop state."}
+      </div>
+    );
+  }
+  if (!preview.ok || !preview.risk) {
+    return (
+      <Alert className="border-destructive/40">
+        <ShieldAlert className="h-4 w-4" />
+        <AlertDescription className="text-xs">{ar ? "تعذّر التقييم:" : "Evaluation failed:"} {preview.reason ?? "unknown"}</AlertDescription>
+      </Alert>
+    );
+  }
+  const r = preview.risk;
+  return (
+    <div className={`rounded-md border p-3 text-xs ${r.allowed ? "border-success/40 bg-success/5" : "border-destructive/40 bg-destructive/5"}`}>
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant={r.allowed ? "default" : "destructive"} className="uppercase">
+          {r.allowed ? (ar ? "مسموح" : "Allowed") : (ar ? "مرفوض" : "Blocked")}
+        </Badge>
+        {r.emergencyStopActive && <Badge variant="destructive">{ar ? "إيقاف طارئ" : "Emergency stop"}</Badge>}
+        {!r.allowed && <span className="text-destructive">{r.reason}</span>}
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-2 font-mono md:grid-cols-4">
+        <span>{ar ? "السعر المرجعي" : "Ref price"}: <strong>{fmtUsd(preview.refPrice ?? 0, "USD")}</strong></span>
+        <span>{ar ? "القيمة الاسمية" : "Notional"}: <strong>{fmtUsd(r.notionalUsd, "USD")}</strong></span>
+        <span>{ar ? "حد الأمر" : "Max order"}: <strong>{fmtUsd(r.config.maxOrderNotionalUsd, "USD")}</strong></span>
+        <span>{ar ? "حد الخسارة اليومي" : "Daily loss limit"}: <strong>{fmtUsd(r.config.dailyLossLimitUsd, "USD")}</strong></span>
+        <span className="col-span-2 md:col-span-4">{ar ? "P&L اليومي" : "Daily P&L"}: <strong className={r.dailyPnlUsd < 0 ? "text-destructive" : "text-success"}>{fmtUsd(r.dailyPnlUsd, "USD")}</strong></span>
+      </div>
+    </div>
+  );
+}
+
+type DecisionRow = { id: string; created_at: string; broker: string; mode: string; symbol: string; side: string; type: string; quantity: number; price: number | null; status: string; metadata: Record<string, unknown> | null };
+
+function DecisionsTable({ rows }: { rows: DecisionRow[] }) {
+  const { lang } = useI18n(); const ar = lang === "ar";
+  return (
+    <Card className="p-0">
+      <header className="flex items-center justify-between border-b border-border p-3">
+        <h3 className="font-semibold">{ar ? "سجل القرارات الأخيرة" : "Recent Order Decisions"}</h3>
+        <span className="text-xs text-muted-foreground">{rows.length}</span>
+      </header>
+      <div className="table-scroll overflow-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40 text-xs uppercase text-muted-foreground"><tr>
+            <th className="px-3 py-2 text-start">{ar ? "الوقت" : "Time"}</th>
+            <th className="px-3 py-2">{ar ? "الوضع" : "Mode"}</th>
+            <th className="px-3 py-2 text-start">{ar ? "الرمز" : "Symbol"}</th>
+            <th className="px-3 py-2">{ar ? "الاتجاه" : "Side"}</th>
+            <th className="px-3 py-2 text-end">{ar ? "الكمية" : "Qty"}</th>
+            <th className="px-3 py-2 text-end">{ar ? "السعر" : "Price"}</th>
+            <th className="px-3 py-2">{ar ? "الحالة" : "Status"}</th>
+            <th className="px-3 py-2 text-start">{ar ? "السبب" : "Reason"}</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((r) => {
+              const meta = (r.metadata ?? {}) as { reason?: string; notionalUsd?: number };
+              const blocked = r.status === "preview_rejected";
+              return (
+                <tr key={r.id} className="border-t border-border">
+                  <td className="px-3 py-2 font-mono text-xs">{new Date(r.created_at).toLocaleString()}</td>
+                  <td className="px-3 py-2 text-xs uppercase"><Badge variant="outline">{r.mode}</Badge></td>
+                  <td className="px-3 py-2 font-mono font-semibold">{r.symbol}</td>
+                  <td className="px-3 py-2 uppercase">{r.side}</td>
+                  <td className="px-3 py-2 text-end font-mono">{r.quantity}</td>
+                  <td className="px-3 py-2 text-end font-mono">{r.price != null ? fmtUsd(Number(r.price), "USD") : "—"}</td>
+                  <td className="px-3 py-2 text-xs">
+                    <Badge variant={blocked ? "destructive" : r.status === "preview_allowed" ? "secondary" : "default"}>{r.status}</Badge>
+                  </td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground">{meta.reason ?? "—"}</td>
+                </tr>
+              );
+            })}
+            {rows.length === 0 && (
+              <tr><td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">{ar ? "لا توجد قرارات بعد" : "No decisions yet"}</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </Card>
   );
 }
