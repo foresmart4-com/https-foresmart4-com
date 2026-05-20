@@ -102,6 +102,12 @@ function StocksPortfolioPage() {
           <Building2 className="h-4 w-4" />
           <AlertDescription className="flex flex-wrap items-center gap-2 text-sm">
             <Badge variant="secondary" className="uppercase">{data.provider}</Badge>
+            {configured && (
+              <Badge variant="default" className="gap-1 bg-success text-success-foreground">
+                <CheckCircle2 className="h-3 w-3" />
+                {data.provider === "alpaca" ? (ar ? "Alpaca متصل" : "Alpaca Connected") : (ar ? "متصل" : "Connected")}
+              </Badge>
+            )}
             <Badge variant={data.liveTradingEnabled ? "default" : "outline"}>
               {data.liveTradingEnabled ? (ar ? "تداول حقيقي مفعّل" : "Live trading ON") : (ar ? "معاينة فقط — LIVE_TRADING_ENABLED=false" : "Preview only — LIVE_TRADING_ENABLED=false")}
             </Badge>
