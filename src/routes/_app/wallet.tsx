@@ -1,16 +1,13 @@
-import { createFileRoute, useSearch, Link } from "@tanstack/react-router";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
-import { getWallet, getBankAccounts } from "@/lib/wallet.functions";
-import { initiateTopup, previewTopupFees } from "@/lib/payments.functions";
+import { useState } from "react";
+import { getBankAccounts } from "@/lib/wallet.functions";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { toast } from "sonner";
-import { Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine, Building, Plus, AlertCircle, Crown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine, Building, Plus, Crown } from "lucide-react";
 import { AllocationPanel } from "@/components/AllocationPanel";
 import { AssetPnlPanel } from "@/components/AssetPnlPanel";
 import { RiskManagementPanel } from "@/components/RiskManagementPanel";
@@ -19,87 +16,15 @@ import { BinanceBalancesPanel } from "@/components/BinanceBalancesPanel";
 
 export const Route = createFileRoute("/_app/wallet")({
   component: WalletPage,
-  validateSearch: (s: Record<string, unknown>) => ({ deposit: s.deposit as string | undefined }),
 });
-
-const MIN_TOPUP = 150;
 
 function WalletPage() {
   const { lang, dir } = useI18n();
-  const search = useSearch({ from: "/_app/wallet" });
   const [amount, setAmount] = useState("150");
-  const [activeTopup, setActiveTopup] = useState<{ topupId: string; amountSar: number; pk: string | null } | null>(null);
-  const formRef = useRef<HTMLDivElement>(null);
 
-  const walletFn = useServerFn(getWallet);
   const banksFn = useServerFn(getBankAccounts);
-  const previewFn = useServerFn(previewTopupFees);
-  const initiateFn = useServerFn(initiateTopup);
 
-  const { data, refetch } = useQuery({ queryKey: ["wallet"], queryFn: () => walletFn() });
   const { data: banks } = useQuery({ queryKey: ["banks"], queryFn: () => banksFn() });
-  const amt = Number(amount) || 0;
-  const { data: feesPreview } = useQuery({
-    queryKey: ["fees", amt],
-    queryFn: () => previewFn({ data: { amountSar: amt } }),
-    enabled: amt >= 1,
-  });
-
-  const initiate = useMutation({
-    mutationFn: () => initiateFn({ data: { amountSar: amt } }),
-    onSuccess: (res) => {
-      setActiveTopup({ topupId: res.topupId, amountSar: res.amountSar, pk: res.publishableKey });
-      setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  useEffect(() => {
-    if (!activeTopup?.pk) return;
-    if (!document.getElementById("moyasar-css")) {
-      const link = document.createElement("link");
-      link.id = "moyasar-css";
-      link.rel = "stylesheet";
-      link.href = "https://cdn.moyasar.com/mpf/1.15.1/moyasar.css";
-      document.head.appendChild(link);
-    }
-    const ensure = () => {
-      const M = (window as any).Moyasar;
-      if (!M) return false;
-      M.init({
-        element: ".mysr-form",
-        amount: Math.round(activeTopup.amountSar * 100),
-        currency: "SAR",
-        description: lang === "ar" ? `شحن المحفظة ${activeTopup.amountSar} ريال` : `Top-up ${activeTopup.amountSar} SAR`,
-        publishable_api_key: activeTopup.pk,
-        callback_url: `${window.location.origin}/wallet?deposit=success`,
-        methods: ["creditcard", "applepay", "stcpay"],
-        metadata: {
-          purpose: "wallet_topup",
-          topup_id: activeTopup.topupId,
-        },
-      });
-      return true;
-    };
-    if (!ensure()) {
-      const s = document.createElement("script");
-      s.src = "https://cdn.moyasar.com/mpf/1.15.1/moyasar.js";
-      s.async = true;
-      s.onload = ensure;
-      document.body.appendChild(s);
-    }
-  }, [activeTopup, lang]);
-
-  const handleDeposit = () => {
-    if (amt < MIN_TOPUP) { toast.error(lang === "ar" ? `الحد الأدنى ${MIN_TOPUP} ريال` : `Min ${MIN_TOPUP} SAR`); return; }
-    initiate.mutate();
-  };
-
-  if (search.deposit === "success" && data) setTimeout(() => refetch(), 1500);
-
-  const wallet = data?.wallet;
-  const tx = data?.transactions ?? [];
-  const fees = feesPreview?.fees;
 
   return (
     <div className="container mx-auto max-w-6xl space-y-6 p-6" dir={dir}>
