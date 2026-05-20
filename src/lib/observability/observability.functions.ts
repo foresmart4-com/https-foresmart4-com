@@ -13,27 +13,94 @@ async function assertAdmin(userId: string) {
 }
 
 // Public: report a frontend crash. No auth required (pre-login errors), but
-// per-fingerprint dedup + per-process rate limit guard against DoS / log spam.
+// hardened against log injection / poisoning:
+//  - tight per-process rate limit (10/min) + per-IP cap (5/min)
+//  - per-fingerprint dedup
+//  - URL must be on our own-origin allowlist or it is dropped
+//  - context narrowed to a small allowlist of scalar keys
+//  - shorter input caps to bound storage
 const CE_DEDUP_MS = 60_000;
 const CE_RATE_MS = 60_000;
-const CE_RATE_MAX = 60;
+const CE_RATE_MAX = 10;
+const CE_IP_MAX = 5;
 const ceDedup = new Map<string, number>();
+const ceIpBuckets = new Map<string, { count: number; resetAt: number }>();
 let ceWindowStart = Date.now();
 let ceWindowCount = 0;
+
+const ALLOWED_HOSTS = new Set<string>([
+  "foresmart4.com",
+  "www.foresmart4.com",
+  "foresmart4.store",
+  "www.foresmart4.store",
+  "https-foresmart4-com.lovable.app",
+]);
+const ALLOWED_HOST_SUFFIXES = [".lovable.app", ".lovableproject.com"];
+
+function isAllowedUrl(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return undefined;
+    const host = u.hostname.toLowerCase();
+    if (host === "localhost") return `${u.origin}${u.pathname}`;
+    if (ALLOWED_HOSTS.has(host)) return `${u.origin}${u.pathname}`;
+    if (ALLOWED_HOST_SUFFIXES.some((s) => host.endsWith(s))) {
+      return `${u.origin}${u.pathname}`;
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+const ALLOWED_CTX_KEYS = new Set([
+  "route", "component", "errorBoundary", "buildId", "userAgent", "viewport",
+]);
+function sanitizeContext(ctx: Record<string, unknown> | undefined): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (!ctx) return out;
+  for (const [k, v] of Object.entries(ctx)) {
+    if (!ALLOWED_CTX_KEYS.has(k)) continue;
+    if (v == null) continue;
+    if (typeof v === "string") { out[k] = v.slice(0, 200); continue; }
+    if (typeof v === "number" || typeof v === "boolean") { out[k] = v; continue; }
+  }
+  return out;
+}
 
 export const reportClientError = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
-      message: z.string().min(1).max(800),
-      stack: z.string().max(4000).optional(),
-      url: z.string().max(1000).optional(),
+      message: z.string().trim().min(1).max(300),
+      stack: z.string().max(1500).optional(),
+      url: z.string().max(500).optional(),
       kind: z.enum(["js_crash", "unhandled_rejection", "react_error", "manual"]).default("js_crash"),
       context: z.record(z.unknown()).optional(),
     }),
   )
   .handler(async ({ data }) => {
     const now = Date.now();
-    // global window rate limit (per Worker instance)
+
+    let ip = "unknown";
+    try {
+      const { getRequestHeader } = await import("@tanstack/react-start/server");
+      ip =
+        getRequestHeader("cf-connecting-ip") ||
+        getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ||
+        "unknown";
+    } catch { /* noop */ }
+    const ipBucket = ceIpBuckets.get(ip);
+    if (!ipBucket || ipBucket.resetAt < now) {
+      ceIpBuckets.set(ip, { count: 1, resetAt: now + CE_RATE_MS });
+    } else {
+      ipBucket.count += 1;
+      if (ipBucket.count > CE_IP_MAX) return { ok: true, deduped: true };
+    }
+    if (ceIpBuckets.size > 1000) {
+      for (const [k, b] of ceIpBuckets) if (b.resetAt < now) ceIpBuckets.delete(k);
+    }
+
     if (now - ceWindowStart > CE_RATE_MS) { ceWindowStart = now; ceWindowCount = 0; }
     ceWindowCount += 1;
     if (ceWindowCount > CE_RATE_MAX) return { ok: true, deduped: true };
@@ -42,17 +109,23 @@ export const reportClientError = createServerFn({ method: "POST" })
     const last = ceDedup.get(fp) ?? 0;
     if (now - last < CE_DEDUP_MS) return { ok: true, deduped: true };
     ceDedup.set(fp, now);
-    // bound map size
     if (ceDedup.size > 500) {
       for (const [k, v] of ceDedup) if (now - v > CE_DEDUP_MS) ceDedup.delete(k);
     }
+
+    const safeUrl = isAllowedUrl(data.url);
+    const safeContext = sanitizeContext(data.context);
 
     await logEvent({
       source: "frontend",
       severity: "error",
       eventType: data.kind,
-      message: data.message,
-      context: { stack: data.stack, url: data.url, ...(data.context ?? {}) },
+      message: data.message.slice(0, 300),
+      context: {
+        ...(data.stack ? { stack: data.stack.slice(0, 1500) } : {}),
+        ...(safeUrl ? { url: safeUrl } : {}),
+        ...safeContext,
+      },
       fingerprint: fp,
     });
     return { ok: true };
