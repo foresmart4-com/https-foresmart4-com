@@ -163,8 +163,18 @@ function AccountCard({ account, dailyPnl, maxOrder, dailyLimit, emergencyStop, o
   );
 }
 
-function OrderTicket({ onSubmit, pending, liveTradingEnabled }: {
-  onSubmit: (o: { symbol: string; side: "buy" | "sell"; type: "market" | "limit"; qty: number; limitPrice?: number; timeInForce: "day" | "gtc" }) => void;
+type OrderInput = { symbol: string; side: "buy" | "sell"; type: "market" | "limit"; qty: number; limitPrice?: number; timeInForce: "day" | "gtc" };
+type RiskPreview = {
+  ok: boolean;
+  status?: string;
+  reason?: string;
+  refPrice?: number;
+  risk?: { allowed: boolean; reason?: string; notionalUsd: number; dailyPnlUsd: number; emergencyStopActive: boolean; config: { maxOrderNotionalUsd: number; dailyLossLimitUsd: number } };
+};
+
+function OrderTicket({ onSubmit, onPreviewRisk, pending, liveTradingEnabled }: {
+  onSubmit: (o: OrderInput) => void;
+  onPreviewRisk: (o: OrderInput) => Promise<RiskPreview>;
   pending: boolean; liveTradingEnabled: boolean;
 }) {
   const { lang } = useI18n(); const ar = lang === "ar";
