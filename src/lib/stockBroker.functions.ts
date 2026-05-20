@@ -111,7 +111,7 @@ export const getBrokerPortfolio = createServerFn({ method: "POST" })
     } catch (e) {
       const msg = (e as Error).message;
       await audit(context.userId, "stock_portfolio_fetch", "error", msg);
-      return { ok: false as const, status: "error" as const, provider: rt.provider, reason: msg };
+      return { ok: false as const, status: "error" as const, provider: rt.provider, liveTradingEnabled: rt.liveTradingEnabled, reason: msg };
     }
   });
 
