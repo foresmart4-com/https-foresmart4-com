@@ -43,8 +43,17 @@ function CompanyTradingPage() {
   const { data: config } = useQuery({ queryKey: ["company-trading-config"], queryFn: () => getCfg() });
   const { data: audit } = useQuery({ queryKey: ["company-trading-audit"], queryFn: () => getAudit() });
 
+  type ConfigPatch = {
+    enabled?: boolean;
+    live_trading_enabled?: boolean;
+    broker_name?: string | null;
+    max_trade_size_usdt?: number;
+    daily_loss_limit_usdt?: number;
+    allowed_assets?: string[];
+    approval_required?: boolean;
+  };
   const mut = useMutation({
-    mutationFn: (patch: Parameters<typeof updateCompanyTradingConfig>[0]["data"]) => updCfg({ data: patch }),
+    mutationFn: (patch: ConfigPatch) => updCfg({ data: patch }),
     onSuccess: () => {
       toast.success("Company trading settings updated");
       qc.invalidateQueries({ queryKey: ["company-trading-config"] });
