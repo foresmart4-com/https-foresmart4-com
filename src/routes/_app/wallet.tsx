@@ -7,8 +7,9 @@ import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine, Building, Plus, Crown } from "lucide-react";
-import { BinanceBalancesPanel } from "@/components/BinanceBalancesPanel";
+import { Badge } from "@/components/ui/badge";
+import { getBinanceBalances, getWalletBrokerProvider } from "@/lib/binance.functions";
+import { Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine, Building, Plus, Crown, RefreshCw, CheckCircle2, AlertTriangle, Coins } from "lucide-react";
 
 export const Route = createFileRoute("/_app/wallet")({
   component: WalletPage,
@@ -19,14 +20,19 @@ function WalletPage() {
   const [amount, setAmount] = useState("150");
 
   const banksFn = useServerFn(getBankAccounts);
+  const brokerProviderFn = useServerFn(getWalletBrokerProvider);
 
   const { data: banks } = useQuery({ queryKey: ["banks"], queryFn: () => banksFn() });
+  const { data: brokerProvider } = useQuery({ queryKey: ["wallet-broker-provider"], queryFn: () => brokerProviderFn() });
+  const isBinance = brokerProvider?.isBinance ?? true;
 
   return (
     <div className="container mx-auto max-w-6xl space-y-6 p-6" dir={dir}>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-3xl font-bold">{lang === "ar" ? "محفظة Binance الحقيقية" : "Real Binance Wallet"}</h1>
+          <h1 className="font-display text-3xl font-bold">
+            {isBinance ? (lang === "ar" ? "محفظة Binance الحقيقية" : "Real Binance Wallet") : (lang === "ar" ? "المحفظة" : "Wallet")}
+          </h1>
           <p className="text-sm text-muted-foreground">
             {lang === "ar"
               ? "يتم جلب الأرصدة مباشرة من Binance عبر server functions فقط، بدون كشف مفاتيح السر للواجهة."
@@ -44,7 +50,7 @@ function WalletPage() {
           : "Notice: this page displays real Binance balances as read-only. Deposits, withdrawals, and live trading are disabled, and LIVE_TRADING_ENABLED=false."}
       </div>
 
-      <BinanceBalancesPanel />
+      {isBinance && <WalletBinanceBalancesPanel />}
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="gradient-card p-6 md:col-span-2">
