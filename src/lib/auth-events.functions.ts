@@ -100,7 +100,7 @@ export const logAuthEvent = createServerFn({ method: "POST" })
         "unknown";
       const ua = getRequestHeader("user-agent") ?? null;
 
-      if (rateLimited(ip)) {
+      if (localRateLimited(ip) || (await distributedRateLimited(ip))) {
         return { ok: false, rate_limited: true };
       }
 
