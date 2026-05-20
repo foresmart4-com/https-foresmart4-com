@@ -24,6 +24,13 @@ export interface BinanceBalancesResult {
   error?: string;
 }
 
+export const getWalletBrokerProvider = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const provider = (process.env.BROKER_PROVIDER ?? "binance").trim().toLowerCase();
+    return { provider, isBinance: provider === "binance" };
+  });
+
 export const getBinanceBalances = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<BinanceBalancesResult> => {

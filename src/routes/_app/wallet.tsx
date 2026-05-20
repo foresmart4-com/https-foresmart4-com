@@ -7,8 +7,9 @@ import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine, Building, Plus, Crown } from "lucide-react";
-import { BinanceBalancesPanel } from "@/components/BinanceBalancesPanel";
+import { Badge } from "@/components/ui/badge";
+import { getBinanceBalances, getWalletBrokerProvider } from "@/lib/binance.functions";
+import { Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine, Building, Plus, Crown, RefreshCw, CheckCircle2, AlertTriangle, Coins } from "lucide-react";
 
 export const Route = createFileRoute("/_app/wallet")({
   component: WalletPage,
@@ -19,14 +20,19 @@ function WalletPage() {
   const [amount, setAmount] = useState("150");
 
   const banksFn = useServerFn(getBankAccounts);
+  const brokerProviderFn = useServerFn(getWalletBrokerProvider);
 
   const { data: banks } = useQuery({ queryKey: ["banks"], queryFn: () => banksFn() });
+  const { data: brokerProvider } = useQuery({ queryKey: ["wallet-broker-provider"], queryFn: () => brokerProviderFn() });
+  const isBinance = brokerProvider?.isBinance ?? true;
 
   return (
     <div className="container mx-auto max-w-6xl space-y-6 p-6" dir={dir}>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-3xl font-bold">{lang === "ar" ? "محفظة Binance الحقيقية" : "Real Binance Wallet"}</h1>
+          <h1 className="font-display text-3xl font-bold">
+            {isBinance ? (lang === "ar" ? "محفظة Binance الحقيقية" : "Real Binance Wallet") : (lang === "ar" ? "المحفظة" : "Wallet")}
+          </h1>
           <p className="text-sm text-muted-foreground">
             {lang === "ar"
               ? "يتم جلب الأرصدة مباشرة من Binance عبر server functions فقط، بدون كشف مفاتيح السر للواجهة."
@@ -44,7 +50,7 @@ function WalletPage() {
           : "Notice: this page displays real Binance balances as read-only. Deposits, withdrawals, and live trading are disabled, and LIVE_TRADING_ENABLED=false."}
       </div>
 
-      <BinanceBalancesPanel />
+      {isBinance && <WalletBinanceBalancesPanel />}
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="gradient-card p-6 md:col-span-2">
@@ -116,5 +122,81 @@ function WalletPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function WalletBinanceBalancesPanel() {
+  const { lang } = useI18n();
+  const ar = lang === "ar";
+  const getBalancesFn = useServerFn(getBinanceBalances);
+  const balancesQuery = useQuery({
+    queryKey: ["wallet-binance-balances"],
+    queryFn: () => getBalancesFn(),
+    refetchOnWindowFocus: false,
+    staleTime: 30_000,
+  });
+  const data = balancesQuery.data;
+  const connected = data?.status === "connected";
+
+  return (
+    <Card className="p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Coins className="h-5 w-5 text-primary" />
+          <h2 className="font-display text-xl font-bold">{ar ? "أرصدة Binance الحقيقية" : "Real Binance Balances"}</h2>
+          {data && (
+            <Badge variant={connected ? "default" : "destructive"} className="gap-1">
+              {connected ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+              {connected ? "Binance Connected" : ar ? "خطأ في Binance" : "Binance Error"}
+            </Badge>
+          )}
+          {data && <Badge variant="outline" className="uppercase">{data.mode}</Badge>}
+          {data && !data.liveTradingEnabled && <Badge variant="secondary">LIVE_TRADING_ENABLED=false</Badge>}
+        </div>
+        <Button size="sm" variant="outline" onClick={() => balancesQuery.refetch()} disabled={balancesQuery.isFetching} className="gap-2">
+          <RefreshCw className={`h-4 w-4 ${balancesQuery.isFetching ? "animate-spin" : ""}`} />
+          {ar ? "مزامنة Binance" : "Sync Binance"}
+        </Button>
+      </div>
+
+      {data?.error && (
+        <div className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+          {data.error}
+        </div>
+      )}
+
+      <div className="mt-4">
+        {balancesQuery.isLoading ? (
+          <p className="text-sm text-muted-foreground">{ar ? "جارٍ مزامنة Binance..." : "Syncing Binance..."}</p>
+        ) : connected && data!.balances.length === 0 ? (
+          <p className="rounded-md border border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+            {ar ? "الاتصال ناجح لكن لا توجد أرصدة حالية في Binance." : "Connection successful, but there are no current balances in Binance."}
+          </p>
+        ) : connected ? (
+          <div className="table-scroll rounded-md border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/30 text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-2 text-start">{ar ? "الأصل" : "Asset"}</th>
+                  <th className="px-4 py-2 text-end">{ar ? "متاح" : "Free"}</th>
+                  <th className="px-4 py-2 text-end">{ar ? "محجوز" : "Locked"}</th>
+                  <th className="px-4 py-2 text-end">{ar ? "الإجمالي" : "Total"}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data!.balances.map((balance) => (
+                  <tr key={balance.asset} className="border-t border-border">
+                    <td className="px-4 py-2 font-mono font-semibold">{balance.asset}</td>
+                    <td className="px-4 py-2 text-end font-mono">{balance.free.toLocaleString(undefined, { maximumFractionDigits: 8 })}</td>
+                    <td className="px-4 py-2 text-end font-mono text-muted-foreground">{balance.locked.toLocaleString(undefined, { maximumFractionDigits: 8 })}</td>
+                    <td className="px-4 py-2 text-end font-mono font-semibold">{balance.total.toLocaleString(undefined, { maximumFractionDigits: 8 })}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </div>
+    </Card>
   );
 }
