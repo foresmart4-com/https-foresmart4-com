@@ -43,8 +43,9 @@ function StocksPortfolioPage() {
     refetchInterval: 30_000,
   });
 
+  type OrderPayload = { symbol: string; side: "buy" | "sell"; type: "market" | "limit"; qty: number; limitPrice?: number; timeInForce: "day" | "gtc" };
   const place = useMutation({
-    mutationFn: (input: Parameters<typeof placeOrderFn>[0]["data"]) => placeOrderFn({ data: input }),
+    mutationFn: (input: OrderPayload) => placeOrderFn({ data: input }),
     onSuccess: (r) => {
       if (r.ok && r.status === "preview") toast.success(ar ? "معاينة الأمر فقط (التنفيذ الحي معطّل)" : "Preview only (live trading disabled)");
       else if (r.ok && r.status === "placed") toast.success(ar ? "تم إرسال الأمر" : "Order placed");
