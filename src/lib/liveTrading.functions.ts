@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadBrokerCredentials } from "@/services/security/apiVault";
-import { BinanceClient } from "@/services/broker/binanceRealConnector";
+import { BinanceClient, type BinanceMode } from "@/services/broker/binanceRealConnector";
 import { buildLiveSnapshot, getRecentSnapshots } from "@/services/live/livePortfolio";
 import { fetchOrderBook } from "@/services/live/liveOrderBook";
 import { computePerformance } from "@/services/live/livePerformance";
@@ -12,6 +12,14 @@ import { evaluateLiveRisk, isEmergencyStopActive, recordRiskEvent } from "@/serv
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const Mode = z.enum(["testnet", "live"]).default("live");
+const LIVE_TRADING_ENABLED = false;
+
+export interface LiveBinanceBalance {
+  asset: string;
+  free: number;
+  locked: number;
+  total: number;
+}
 
 async function getClient(userId: string, mode: "testnet" | "live"): Promise<BinanceClient | null> {
   // 1. User-stored creds via vault
@@ -25,6 +33,109 @@ async function getClient(userId: string, mode: "testnet" | "live"): Promise<Bina
     );
   }
   return null;
+}
+
+export const getLiveBrokerRuntime = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const provider = (process.env.BROKER_PROVIDER ?? "binance").trim().toLowerCase();
+    const mode: BinanceMode = process.env.BINANCE_MODE === "testnet" ? "testnet" : "live";
+    return {
+      provider,
+      isBinance: provider === "binance",
+      mode,
+      liveTradingEnabled: LIVE_TRADING_ENABLED,
+    };
+  });
+
+export const getLiveBinanceBalances = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ mode: z.enum(["testnet", "live"]).default("live") }).parse(input ?? {}))
+  .handler(async ({ data, context }) => {
+    const provider = (process.env.BROKER_PROVIDER ?? "binance").trim().toLowerCase();
+    if (provider !== "binance") {
+      return {
+        status: "not_configured" as const,
+        connected: false as const,
+        provider,
+        mode: data.mode,
+        canTrade: false,
+        liveTradingEnabled: LIVE_TRADING_ENABLED,
+        balances: [] as LiveBinanceBalance[],
+        syncedAt: Date.now(),
+      };
+    }
+
+    const client = await getClient(context.userId, data.mode);
+    if (!client) {
+      await auditBrokerSync(context.userId, "error", "missing Binance credentials");
+      return {
+        status: "error" as const,
+        connected: false as const,
+        provider,
+        mode: data.mode,
+        canTrade: false,
+        liveTradingEnabled: LIVE_TRADING_ENABLED,
+        balances: [] as LiveBinanceBalance[],
+        syncedAt: Date.now(),
+        error: "Binance credentials not configured",
+      };
+    }
+
+    try {
+      const raw = await client.signedRequest<{
+        canTrade: boolean;
+        balances: { asset: string; free: string; locked: string }[];
+      }>("GET", "/api/v3/account");
+
+      const balances = raw.balances
+        .map((balance) => {
+          const free = Number(balance.free);
+          const locked = Number(balance.locked);
+          return { asset: balance.asset, free, locked, total: free + locked };
+        })
+        .filter((balance) => balance.free > 0 || balance.locked > 0)
+        .sort((a, b) => b.total - a.total);
+
+      await auditBrokerSync(context.userId, "ok", `synced ${balances.length} live Binance assets`);
+
+      return {
+        status: "connected" as const,
+        connected: true as const,
+        provider,
+        mode: data.mode,
+        canTrade: raw.canTrade,
+        liveTradingEnabled: LIVE_TRADING_ENABLED,
+        balances,
+        syncedAt: Date.now(),
+      };
+    } catch (error) {
+      await auditBrokerSync(context.userId, "error", (error as Error).message.slice(0, 180));
+      return {
+        status: "error" as const,
+        connected: false as const,
+        provider,
+        mode: data.mode,
+        canTrade: false,
+        liveTradingEnabled: LIVE_TRADING_ENABLED,
+        balances: [] as LiveBinanceBalance[],
+        syncedAt: Date.now(),
+        error: "Unable to reach Binance. Please retry shortly.",
+      };
+    }
+  });
+
+async function auditBrokerSync(userId: string, result: "ok" | "error", note: string): Promise<void> {
+  try {
+    await supabaseAdmin.from("api_key_audit").insert({
+      user_id: userId,
+      provider: "binance",
+      action: "wallet_live_sync",
+      result: `${result}: ${note}`,
+    } as never);
+  } catch {
+    // best-effort audit only
+  }
 }
 
 export const getLivePortfolio = createServerFn({ method: "POST" })

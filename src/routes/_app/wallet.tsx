@@ -1,15 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
-import { getBankAccounts } from "@/lib/wallet.functions";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getBinanceBalances, getWalletBrokerProvider } from "@/lib/binance.functions";
-import { Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine, Building, Plus, Crown, RefreshCw, CheckCircle2, AlertTriangle, Coins } from "lucide-react";
+import { getLiveBinanceBalances, getLiveBrokerRuntime } from "@/lib/liveTrading.functions";
+import { Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine, Crown, RefreshCw, CheckCircle2, AlertTriangle, Coins, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/_app/wallet")({
   component: WalletPage,
@@ -17,14 +14,11 @@ export const Route = createFileRoute("/_app/wallet")({
 
 function WalletPage() {
   const { lang, dir } = useI18n();
-  const [amount, setAmount] = useState("150");
 
-  const banksFn = useServerFn(getBankAccounts);
-  const brokerProviderFn = useServerFn(getWalletBrokerProvider);
+  const brokerRuntimeFn = useServerFn(getLiveBrokerRuntime);
 
-  const { data: banks } = useQuery({ queryKey: ["banks"], queryFn: () => banksFn() });
-  const { data: brokerProvider } = useQuery({ queryKey: ["wallet-broker-provider"], queryFn: () => brokerProviderFn() });
-  const isBinance = brokerProvider?.isBinance ?? true;
+  const { data: brokerRuntime } = useQuery({ queryKey: ["wallet-live-broker-runtime"], queryFn: () => brokerRuntimeFn() });
+  const isBinance = brokerRuntime?.isBinance ?? true;
 
   return (
     <div className="container mx-auto max-w-6xl space-y-6 p-6" dir={dir}>
@@ -50,10 +44,10 @@ function WalletPage() {
           : "Notice: this page displays real Binance balances as read-only. Deposits, withdrawals, and live trading are disabled, and LIVE_TRADING_ENABLED=false."}
       </div>
 
-      {isBinance && <WalletBinanceBalancesPanel />}
+      {isBinance && <WalletBinanceBalancesPanel mode={brokerRuntime?.mode ?? "live"} />}
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="gradient-card p-6 md:col-span-2">
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="gradient-card p-6">
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -67,13 +61,7 @@ function WalletPage() {
             </div>
           </div>
 
-          <div className="mt-6 flex flex-wrap items-end gap-3">
-            <div>
-              <label className="text-xs text-muted-foreground">
-                {lang === "ar" ? "شحن (معطّل — وضع تحليلي)" : "Top up (disabled — analytics mode)"}
-              </label>
-              <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} disabled className="w-40" />
-            </div>
+          <div className="mt-6 flex flex-wrap gap-3">
             <Button disabled className="gap-2">
               <ArrowDownToLine className="h-4 w-4" />
               {lang === "ar" ? "الإيداع غير متاح" : "Deposits unavailable"}
@@ -91,47 +79,34 @@ function WalletPage() {
           </p>
         </Card>
 
-
         <Card className="gradient-card p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <Building className="h-4 w-4" />
-              {lang === "ar" ? "حساباتك البنكية" : "Bank accounts"}
-            </div>
-            <Link to="/bank-accounts" className="text-xs text-primary hover:underline">
-              {lang === "ar" ? "إدارة" : "Manage"}
-            </Link>
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Lock className="h-4 w-4" />
+            {lang === "ar" ? "التداول المباشر مقفل" : "Live trading locked"}
           </div>
-          {banks && banks.length > 0 ? (
-            <ul className="mt-4 space-y-2 text-sm">
-              {banks.map((b) => (
-                <li key={b.id} className="rounded-md border border-border p-2">
-                  <div className="font-medium">{b.institution_name}</div>
-                  <div className="text-xs text-muted-foreground">{b.account_name} •••• {b.account_mask}</div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="mt-4 text-xs text-muted-foreground">
-              {lang === "ar" ? "لا توجد حسابات مربوطة." : "No linked accounts."}
-              <Link to="/bank-accounts" className="ms-1 inline-flex items-center gap-1 text-primary hover:underline">
-                <Plus className="h-3 w-3" /> {lang === "ar" ? "إضافة" : "Add"}
-              </Link>
-            </div>
-          )}
+          <p className="mt-4 text-sm text-muted-foreground">
+            {lang === "ar"
+              ? "يتم استخدام اتصال Binance الحي للقراءة فقط. تنفيذ أوامر التداول غير متاح لأن LIVE_TRADING_ENABLED=false."
+              : "The live Binance connection is read-only. Trade execution is unavailable because LIVE_TRADING_ENABLED=false."}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Badge variant="outline">{brokerRuntime?.provider ?? "binance"}</Badge>
+            <Badge variant="secondary">{brokerRuntime?.mode ?? "live"}</Badge>
+            <Badge variant="secondary">LIVE_TRADING_ENABLED=false</Badge>
+          </div>
         </Card>
       </div>
     </div>
   );
 }
 
-function WalletBinanceBalancesPanel() {
+function WalletBinanceBalancesPanel({ mode }: { mode: "testnet" | "live" }) {
   const { lang } = useI18n();
   const ar = lang === "ar";
-  const getBalancesFn = useServerFn(getBinanceBalances);
+  const getBalancesFn = useServerFn(getLiveBinanceBalances);
   const balancesQuery = useQuery({
-    queryKey: ["wallet-binance-balances"],
-    queryFn: () => getBalancesFn(),
+    queryKey: ["wallet-live-binance-balances", mode],
+    queryFn: () => getBalancesFn({ data: { mode } }),
     refetchOnWindowFocus: false,
     staleTime: 30_000,
   });
