@@ -34,6 +34,7 @@ import { Route as AppPaperTradingRouteImport } from './routes/_app/paper-trading
 import { Route as AppOpportunityScannerRouteImport } from './routes/_app/opportunity-scanner'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppMarketsRouteImport } from './routes/_app/markets'
+import { Route as AppMarketUniverseRouteImport } from './routes/_app/market-universe'
 import { Route as AppMarketIntelligenceRouteImport } from './routes/_app/market-intelligence'
 import { Route as AppMarketDataMonitorRouteImport } from './routes/_app/market-data-monitor'
 import { Route as AppHelpRouteImport } from './routes/_app/help'
@@ -198,6 +199,11 @@ const AppMembersRoute = AppMembersRouteImport.update({
 const AppMarketsRoute = AppMarketsRouteImport.update({
   id: '/markets',
   path: '/markets',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMarketUniverseRoute = AppMarketUniverseRouteImport.update({
+  id: '/market-universe',
+  path: '/market-universe',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMarketIntelligenceRoute = AppMarketIntelligenceRouteImport.update({
@@ -449,6 +455,7 @@ export interface FileRoutesByFullPath {
   '/help': typeof AppHelpRoute
   '/market-data-monitor': typeof AppMarketDataMonitorRoute
   '/market-intelligence': typeof AppMarketIntelligenceRoute
+  '/market-universe': typeof AppMarketUniverseRoute
   '/markets': typeof AppMarketsRoute
   '/members': typeof AppMembersRoute
   '/opportunity-scanner': typeof AppOpportunityScannerRoute
@@ -516,6 +523,7 @@ export interface FileRoutesByTo {
   '/help': typeof AppHelpRoute
   '/market-data-monitor': typeof AppMarketDataMonitorRoute
   '/market-intelligence': typeof AppMarketIntelligenceRoute
+  '/market-universe': typeof AppMarketUniverseRoute
   '/markets': typeof AppMarketsRoute
   '/members': typeof AppMembersRoute
   '/opportunity-scanner': typeof AppOpportunityScannerRoute
@@ -585,6 +593,7 @@ export interface FileRoutesById {
   '/_app/help': typeof AppHelpRoute
   '/_app/market-data-monitor': typeof AppMarketDataMonitorRoute
   '/_app/market-intelligence': typeof AppMarketIntelligenceRoute
+  '/_app/market-universe': typeof AppMarketUniverseRoute
   '/_app/markets': typeof AppMarketsRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/opportunity-scanner': typeof AppOpportunityScannerRoute
@@ -654,6 +663,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/market-data-monitor'
     | '/market-intelligence'
+    | '/market-universe'
     | '/markets'
     | '/members'
     | '/opportunity-scanner'
@@ -721,6 +731,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/market-data-monitor'
     | '/market-intelligence'
+    | '/market-universe'
     | '/markets'
     | '/members'
     | '/opportunity-scanner'
@@ -789,6 +800,7 @@ export interface FileRouteTypes {
     | '/_app/help'
     | '/_app/market-data-monitor'
     | '/_app/market-intelligence'
+    | '/_app/market-universe'
     | '/_app/markets'
     | '/_app/members'
     | '/_app/opportunity-scanner'
@@ -1018,6 +1030,13 @@ declare module '@tanstack/react-router' {
       path: '/markets'
       fullPath: '/markets'
       preLoaderRoute: typeof AppMarketsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/market-universe': {
+      id: '/_app/market-universe'
+      path: '/market-universe'
+      fullPath: '/market-universe'
+      preLoaderRoute: typeof AppMarketUniverseRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/market-intelligence': {
@@ -1340,6 +1359,7 @@ interface AppRouteChildren {
   AppHelpRoute: typeof AppHelpRoute
   AppMarketDataMonitorRoute: typeof AppMarketDataMonitorRoute
   AppMarketIntelligenceRoute: typeof AppMarketIntelligenceRoute
+  AppMarketUniverseRoute: typeof AppMarketUniverseRoute
   AppMarketsRoute: typeof AppMarketsRoute
   AppMembersRoute: typeof AppMembersRoute
   AppOpportunityScannerRoute: typeof AppOpportunityScannerRoute
@@ -1387,6 +1407,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppHelpRoute: AppHelpRoute,
   AppMarketDataMonitorRoute: AppMarketDataMonitorRoute,
   AppMarketIntelligenceRoute: AppMarketIntelligenceRoute,
+  AppMarketUniverseRoute: AppMarketUniverseRoute,
   AppMarketsRoute: AppMarketsRoute,
   AppMembersRoute: AppMembersRoute,
   AppOpportunityScannerRoute: AppOpportunityScannerRoute,
