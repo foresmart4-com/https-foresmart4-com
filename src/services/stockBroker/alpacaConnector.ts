@@ -13,14 +13,32 @@ export interface AlpacaConfig {
   dataUrl: string;   // e.g. https://data.alpaca.markets
 }
 
+function sanitizeAlpacaUrl(raw: string | undefined, fallback: string): string {
+  let v = (raw ?? "").trim();
+  if (!v) return fallback;
+  // Strip accidental "KEY=" prefix if user pasted the whole env line
+  v = v.replace(/^[A-Z_]+\s*=\s*/i, "");
+  // Strip surrounding quotes
+  v = v.replace(/^["']|["']$/g, "");
+  // Drop any path/query — we only want the origin
+  try {
+    const u = new URL(v);
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return fallback;
+  }
+}
+
 export function readAlpacaConfig(): AlpacaConfig {
   const apiKey = process.env.ALPACA_API_KEY_ID ?? "";
   const apiSecret = process.env.ALPACA_API_SECRET_KEY ?? "";
   if (!apiKey || !apiSecret) throw new BrokerConfigError("Alpaca credentials not configured");
-  const baseUrl = (process.env.ALPACA_BASE_URL ?? "https://paper-api.alpaca.markets").replace(/\/+$/, "");
-  const dataUrl = (process.env.ALPACA_DATA_URL ?? "https://data.alpaca.markets").replace(/\/+$/, "");
+  // Force Paper endpoint for stocks portfolio (no live trading yet)
+  const baseUrl = sanitizeAlpacaUrl(process.env.ALPACA_BASE_URL, "https://paper-api.alpaca.markets");
+  const dataUrl = sanitizeAlpacaUrl(process.env.ALPACA_DATA_URL, "https://data.alpaca.markets");
   return { apiKey, apiSecret, baseUrl, dataUrl };
 }
+
 
 export class AlpacaBroker implements StockBroker {
   public readonly provider = "alpaca" as const;
