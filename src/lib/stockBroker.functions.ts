@@ -245,6 +245,47 @@ export const triggerStockEmergencyStop = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+export const getRecentStockDecisions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => z.object({ limit: z.number().int().min(1).max(50).default(15) }).parse(i ?? {}))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await supabaseAdmin
+      .from("execution_history")
+      .select("id, created_at, broker, mode, symbol, side, type, quantity, price, status, metadata")
+      .eq("user_id", context.userId)
+      .in("mode", ["preview", "live"])
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) return { ok: false as const, reason: error.message, decisions: [] };
+    return { ok: true as const, decisions: rows ?? [] };
+  });
+
+export const previewStockOrderRisk = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => OrderInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const rt = getStockBrokerRuntime();
+    if (!rt.configured) return notConfigured();
+    let refPrice = data.limitPrice ?? 0;
+    try {
+      if (!refPrice) {
+        const q = await createStockBroker().getQuote(data.symbol);
+        refPrice = q.last || q.ask || q.bid || 0;
+      }
+    } catch (e) {
+      return { ok: false as const, status: "error" as const, provider: rt.provider, reason: (e as Error).message };
+    }
+    if (!refPrice) {
+      return { ok: false as const, status: "error" as const, provider: rt.provider, reason: "Reference price unavailable" };
+    }
+    const risk = await evaluateStockOrderRisk({
+      userId: context.userId,
+      order: { ...data, symbol: data.symbol.toUpperCase() },
+      refPrice,
+    });
+    return { ok: true as const, status: "evaluated" as const, provider: rt.provider, refPrice, risk };
+  });
+
 export const resumeStockTrading = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
