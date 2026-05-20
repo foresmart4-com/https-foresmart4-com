@@ -36,6 +36,7 @@ import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppMarketsRouteImport } from './routes/_app/markets'
 import { Route as AppMarketIntelligenceRouteImport } from './routes/_app/market-intelligence'
 import { Route as AppMarketDataMonitorRouteImport } from './routes/_app/market-data-monitor'
+import { Route as AppHelpRouteImport } from './routes/_app/help'
 import { Route as AppHeatmapRouteImport } from './routes/_app/heatmap'
 import { Route as AppGrowthPlanRouteImport } from './routes/_app/growth-plan'
 import { Route as AppGlobalIntelRouteImport } from './routes/_app/global-intel'
@@ -207,6 +208,11 @@ const AppMarketIntelligenceRoute = AppMarketIntelligenceRouteImport.update({
 const AppMarketDataMonitorRoute = AppMarketDataMonitorRouteImport.update({
   id: '/market-data-monitor',
   path: '/market-data-monitor',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHelpRoute = AppHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
   getParentRoute: () => AppRoute,
 } as any)
 const AppHeatmapRoute = AppHeatmapRouteImport.update({
@@ -440,6 +446,7 @@ export interface FileRoutesByFullPath {
   '/global-intel': typeof AppGlobalIntelRoute
   '/growth-plan': typeof AppGrowthPlanRoute
   '/heatmap': typeof AppHeatmapRoute
+  '/help': typeof AppHelpRoute
   '/market-data-monitor': typeof AppMarketDataMonitorRoute
   '/market-intelligence': typeof AppMarketIntelligenceRoute
   '/markets': typeof AppMarketsRoute
@@ -506,6 +513,7 @@ export interface FileRoutesByTo {
   '/global-intel': typeof AppGlobalIntelRoute
   '/growth-plan': typeof AppGrowthPlanRoute
   '/heatmap': typeof AppHeatmapRoute
+  '/help': typeof AppHelpRoute
   '/market-data-monitor': typeof AppMarketDataMonitorRoute
   '/market-intelligence': typeof AppMarketIntelligenceRoute
   '/markets': typeof AppMarketsRoute
@@ -574,6 +582,7 @@ export interface FileRoutesById {
   '/_app/global-intel': typeof AppGlobalIntelRoute
   '/_app/growth-plan': typeof AppGrowthPlanRoute
   '/_app/heatmap': typeof AppHeatmapRoute
+  '/_app/help': typeof AppHelpRoute
   '/_app/market-data-monitor': typeof AppMarketDataMonitorRoute
   '/_app/market-intelligence': typeof AppMarketIntelligenceRoute
   '/_app/markets': typeof AppMarketsRoute
@@ -642,6 +651,7 @@ export interface FileRouteTypes {
     | '/global-intel'
     | '/growth-plan'
     | '/heatmap'
+    | '/help'
     | '/market-data-monitor'
     | '/market-intelligence'
     | '/markets'
@@ -708,6 +718,7 @@ export interface FileRouteTypes {
     | '/global-intel'
     | '/growth-plan'
     | '/heatmap'
+    | '/help'
     | '/market-data-monitor'
     | '/market-intelligence'
     | '/markets'
@@ -775,6 +786,7 @@ export interface FileRouteTypes {
     | '/_app/global-intel'
     | '/_app/growth-plan'
     | '/_app/heatmap'
+    | '/_app/help'
     | '/_app/market-data-monitor'
     | '/_app/market-intelligence'
     | '/_app/markets'
@@ -1020,6 +1032,13 @@ declare module '@tanstack/react-router' {
       path: '/market-data-monitor'
       fullPath: '/market-data-monitor'
       preLoaderRoute: typeof AppMarketDataMonitorRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/help': {
+      id: '/_app/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof AppHelpRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/heatmap': {
@@ -1318,6 +1337,7 @@ interface AppRouteChildren {
   AppGlobalIntelRoute: typeof AppGlobalIntelRoute
   AppGrowthPlanRoute: typeof AppGrowthPlanRoute
   AppHeatmapRoute: typeof AppHeatmapRoute
+  AppHelpRoute: typeof AppHelpRoute
   AppMarketDataMonitorRoute: typeof AppMarketDataMonitorRoute
   AppMarketIntelligenceRoute: typeof AppMarketIntelligenceRoute
   AppMarketsRoute: typeof AppMarketsRoute
@@ -1364,6 +1384,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppGlobalIntelRoute: AppGlobalIntelRoute,
   AppGrowthPlanRoute: AppGrowthPlanRoute,
   AppHeatmapRoute: AppHeatmapRoute,
+  AppHelpRoute: AppHelpRoute,
   AppMarketDataMonitorRoute: AppMarketDataMonitorRoute,
   AppMarketIntelligenceRoute: AppMarketIntelligenceRoute,
   AppMarketsRoute: AppMarketsRoute,
