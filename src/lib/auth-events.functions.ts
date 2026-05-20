@@ -23,11 +23,13 @@ const Input = z.object({
   metadata: z.record(z.string(), z.any()).optional(),
 });
 
-// In-memory IP rate limiter (best-effort per Worker instance).
+// In-memory IP rate limiter (per-Worker fast path). Authoritative limit
+// below uses Postgres atomic counters and is consistent across all Workers.
 const RL_WINDOW_MS = 60_000;
-const RL_MAX_PER_IP = 20;
+const RL_MAX_PER_IP = 10;
+const RL_GLOBAL_MAX = 200;
 const rlMap = new Map<string, { count: number; resetAt: number }>();
-function rateLimited(ip: string): boolean {
+function localRateLimited(ip: string): boolean {
   const now = Date.now();
   const cur = rlMap.get(ip);
   if (!cur || cur.resetAt < now) {
@@ -36,6 +38,35 @@ function rateLimited(ip: string): boolean {
   }
   cur.count += 1;
   return cur.count > RL_MAX_PER_IP;
+}
+function hashIp(ip: string): string {
+  let h = 0;
+  for (let i = 0; i < ip.length; i++) h = (h * 31 + ip.charCodeAt(i)) | 0;
+  return `ip_${(h >>> 0).toString(16)}`;
+}
+async function distributedRateLimited(ip: string): Promise<boolean> {
+  try {
+    const windowSec = Math.floor(RL_WINDOW_MS / 1000);
+    const ipHash = hashIp(ip);
+    const [ipR, globalR] = await Promise.all([
+      supabaseAdmin.rpc("rate_limit_hit", {
+        _bucket_key: `auth_event:ip:${ipHash}`,
+        _window_seconds: windowSec,
+        _max_hits: RL_MAX_PER_IP,
+      }),
+      supabaseAdmin.rpc("rate_limit_hit", {
+        _bucket_key: "auth_event:global",
+        _window_seconds: windowSec,
+        _max_hits: RL_GLOBAL_MAX,
+      }),
+    ]);
+    const ipAllowed = ipR.data?.[0]?.allowed ?? true;
+    const globalAllowed = globalR.data?.[0]?.allowed ?? true;
+    return !ipAllowed || !globalAllowed;
+  } catch {
+    // Fail-closed: prefer dropping events over allowing flood under DB error.
+    return true;
+  }
 }
 
 async function deriveIdentityFromSession(): Promise<{ user_id: string | null; email: string | null }> {
