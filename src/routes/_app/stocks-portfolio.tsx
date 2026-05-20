@@ -118,10 +118,16 @@ function StocksPortfolioPage() {
             onResume={async () => { await resumeFn(); toast.message(ar ? "تم استئناف التداول" : "Trading resumed"); qc.invalidateQueries({ queryKey: ["stocks-portfolio"] }); }}
           />
 
-          <OrderTicket onSubmit={(o) => place.mutate(o)} pending={place.isPending} liveTradingEnabled={data.liveTradingEnabled} />
+          <OrderTicket
+            onSubmit={(o) => place.mutate(o)}
+            onPreviewRisk={(o) => previewRiskFn({ data: o })}
+            pending={place.isPending}
+            liveTradingEnabled={data.liveTradingEnabled}
+          />
 
           <PositionsTable positions={data.positions} />
           <OrdersTable orders={data.orders} onCancel={(id) => cancel.mutate(id)} canCancel={data.liveTradingEnabled} />
+          <DecisionsTable rows={(decisions.data && "decisions" in decisions.data ? decisions.data.decisions : []) as DecisionRow[]} />
         </>
       )}
     </div>
