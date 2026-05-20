@@ -216,6 +216,8 @@ function WalletPage() {
         </Card>
       )}
 
+      <BinanceBalancesPanel />
+
       <div className="grid gap-4 lg:grid-cols-2">
         <AllocationPanel />
       </div>
