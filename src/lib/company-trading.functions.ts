@@ -51,16 +51,16 @@ export const updateCompanyTradingConfig = createServerFn({ method: "POST" })
       .eq("id", CONFIG_ID)
       .maybeSingle();
 
-    const patch: Record<string, unknown> = { ...data, updated_by: context.userId, updated_at: new Date().toISOString() };
+    const patch = { ...data, updated_by: context.userId, updated_at: new Date().toISOString() };
 
     // Hard guard: live trading cannot be turned on without a connected broker
-    if (data.live_trading_enabled === true && !current?.broker_connected) {
+    if (patch.live_trading_enabled === true && !current?.broker_connected) {
       patch.live_trading_enabled = false;
     }
 
     const { data: updated, error } = await supabaseAdmin
       .from("company_trading_config")
-      .update(patch)
+      .update(patch as never)
       .eq("id", CONFIG_ID)
       .select()
       .single();
