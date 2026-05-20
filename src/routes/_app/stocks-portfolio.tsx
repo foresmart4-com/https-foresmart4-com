@@ -14,6 +14,7 @@ import { useI18n } from "@/lib/i18n";
 import {
   getBrokerPortfolio, placeStockOrder, cancelStockOrder,
   triggerStockEmergencyStop, resumeStockTrading,
+  getRecentStockDecisions, previewStockOrderRisk,
 } from "@/lib/stockBroker.functions";
 import { Briefcase, RefreshCw, ShieldAlert, Shield, AlertTriangle, Building2, LineChart } from "lucide-react";
 
