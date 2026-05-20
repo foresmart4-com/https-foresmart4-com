@@ -89,12 +89,20 @@ function StocksPortfolioPage() {
             {ar ? "أرصدة وأوامر حقيقية عبر Alpaca / Interactive Brokers." : "Real balances and orders via Alpaca / Interactive Brokers."}
           </p>
         </div>
-        <Button variant="outline" onClick={() => portfolio.refetch()} disabled={portfolio.isFetching} className="gap-2">
-          <RefreshCw className={`h-4 w-4 ${portfolio.isFetching ? "animate-spin" : ""}`} />
-          {data && "provider" in data && data.provider === "alpaca"
-            ? (ar ? "مزامنة Alpaca" : "Sync Alpaca")
-            : (ar ? "تحديث" : "Refresh")}
-        </Button>
+        <div className="flex items-center gap-2">
+          {configured && data.provider === "alpaca" && (
+            <Badge variant="default" className="gap-1 bg-success text-success-foreground">
+              <CheckCircle2 className="h-3 w-3" />
+              {ar ? "Alpaca متصل" : "Alpaca Connected"}
+            </Badge>
+          )}
+          <Button variant="outline" onClick={() => portfolio.refetch()} disabled={portfolio.isFetching} className="gap-2">
+            <RefreshCw className={`h-4 w-4 ${portfolio.isFetching ? "animate-spin" : ""}`} />
+            {data && "provider" in data && data.provider === "alpaca"
+              ? (portfolio.isFetching ? (ar ? "جارٍ المزامنة..." : "Syncing…") : (ar ? "مزامنة Alpaca" : "Sync Alpaca"))
+              : (ar ? "تحديث" : "Refresh")}
+          </Button>
+        </div>
       </header>
 
       {data && (
