@@ -392,6 +392,93 @@ export type Database = {
         }
         Relationships: []
       }
+      company_trading_audit: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          context: Json
+          created_at: string
+          decision: string | null
+          id: string
+          price: number | null
+          quantity: number | null
+          side: string | null
+          status: string
+          symbol: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          context?: Json
+          created_at?: string
+          decision?: string | null
+          id?: string
+          price?: number | null
+          quantity?: number | null
+          side?: string | null
+          status?: string
+          symbol?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          context?: Json
+          created_at?: string
+          decision?: string | null
+          id?: string
+          price?: number | null
+          quantity?: number | null
+          side?: string | null
+          status?: string
+          symbol?: string | null
+        }
+        Relationships: []
+      }
+      company_trading_config: {
+        Row: {
+          allowed_assets: string[]
+          approval_required: boolean
+          broker_connected: boolean
+          broker_name: string | null
+          created_at: string
+          daily_loss_limit_usdt: number
+          enabled: boolean
+          id: string
+          live_trading_enabled: boolean
+          max_trade_size_usdt: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allowed_assets?: string[]
+          approval_required?: boolean
+          broker_connected?: boolean
+          broker_name?: string | null
+          created_at?: string
+          daily_loss_limit_usdt?: number
+          enabled?: boolean
+          id?: string
+          live_trading_enabled?: boolean
+          max_trade_size_usdt?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allowed_assets?: string[]
+          approval_required?: boolean
+          broker_connected?: boolean
+          broker_name?: string | null
+          created_at?: string
+          daily_loss_limit_usdt?: number
+          enabled?: boolean
+          id?: string
+          live_trading_enabled?: boolean
+          max_trade_size_usdt?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       disclaimer_acceptances: {
         Row: {
           accepted_at: string
