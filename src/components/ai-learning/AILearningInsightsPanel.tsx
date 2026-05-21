@@ -160,10 +160,8 @@ export function AILearningInsightsPanel({ sinceMs }: { sinceMs?: number }) {
         `اكتشاف انجراف: معدل النجاح الحديث ${fmtPct(drift.recentWinRate)} مقابل خط الأساس ${fmtPct(drift.baselineWinRate)}. يستدعي مراجعة شروط السوق.`,
       );
     }
-    if (meta.suggestion === "raise") {
-      out.push(`اقتراح ميتا-تعلم: رفع حد الثقة إلى ${(meta.threshold * 100).toFixed(0)}% لتصفية الإشارات الضعيفة.`);
-    } else if (meta.suggestion === "lower") {
-      out.push(`اقتراح ميتا-تعلم: خفض حد الثقة إلى ${(meta.threshold * 100).toFixed(0)}% لزيادة عدد الفرص.`);
+    if (meta.improvement > 0.001 && meta.threshold > 0) {
+      out.push(`اقتراح ميتا-تعلم: رفع حد الثقة إلى ${(meta.threshold * 100).toFixed(0)}% قد يُحسّن التوقع بنحو ${(meta.improvement * 100).toFixed(2)}%.`);
     }
     if (strategies[0]) {
       out.push(
