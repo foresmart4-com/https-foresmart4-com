@@ -149,13 +149,17 @@ export function resolveAsset(rawSymbol: string): ResolvedAsset {
 
 const CHAINS: Record<AssetClass, ProviderId[]> = {
   us_stock:    ["finnhub", "alpaca", "twelvedata", "alphavantage"],
-  saudi_stock: ["twelvedata", "alphavantage"],
+  // Saudi: TradingView (TADAWUL feed) → TwelveData → AlphaVantage
+  saudi_stock: ["tradingview", "twelvedata", "alphavantage"],
   crypto:      ["binance", "coingecko", "twelvedata"],
-  metal:       ["twelvedata", "alphavantage", "finnhub"],
-  commodity:   ["twelvedata", "alphavantage", "finnhub"],
+  // Metals: TwelveData → Finnhub FX feed → AlphaVantage → TradingView
+  metal:       ["twelvedata", "finnhub", "alphavantage", "tradingview"],
+  // Commodities: TwelveData → AlphaVantage → TradingView (TVC feeds) → Finnhub
+  commodity:   ["twelvedata", "alphavantage", "tradingview", "finnhub"],
   etf:         ["finnhub", "twelvedata", "alphavantage"],
   bond:        ["twelvedata", "alphavantage"],
-  forex:       ["twelvedata", "alphavantage", "finnhub"],
+  // Forex: TwelveData → Finnhub OANDA → AlphaVantage
+  forex:       ["twelvedata", "finnhub", "alphavantage"],
   unknown:     ["finnhub", "twelvedata", "alphavantage"],
 };
 
