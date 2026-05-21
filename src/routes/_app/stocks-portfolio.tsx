@@ -470,7 +470,7 @@ function PositionsTable({ positions }: { positions: Array<{ symbol: string; qty:
               </tr>
             ))}
             {positions.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">{ar ? "لا توجد مراكز" : "No positions"}</td></tr>
+              <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">{ar ? "لا توجد مراكز مفتوحة" : "No open positions"}</td></tr>
             )}
           </tbody>
         </table>
@@ -510,7 +510,7 @@ function OrdersTable({ orders, onCancel, canCancel }: { orders: Array<{ id: stri
               </tr>
             ))}
             {orders.length === 0 && (
-              <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">{ar ? "لا توجد أوامر" : "No open orders"}</td></tr>
+              <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">{ar ? "لا توجد أوامر مفتوحة" : "No open orders"}</td></tr>
             )}
           </tbody>
         </table>
