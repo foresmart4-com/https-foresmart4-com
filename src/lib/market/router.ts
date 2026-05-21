@@ -20,6 +20,7 @@
 import { getQuote as fhQuote } from "@/services/providers/finnhub";
 import { getQuote as tdQuote } from "@/services/providers/twelvedata";
 import { getEquityQuote as avEquity, getFxRate as avFx } from "@/services/providers/alphavantage";
+import { mapForProvider } from "@/lib/market/symbol-map";
 
 // ---------- Public types ----------
 
@@ -61,6 +62,11 @@ export interface RouterQuote {
   error?: string;
   /** Providers attempted in order, for observability. */
   attempted?: ProviderId[];
+  /** Diagnostics: composite cache key, inflight dedup key, resolver trace, raw input. */
+  cacheKey?: string;
+  inflightKey?: string;
+  resolverPath?: string;
+  rawSymbol?: string;
 }
 
 // ---------- Asset resolver ----------
@@ -83,63 +89,55 @@ export interface ResolvedAsset {
   normalized: string;
   /** Forex helper. */
   forex?: { from: string; to: string };
+  /** Pure trace of resolver branch taken, for diagnostics. */
+  resolverPath: string;
+  /** Original raw input, uppercased + trimmed. */
+  raw: string;
 }
 
 export function resolveAsset(rawSymbol: string): ResolvedAsset {
-  const symbol = rawSymbol.trim().toUpperCase();
-  if (!symbol) return { assetClass: "unknown", normalized: symbol };
+  const raw = (rawSymbol ?? "").trim().toUpperCase();
+  const make = (
+    assetClass: AssetClass,
+    normalized: string,
+    resolverPath: string,
+    extra: Partial<ResolvedAsset> = {},
+  ): ResolvedAsset => ({ assetClass, normalized, resolverPath, raw, ...extra });
 
-  // Saudi: .SR suffix or :TADAWUL
-  if (/\.SR$/.test(symbol) || /:TADAWUL$/.test(symbol)) {
-    return { assetClass: "saudi_stock", normalized: symbol.replace(/:TADAWUL$/, ".SR") };
+  if (!raw) return make("unknown", "", "empty");
+
+  // Saudi: .SR suffix or :TADAWUL — keep numeric tickers intact (e.g. "2222.SR")
+  if (/\.SR$/.test(raw) || /:TADAWUL$/.test(raw)) {
+    return make("saudi_stock", raw.replace(/:TADAWUL$/, ".SR"), "saudi:.SR");
   }
 
-  // Metals
-  if (METAL_SYMBOLS.has(symbol) || /^XAU|XAG|XPT|XPD/.test(symbol)) {
-    return { assetClass: "metal", normalized: symbol };
+  // Metals (XAU, XAUUSD, GOLD, ...) — keep raw for branching but tag class
+  if (METAL_SYMBOLS.has(raw) || /^(XAU|XAG|XPT|XPD)/.test(raw)) {
+    return make("metal", raw, "metal:prefix");
   }
 
-  // Commodities
-  if (COMMODITY_SYMBOLS.has(symbol)) {
-    return { assetClass: "commodity", normalized: symbol };
-  }
+  if (COMMODITY_SYMBOLS.has(raw)) return make("commodity", raw, "commodity:set");
+  if (BOND_PATTERNS.some((re) => re.test(raw))) return make("bond", raw, "bond:pattern");
+  if (COMMON_ETFS.has(raw)) return make("etf", raw, "etf:set");
 
-  // Bonds
-  if (BOND_PATTERNS.some((re) => re.test(symbol))) {
-    return { assetClass: "bond", normalized: symbol };
-  }
-
-  // ETFs
-  if (COMMON_ETFS.has(symbol)) {
-    return { assetClass: "etf", normalized: symbol };
-  }
-
-  // Crypto with explicit suffix
-  const cryptoMatch = symbol.match(CRYPTO_SUFFIX_RE);
+  const cryptoMatch = raw.match(CRYPTO_SUFFIX_RE);
   if (cryptoMatch) {
     const [, base, quote] = cryptoMatch;
-    return { assetClass: "crypto", normalized: `${base}${quote.endsWith("USD") ? quote : quote + ""}` };
+    return make("crypto", `${base}${quote}`, "crypto:suffix");
   }
-  if (CRYPTO_PLAIN.has(symbol)) {
-    return { assetClass: "crypto", normalized: `${symbol}USDT` };
-  }
+  if (CRYPTO_PLAIN.has(raw)) return make("crypto", `${raw}USDT`, "crypto:plain");
 
-  // Forex
-  const fx = symbol.match(FOREX_RE);
+  const fx = raw.match(FOREX_RE);
   if (fx) {
     const [, from, to] = fx;
     const FIATS = new Set(["USD", "EUR", "GBP", "JPY", "CHF", "AUD", "CAD", "NZD", "CNY", "SAR", "AED", "TRY"]);
     if (FIATS.has(from) && FIATS.has(to)) {
-      return { assetClass: "forex", normalized: `${from}${to}`, forex: { from, to } };
+      return make("forex", `${from}${to}`, "forex:pair", { forex: { from, to } });
     }
   }
 
-  // Default: treat 1–5 letter alpha as US stock
-  if (/^[A-Z]{1,5}$/.test(symbol)) {
-    return { assetClass: "us_stock", normalized: symbol };
-  }
-
-  return { assetClass: "unknown", normalized: symbol };
+  if (/^[A-Z]{1,5}$/.test(raw)) return make("us_stock", raw, "us:alpha");
+  return make("unknown", raw, "fallback");
 }
 
 // ---------- Provider priority chains ----------
@@ -249,7 +247,19 @@ const TTL_MS: Record<AssetClass, number> = {
   unknown: 30_000,
 };
 
-function cacheKey(symbol: string): string { return symbol.toUpperCase(); }
+/**
+ * Composite cache key. Includes asset class, normalized symbol AND the original
+ * raw input so that two different inputs (e.g. "BTC" vs "BTCUSDT" vs "2222.SR")
+ * can never collide — even if normalization were to converge.
+ */
+function buildCacheKey(asset: ResolvedAsset, interval?: string): string {
+  const i = interval ? `@${interval}` : "";
+  return `${asset.assetClass}::${asset.normalized}::${asset.raw}${i}`;
+}
+function buildInflightKey(asset: ResolvedAsset, interval?: string): string {
+  // Distinct from cache key so cache reads never accidentally key into dedup table.
+  return `inflight::${buildCacheKey(asset, interval)}`;
+}
 
 function fromCache(key: string, now = Date.now()): RouterQuote | null {
   const hit = CACHE.get(key);
@@ -298,7 +308,8 @@ async function runFinnhub(asset: ResolvedAsset): Promise<UpstreamResult> {
 }
 
 async function runTwelveData(asset: ResolvedAsset): Promise<UpstreamResult> {
-  const q = await tdQuote(asset.normalized);
+  const mapped = mapForProvider(asset.raw, "twelvedata");
+  const q = await tdQuote(mapped);
   const price = num(q.close);
   if (price == null) throw new Error("twelvedata: empty quote");
   return {
@@ -425,17 +436,26 @@ export interface RouterOptions {
 
 export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): Promise<RouterQuote> {
   const asset = resolveAsset(rawSymbol);
-  const key = cacheKey(asset.normalized);
+  const cKey = buildCacheKey(asset);
+  const iKey = buildInflightKey(asset);
+
+  const stamp = <T extends RouterQuote>(q: T): T => ({
+    ...q,
+    cacheKey: cKey,
+    inflightKey: iKey,
+    resolverPath: asset.resolverPath,
+    rawSymbol: asset.raw,
+  });
 
   // Cache hit
   if (!opts.force) {
-    const cached = fromCache(key);
-    if (cached) return cached;
+    const cached = fromCache(cKey);
+    if (cached) return stamp(cached);
   }
 
-  // Dedup: piggyback on any in-flight request for the same symbol
-  const inflight = INFLIGHT.get(key);
-  if (inflight) return inflight;
+  // Dedup: piggyback on any in-flight request for the SAME symbol only
+  const existing = INFLIGHT.get(iKey);
+  if (existing) return existing;
 
   const promise = (async (): Promise<RouterQuote> => {
     const chain = CHAINS[asset.assetClass] ?? CHAINS.unknown;
@@ -455,7 +475,7 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
         const latency = Date.now() - start;
         recordSuccess(p, latency);
         if (i > 0) { fallbackUsed = true; recordFailover(p); }
-        const quote: RouterQuote = {
+        const quote: RouterQuote = stamp({
           success: true,
           provider: p,
           mode: r.delayed ? "delayed" : "live",
@@ -469,9 +489,9 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
           symbol: asset.normalized,
           assetClass: asset.assetClass,
           attempted,
-        };
+        });
         const ttl = TTL_MS[asset.assetClass];
-        CACHE.set(key, { quote, expiresAt: Date.now() + ttl });
+        CACHE.set(cKey, { quote, expiresAt: Date.now() + ttl });
         return quote;
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -479,16 +499,12 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
         recordError(p, msg, rl);
         setCooldown(p, rl ? "rate_limited" : "error", msg);
         lastError = msg;
-        // continue to next provider
       }
     }
 
-    // All providers failed — graceful degradation
-    const stale = staleCache(key);
-    if (stale) {
-      return { ...stale, fallbackUsed: true, error: lastError, attempted };
-    }
-    return {
+    const stale = staleCache(cKey);
+    if (stale) return stamp({ ...stale, fallbackUsed: true, error: lastError, attempted });
+    return stamp({
       success: false,
       provider: null,
       mode: "synthetic",
@@ -503,14 +519,14 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
       assetClass: asset.assetClass,
       error: lastError,
       attempted,
-    };
+    });
   })();
 
-  INFLIGHT.set(key, promise);
+  INFLIGHT.set(iKey, promise);
   try {
     return await promise;
   } finally {
-    INFLIGHT.delete(key);
+    INFLIGHT.delete(iKey);
   }
 }
 
