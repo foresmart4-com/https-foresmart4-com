@@ -93,7 +93,7 @@ function HeatmapPage() {
         group: (a.category === "metals" ? "metals" : a.category === "currencies" ? "currencies" : "crypto") as Group,
         price: a.price, changePct: a.changePct,
         weight: Math.max(1, Math.log(a.volume || 1)),
-        source: a.source || "—", mode: "live", updatedAt: Date.now(),
+        source: "Live", mode: "live", updatedAt: Date.now(),
       }));
       s.stocks.forEach((a) => arr.push({
         symbol: a.symbol, name: a.name,
