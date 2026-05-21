@@ -13,7 +13,8 @@ import {
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Flame, TrendingUp, TrendingDown, Plus, Bell, BarChart3, RefreshCw, Search } from "lucide-react";
+import { Flame, TrendingUp, TrendingDown, Plus, Bell, BarChart3, RefreshCw, Search, ShieldCheck } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Link } from "@tanstack/react-router";
 import { getMarketData } from "@/lib/market-data";
 import { getStocksData } from "@/lib/stocks-data";
@@ -22,6 +23,7 @@ import { ASSET_PICKER } from "@/lib/asset-picker";
 import { AddToWatchlistDialog } from "@/components/pickers/AddToWatchlistDialog";
 import { CreateAlertDialog } from "@/components/pickers/CreateAlertDialog";
 import type { PickedAsset } from "@/components/pickers/AssetPickerDialog";
+import { useRiskTolerance, maxVolatilityPctForRisk, riskLabel } from "@/lib/investor-prefs";
 
 export const Route = createFileRoute("/_app/heatmap")({
   component: HeatmapPage,
