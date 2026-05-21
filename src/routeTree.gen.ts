@@ -58,6 +58,7 @@ import { Route as AppBillingMonitorRouteImport } from './routes/_app/billing-mon
 import { Route as AppBillingRouteImport } from './routes/_app/billing'
 import { Route as AppBankAccountsRouteImport } from './routes/_app/bank-accounts'
 import { Route as AppBacktestLabRouteImport } from './routes/_app/backtest-lab'
+import { Route as AppAssetsPortfolioRouteImport } from './routes/_app/assets-portfolio'
 import { Route as AppArchiveRouteImport } from './routes/_app/archive'
 import { Route as AppAlertsRouteImport } from './routes/_app/alerts'
 import { Route as AppAlertCenterRouteImport } from './routes/_app/alert-center'
@@ -322,6 +323,11 @@ const AppBacktestLabRoute = AppBacktestLabRouteImport.update({
   path: '/backtest-lab',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAssetsPortfolioRoute = AppAssetsPortfolioRouteImport.update({
+  id: '/assets-portfolio',
+  path: '/assets-portfolio',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppArchiveRoute = AppArchiveRouteImport.update({
   id: '/archive',
   path: '/archive',
@@ -439,6 +445,7 @@ export interface FileRoutesByFullPath {
   '/alert-center': typeof AppAlertCenterRoute
   '/alerts': typeof AppAlertsRoute
   '/archive': typeof AppArchiveRoute
+  '/assets-portfolio': typeof AppAssetsPortfolioRoute
   '/backtest-lab': typeof AppBacktestLabRoute
   '/bank-accounts': typeof AppBankAccountsRoute
   '/billing': typeof AppBillingRoute
@@ -508,6 +515,7 @@ export interface FileRoutesByTo {
   '/alert-center': typeof AppAlertCenterRoute
   '/alerts': typeof AppAlertsRoute
   '/archive': typeof AppArchiveRoute
+  '/assets-portfolio': typeof AppAssetsPortfolioRoute
   '/backtest-lab': typeof AppBacktestLabRoute
   '/bank-accounts': typeof AppBankAccountsRoute
   '/billing': typeof AppBillingRoute
@@ -579,6 +587,7 @@ export interface FileRoutesById {
   '/_app/alert-center': typeof AppAlertCenterRoute
   '/_app/alerts': typeof AppAlertsRoute
   '/_app/archive': typeof AppArchiveRoute
+  '/_app/assets-portfolio': typeof AppAssetsPortfolioRoute
   '/_app/backtest-lab': typeof AppBacktestLabRoute
   '/_app/bank-accounts': typeof AppBankAccountsRoute
   '/_app/billing': typeof AppBillingRoute
@@ -650,6 +659,7 @@ export interface FileRouteTypes {
     | '/alert-center'
     | '/alerts'
     | '/archive'
+    | '/assets-portfolio'
     | '/backtest-lab'
     | '/bank-accounts'
     | '/billing'
@@ -719,6 +729,7 @@ export interface FileRouteTypes {
     | '/alert-center'
     | '/alerts'
     | '/archive'
+    | '/assets-portfolio'
     | '/backtest-lab'
     | '/bank-accounts'
     | '/billing'
@@ -789,6 +800,7 @@ export interface FileRouteTypes {
     | '/_app/alert-center'
     | '/_app/alerts'
     | '/_app/archive'
+    | '/_app/assets-portfolio'
     | '/_app/backtest-lab'
     | '/_app/bank-accounts'
     | '/_app/billing'
@@ -1212,6 +1224,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBacktestLabRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/assets-portfolio': {
+      id: '/_app/assets-portfolio'
+      path: '/assets-portfolio'
+      fullPath: '/assets-portfolio'
+      preLoaderRoute: typeof AppAssetsPortfolioRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/archive': {
       id: '/_app/archive'
       path: '/archive'
@@ -1356,6 +1375,7 @@ interface AppRouteChildren {
   AppAlertCenterRoute: typeof AppAlertCenterRoute
   AppAlertsRoute: typeof AppAlertsRoute
   AppArchiveRoute: typeof AppArchiveRoute
+  AppAssetsPortfolioRoute: typeof AppAssetsPortfolioRoute
   AppBacktestLabRoute: typeof AppBacktestLabRoute
   AppBankAccountsRoute: typeof AppBankAccountsRoute
   AppBillingRoute: typeof AppBillingRoute
@@ -1405,6 +1425,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAlertCenterRoute: AppAlertCenterRoute,
   AppAlertsRoute: AppAlertsRoute,
   AppArchiveRoute: AppArchiveRoute,
+  AppAssetsPortfolioRoute: AppAssetsPortfolioRoute,
   AppBacktestLabRoute: AppBacktestLabRoute,
   AppBankAccountsRoute: AppBankAccountsRoute,
   AppBillingRoute: AppBillingRoute,

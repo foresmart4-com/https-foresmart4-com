@@ -50,7 +50,7 @@ function AppLayout() {
     { to: "/heatmap", icon: Flame, label: t("nav.heatmap"), hint: hint("خريطة حرارية لأداء الأصول", "Heatmap of asset performance") },
     { to: "/calendar", icon: CalendarDays, label: t("nav.calendar"), hint: hint("التقويم الاقتصادي", "Economic calendar") },
     { to: "/paper-trading", icon: GraduationCap, label: t("nav.simulation"), hint: hint("تداول تجريبي آمن بدون مخاطر", "Risk-free paper trading") },
-    { to: "/stocks-portfolio", icon: Briefcase, label: hint("محفظة الأسهم", "Stocks Portfolio"), hint: hint("أرصدة وأوامر حقيقية عبر Alpaca / IBKR", "Real Alpaca / IBKR stock balances & orders") },
+    { to: "/assets-portfolio", icon: Briefcase, label: hint("محفظة الأصول", "Assets Portfolio"), hint: hint("محفظة شاملة: أسهم، ETFs، سندات، كريبتو، معادن، كاش", "Universal portfolio: stocks, ETFs, bonds, crypto, metals, cash") },
     { to: "/wallet", icon: Wallet, label: t("nav.wallet"), hint: hint("أرصدة Binance الحقيقية (كريبتو فقط)", "Real Binance balances (crypto only)") },
     { to: "/subscription", icon: Crown, label: t("nav.subscription"), hint: hint("خطط الاشتراك والدفع عبر PayPal", "Subscription plans & PayPal checkout") },
     { to: "/billing", icon: Crown, label: t("nav.billing"), hint: hint("الفواتير وحالة الاشتراك", "Billing & subscription status") },
