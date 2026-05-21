@@ -27,6 +27,7 @@ import {
   GraduationCap, Target, Activity, TrendingUp, Award, AlertTriangle,
   Brain, Trophy, Gauge, LineChart as LineIcon, Zap, ShieldAlert, Radar,
 } from "lucide-react";
+import { AILearningInsightsPanel } from "@/components/ai-learning/AILearningInsightsPanel";
 
 export const Route = createFileRoute("/_app/ai-learning")({
   component: AILearningPage,
