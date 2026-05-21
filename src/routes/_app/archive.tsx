@@ -660,17 +660,17 @@ function HistoryView() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => exportArchiveCSV(data!, symbol)}
+                onClick={() => exportArchiveCSV(data!, { symbol, category, days, displayCurrency })}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/40"
               >
-                {lang === "ar" ? "تصدير CSV" : "Export CSV"}
+                {lang === "ar" ? "تصدير CSV (الفلتر الحالي)" : "Export CSV (current filter)"}
               </button>
               <button
                 type="button"
-                onClick={() => exportArchivePDF(data!, symbol, lang === "ar")}
+                onClick={() => exportArchivePDF(data!, { symbol, category, days, displayCurrency }, lang === "ar")}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/40"
               >
-                {lang === "ar" ? "تصدير PDF" : "Export PDF"}
+                {lang === "ar" ? "تصدير PDF (الفلتر الحالي)" : "Export PDF (current filter)"}
               </button>
             </div>
           )}
