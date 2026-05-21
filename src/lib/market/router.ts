@@ -67,6 +67,10 @@ export interface RouterQuote {
   inflightKey?: string;
   resolverPath?: string;
   rawSymbol?: string;
+  /** The provider-specific symbol string used for the successful (or last attempted) upstream call. */
+  translatedSymbol?: string;
+  /** Per-provider translations attempted, keyed by ProviderId. */
+  translations?: Partial<Record<ProviderId, string>>;
 }
 
 // ---------- Asset resolver ----------
