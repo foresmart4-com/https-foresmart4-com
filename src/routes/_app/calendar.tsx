@@ -128,8 +128,9 @@ function CalendarPage() {
   const [events, setEvents] = useState<EvtItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useBooleanPref("calendar.autoRefresh", true);
   const [impactFilter, setImpactFilter] = useState<"all" | "high" | "medium" | "low">("all");
   const [region, setRegion] = useState<string>("all");
   const [range, setRange] = useState<"all" | "today" | "week">("all");
@@ -138,12 +139,15 @@ function CalendarPage() {
 
   async function load() {
     setRefreshing(true);
+    setError(null);
     try {
       const data = await getEconomicEvents();
       setEvents(data.events as EvtItem[]);
       setSource(data.source || "");
       setMode((data.mode as "live" | "delayed" | "mock") || "mock");
       setLastUpdated(Date.now());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load events");
     } finally { setLoading(false); setRefreshing(false); }
   }
 
