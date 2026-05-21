@@ -1,6 +1,6 @@
 // Market data engine — real prices via CoinGecko (crypto) and Finnhub (stocks/FX/commodities)
 // with graceful fallback to synthetic data when API keys are missing or requests fail.
-import { env, hasFinnhub, fetchJson } from "@/config/env";
+import { env } from "@/config/env";
 
 export type AssetKey = "BTC" | "ETH" | "XAU" | "SPX" | "NDX" | "OIL" | "DXY";
 
