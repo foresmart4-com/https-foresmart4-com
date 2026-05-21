@@ -15,9 +15,12 @@ export interface HistoryPoint {
 export interface AssetHistory {
   symbol: string;
   name: string;
-  category: "crypto" | "metals" | "currencies" | "stocks";
+  category: "crypto" | "metals" | "currencies" | "stocks" | "etf_bond" | "commodity";
   currency: string;
   points: HistoryPoint[];
+  source?: string;
+  supported?: boolean;
+  reason?: string;
 }
 
 type Category = AssetHistory["category"];
