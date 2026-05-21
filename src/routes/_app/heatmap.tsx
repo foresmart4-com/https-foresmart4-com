@@ -73,18 +73,19 @@ function HeatmapPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<PickedAsset | null>(null);
   const [openWatch, setOpenWatch] = useState(false);
   const [openAlert, setOpenAlert] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [respectRisk, setRespectRisk] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useBooleanPref("heatmap.autoRefresh", true);
+  const [respectRisk, setRespectRisk] = useBooleanPref("heatmap.respectRisk", true);
   const [risk] = useRiskTolerance();
 
   async function load() {
     setRefreshing(true);
+    setError(null);
     try {
-      // Compose extras from asset-picker for commodities + ETFs/Bonds (subset to limit batch <=40).
       const extras = [
         ...ASSET_PICKER.commodity.slice(0, 7).map((a) => ({ category: "commodity" as const, symbol: a.symbol, name: a.name })),
         ...ASSET_PICKER.etf_bond.slice(0, 12).map((a) => ({ category: "etf_bond" as const, symbol: a.symbol, name: a.name })),
@@ -119,6 +120,8 @@ function HeatmapPage() {
       });
       setCells(arr);
       setLastUpdated(Date.now());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load market data");
     } finally {
       setLoading(false); setRefreshing(false);
     }
