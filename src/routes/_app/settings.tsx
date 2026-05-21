@@ -34,6 +34,7 @@ function SettingsPage() {
   const { isAdmin } = useAccess();
   const navigate = useNavigate();
   const [currency, setCurrency] = useState("USD");
+  const [risk, setRisk] = useRiskTolerance();
   const subFn = useServerFn(getMySubscription);
   const { data: sub } = useQuery({ queryKey: ["my-sub-settings"], queryFn: () => subFn() });
 
