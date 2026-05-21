@@ -247,7 +247,19 @@ const TTL_MS: Record<AssetClass, number> = {
   unknown: 30_000,
 };
 
-function cacheKey(symbol: string): string { return symbol.toUpperCase(); }
+/**
+ * Composite cache key. Includes asset class, normalized symbol AND the original
+ * raw input so that two different inputs (e.g. "BTC" vs "BTCUSDT" vs "2222.SR")
+ * can never collide — even if normalization were to converge.
+ */
+function buildCacheKey(asset: ResolvedAsset, interval?: string): string {
+  const i = interval ? `@${interval}` : "";
+  return `${asset.assetClass}::${asset.normalized}::${asset.raw}${i}`;
+}
+function buildInflightKey(asset: ResolvedAsset, interval?: string): string {
+  // Distinct from cache key so cache reads never accidentally key into dedup table.
+  return `inflight::${buildCacheKey(asset, interval)}`;
+}
 
 function fromCache(key: string, now = Date.now()): RouterQuote | null {
   const hit = CACHE.get(key);
