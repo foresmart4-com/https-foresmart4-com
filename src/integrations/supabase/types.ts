@@ -878,6 +878,54 @@ export type Database = {
         }
         Relationships: []
       }
+      market_price_candles: {
+        Row: {
+          asset_class: string
+          close: number
+          created_at: string
+          data_mode: string
+          high: number | null
+          id: string
+          interval: string
+          low: number | null
+          open: number | null
+          provider: string
+          symbol: string
+          timestamp: string
+          volume: number | null
+        }
+        Insert: {
+          asset_class: string
+          close: number
+          created_at?: string
+          data_mode?: string
+          high?: number | null
+          id?: string
+          interval: string
+          low?: number | null
+          open?: number | null
+          provider: string
+          symbol: string
+          timestamp: string
+          volume?: number | null
+        }
+        Update: {
+          asset_class?: string
+          close?: number
+          created_at?: string
+          data_mode?: string
+          high?: number | null
+          id?: string
+          interval?: string
+          low?: number | null
+          open?: number | null
+          provider?: string
+          symbol?: string
+          timestamp?: string
+          volume?: number | null
+        }
+        Relationships: []
+      }
       paper_balances: {
         Row: {
           cash_usd: number

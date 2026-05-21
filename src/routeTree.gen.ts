@@ -38,6 +38,7 @@ import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppMarketsRouteImport } from './routes/_app/markets'
 import { Route as AppMarketUniverseRouteImport } from './routes/_app/market-universe'
 import { Route as AppMarketIntelligenceRouteImport } from './routes/_app/market-intelligence'
+import { Route as AppMarketHistoryRouteImport } from './routes/_app/market-history'
 import { Route as AppMarketDataMonitorRouteImport } from './routes/_app/market-data-monitor'
 import { Route as AppHelpRouteImport } from './routes/_app/help'
 import { Route as AppHeatmapRouteImport } from './routes/_app/heatmap'
@@ -72,6 +73,7 @@ import { Route as ApiWebhooksPaddleRouteImport } from './routes/api/webhooks/pad
 import { Route as ApiWebhooksLemonsqueezyRouteImport } from './routes/api/webhooks/lemonsqueezy'
 import { Route as ApiPublicRouterTestRouteImport } from './routes/api/public/router-test'
 import { Route as ApiPublicMoyasarWebhookRouteImport } from './routes/api/public/moyasar-webhook'
+import { Route as ApiPublicHistoryTestRouteImport } from './routes/api/public/history-test'
 import { Route as ApiPublicEmailConfigCheckRouteImport } from './routes/api/public/email-config-check'
 import { Route as ApiFinnhubStreamRouteImport } from './routes/api/finnhub/stream'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -223,6 +225,11 @@ const AppMarketUniverseRoute = AppMarketUniverseRouteImport.update({
 const AppMarketIntelligenceRoute = AppMarketIntelligenceRouteImport.update({
   id: '/market-intelligence',
   path: '/market-intelligence',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMarketHistoryRoute = AppMarketHistoryRouteImport.update({
+  id: '/market-history',
+  path: '/market-history',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMarketDataMonitorRoute = AppMarketDataMonitorRouteImport.update({
@@ -395,6 +402,11 @@ const ApiPublicMoyasarWebhookRoute = ApiPublicMoyasarWebhookRouteImport.update({
   path: '/api/public/moyasar-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHistoryTestRoute = ApiPublicHistoryTestRouteImport.update({
+  id: '/api/public/history-test',
+  path: '/api/public/history-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicEmailConfigCheckRoute =
   ApiPublicEmailConfigCheckRouteImport.update({
     id: '/api/public/email-config-check',
@@ -479,6 +491,7 @@ export interface FileRoutesByFullPath {
   '/heatmap': typeof AppHeatmapRoute
   '/help': typeof AppHelpRoute
   '/market-data-monitor': typeof AppMarketDataMonitorRoute
+  '/market-history': typeof AppMarketHistoryRoute
   '/market-intelligence': typeof AppMarketIntelligenceRoute
   '/market-universe': typeof AppMarketUniverseRoute
   '/markets': typeof AppMarketsRoute
@@ -500,6 +513,7 @@ export interface FileRoutesByFullPath {
   '/watchlists': typeof AppWatchlistsRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
+  '/api/public/history-test': typeof ApiPublicHistoryTestRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
@@ -551,6 +565,7 @@ export interface FileRoutesByTo {
   '/heatmap': typeof AppHeatmapRoute
   '/help': typeof AppHelpRoute
   '/market-data-monitor': typeof AppMarketDataMonitorRoute
+  '/market-history': typeof AppMarketHistoryRoute
   '/market-intelligence': typeof AppMarketIntelligenceRoute
   '/market-universe': typeof AppMarketUniverseRoute
   '/markets': typeof AppMarketsRoute
@@ -572,6 +587,7 @@ export interface FileRoutesByTo {
   '/watchlists': typeof AppWatchlistsRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
+  '/api/public/history-test': typeof ApiPublicHistoryTestRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
@@ -625,6 +641,7 @@ export interface FileRoutesById {
   '/_app/heatmap': typeof AppHeatmapRoute
   '/_app/help': typeof AppHelpRoute
   '/_app/market-data-monitor': typeof AppMarketDataMonitorRoute
+  '/_app/market-history': typeof AppMarketHistoryRoute
   '/_app/market-intelligence': typeof AppMarketIntelligenceRoute
   '/_app/market-universe': typeof AppMarketUniverseRoute
   '/_app/markets': typeof AppMarketsRoute
@@ -646,6 +663,7 @@ export interface FileRoutesById {
   '/_app/watchlists': typeof AppWatchlistsRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
+  '/api/public/history-test': typeof ApiPublicHistoryTestRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
@@ -699,6 +717,7 @@ export interface FileRouteTypes {
     | '/heatmap'
     | '/help'
     | '/market-data-monitor'
+    | '/market-history'
     | '/market-intelligence'
     | '/market-universe'
     | '/markets'
@@ -720,6 +739,7 @@ export interface FileRouteTypes {
     | '/watchlists'
     | '/api/finnhub/stream'
     | '/api/public/email-config-check'
+    | '/api/public/history-test'
     | '/api/public/moyasar-webhook'
     | '/api/public/router-test'
     | '/api/webhooks/lemonsqueezy'
@@ -771,6 +791,7 @@ export interface FileRouteTypes {
     | '/heatmap'
     | '/help'
     | '/market-data-monitor'
+    | '/market-history'
     | '/market-intelligence'
     | '/market-universe'
     | '/markets'
@@ -792,6 +813,7 @@ export interface FileRouteTypes {
     | '/watchlists'
     | '/api/finnhub/stream'
     | '/api/public/email-config-check'
+    | '/api/public/history-test'
     | '/api/public/moyasar-webhook'
     | '/api/public/router-test'
     | '/api/webhooks/lemonsqueezy'
@@ -844,6 +866,7 @@ export interface FileRouteTypes {
     | '/_app/heatmap'
     | '/_app/help'
     | '/_app/market-data-monitor'
+    | '/_app/market-history'
     | '/_app/market-intelligence'
     | '/_app/market-universe'
     | '/_app/markets'
@@ -865,6 +888,7 @@ export interface FileRouteTypes {
     | '/_app/watchlists'
     | '/api/finnhub/stream'
     | '/api/public/email-config-check'
+    | '/api/public/history-test'
     | '/api/public/moyasar-webhook'
     | '/api/public/router-test'
     | '/api/webhooks/lemonsqueezy'
@@ -891,6 +915,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   ApiFinnhubStreamRoute: typeof ApiFinnhubStreamRoute
   ApiPublicEmailConfigCheckRoute: typeof ApiPublicEmailConfigCheckRoute
+  ApiPublicHistoryTestRoute: typeof ApiPublicHistoryTestRoute
   ApiPublicMoyasarWebhookRoute: typeof ApiPublicMoyasarWebhookRoute
   ApiPublicRouterTestRoute: typeof ApiPublicRouterTestRoute
   ApiWebhooksLemonsqueezyRoute: typeof ApiWebhooksLemonsqueezyRoute
@@ -1107,6 +1132,13 @@ declare module '@tanstack/react-router' {
       path: '/market-intelligence'
       fullPath: '/market-intelligence'
       preLoaderRoute: typeof AppMarketIntelligenceRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/market-history': {
+      id: '/_app/market-history'
+      path: '/market-history'
+      fullPath: '/market-history'
+      preLoaderRoute: typeof AppMarketHistoryRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/market-data-monitor': {
@@ -1347,6 +1379,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMoyasarWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/history-test': {
+      id: '/api/public/history-test'
+      path: '/api/public/history-test'
+      fullPath: '/api/public/history-test'
+      preLoaderRoute: typeof ApiPublicHistoryTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/email-config-check': {
       id: '/api/public/email-config-check'
       path: '/api/public/email-config-check'
@@ -1436,6 +1475,7 @@ interface AppRouteChildren {
   AppHeatmapRoute: typeof AppHeatmapRoute
   AppHelpRoute: typeof AppHelpRoute
   AppMarketDataMonitorRoute: typeof AppMarketDataMonitorRoute
+  AppMarketHistoryRoute: typeof AppMarketHistoryRoute
   AppMarketIntelligenceRoute: typeof AppMarketIntelligenceRoute
   AppMarketUniverseRoute: typeof AppMarketUniverseRoute
   AppMarketsRoute: typeof AppMarketsRoute
@@ -1487,6 +1527,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppHeatmapRoute: AppHeatmapRoute,
   AppHelpRoute: AppHelpRoute,
   AppMarketDataMonitorRoute: AppMarketDataMonitorRoute,
+  AppMarketHistoryRoute: AppMarketHistoryRoute,
   AppMarketIntelligenceRoute: AppMarketIntelligenceRoute,
   AppMarketUniverseRoute: AppMarketUniverseRoute,
   AppMarketsRoute: AppMarketsRoute,
@@ -1523,6 +1564,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   ApiFinnhubStreamRoute: ApiFinnhubStreamRoute,
   ApiPublicEmailConfigCheckRoute: ApiPublicEmailConfigCheckRoute,
+  ApiPublicHistoryTestRoute: ApiPublicHistoryTestRoute,
   ApiPublicMoyasarWebhookRoute: ApiPublicMoyasarWebhookRoute,
   ApiPublicRouterTestRoute: ApiPublicRouterTestRoute,
   ApiWebhooksLemonsqueezyRoute: ApiWebhooksLemonsqueezyRoute,
