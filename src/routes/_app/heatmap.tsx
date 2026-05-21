@@ -75,6 +75,10 @@ function HeatmapPage() {
   const [picked, setPicked] = useState<PickedAsset | null>(null);
   const [openWatch, setOpenWatch] = useState(false);
   const [openAlert, setOpenAlert] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [respectRisk, setRespectRisk] = useState(true);
+  const risk = useRiskTolerance();
 
   async function load() {
     setRefreshing(true);
