@@ -671,6 +671,9 @@ export function getRouterDiagnostics() {
   const cooldowns: Record<string, { until: number; reason: string; lastError: string }> = {};
   for (const [k, v] of COOLDOWN) cooldowns[k] = v;
   return {
+    providerPriority: Object.fromEntries(
+      Object.entries(CHAINS).map(([assetClass, chain]) => [assetClass, [...chain]]),
+    ) as Record<AssetClass, ProviderId[]>,
     metrics: getRouterMetrics(),
     cooldowns,
     cacheSize: CACHE.size,
