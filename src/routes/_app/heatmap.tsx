@@ -23,7 +23,8 @@ import { ASSET_PICKER } from "@/lib/asset-picker";
 import { AddToWatchlistDialog } from "@/components/pickers/AddToWatchlistDialog";
 import { CreateAlertDialog } from "@/components/pickers/CreateAlertDialog";
 import type { PickedAsset } from "@/components/pickers/AssetPickerDialog";
-import { useRiskTolerance, maxVolatilityPctForRisk, riskLabel } from "@/lib/investor-prefs";
+import { useRiskTolerance, maxVolatilityPctForRisk, riskLabel, useBooleanPref } from "@/lib/investor-prefs";
+import { AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/_app/heatmap")({
   component: HeatmapPage,
