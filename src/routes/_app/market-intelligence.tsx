@@ -83,9 +83,15 @@ function MarketIntelligencePage() {
   const callAddAsset = useServerFn(addUserAsset);
   
 
-  const [category, setCategory] = useState<IntelCategory>("us_stock");
-  const [selected, setSelected] = useState<PickerAsset | null>(ASSET_PICKER.us_stock[0]);
-  const [customSymbol, setCustomSymbol] = useState("");
+  const search = Route.useSearch();
+  const initialCategory: IntelCategory = (search.category && (ASSET_PICKER as any)[search.category]) ? search.category : "us_stock";
+  const initialAsset = search.symbol
+    ? (findAsset(initialCategory, search.symbol) ?? { symbol: search.symbol, name: search.symbol, category: initialCategory } as PickerAsset)
+    : ASSET_PICKER[initialCategory][0];
+
+  const [category, setCategory] = useState<IntelCategory>(initialCategory);
+  const [selected, setSelected] = useState<PickerAsset | null>(initialAsset);
+  const [customSymbol, setCustomSymbol] = useState(search.symbol && !findAsset(initialCategory, search.symbol) ? search.symbol : "");
 
   const [quote, setQuote] = useState<UniversalQuote | null>(null);
   const [verdict, setVerdict] = useState<AssetVerdict | null>(null);
@@ -93,6 +99,7 @@ function MarketIntelligencePage() {
   const [err, setErr] = useState<string | null>(null);
   const [wlOpen, setWlOpen] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
+
 
   const CAT_TO_ASSET_TYPE: Record<IntelCategory, "US_STOCK" | "SAUDI_STOCK" | "CRYPTO" | "METAL" | "COMMODITY" | "ETF"> = {
     us_stock: "US_STOCK", sa_stock: "SAUDI_STOCK", crypto: "CRYPTO",
