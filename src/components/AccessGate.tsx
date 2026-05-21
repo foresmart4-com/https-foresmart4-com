@@ -57,6 +57,11 @@ export function AccessGate({ children }: { children: ReactNode }) {
           <div className="max-h-[50vh] overflow-y-auto rounded-lg bg-muted/30 p-4 text-sm leading-relaxed text-foreground/90">
             {t("disclaimerBody")}
           </div>
+          <div className="mt-2 text-end">
+            <a href="/disclaimer" target="_blank" rel="noreferrer" className="text-xs text-primary underline-offset-2 hover:underline">
+              {t("readFullDetails") || (typeof document !== "undefined" && document.documentElement.lang === "ar" ? "قراءة التفاصيل الكاملة" : "Read full details")}
+            </a>
+          </div>
           <label className="mt-5 flex items-start gap-3 cursor-pointer">
             <Checkbox checked={agree} onCheckedChange={(v) => setAgree(v === true)} className="mt-0.5" />
             <span className="text-sm">{t("iAccept")}</span>
