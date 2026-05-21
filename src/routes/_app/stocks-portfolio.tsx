@@ -1,129 +1,37 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createServerFn, useServerFn } from "@tanstack/react-start";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Card } from "@/components/ui/card";
+import { AlertCircle, Briefcase, CheckCircle2, RefreshCw, ShieldCheck, TrendingUp } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getAlpacaPortfolio, type AlpacaPortfolioResult } from "@/lib/alpaca.server";
 import { useI18n } from "@/lib/i18n";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import {
-  placeStockOrder, cancelStockOrder,
-  getRecentStockDecisions, previewStockOrderRisk,
-} from "@/lib/stockBroker.functions";
-import { Briefcase, RefreshCw, ShieldAlert, Shield, AlertTriangle, Building2, LineChart, CheckCircle2 } from "lucide-react";
-
-type AlpacaAccountRaw = Record<string, string | boolean | null | undefined>;
-type AlpacaPositionRaw = Record<string, string | null | undefined>;
-type AlpacaOrderRaw = Record<string, string | null | undefined>;
 
 const LIVE_TRADING_ENABLED = false;
 
-function cleanEnvValue(value: string | undefined): string {
-  return (value ?? "").trim().replace(/^[A-Z_]+\s*=\s*/i, "").replace(/^['\"]|['\"]$/g, "");
-}
-
-const syncAlpacaPortfolio = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async () => {
-    const baseUrl = cleanEnvValue(process.env.ALPACA_BASE_URL).replace(/\/+$/, "");
-    const apiKey = cleanEnvValue(process.env.ALPACA_API_KEY || process.env.ALPACA_API_KEY_ID);
-    const apiSecret = cleanEnvValue(process.env.ALPACA_SECRET_KEY || process.env.ALPACA_API_SECRET_KEY);
-
-    console.info(`hasKey=${Boolean(apiKey)}`);
-    console.info(`hasSecret=${Boolean(apiSecret)}`);
-    console.info(`baseUrl=${baseUrl || "missing"}`);
-
-    if (!baseUrl || !apiKey || !apiSecret) {
-      return {
-        ok: false as const,
-        status: "not_configured" as const,
-        provider: "alpaca" as const,
-        liveTradingEnabled: LIVE_TRADING_ENABLED,
-        reason: "Alpaca credentials are not configured",
-      };
-    }
-
-    const headers = {
-      "APCA-API-KEY-ID": apiKey,
-      "APCA-API-SECRET-KEY": apiSecret,
-      "Content-Type": "application/json",
-    };
-
-    const requestAlpaca = async <T,>(path: string): Promise<T> => {
-      const response = await fetch(`${baseUrl}${path}`, { method: "GET", headers });
-      if (!response.ok) {
-        const body = await response.text().catch(() => "");
-        console.error(`Alpaca ${path} failed status=${response.status} body=${body.slice(0, 180)}`);
-        throw new Error(`Alpaca request failed (${response.status})`);
-      }
-      return (await response.json()) as T;
-    };
-
-    try {
-      const [account, positions, orders] = await Promise.all([
-        requestAlpaca<AlpacaAccountRaw>("/v2/account"),
-        requestAlpaca<AlpacaPositionRaw[]>("/v2/positions"),
-        requestAlpaca<AlpacaOrderRaw[]>("/v2/orders?status=open&limit=100"),
-      ]);
-
-      return {
-        ok: true as const,
-        status: "connected" as const,
-        provider: "alpaca" as const,
-        liveTradingEnabled: LIVE_TRADING_ENABLED,
-        account: {
-          accountId: String(account.id ?? ""),
-          status: String(account.status ?? ""),
-          currency: String(account.currency ?? "USD"),
-          cash: Number(account.cash ?? 0),
-          equity: Number(account.portfolio_value ?? account.equity ?? 0),
-          buyingPower: Number(account.buying_power ?? 0),
-          tradingBlocked: account.trading_blocked === "true" || account.account_blocked === "true",
-        },
-        positions: positions.map((position) => ({
-          symbol: String(position.symbol ?? ""),
-          qty: Number(position.qty ?? 0),
-          avgPrice: Number(position.avg_entry_price ?? 0),
-          marketPrice: Number(position.current_price ?? 0),
-          marketValue: Number(position.market_value ?? 0),
-          unrealizedPnl: Number(position.unrealized_pl ?? 0),
-          unrealizedPnlPct: Number(position.unrealized_plpc ?? 0) * 100,
-          side: (position.side === "short" ? "short" : "long") as "long" | "short",
-        })),
-        orders: orders.map((order) => ({
-          id: String(order.id ?? ""),
-          symbol: String(order.symbol ?? ""),
-          side: String(order.side ?? ""),
-          type: String(order.type ?? ""),
-          qty: Number(order.qty ?? 0),
-          limitPrice: order.limit_price ? Number(order.limit_price) : undefined,
-          status: String(order.status ?? ""),
-          filledQty: Number(order.filled_qty ?? 0),
-        })),
-        syncedAt: Date.now(),
-      };
-    } catch (error) {
-      return {
-        ok: false as const,
-        status: "error" as const,
-        provider: "alpaca" as const,
-        liveTradingEnabled: LIVE_TRADING_ENABLED,
-        reason: (error as Error).message,
-      };
-    }
-  });
+type PortfolioSuccess = Extract<AlpacaPortfolioResult, { ok: true }>;
+type Position = PortfolioSuccess["data"]["positions"][number];
+type OpenOrder = PortfolioSuccess["data"]["orders"][number];
+type PreviewOrder = {
+  symbol: string;
+  side: "buy" | "sell";
+  type: "market" | "limit";
+  qty: number;
+  limitPrice?: number;
+};
 
 export const Route = createFileRoute("/_app/stocks-portfolio")({
   head: () => ({
     meta: [
       { title: "Stocks Portfolio — ForeSmart" },
-      { name: "description", content: "Real stock portfolio powered by Alpaca / Interactive Brokers with server-side risk guard." },
+      { name: "description", content: "Alpaca paper portfolio, positions, open orders, and stock order previews." },
     ],
   }),
   component: StocksPortfolioPage,
@@ -132,310 +40,241 @@ export const Route = createFileRoute("/_app/stocks-portfolio")({
 function StocksPortfolioPage() {
   const { lang, dir } = useI18n();
   const ar = lang === "ar";
-  const qc = useQueryClient();
-  const fetchPortfolio = useServerFn(syncAlpacaPortfolio);
-  const placeOrderFn = useServerFn(placeStockOrder);
-  const cancelOrderFn = useServerFn(cancelStockOrder);
-  const decisionsFn = useServerFn(getRecentStockDecisions);
-  const previewRiskFn = useServerFn(previewStockOrderRisk);
+  const fetchPortfolio = useServerFn(getAlpacaPortfolio);
+  const [lastSyncState, setLastSyncState] = useState<"idle" | "syncing" | "connected" | "error">("idle");
 
   const portfolio = useQuery({
-    queryKey: ["stocks-portfolio"],
-    queryFn: () => fetchPortfolio(),
-    refetchInterval: 30_000,
-  });
-  const decisions = useQuery({
-    queryKey: ["stock-decisions"],
-    queryFn: () => decisionsFn({ data: { limit: 15 } }),
-    refetchInterval: 30_000,
-  });
-
-  type OrderPayload = { symbol: string; side: "buy" | "sell"; type: "market" | "limit"; qty: number; limitPrice?: number; timeInForce: "day" | "gtc" };
-  const place = useMutation({
-    mutationFn: (input: OrderPayload) => placeOrderFn({ data: input }),
-    onSuccess: (r) => {
-      if (r.ok && r.status === "preview") {
-        const allowed = (r as { allowed?: boolean }).allowed !== false;
-        if (allowed) toast.success(ar ? "معاينة الأمر (LIVE معطّل) — مسموح به" : "Preview only (LIVE off) — allowed");
-        else toast.error(ar ? `الأمر مرفوض: ${r.reason ?? ""}` : `Order rejected: ${r.reason ?? ""}`);
-      }
-      else if (r.ok && r.status === "placed") toast.success(ar ? "تم إرسال الأمر" : "Order placed");
-      else if (!r.ok) toast.error((r as { reason?: string }).reason ?? (ar ? "فشل الأمر" : "Order failed"));
-      qc.invalidateQueries({ queryKey: ["stocks-portfolio"] });
-      qc.invalidateQueries({ queryKey: ["stock-decisions"] });
+    queryKey: ["alpaca-portfolio"],
+    queryFn: async () => {
+      setLastSyncState("syncing");
+      const result = await fetchPortfolio();
+      setLastSyncState(result.ok ? "connected" : "error");
+      return result;
     },
-    onError: (e: Error) => toast.error(e.message),
+    refetchOnWindowFocus: false,
   });
 
-  const cancel = useMutation({
-    mutationFn: (orderId: string) => cancelOrderFn({ data: { orderId } }),
-    onSuccess: () => { toast.success(ar ? "تم إلغاء الأمر" : "Order canceled"); qc.invalidateQueries({ queryKey: ["stocks-portfolio"] }); },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const data = portfolio.data;
-  const configured = data && "ok" in data && data.ok && data.status === "connected";
+  const connected = portfolio.data?.ok === true;
+  const syncLabel = portfolio.isFetching
+    ? ar ? "جارٍ مزامنة Alpaca..." : "Syncing Alpaca…"
+    : ar ? "مزامنة Alpaca" : "Sync Alpaca";
 
   return (
-    <div className="container mx-auto max-w-6xl space-y-6 p-6" dir={dir}>
-      <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-1">
+    <main className="container mx-auto max-w-6xl space-y-6 p-6" dir={dir}>
+      <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="space-y-2">
           <div className="flex items-center gap-2">
             <Briefcase className="h-6 w-6 text-primary" />
             <h1 className="font-display text-3xl font-bold">{ar ? "محفظة الأسهم" : "Stocks Portfolio"}</h1>
           </div>
           <p className="text-sm text-muted-foreground">
-            {ar ? "أرصدة وأوامر حقيقية عبر Alpaca / Interactive Brokers." : "Real balances and orders via Alpaca / Interactive Brokers."}
+            {ar ? "اتصال مباشر من السيرفر مع Alpaca Paper API بدون أي طلبات من الواجهة إلى Alpaca." : "Server-side Alpaca Paper API connection with no frontend requests to Alpaca."}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {configured && data.provider === "alpaca" && (
-            <Badge variant="default" className="gap-1 bg-success text-success-foreground">
-              <CheckCircle2 className="h-3 w-3" />
-              Alpaca Connected
-            </Badge>
-          )}
+        <div className="flex flex-wrap items-center gap-2">
+          <ConnectionBadge connected={connected} syncing={portfolio.isFetching} lastSyncState={lastSyncState} />
           <Button variant="outline" onClick={() => portfolio.refetch()} disabled={portfolio.isFetching} className="gap-2">
             <RefreshCw className={`h-4 w-4 ${portfolio.isFetching ? "animate-spin" : ""}`} />
-            {data && "provider" in data && data.provider === "alpaca"
-              ? (portfolio.isFetching ? (ar ? "جارٍ المزامنة..." : "Syncing…") : (ar ? "مزامنة Alpaca" : "Sync Alpaca"))
-              : (ar ? "تحديث" : "Refresh")}
+            {syncLabel}
           </Button>
         </div>
       </header>
 
-      {data && (
-        <Alert className={configured ? "border-success/40" : "border-warning/40"}>
-          <Building2 className="h-4 w-4" />
-          <AlertDescription className="flex flex-wrap items-center gap-2 text-sm">
-            <Badge variant="secondary" className="uppercase">{data.provider}</Badge>
-            {configured && (
-              <Badge variant="default" className="gap-1 bg-success text-success-foreground">
-                <CheckCircle2 className="h-3 w-3" />
-                {data.provider === "alpaca" ? "Alpaca Connected" : (ar ? "متصل" : "Connected")}
-              </Badge>
-            )}
-            <Badge variant={data.liveTradingEnabled ? "default" : "outline"}>
-              {data.liveTradingEnabled ? (ar ? "تداول حقيقي مفعّل" : "Live trading ON") : (ar ? "معاينة فقط — التداول الحقيقي معطل" : "Preview only — live trading disabled")}
-            </Badge>
-            {!configured && (
-              <span className="text-muted-foreground">
-                {ar ? "الوسيط غير مهيأ:" : "Broker not configured:"} {("reason" in data && data.reason) || ""}
-              </span>
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
+      <Alert className={connected ? "border-success/40" : "border-warning/40"}>
+        {connected ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+        <AlertDescription className="flex flex-wrap items-center gap-2 text-sm">
+          <Badge variant="secondary">BROKER_PROVIDER=alpaca</Badge>
+          <Badge variant={LIVE_TRADING_ENABLED ? "default" : "outline"}>
+            {LIVE_TRADING_ENABLED ? (ar ? "التداول الحقيقي مفعّل" : "Live trading ON") : (ar ? "Preview فقط — التداول الحقيقي معطّل" : "Preview only — live trading disabled")}
+          </Badge>
+          {!connected && portfolio.data && !portfolio.data.ok && <span className="text-muted-foreground">{portfolio.data.error}</span>}
+        </AlertDescription>
+      </Alert>
 
-      {configured && (
+      {portfolio.isLoading && <LoadingState />}
+
+      {connected && (
         <>
-          <AccountCard account={data.account} />
-
-          <OrderTicket
-            onSubmit={(o) => place.mutate(o)}
-            onPreviewRisk={(o) => previewRiskFn({ data: o })}
-            pending={place.isPending}
-            liveTradingEnabled={data.liveTradingEnabled}
-          />
-
-          <PositionsTable positions={data.positions} />
-          <OrdersTable orders={data.orders} onCancel={(id) => cancel.mutate(id)} canCancel={data.liveTradingEnabled} />
-          <DecisionsTable rows={(decisions.data && "decisions" in decisions.data ? decisions.data.decisions : []) as DecisionRow[]} />
+          <AccountOverview account={portfolio.data.data.account} />
+          <PreviewOrderTicket />
+          <PositionsTable positions={portfolio.data.data.positions} />
+          <OpenOrdersTable orders={portfolio.data.data.orders} />
         </>
       )}
-    </div>
+    </main>
   );
 }
 
-function AccountCard({ account }: {
-  account: { accountId: string; status: string; currency: string; cash: number; equity: number; buyingPower: number };
-}) {
-  const { lang } = useI18n(); const ar = lang === "ar";
+function ConnectionBadge({ connected, syncing, lastSyncState }: { connected: boolean; syncing: boolean; lastSyncState: "idle" | "syncing" | "connected" | "error" }) {
+  if (syncing || lastSyncState === "syncing") {
+    return <Badge variant="outline" className="gap-1"><RefreshCw className="h-3 w-3 animate-spin" /> Alpaca Syncing</Badge>;
+  }
+  if (connected) {
+    return <Badge className="gap-1 bg-success text-success-foreground"><CheckCircle2 className="h-3 w-3" /> Alpaca Connected</Badge>;
+  }
+  return <Badge variant="destructive" className="gap-1"><AlertCircle className="h-3 w-3" /> Alpaca Not Connected</Badge>;
+}
+
+function LoadingState() {
   return (
-    <Card className="grid gap-3 p-4 md:grid-cols-4">
-      <Stat label="Portfolio Value" value={fmtUsd(account.equity, account.currency)} />
-      <Stat label="Cash" value={fmtUsd(account.cash, account.currency)} />
-      <Stat label="Buying Power" value={fmtUsd(account.buyingPower, account.currency)} />
-      <Stat label={ar ? "حالة الحساب" : "Account Status"} value={account.status || "—"} mono />
+    <Card className="p-6">
+      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+        <RefreshCw className="h-4 w-4 animate-spin" />
+        Loading Alpaca portfolio…
+      </div>
     </Card>
   );
 }
 
-type OrderInput = { symbol: string; side: "buy" | "sell"; type: "market" | "limit"; qty: number; limitPrice?: number; timeInForce: "day" | "gtc" };
-type RiskPreview = {
-  ok: boolean;
-  status?: string;
-  reason?: string;
-  refPrice?: number;
-  risk?: { allowed: boolean; reason?: string; notionalUsd: number; dailyPnlUsd: number; emergencyStopActive: boolean; config: { maxOrderNotionalUsd: number; dailyLossLimitUsd: number } };
-};
+function AccountOverview({ account }: { account: PortfolioSuccess["data"]["account"] }) {
+  const { lang } = useI18n();
+  const ar = lang === "ar";
+  return (
+    <section className="grid gap-3 md:grid-cols-4">
+      <Metric label="Alpaca Connected" value={account.status || "ACTIVE"} tone="success" />
+      <Metric label="Portfolio Value" value={formatUsd(account.portfolioValue, account.currency)} />
+      <Metric label="Cash" value={formatUsd(account.cash, account.currency)} />
+      <Metric label="Buying Power" value={formatUsd(account.buyingPower, account.currency)} />
+      <div className="md:col-span-4">
+        <Alert className="border-primary/30">
+          <ShieldCheck className="h-4 w-4" />
+          <AlertDescription className="text-sm">
+            {ar ? "كل أوامر Buy/Sell أدناه Preview فقط حالياً، ولن يتم إرسال أي أمر حقيقي قبل تغيير LIVE_TRADING_ENABLED إلى true من السيرفر." : "Buy/Sell orders below are preview-only and will not be sent live until LIVE_TRADING_ENABLED is true on the server."}
+          </AlertDescription>
+        </Alert>
+      </div>
+    </section>
+  );
+}
 
-function OrderTicket({ onSubmit, onPreviewRisk, pending, liveTradingEnabled }: {
-  onSubmit: (o: OrderInput) => void;
-  onPreviewRisk: (o: OrderInput) => Promise<RiskPreview>;
-  pending: boolean; liveTradingEnabled: boolean;
-}) {
-  const { lang } = useI18n(); const ar = lang === "ar";
+function PreviewOrderTicket() {
+  const { lang } = useI18n();
+  const ar = lang === "ar";
   const [symbol, setSymbol] = useState("AAPL");
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [type, setType] = useState<"market" | "limit">("market");
   const [qty, setQty] = useState("1");
   const [limitPrice, setLimitPrice] = useState("");
-  const [tif, setTif] = useState<"day" | "gtc">("day");
-  const [preview, setPreview] = useState<RiskPreview | null>(null);
-  const [checking, setChecking] = useState(false);
+  const [preview, setPreview] = useState<PreviewOrder | null>(null);
 
-  const buildOrder = (): OrderInput => ({
-    symbol, side, type, qty: Number(qty),
-    limitPrice: type === "limit" ? Number(limitPrice) : undefined,
-    timeInForce: tif,
-  });
-  const invalid = !symbol || !(Number(qty) > 0) || (type === "limit" && !(Number(limitPrice) > 0));
-  const handleCheck = async () => {
-    setChecking(true);
-    try { setPreview(await onPreviewRisk(buildOrder())); }
-    catch (e) { setPreview({ ok: false, reason: (e as Error).message }); }
-    finally { setChecking(false); }
+  const normalizedSymbol = symbol.trim().toUpperCase();
+  const qtyNumber = Number(qty);
+  const limitNumber = Number(limitPrice);
+  const usStockSymbol = /^[A-Z][A-Z0-9.-]{0,9}$/.test(normalizedSymbol);
+  const invalid = !usStockSymbol || !(qtyNumber > 0) || (type === "limit" && !(limitNumber > 0));
+
+  const notional = useMemo(() => {
+    if (type !== "limit" || !(qtyNumber > 0) || !(limitNumber > 0)) return undefined;
+    return qtyNumber * limitNumber;
+  }, [limitNumber, qtyNumber, type]);
+
+  const createPreview = () => {
+    if (invalid) {
+      toast.error(ar ? "أدخل رمز سهم أمريكي وكمية صحيحة." : "Enter a valid US stock symbol and quantity.");
+      return;
+    }
+    const order = {
+      symbol: normalizedSymbol,
+      side,
+      type,
+      qty: qtyNumber,
+      limitPrice: type === "limit" ? limitNumber : undefined,
+    };
+    setPreview(order);
+    toast.success(ar ? "تم إنشاء Preview بدون تنفيذ حقيقي." : "Preview created without live execution.");
   };
 
   return (
-    <Card className="p-4 space-y-3">
-      <div className="flex items-center gap-2">
-        <LineChart className="h-4 w-4 text-primary" />
-        <h2 className="font-display text-lg font-semibold">{ar ? "إنشاء أمر" : "New Order"}</h2>
-        {!liveTradingEnabled && (
-          <Badge variant="outline" className="ms-auto gap-1 text-warning"><AlertTriangle className="h-3 w-3" /> {ar ? "معاينة فقط" : "Preview only"}</Badge>
-        )}
+    <Card className="space-y-4 p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <TrendingUp className="h-4 w-4 text-primary" />
+        <h2 className="font-display text-lg font-semibold">{ar ? "Buy/Sell Preview للأسهم الأمريكية" : "US Stock Buy/Sell Preview"}</h2>
+        <Badge variant="outline" className="ms-auto">{ar ? "لا تنفيذ حقيقي" : "No live execution"}</Badge>
       </div>
-      <div className="grid gap-3 md:grid-cols-6">
+
+      <div className="grid gap-3 md:grid-cols-5">
         <Field label={ar ? "الرمز" : "Symbol"}>
-          <Input value={symbol} onChange={(e) => setSymbol(e.target.value.toUpperCase())} className="font-mono uppercase" maxLength={10} />
+          <Input value={symbol} onChange={(event) => setSymbol(event.target.value.toUpperCase())} className="font-mono uppercase" maxLength={10} />
         </Field>
         <Field label={ar ? "الاتجاه" : "Side"}>
-          <Select value={side} onValueChange={(v) => setSide(v as "buy" | "sell")}>
+          <Select value={side} onValueChange={(value) => setSide(value as "buy" | "sell")}>
             <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="buy">{ar ? "شراء" : "Buy"}</SelectItem><SelectItem value="sell">{ar ? "بيع" : "Sell"}</SelectItem></SelectContent>
+            <SelectContent>
+              <SelectItem value="buy">{ar ? "شراء" : "Buy"}</SelectItem>
+              <SelectItem value="sell">{ar ? "بيع" : "Sell"}</SelectItem>
+            </SelectContent>
           </Select>
         </Field>
-        <Field label={ar ? "النوع" : "Type"}>
-          <Select value={type} onValueChange={(v) => setType(v as "market" | "limit")}>
+        <Field label={ar ? "نوع الأمر" : "Order Type"}>
+          <Select value={type} onValueChange={(value) => setType(value as "market" | "limit")}>
             <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="market">Market</SelectItem><SelectItem value="limit">Limit</SelectItem></SelectContent>
+            <SelectContent>
+              <SelectItem value="market">Market</SelectItem>
+              <SelectItem value="limit">Limit</SelectItem>
+            </SelectContent>
           </Select>
         </Field>
         <Field label={ar ? "الكمية" : "Qty"}>
-          <Input value={qty} onChange={(e) => setQty(e.target.value)} inputMode="decimal" />
+          <Input value={qty} onChange={(event) => setQty(event.target.value)} inputMode="decimal" />
         </Field>
-        <Field label={ar ? "سعر الحد" : "Limit Price"}>
-          <Input value={limitPrice} disabled={type !== "limit"} onChange={(e) => setLimitPrice(e.target.value)} inputMode="decimal" />
-        </Field>
-        <Field label={ar ? "السريان" : "TIF"}>
-          <Select value={tif} onValueChange={(v) => setTif(v as "day" | "gtc")}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="day">Day</SelectItem><SelectItem value="gtc">GTC</SelectItem></SelectContent>
-          </Select>
+        <Field label={ar ? "سعر Limit" : "Limit Price"}>
+          <Input value={limitPrice} onChange={(event) => setLimitPrice(event.target.value)} inputMode="decimal" disabled={type !== "limit"} />
         </Field>
       </div>
 
-      <RiskGuardPreview preview={preview} />
+      {!usStockSymbol && <p className="text-xs text-destructive">{ar ? "يسمح برموز الأسهم الأمريكية فقط مثل AAPL أو MSFT." : "US stock symbols only, such as AAPL or MSFT."}</p>}
 
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" disabled={invalid || checking} onClick={handleCheck}>
-          <Shield className="h-4 w-4 me-1" /> {checking ? (ar ? "فحص..." : "Checking…") : (ar ? "فحص المخاطر" : "Check Risk")}
-        </Button>
-        <Button
-          disabled={pending || invalid}
-          onClick={() => onSubmit(buildOrder())}
-        >
-          {pending ? (ar ? "جارٍ..." : "Submitting...") : liveTradingEnabled ? (ar ? "إرسال الأمر" : "Submit Order") : (ar ? "معاينة الأمر" : "Preview Order")}
-        </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button onClick={createPreview} disabled={invalid}>{ar ? "إنشاء Preview" : "Create Preview"}</Button>
+        {notional !== undefined && <span className="text-xs text-muted-foreground">{ar ? "القيمة التقريبية:" : "Estimated notional:"} {formatUsd(notional, "USD")}</span>}
       </div>
+
+      {preview && (
+        <Alert className="border-success/40">
+          <ShieldCheck className="h-4 w-4" />
+          <AlertDescription className="text-sm">
+            {ar ? "Preview فقط:" : "Preview only:"} <strong className="font-mono uppercase">{preview.side} {preview.qty} {preview.symbol}</strong> — {preview.type.toUpperCase()}
+            {preview.limitPrice ? ` @ ${formatUsd(preview.limitPrice, "USD")}` : ""}. {ar ? "لم يتم إرسال الأمر إلى Alpaca." : "The order was not sent to Alpaca."}
+          </AlertDescription>
+        </Alert>
+      )}
     </Card>
   );
 }
 
-function RiskGuardPreview({ preview }: { preview: RiskPreview | null }) {
-  const { lang } = useI18n(); const ar = lang === "ar";
-  if (!preview) {
-    return (
-      <div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
-        {ar ? "اضغط «فحص المخاطر» قبل الإرسال لمعرفة الحد الأقصى وحد الخسارة وحالة الإيقاف الطارئ." : "Click «Check Risk» before submit to see max size, daily loss and emergency-stop state."}
-      </div>
-    );
-  }
-  if (!preview.ok || !preview.risk) {
-    return (
-      <Alert className="border-destructive/40">
-        <ShieldAlert className="h-4 w-4" />
-        <AlertDescription className="text-xs">{ar ? "تعذّر التقييم:" : "Evaluation failed:"} {preview.reason ?? "unknown"}</AlertDescription>
-      </Alert>
-    );
-  }
-  const r = preview.risk;
-  return (
-    <div className={`rounded-md border p-3 text-xs ${r.allowed ? "border-success/40 bg-success/5" : "border-destructive/40 bg-destructive/5"}`}>
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={r.allowed ? "default" : "destructive"} className="uppercase">
-          {r.allowed ? (ar ? "مسموح" : "Allowed") : (ar ? "مرفوض" : "Blocked")}
-        </Badge>
-        {r.emergencyStopActive && <Badge variant="destructive">{ar ? "إيقاف طارئ" : "Emergency stop"}</Badge>}
-        {!r.allowed && <span className="text-destructive">{r.reason}</span>}
-      </div>
-      <div className="mt-2 grid grid-cols-2 gap-2 font-mono md:grid-cols-4">
-        <span>{ar ? "السعر المرجعي" : "Ref price"}: <strong>{fmtUsd(preview.refPrice ?? 0, "USD")}</strong></span>
-        <span>{ar ? "القيمة الاسمية" : "Notional"}: <strong>{fmtUsd(r.notionalUsd, "USD")}</strong></span>
-        <span>{ar ? "حد الأمر" : "Max order"}: <strong>{fmtUsd(r.config.maxOrderNotionalUsd, "USD")}</strong></span>
-        <span>{ar ? "حد الخسارة اليومي" : "Daily loss limit"}: <strong>{fmtUsd(r.config.dailyLossLimitUsd, "USD")}</strong></span>
-        <span className="col-span-2 md:col-span-4">{ar ? "P&L اليومي" : "Daily P&L"}: <strong className={r.dailyPnlUsd < 0 ? "text-destructive" : "text-success"}>{fmtUsd(r.dailyPnlUsd, "USD")}</strong></span>
-      </div>
-    </div>
-  );
-}
-
-type DecisionRow = { id: string; created_at: string; broker: string; mode: string; symbol: string; side: string; type: string; quantity: number; price: number | null; status: string; metadata: Record<string, unknown> | null };
-
-function DecisionsTable({ rows }: { rows: DecisionRow[] }) {
-  const { lang } = useI18n(); const ar = lang === "ar";
+function PositionsTable({ positions }: { positions: Position[] }) {
+  const { lang } = useI18n();
+  const ar = lang === "ar";
   return (
     <Card className="p-0">
       <header className="flex items-center justify-between border-b border-border p-3">
-        <h3 className="font-semibold">{ar ? "سجل القرارات الأخيرة" : "Recent Order Decisions"}</h3>
-        <span className="text-xs text-muted-foreground">{rows.length}</span>
+        <h2 className="font-semibold">{ar ? "Positions" : "Positions"}</h2>
+        <span className="text-xs text-muted-foreground">{positions.length}</span>
       </header>
-      <div className="table-scroll overflow-auto">
+      <div className="overflow-auto">
         <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-xs uppercase text-muted-foreground"><tr>
-            <th className="px-3 py-2 text-start">{ar ? "الوقت" : "Time"}</th>
-            <th className="px-3 py-2">{ar ? "الوضع" : "Mode"}</th>
-            <th className="px-3 py-2 text-start">{ar ? "الرمز" : "Symbol"}</th>
-            <th className="px-3 py-2">{ar ? "الاتجاه" : "Side"}</th>
-            <th className="px-3 py-2 text-end">{ar ? "الكمية" : "Qty"}</th>
-            <th className="px-3 py-2 text-end">{ar ? "السعر" : "Price"}</th>
-            <th className="px-3 py-2">{ar ? "الحالة" : "Status"}</th>
-            <th className="px-3 py-2 text-start">{ar ? "السبب" : "Reason"}</th>
-          </tr></thead>
+          <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 text-start">Symbol</th>
+              <th className="px-3 py-2 text-end">Qty</th>
+              <th className="px-3 py-2 text-end">Avg Entry</th>
+              <th className="px-3 py-2 text-end">Current</th>
+              <th className="px-3 py-2 text-end">Market Value</th>
+              <th className="px-3 py-2 text-end">P&amp;L</th>
+            </tr>
+          </thead>
           <tbody>
-            {rows.map((r) => {
-              const meta = (r.metadata ?? {}) as { reason?: string; notionalUsd?: number };
-              const blocked = r.status === "preview_rejected";
-              return (
-                <tr key={r.id} className="border-t border-border">
-                  <td className="px-3 py-2 font-mono text-xs">{new Date(r.created_at).toLocaleString()}</td>
-                  <td className="px-3 py-2 text-xs uppercase"><Badge variant="outline">{r.mode}</Badge></td>
-                  <td className="px-3 py-2 font-mono font-semibold">{r.symbol}</td>
-                  <td className="px-3 py-2 uppercase">{r.side}</td>
-                  <td className="px-3 py-2 text-end font-mono">{r.quantity}</td>
-                  <td className="px-3 py-2 text-end font-mono">{r.price != null ? fmtUsd(Number(r.price), "USD") : "—"}</td>
-                  <td className="px-3 py-2 text-xs">
-                    <Badge variant={blocked ? "destructive" : r.status === "preview_allowed" ? "secondary" : "default"}>{r.status}</Badge>
-                  </td>
-                  <td className="px-3 py-2 text-xs text-muted-foreground">{meta.reason ?? "—"}</td>
-                </tr>
-              );
-            })}
-            {rows.length === 0 && (
-              <tr><td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">{ar ? "لا توجد قرارات بعد" : "No decisions yet"}</td></tr>
-            )}
+            {positions.map((position) => (
+              <tr key={position.symbol} className="border-t border-border">
+                <td className="px-3 py-2 font-mono font-semibold">{position.symbol}</td>
+                <td className="px-3 py-2 text-end font-mono">{position.qty}</td>
+                <td className="px-3 py-2 text-end font-mono">{formatUsd(position.avgEntryPrice, "USD")}</td>
+                <td className="px-3 py-2 text-end font-mono">{formatUsd(position.currentPrice, "USD")}</td>
+                <td className="px-3 py-2 text-end font-mono">{formatUsd(position.marketValue, "USD")}</td>
+                <td className={`px-3 py-2 text-end font-mono ${position.unrealizedPnl < 0 ? "text-destructive" : "text-success"}`}>{formatUsd(position.unrealizedPnl, "USD")}</td>
+              </tr>
+            ))}
+            {positions.length === 0 && <tr><td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">{ar ? "لا توجد Positions حالياً" : "No positions currently"}</td></tr>}
           </tbody>
         </table>
       </div>
@@ -443,35 +282,41 @@ function DecisionsTable({ rows }: { rows: DecisionRow[] }) {
   );
 }
 
-function PositionsTable({ positions }: { positions: Array<{ symbol: string; qty: number; avgPrice: number; marketPrice: number; marketValue: number; unrealizedPnl: number; unrealizedPnlPct: number; side: "long" | "short" }> }) {
-  const { lang } = useI18n(); const ar = lang === "ar";
+function OpenOrdersTable({ orders }: { orders: OpenOrder[] }) {
+  const { lang } = useI18n();
+  const ar = lang === "ar";
   return (
     <Card className="p-0">
-      <header className="flex items-center justify-between border-b border-border p-3"><h3 className="font-semibold">{ar ? "المراكز المفتوحة" : "Open Positions"}</h3><span className="text-xs text-muted-foreground">{positions.length}</span></header>
-      <div className="table-scroll overflow-auto">
+      <header className="flex items-center justify-between border-b border-border p-3">
+        <h2 className="font-semibold">{ar ? "Open Orders" : "Open Orders"}</h2>
+        <span className="text-xs text-muted-foreground">{orders.length}</span>
+      </header>
+      <div className="overflow-auto">
         <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-xs uppercase text-muted-foreground"><tr>
-            <th className="px-3 py-2 text-start">{ar ? "الرمز" : "Symbol"}</th>
-            <th className="px-3 py-2 text-end">{ar ? "الكمية" : "Qty"}</th>
-            <th className="px-3 py-2 text-end">{ar ? "متوسط الشراء" : "Avg"}</th>
-            <th className="px-3 py-2 text-end">{ar ? "السعر" : "Price"}</th>
-            <th className="px-3 py-2 text-end">{ar ? "القيمة" : "Value"}</th>
-            <th className="px-3 py-2 text-end">P&L</th>
-          </tr></thead>
+          <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 text-start">Symbol</th>
+              <th className="px-3 py-2">Side</th>
+              <th className="px-3 py-2">Type</th>
+              <th className="px-3 py-2 text-end">Qty</th>
+              <th className="px-3 py-2 text-end">Limit</th>
+              <th className="px-3 py-2">Status</th>
+              <th className="px-3 py-2 text-start">Submitted</th>
+            </tr>
+          </thead>
           <tbody>
-            {positions.map((p) => (
-              <tr key={p.symbol} className="border-t border-border">
-                <td className="px-3 py-2 font-mono font-semibold">{p.symbol}</td>
-                <td className="px-3 py-2 text-end font-mono">{p.qty}</td>
-                <td className="px-3 py-2 text-end font-mono">{fmtUsd(p.avgPrice, "USD")}</td>
-                <td className="px-3 py-2 text-end font-mono">{fmtUsd(p.marketPrice, "USD")}</td>
-                <td className="px-3 py-2 text-end font-mono">{fmtUsd(p.marketValue, "USD")}</td>
-                <td className={`px-3 py-2 text-end font-mono ${p.unrealizedPnl < 0 ? "text-destructive" : "text-success"}`}>{fmtUsd(p.unrealizedPnl, "USD")} ({p.unrealizedPnlPct.toFixed(2)}%)</td>
+            {orders.map((order) => (
+              <tr key={order.id} className="border-t border-border">
+                <td className="px-3 py-2 font-mono font-semibold">{order.symbol}</td>
+                <td className="px-3 py-2 uppercase">{order.side}</td>
+                <td className="px-3 py-2 uppercase">{order.type}</td>
+                <td className="px-3 py-2 text-end font-mono">{order.qty}</td>
+                <td className="px-3 py-2 text-end font-mono">{order.limitPrice ? formatUsd(order.limitPrice, "USD") : "—"}</td>
+                <td className="px-3 py-2"><Badge variant="outline">{order.status}</Badge></td>
+                <td className="px-3 py-2 text-xs text-muted-foreground">{order.submittedAt ? new Date(order.submittedAt).toLocaleString() : "—"}</td>
               </tr>
             ))}
-            {positions.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">{ar ? "لا توجد مراكز مفتوحة" : "No open positions"}</td></tr>
-            )}
+            {orders.length === 0 && <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">{ar ? "لا توجد Open Orders حالياً" : "No open orders currently"}</td></tr>}
           </tbody>
         </table>
       </div>
@@ -479,53 +324,20 @@ function PositionsTable({ positions }: { positions: Array<{ symbol: string; qty:
   );
 }
 
-function OrdersTable({ orders, onCancel, canCancel }: { orders: Array<{ id: string; symbol: string; side: string; type: string; qty: number; limitPrice?: number; status: string; filledQty: number }>; onCancel: (id: string) => void; canCancel: boolean }) {
-  const { lang } = useI18n(); const ar = lang === "ar";
+function Metric({ label, value, tone }: { label: string; value: string; tone?: "success" }) {
   return (
-    <Card className="p-0">
-      <header className="flex items-center justify-between border-b border-border p-3"><h3 className="font-semibold">{ar ? "الأوامر المفتوحة" : "Open Orders"}</h3><span className="text-xs text-muted-foreground">{orders.length}</span></header>
-      <div className="table-scroll overflow-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-xs uppercase text-muted-foreground"><tr>
-            <th className="px-3 py-2 text-start">{ar ? "الرمز" : "Symbol"}</th>
-            <th className="px-3 py-2">{ar ? "الاتجاه" : "Side"}</th>
-            <th className="px-3 py-2">{ar ? "النوع" : "Type"}</th>
-            <th className="px-3 py-2 text-end">{ar ? "الكمية" : "Qty"}</th>
-            <th className="px-3 py-2 text-end">{ar ? "سعر الحد" : "Limit"}</th>
-            <th className="px-3 py-2">{ar ? "الحالة" : "Status"}</th>
-            <th className="px-3 py-2 text-end" />
-          </tr></thead>
-          <tbody>
-            {orders.map((o) => (
-              <tr key={o.id} className="border-t border-border">
-                <td className="px-3 py-2 font-mono font-semibold">{o.symbol}</td>
-                <td className="px-3 py-2 uppercase">{o.side}</td>
-                <td className="px-3 py-2 uppercase">{o.type}</td>
-                <td className="px-3 py-2 text-end font-mono">{o.qty}</td>
-                <td className="px-3 py-2 text-end font-mono">{o.limitPrice ? fmtUsd(o.limitPrice, "USD") : "—"}</td>
-                <td className="px-3 py-2 text-xs"><Badge variant="outline">{o.status}</Badge></td>
-                <td className="px-3 py-2 text-end">
-                  <Button size="sm" variant="ghost" disabled={!canCancel} onClick={() => onCancel(o.id)}>{ar ? "إلغاء" : "Cancel"}</Button>
-                </td>
-              </tr>
-            ))}
-            {orders.length === 0 && (
-              <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">{ar ? "لا توجد أوامر مفتوحة" : "No open orders"}</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+    <Card className="p-4">
+      <div className="text-xs uppercase text-muted-foreground">{label}</div>
+      <div className={`mt-1 text-xl font-semibold ${tone === "success" ? "text-success" : ""}`}>{value}</div>
     </Card>
   );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (<div className="space-y-1"><Label className="text-xs uppercase text-muted-foreground">{label}</Label>{children}</div>);
+  return <div className="space-y-1"><Label className="text-xs uppercase text-muted-foreground">{label}</Label>{children}</div>;
 }
-function Stat({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (<div className="rounded-md border border-border bg-muted/20 p-2"><div className="text-[11px] uppercase text-muted-foreground">{label}</div><div className={`${mono ? "font-mono" : ""} text-sm font-semibold`}>{value}</div></div>);
-}
-function fmtUsd(n: number, ccy: string): string {
-  if (!Number.isFinite(n)) return "—";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: ccy || "USD", maximumFractionDigits: 2 }).format(n);
+
+function formatUsd(value: number, currency: string) {
+  if (!Number.isFinite(value)) return "—";
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: currency || "USD", maximumFractionDigits: 2 }).format(value);
 }
