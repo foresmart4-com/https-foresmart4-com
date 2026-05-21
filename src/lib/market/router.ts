@@ -41,7 +41,8 @@ export type ProviderId =
   | "alphavantage"
   | "alpaca"
   | "binance"
-  | "coingecko";
+  | "coingecko"
+  | "tradingview";
 
 export type ProviderMode = "live" | "delayed" | "cached" | "stale" | "synthetic";
 
