@@ -22,6 +22,7 @@ import { AdminReviewPanel } from "@/components/AdminReviewPanel";
 import { SystemReadinessPanel } from "@/components/SystemReadinessPanel";
 import { PaymentLinksSettings } from "@/components/PaymentLinksSettings";
 import { ProductionRoadmap } from "@/components/ProductionRoadmap";
+import { useRiskTolerance } from "@/lib/investor-prefs";
 
 export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
