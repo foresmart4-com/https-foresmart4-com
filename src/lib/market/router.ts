@@ -20,6 +20,7 @@
 import { getQuote as fhQuote } from "@/services/providers/finnhub";
 import { getQuote as tdQuote } from "@/services/providers/twelvedata";
 import { getEquityQuote as avEquity, getFxRate as avFx } from "@/services/providers/alphavantage";
+import { mapForProvider } from "@/lib/market/symbol-map";
 
 // ---------- Public types ----------
 
