@@ -72,6 +72,7 @@ import { Route as ApiWebhooksPaddleRouteImport } from './routes/api/webhooks/pad
 import { Route as ApiWebhooksLemonsqueezyRouteImport } from './routes/api/webhooks/lemonsqueezy'
 import { Route as ApiPublicRouterTestRouteImport } from './routes/api/public/router-test'
 import { Route as ApiPublicMoyasarWebhookRouteImport } from './routes/api/public/moyasar-webhook'
+import { Route as ApiPublicHistoryTestRouteImport } from './routes/api/public/history-test'
 import { Route as ApiPublicEmailConfigCheckRouteImport } from './routes/api/public/email-config-check'
 import { Route as ApiFinnhubStreamRouteImport } from './routes/api/finnhub/stream'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -395,6 +396,11 @@ const ApiPublicMoyasarWebhookRoute = ApiPublicMoyasarWebhookRouteImport.update({
   path: '/api/public/moyasar-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHistoryTestRoute = ApiPublicHistoryTestRouteImport.update({
+  id: '/api/public/history-test',
+  path: '/api/public/history-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicEmailConfigCheckRoute =
   ApiPublicEmailConfigCheckRouteImport.update({
     id: '/api/public/email-config-check',
@@ -500,6 +506,7 @@ export interface FileRoutesByFullPath {
   '/watchlists': typeof AppWatchlistsRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
+  '/api/public/history-test': typeof ApiPublicHistoryTestRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
@@ -572,6 +579,7 @@ export interface FileRoutesByTo {
   '/watchlists': typeof AppWatchlistsRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
+  '/api/public/history-test': typeof ApiPublicHistoryTestRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
@@ -646,6 +654,7 @@ export interface FileRoutesById {
   '/_app/watchlists': typeof AppWatchlistsRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
+  '/api/public/history-test': typeof ApiPublicHistoryTestRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
@@ -720,6 +729,7 @@ export interface FileRouteTypes {
     | '/watchlists'
     | '/api/finnhub/stream'
     | '/api/public/email-config-check'
+    | '/api/public/history-test'
     | '/api/public/moyasar-webhook'
     | '/api/public/router-test'
     | '/api/webhooks/lemonsqueezy'
@@ -792,6 +802,7 @@ export interface FileRouteTypes {
     | '/watchlists'
     | '/api/finnhub/stream'
     | '/api/public/email-config-check'
+    | '/api/public/history-test'
     | '/api/public/moyasar-webhook'
     | '/api/public/router-test'
     | '/api/webhooks/lemonsqueezy'
@@ -865,6 +876,7 @@ export interface FileRouteTypes {
     | '/_app/watchlists'
     | '/api/finnhub/stream'
     | '/api/public/email-config-check'
+    | '/api/public/history-test'
     | '/api/public/moyasar-webhook'
     | '/api/public/router-test'
     | '/api/webhooks/lemonsqueezy'
@@ -891,6 +903,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   ApiFinnhubStreamRoute: typeof ApiFinnhubStreamRoute
   ApiPublicEmailConfigCheckRoute: typeof ApiPublicEmailConfigCheckRoute
+  ApiPublicHistoryTestRoute: typeof ApiPublicHistoryTestRoute
   ApiPublicMoyasarWebhookRoute: typeof ApiPublicMoyasarWebhookRoute
   ApiPublicRouterTestRoute: typeof ApiPublicRouterTestRoute
   ApiWebhooksLemonsqueezyRoute: typeof ApiWebhooksLemonsqueezyRoute
@@ -1347,6 +1360,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMoyasarWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/history-test': {
+      id: '/api/public/history-test'
+      path: '/api/public/history-test'
+      fullPath: '/api/public/history-test'
+      preLoaderRoute: typeof ApiPublicHistoryTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/email-config-check': {
       id: '/api/public/email-config-check'
       path: '/api/public/email-config-check'
@@ -1523,6 +1543,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   ApiFinnhubStreamRoute: ApiFinnhubStreamRoute,
   ApiPublicEmailConfigCheckRoute: ApiPublicEmailConfigCheckRoute,
+  ApiPublicHistoryTestRoute: ApiPublicHistoryTestRoute,
   ApiPublicMoyasarWebhookRoute: ApiPublicMoyasarWebhookRoute,
   ApiPublicRouterTestRoute: ApiPublicRouterTestRoute,
   ApiWebhooksLemonsqueezyRoute: ApiWebhooksLemonsqueezyRoute,
