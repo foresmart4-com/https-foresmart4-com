@@ -150,6 +150,42 @@ function ProviderHealthPage() {
         </Card>
       )}
 
+      {data?.routingPlan && data.routingPlan.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">{ar ? "خطة التوجيه حسب فئة الأصل" : "Failover plan by asset class"}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-2 text-xs sm:grid-cols-2 xl:grid-cols-3">
+            {data.routingPlan.map((row) => (
+              <div key={row.assetClass} className="rounded border border-border/60 p-2 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono uppercase">{row.assetClass}</span>
+                  <Badge variant={row.selected === "not_connected" ? "destructive" : "secondary"} className="capitalize">
+                    {row.selected}
+                  </Badge>
+                </div>
+                <div className="flex flex-wrap items-center gap-1">
+                  {row.chain.map((c, i) => (
+                    <span key={c.id} className="flex items-center gap-1">
+                      <Badge
+                        variant="outline"
+                        className={c.available
+                          ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
+                          : "bg-muted text-muted-foreground"}
+                      >
+                        {c.id}
+                      </Badge>
+                      {i < row.chain.length - 1 && <span className="text-muted-foreground">→</span>}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground">{row.reason}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {CATEGORY_ORDER.map((cat) => {
         const rows = grouped[cat];
         if (!rows || rows.length === 0) return null;
