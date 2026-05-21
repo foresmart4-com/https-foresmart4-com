@@ -175,6 +175,14 @@ function CalendarPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <Select value={range} onValueChange={(v) => setRange(v as any)}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{lang === "ar" ? "كل الفترة" : "All upcoming"}</SelectItem>
+              <SelectItem value="today">{lang === "ar" ? "اليوم" : "Today"}</SelectItem>
+              <SelectItem value="week">{lang === "ar" ? "هذا الأسبوع" : "This week"}</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={impactFilter} onValueChange={(v) => setImpactFilter(v as any)}>
             <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
             <SelectContent>
