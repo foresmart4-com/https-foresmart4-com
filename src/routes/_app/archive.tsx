@@ -67,7 +67,7 @@ interface Row {
   captured_at: string;
 }
 
-type Category = "crypto" | "metals" | "currencies" | "stocks";
+type Category = "crypto" | "metals" | "currencies" | "stocks" | "etf_bond" | "commodity";
 type DisplayCurrency = "USD" | "SAR";
 
 const USD_SAR_RATE = 3.75;
@@ -120,6 +120,27 @@ const ASSET_OPTIONS: Record<Category, { symbol: string; name: string }[]> = {
     { symbol: "2222.SR", name: "Saudi Aramco" },
     { symbol: "1120.SR", name: "Al Rajhi Bank" },
     { symbol: "2010.SR", name: "SABIC" },
+  ],
+  etf_bond: [
+    { symbol: "SPY", name: "S&P 500 ETF" },
+    { symbol: "QQQ", name: "Nasdaq 100 ETF" },
+    { symbol: "VOO", name: "Vanguard S&P 500" },
+    { symbol: "VTI", name: "Total US Market" },
+    { symbol: "TLT", name: "20+ Yr Treasury" },
+    { symbol: "IEF", name: "7-10 Yr Treasury" },
+    { symbol: "AGG", name: "US Aggregate Bond" },
+    { symbol: "LQD", name: "Investment Grade Bonds" },
+    { symbol: "HYG", name: "High Yield Bonds" },
+    { symbol: "TIP", name: "TIPS Inflation Bonds" },
+  ],
+  commodity: [
+    { symbol: "WTI/USD", name: "WTI Crude Oil" },
+    { symbol: "BRENT/USD", name: "Brent Crude Oil" },
+    { symbol: "NG/USD", name: "Natural Gas" },
+    { symbol: "USO", name: "US Oil Fund ETF" },
+    { symbol: "UNG", name: "US Natural Gas ETF" },
+    { symbol: "CORN", name: "Corn" },
+    { symbol: "WEAT", name: "Wheat" },
   ],
 };
 
@@ -525,6 +546,8 @@ function HistoryView() {
               <SelectItem value="metals">{lang === "ar" ? "المعادن" : "Metals"}</SelectItem>
               <SelectItem value="currencies">{lang === "ar" ? "العملات" : "Currencies"}</SelectItem>
               <SelectItem value="stocks">{lang === "ar" ? "الأسهم" : "Stocks"}</SelectItem>
+              <SelectItem value="etf_bond">{lang === "ar" ? "صناديق وسندات" : "ETFs & Bonds"}</SelectItem>
+              <SelectItem value="commodity">{lang === "ar" ? "السلع" : "Commodities"}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -554,12 +577,11 @@ function HistoryView() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="1">{lang === "ar" ? "24 ساعة" : "24 hours"}</SelectItem>
               <SelectItem value="7">{lang === "ar" ? "7 أيام" : "7 days"}</SelectItem>
               <SelectItem value="30">{lang === "ar" ? "30 يومًا" : "30 days"}</SelectItem>
               <SelectItem value="90">{lang === "ar" ? "90 يومًا" : "90 days"}</SelectItem>
-              <SelectItem value="180">{lang === "ar" ? "180 يومًا" : "180 days"}</SelectItem>
               <SelectItem value="365">{lang === "ar" ? "سنة" : "1 year"}</SelectItem>
-              <SelectItem value="730">{lang === "ar" ? "سنتان" : "2 years"}</SelectItem>
               <SelectItem value="1095">{lang === "ar" ? "3 سنوات" : "3 years"}</SelectItem>
             </SelectContent>
           </Select>
@@ -612,10 +634,27 @@ function HistoryView() {
       )}
 
       <div className="rounded-xl border border-border bg-card p-4">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
           <div>
             <div className="font-semibold">{data?.name ?? symbol}</div>
-            <div className="text-xs text-muted-foreground">{data?.currency ?? "USD"}</div>
+            <div className="text-xs text-muted-foreground flex items-center gap-2">
+              <span>{data?.currency ?? "USD"}</span>
+              {data?.source && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded border border-border bg-muted/30">
+                  {lang === "ar" ? "المصدر: " : "Source: "}{data.source}
+                </span>
+              )}
+              {data?.points?.length ? (
+                <span className="text-[10px] px-1.5 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/15 text-emerald-500">
+                  {lang === "ar" ? "حي" : "Live"}
+                </span>
+              ) : null}
+              {data?.points?.length ? (
+                <span className="text-[10px] text-muted-foreground">
+                  {lang === "ar" ? "نقاط:" : "Points:"} {data.points.length}
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
         <div className="h-72">
@@ -631,9 +670,13 @@ function HistoryView() {
                   ? lang === "ar"
                     ? "تعذّر تحميل بيانات السوق الآن. أعد المحاولة أو اختر أصلًا آخر."
                     : "Market data could not be loaded. Try again or choose another asset."
-                  : lang === "ar"
-                    ? "لا توجد قيم تاريخية متاحة لهذا الاختيار حاليًا."
-                    : "No historical values are available for this selection yet."}
+                  : data?.reason === "range_unsupported"
+                    ? lang === "ar"
+                      ? "هذه المدة غير مدعومة من المزود لهذا الأصل. جرّب مدة أطول."
+                      : "This range is not supported by the provider for this asset. Try a longer range."
+                    : lang === "ar"
+                      ? "لا توجد قيم تاريخية متاحة لهذا الاختيار حاليًا."
+                      : "No historical values are available for this selection yet."}
               </div>
               {isError && <div className="text-xs text-muted-foreground/80">{error.message}</div>}
               <button

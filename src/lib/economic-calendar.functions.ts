@@ -82,7 +82,10 @@ function syntheticWeekly(): EconEvent[] {
 export const getEconomicEvents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
+    const hasKey = !!process.env.TRADING_ECONOMICS_KEY;
     const live = await fetchLive();
-    const events = (live && live.length > 0) ? live : syntheticWeekly();
-    return { events, fetchedAt: Date.now() };
+    if (live && live.length > 0) {
+      return { events: live, fetchedAt: Date.now(), source: hasKey ? "Trading Economics" : "Trading Economics (guest)", mode: hasKey ? "live" : "delayed" as const };
+    }
+    return { events: syntheticWeekly(), fetchedAt: Date.now(), source: "synthetic weekly schedule", mode: "mock" as const };
   });

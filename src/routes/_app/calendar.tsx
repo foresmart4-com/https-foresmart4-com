@@ -82,23 +82,32 @@ function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [impactFilter, setImpactFilter] = useState<"all" | "high" | "medium" | "low">("all");
   const [region, setRegion] = useState<string>("all");
+  const [range, setRange] = useState<"all" | "today" | "week">("all");
+  const [source, setSource] = useState<string>("");
+  const [mode, setMode] = useState<"live" | "delayed" | "mock">("mock");
 
   useEffect(() => {
     (async () => {
       try {
         const data = await getEconomicEvents();
         setEvents(data.events as EvtItem[]);
+        setSource(data.source || "");
+        setMode((data.mode as "live" | "delayed" | "mock") || "mock");
       } finally { setLoading(false); }
     })();
   }, []);
 
   const filtered = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const weekFromNow = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
     return events.filter((e) => {
       if (impactFilter !== "all" && e.impact !== impactFilter) return false;
       if (region !== "all" && REGION_MAP[e.country] !== region) return false;
+      if (range === "today" && e.date !== today) return false;
+      if (range === "week" && (e.date < today || e.date > weekFromNow)) return false;
       return true;
     });
-  }, [events, impactFilter, region]);
+  }, [events, impactFilter, region, range]);
 
   const grouped = useMemo(() => {
     return filtered.reduce<Record<string, EvtItem[]>>((acc, e) => {
@@ -125,15 +134,38 @@ function CalendarPage() {
   return (
     <TooltipProvider>
       <div className="container mx-auto max-w-5xl space-y-6 p-6">
-        <header>
-          <h1 className="font-display text-3xl font-bold flex items-center gap-2">
-            <CalendarDays className="h-7 w-7 text-primary" /> {lang === "ar" ? "التقويم الاقتصادي" : "Economic Calendar"}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {lang === "ar"
-              ? "أهم الأحداث الاقتصادية والمؤشرات التي تحرك الأسواق — مع شرح فوري لتأثير كل حدث."
-              : "Key macro events and indicators moving markets — with instant impact explanations."}
-          </p>
+        <header className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="font-display text-3xl font-bold flex items-center gap-2">
+              <CalendarDays className="h-7 w-7 text-primary" /> {lang === "ar" ? "التقويم الاقتصادي" : "Economic Calendar"}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {lang === "ar"
+                ? "أهم الأحداث الاقتصادية والمؤشرات التي تحرك الأسواق — مع شرح فوري لتأثير كل حدث."
+                : "Key macro events and indicators moving markets — with instant impact explanations."}
+            </p>
+          </div>
+          {source && (
+            <div className="flex flex-col items-end gap-1 text-xs">
+              <span className="text-muted-foreground">
+                {lang === "ar" ? "المصدر: " : "Source: "}{source}
+              </span>
+              <span className={
+                "px-2 py-0.5 rounded border text-[10px] font-semibold " +
+                (mode === "live"
+                  ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-500"
+                  : mode === "delayed"
+                    ? "border-amber-500/40 bg-amber-500/15 text-amber-500"
+                    : "border-violet-500/40 bg-violet-500/15 text-violet-500")
+              }>
+                {mode === "live"
+                  ? (lang === "ar" ? "حي" : "Live")
+                  : mode === "delayed"
+                    ? (lang === "ar" ? "ضيف/متأخر" : "Guest/Delayed")
+                    : (lang === "ar" ? "تجريبي" : "Mock")}
+              </span>
+            </div>
+          )}
         </header>
 
         <div className="grid grid-cols-3 gap-3">
@@ -143,6 +175,14 @@ function CalendarPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <Select value={range} onValueChange={(v) => setRange(v as any)}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{lang === "ar" ? "كل الفترة" : "All upcoming"}</SelectItem>
+              <SelectItem value="today">{lang === "ar" ? "اليوم" : "Today"}</SelectItem>
+              <SelectItem value="week">{lang === "ar" ? "هذا الأسبوع" : "This week"}</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={impactFilter} onValueChange={(v) => setImpactFilter(v as any)}>
             <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
             <SelectContent>
