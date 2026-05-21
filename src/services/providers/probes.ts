@@ -380,6 +380,7 @@ const REGISTRY: Record<string, () => Promise<ProbeResult>> = {
   moyasar: probeMoyasar,
   paypal: probePayPal,
   plaid: probePlaid,
+  sahmk: probeSahmk,
 };
 
 /**
