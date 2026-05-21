@@ -95,82 +95,63 @@ function classCap(cls: AssetClass, stance: Stance): number {
 
 export function buildFactors(intel: MarketIntel | null | undefined): FactorReading[] {
   const fg = intel?.sentiment?.score ?? 50;
-  const regime = intel?.regime?.regime ?? "neutral";
+  const regime = intel?.regime?.regime ?? "Sideways";
   const news = intel?.news ?? [];
   const quotes = intel?.quotes ?? [];
 
   const avgChange = quotes.length
-    ? quotes.reduce((s, q) => s + (q.changePercent ?? 0), 0) / quotes.length
+    ? quotes.reduce((s, q) => s + (q.changePct ?? 0), 0) / quotes.length
     : 0;
   const vol = quotes.length
-    ? Math.sqrt(quotes.reduce((s, q) => s + Math.pow(q.changePercent ?? 0, 2), 0) / quotes.length)
+    ? Math.sqrt(quotes.reduce((s, q) => s + Math.pow(q.changePct ?? 0, 2), 0) / quotes.length)
     : 0;
 
   const trendScore = clamp(avgChange * 20, -100, 100);
   const volScore = clamp(vol * 25 - 50, -100, 100);
   const newsScore = clamp((fg - 50) * 2, -100, 100);
 
-  const usd = quotes.find((q) => /DXY|USD/i.test(q.symbol));
-  const gold = quotes.find((q) => /GOLD|XAU/i.test(q.symbol));
-  const oil = quotes.find((q) => /OIL|WTI|BRENT/i.test(q.symbol));
+  const findKey = (re: RegExp) => quotes.find((q) => re.test(String(q.key)));
+  const usd = findKey(/DXY|USD/i);
+  const gold = findKey(/XAU|GOLD/i);
+  const oil = findKey(/OIL|WTI|BRENT/i);
 
   const impactAr = (s: number) => s > 15 ? "إيجابي" : s < -15 ? "سلبي" : "محايد";
+  const regAr =
+    regime === "Trending Bullish" || regime === "Risk-On" ? "صاعد"
+    : regime === "Trending Bearish" || regime === "Risk-Off" || regime === "Panic" ? "هابط"
+    : regime === "High Volatility" ? "متذبذب بقوة" : "جانبي";
 
   return [
-    {
-      key: "trend", labelAr: "اتجاه السوق",
-      valueAr: regime === "bull" ? "صاعد" : regime === "bear" ? "هابط" : "متذبذب",
-      impactAr: impactAr(trendScore), score: trendScore,
-    },
-    {
-      key: "volatility", labelAr: "التقلب",
+    { key: "trend", labelAr: "اتجاه السوق", valueAr: regAr, impactAr: impactAr(trendScore), score: trendScore },
+    { key: "volatility", labelAr: "التقلب",
       valueAr: vol > 3 ? "مرتفع" : vol > 1.5 ? "متوسط" : "منخفض",
-      impactAr: impactAr(-volScore), score: -volScore,
-    },
-    {
-      key: "news", labelAr: "الأخبار والمعنويات",
+      impactAr: impactAr(-volScore), score: -volScore },
+    { key: "news", labelAr: "الأخبار والمعنويات",
       valueAr: fg > 65 ? "طمع" : fg < 35 ? "خوف" : "متوازن",
-      impactAr: impactAr(newsScore), score: newsScore,
-    },
-    {
-      key: "correlation", labelAr: "الارتباط بين الأصول",
+      impactAr: impactAr(newsScore), score: newsScore },
+    { key: "correlation", labelAr: "الارتباط بين الأصول",
       valueAr: vol > 2.5 ? "ارتفاع الارتباط" : "ارتباط معتدل",
-      impactAr: vol > 2.5 ? "سلبي" : "محايد",
-      score: vol > 2.5 ? -40 : 0,
-    },
-    {
-      key: "rates", labelAr: "الفائدة والتضخم",
-      valueAr: "ضغط متواصل من السياسة النقدية",
-      impactAr: "محايد", score: -10,
-    },
-    {
-      key: "usd", labelAr: "الدولار الأمريكي",
-      valueAr: usd ? `${(usd.changePercent ?? 0).toFixed(2)}%` : "غير متاح",
-      impactAr: usd ? impactAr(-(usd.changePercent ?? 0) * 10) : "محايد",
-      score: usd ? -(usd.changePercent ?? 0) * 10 : 0,
-    },
-    {
-      key: "gold", labelAr: "الذهب",
-      valueAr: gold ? `${(gold.changePercent ?? 0).toFixed(2)}%` : "غير متاح",
-      impactAr: gold ? impactAr((gold.changePercent ?? 0) * 10) : "محايد",
-      score: gold ? (gold.changePercent ?? 0) * 10 : 0,
-    },
-    {
-      key: "oil", labelAr: "النفط",
-      valueAr: oil ? `${(oil.changePercent ?? 0).toFixed(2)}%` : "غير متاح",
-      impactAr: oil ? impactAr((oil.changePercent ?? 0) * 10) : "محايد",
-      score: oil ? (oil.changePercent ?? 0) * 10 : 0,
-    },
-    {
-      key: "momentum", labelAr: "زخم السعر",
+      impactAr: vol > 2.5 ? "سلبي" : "محايد", score: vol > 2.5 ? -40 : 0 },
+    { key: "rates", labelAr: "الفائدة والتضخم",
+      valueAr: "ضغط متواصل من السياسة النقدية", impactAr: "محايد", score: -10 },
+    { key: "usd", labelAr: "الدولار الأمريكي",
+      valueAr: usd ? `${(usd.changePct ?? 0).toFixed(2)}%` : "غير متاح",
+      impactAr: usd ? impactAr(-(usd.changePct ?? 0) * 10) : "محايد",
+      score: usd ? -(usd.changePct ?? 0) * 10 : 0 },
+    { key: "gold", labelAr: "الذهب",
+      valueAr: gold ? `${(gold.changePct ?? 0).toFixed(2)}%` : "غير متاح",
+      impactAr: gold ? impactAr((gold.changePct ?? 0) * 10) : "محايد",
+      score: gold ? (gold.changePct ?? 0) * 10 : 0 },
+    { key: "oil", labelAr: "النفط",
+      valueAr: oil ? `${(oil.changePct ?? 0).toFixed(2)}%` : "غير متاح",
+      impactAr: oil ? impactAr((oil.changePct ?? 0) * 10) : "محايد",
+      score: oil ? (oil.changePct ?? 0) * 10 : 0 },
+    { key: "momentum", labelAr: "زخم السعر",
       valueAr: avgChange > 0.5 ? "إيجابي" : avgChange < -0.5 ? "سلبي" : "ضعيف",
-      impactAr: impactAr(avgChange * 30), score: clamp(avgChange * 30, -100, 100),
-    },
-    {
-      key: "headlines", labelAr: "تدفق الأخبار",
+      impactAr: impactAr(avgChange * 30), score: clamp(avgChange * 30, -100, 100) },
+    { key: "headlines", labelAr: "تدفق الأخبار",
       valueAr: news.length ? `${news.length} عنوان حديث` : "لا يوجد",
-      impactAr: "محايد", score: 0,
-    },
+      impactAr: "محايد", score: 0 },
   ];
 }
 
