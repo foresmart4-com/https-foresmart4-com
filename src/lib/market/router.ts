@@ -601,7 +601,7 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
     }
 
     const stale = staleCache(cKey);
-    if (stale) return stamp({ ...stale, fallbackUsed: true, error: lastError, attempted, translations, translatedSymbol: lastTranslated });
+    if (stale) return stamp({ ...stale, fallbackUsed: true, error: lastError, attempted, translations, translatedSymbol: lastTranslated, skippedProviders: skipped });
     return stamp({
       success: false,
       provider: null,
@@ -619,6 +619,7 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
       attempted,
       translations,
       translatedSymbol: lastTranslated,
+      skippedProviders: skipped,
     });
   })();
 
