@@ -88,6 +88,10 @@ export interface ResolvedAsset {
   normalized: string;
   /** Forex helper. */
   forex?: { from: string; to: string };
+  /** Pure trace of resolver branch taken, for diagnostics. */
+  resolverPath: string;
+  /** Original raw input, uppercased + trimmed. */
+  raw: string;
 }
 
 export function resolveAsset(rawSymbol: string): ResolvedAsset {
