@@ -546,6 +546,8 @@ function HistoryView() {
               <SelectItem value="metals">{lang === "ar" ? "المعادن" : "Metals"}</SelectItem>
               <SelectItem value="currencies">{lang === "ar" ? "العملات" : "Currencies"}</SelectItem>
               <SelectItem value="stocks">{lang === "ar" ? "الأسهم" : "Stocks"}</SelectItem>
+              <SelectItem value="etf_bond">{lang === "ar" ? "صناديق وسندات" : "ETFs & Bonds"}</SelectItem>
+              <SelectItem value="commodity">{lang === "ar" ? "السلع" : "Commodities"}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -575,12 +577,11 @@ function HistoryView() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="1">{lang === "ar" ? "24 ساعة" : "24 hours"}</SelectItem>
               <SelectItem value="7">{lang === "ar" ? "7 أيام" : "7 days"}</SelectItem>
               <SelectItem value="30">{lang === "ar" ? "30 يومًا" : "30 days"}</SelectItem>
               <SelectItem value="90">{lang === "ar" ? "90 يومًا" : "90 days"}</SelectItem>
-              <SelectItem value="180">{lang === "ar" ? "180 يومًا" : "180 days"}</SelectItem>
               <SelectItem value="365">{lang === "ar" ? "سنة" : "1 year"}</SelectItem>
-              <SelectItem value="730">{lang === "ar" ? "سنتان" : "2 years"}</SelectItem>
               <SelectItem value="1095">{lang === "ar" ? "3 سنوات" : "3 years"}</SelectItem>
             </SelectContent>
           </Select>
