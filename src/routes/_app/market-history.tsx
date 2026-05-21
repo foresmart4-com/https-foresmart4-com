@@ -24,7 +24,7 @@ import {
   type Range,
   type Interval,
 } from "@/lib/market-archive.functions";
-import { ALL_INTEL_ASSETS } from "@/lib/asset-picker";
+import { ASSET_PICKER, type PickerAsset } from "@/lib/asset-picker";
 
 export const Route = createFileRoute("/_app/market-history")({
   component: MarketHistoryPage,
