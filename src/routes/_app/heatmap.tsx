@@ -171,16 +171,37 @@ function HeatmapPage() {
               : "Live visual snapshot across asset classes — click any tile to add to watchlist, set an alert, or open intelligence."}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={load}
-          className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium hover:bg-muted/40"
-          disabled={refreshing}
-        >
-          <RefreshCw className={"h-3.5 w-3.5 " + (refreshing ? "animate-spin" : "")} />
-          {lang === "ar" ? "تحديث" : "Refresh"}
-        </button>
+        <div className="flex flex-col items-end gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={load}
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium hover:bg-muted/40"
+              disabled={refreshing}
+            >
+              <RefreshCw className={"h-3.5 w-3.5 " + (refreshing ? "animate-spin" : "")} />
+              {lang === "ar" ? "تحديث الآن" : "Refresh now"}
+            </button>
+            <label className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              <Switch checked={autoRefresh} onCheckedChange={setAutoRefresh} />
+              {lang === "ar" ? "تحديث تلقائي" : "Auto-refresh"}
+            </label>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <ShieldCheck className="h-3 w-3" />
+              {lang === "ar" ? "تصفية حسب مستوى المخاطرة" : "Filter by risk"} ({riskLabel(risk, lang === "ar")})
+              <Switch checked={respectRisk} onCheckedChange={setRespectRisk} />
+            </label>
+            {lastUpdated && (
+              <span className="text-muted-foreground">
+                {lang === "ar" ? "آخر تحديث:" : "Updated:"} {new Date(lastUpdated).toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+        </div>
       </header>
+
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="p-3"><div className="text-xs text-muted-foreground">{lang === "ar" ? "أصول مرتفعة" : "Up"}</div><div className="text-2xl font-bold text-success">{stats.up}</div></Card>
