@@ -297,8 +297,10 @@ function staleCache(key: string): RouterQuote | null {
 
 interface UpstreamResult {
   price: number;
+  change?: number | null;
   changePercent: number | null;
   volume: number | null;
+  liquidity?: number | null;
   timestamp: number;
   delayed: boolean;
 }
