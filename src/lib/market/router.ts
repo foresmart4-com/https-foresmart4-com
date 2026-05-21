@@ -517,6 +517,7 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
   const promise = (async (): Promise<RouterQuote> => {
     const chain = CHAINS[asset.assetClass] ?? CHAINS.unknown;
     const attempted: ProviderId[] = [];
+    const skipped: Array<{ provider: ProviderId; reason: string }> = [];
     const translations: Partial<Record<ProviderId, string>> = {};
     let fallbackUsed = false;
     let lastError = "no provider available";
@@ -524,10 +525,26 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
 
     for (let i = 0; i < chain.length; i++) {
       const p = chain[i];
-      if (isCoolingDown(p)) { attempted.push(p); continue; }
+
+      // Capability check — never send a symbol to a provider that does not
+      // support its asset class. Saves a network round-trip and a guaranteed
+      // 4xx, and gives us a clean diagnostic line.
+      if (!supports(p, asset.assetClass)) {
+        skipped.push({ provider: p, reason: unsupportedReason(p, asset.assetClass) });
+        continue;
+      }
+      if (isCoolingDown(p)) {
+        skipped.push({ provider: p, reason: `cooling down (${COOLDOWN.get(p)?.reason})` });
+        attempted.push(p);
+        continue;
+      }
+
       attempted.push(p);
       const runner = RUNNERS[p];
-      if (!runner) continue;
+      if (!runner) {
+        skipped.push({ provider: p, reason: "no runner registered" });
+        continue;
+      }
 
       // Translate per-provider. Wrapped so a translation oddity for ONE
       // provider can never bubble up and fail the entire request — we mark
@@ -550,22 +567,26 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
         const latency = Date.now() - start;
         recordSuccess(p, latency);
         if (i > 0) { fallbackUsed = true; recordFailover(p); }
+        // True classification: provider must declare realtime AND the upstream
+        // response must not flag delayed. AlphaVantage is always delayed.
+        const mode: ProviderMode = r.delayed || !isRealtime(p) ? "delayed" : "live";
         const quote: RouterQuote = stamp({
           success: true,
           provider: p,
-          mode: r.delayed ? "delayed" : "live",
+          mode,
           latency,
           price: r.price,
           changePercent: r.changePercent,
           volume: r.volume,
           timestamp: r.timestamp,
-          delayed: r.delayed,
+          delayed: mode === "delayed",
           fallbackUsed,
           symbol: asset.normalized,
           assetClass: asset.assetClass,
           attempted,
           translatedSymbol: translated,
           translations,
+          skippedProviders: skipped,
         });
         const ttl = TTL_MS[asset.assetClass];
         CACHE.set(cKey, { quote, expiresAt: Date.now() + ttl });
