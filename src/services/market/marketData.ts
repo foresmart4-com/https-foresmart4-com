@@ -60,31 +60,117 @@ function deriveQuote(key: AssetKey, price: number, prevClose: number, source: Ma
   return q;
 }
 
-// ---------- CoinGecko ----------
+// ---------- CoinGecko (with safe parsing + Binance fallback) ----------
 interface CoinGeckoSimple {
   [id: string]: { usd: number; usd_24h_change?: number };
+}
+
+// Provider status surfaced for UI badges. Updated on every batch fetch.
+export type CryptoProviderStatus = "connected" | "rate_limited" | "temporary_error";
+let _cryptoStatus: CryptoProviderStatus = "connected";
+let _cryptoSource: "coingecko" | "binance" | "none" = "coingecko";
+let _cryptoCooldownUntil = 0;
+export function getCryptoProviderStatus(): { status: CryptoProviderStatus; source: typeof _cryptoSource } {
+  return { status: _cryptoStatus, source: _cryptoSource };
+}
+
+const BINANCE_SYMBOL: Partial<Record<AssetKey, string>> = {
+  BTC: "BTCUSDT",
+  ETH: "ETHUSDT",
+};
+
+async function fetchCoinGeckoSafe(ids: string[]): Promise<{ data: CoinGeckoSimple | null; status: CryptoProviderStatus }> {
+  const url = `${env.COINGECKO_API}/simple/price?ids=${ids.join(",")}&vs_currencies=usd&include_24hr_change=true`;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 6000);
+    const res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(t);
+    const ctype = res.headers.get("content-type") || "";
+    let text = "";
+    try { text = await res.text(); } catch { /* ignore */ }
+    if (res.status === 429 || /rate.?limit|throttl|too many requests/i.test(text)) {
+      return { data: null, status: "rate_limited" };
+    }
+    if (!res.ok) return { data: null, status: "temporary_error" };
+    if (!ctype.includes("application/json") && !text.trim().startsWith("{")) {
+      return { data: null, status: "temporary_error" };
+    }
+    try {
+      return { data: JSON.parse(text) as CoinGeckoSimple, status: "connected" };
+    } catch {
+      return { data: null, status: "temporary_error" };
+    }
+  } catch {
+    return { data: null, status: "temporary_error" };
+  }
+}
+
+async function fetchBinanceCrypto(keys: AssetKey[]): Promise<Map<AssetKey, MarketQuote>> {
+  const out = new Map<AssetKey, MarketQuote>();
+  await Promise.all(keys.map(async (key) => {
+    const sym = BINANCE_SYMBOL[key];
+    if (!sym) return;
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 5000);
+      const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${sym}`, { signal: ctrl.signal });
+      clearTimeout(t);
+      if (!res.ok) return;
+      const j = await res.json() as { lastPrice?: string; prevClosePrice?: string; weightedAvgPrice?: string };
+      const price = Number(j.lastPrice);
+      const prev = Number(j.prevClosePrice ?? j.weightedAvgPrice ?? j.lastPrice);
+      if (!Number.isFinite(price) || price <= 0) return;
+      out.set(key, deriveQuote(key, price, Number.isFinite(prev) && prev > 0 ? prev : price, "coingecko"));
+    } catch { /* swallow */ }
+  }));
+  return out;
 }
 
 async function fetchCryptoBatch(keys: AssetKey[]): Promise<Map<AssetKey, MarketQuote>> {
   const out = new Map<AssetKey, MarketQuote>();
   const ids = keys.map((k) => META[k].coingeckoId).filter(Boolean) as string[];
   if (ids.length === 0) return out;
-  try {
-    const url = `${env.COINGECKO_API}/simple/price?ids=${ids.join(",")}&vs_currencies=usd&include_24hr_change=true`;
-    const data = await fetchJson<CoinGeckoSimple>(url, { retries: 1, timeoutMs: 6000 });
-    for (const key of keys) {
-      const id = META[key].coingeckoId;
-      if (!id || !data[id]) continue;
-      const price = data[id].usd;
-      const change = data[id].usd_24h_change ?? 0;
-      const prevClose = price / (1 + change / 100);
-      out.set(key, deriveQuote(key, price, prevClose, "coingecko"));
+
+  // Skip CoinGecko entirely while in cooldown after a rate-limit hit.
+  const now = Date.now();
+  const skipCg = now < _cryptoCooldownUntil;
+
+  if (!skipCg) {
+    const { data, status } = await fetchCoinGeckoSafe(ids);
+    if (status === "connected" && data) {
+      _cryptoStatus = "connected";
+      _cryptoSource = "coingecko";
+      for (const key of keys) {
+        const id = META[key].coingeckoId;
+        if (!id || !data[id]) continue;
+        const price = data[id].usd;
+        const change = data[id].usd_24h_change ?? 0;
+        const prevClose = price / (1 + change / 100);
+        out.set(key, deriveQuote(key, price, prevClose, "coingecko"));
+      }
+      if (out.size > 0) return out;
+    } else {
+      _cryptoStatus = status;
+      if (status === "rate_limited") {
+        // 2-min cooldown — avoid hammering CoinGecko while throttled
+        _cryptoCooldownUntil = now + 120_000;
+      }
     }
-  } catch {
-    // swallow — caller falls back
+  } else {
+    _cryptoStatus = "rate_limited";
   }
+
+  // Fallback to Binance (keyless public endpoint)
+  const fb = await fetchBinanceCrypto(keys);
+  if (fb.size > 0) {
+    _cryptoSource = "binance";
+    return fb;
+  }
+  _cryptoSource = "none";
   return out;
 }
+
 
 // ---------- Finnhub (client-side disabled — keys never shipped to browser) ----------
 async function fetchFinnhubOne(_key: AssetKey): Promise<MarketQuote | null> {
