@@ -3,16 +3,22 @@ import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { Flame, TrendingUp, TrendingDown, Plus, Bell, BarChart3, RefreshCw } from "lucide-react";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Flame, TrendingUp, TrendingDown, Plus, Bell, BarChart3, RefreshCw, Search } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { getMarketData } from "@/lib/market-data";
 import { getStocksData } from "@/lib/stocks-data";
+import { getUniversalQuoteBatch } from "@/lib/universal-quote.functions";
+import { ASSET_PICKER } from "@/lib/asset-picker";
 import { AddToWatchlistDialog } from "@/components/pickers/AddToWatchlistDialog";
 import { CreateAlertDialog } from "@/components/pickers/CreateAlertDialog";
 import type { PickedAsset } from "@/components/pickers/AssetPickerDialog";
@@ -22,15 +28,17 @@ export const Route = createFileRoute("/_app/heatmap")({
   head: () => ({
     meta: [
       { title: "Market Heatmap — ForeSmart" },
-      { name: "description", content: "Visual heatmap across crypto, stocks, metals & FX with conviction-tiered colors." },
+      { name: "description", content: "Visual heatmap across crypto, stocks, metals, commodities, ETFs/bonds & FX with conviction tiers." },
     ],
   }),
 });
 
-type Group = "crypto" | "metals" | "currencies" | "stocks-us" | "stocks-saudi";
+type Group = "crypto" | "metals" | "currencies" | "stocks-us" | "stocks-saudi" | "commodity" | "etf_bond";
 interface Cell {
   symbol: string; name: string; group: Group;
   price: number; changePct: number; weight: number;
+  source?: string; mode?: "live" | "delayed" | "manual" | "mock";
+  updatedAt?: number;
 }
 
 const GROUP_LABEL: Record<Group, { ar: string; en: string }> = {
@@ -39,6 +47,8 @@ const GROUP_LABEL: Record<Group, { ar: string; en: string }> = {
   currencies:     { ar: "العملات",         en: "Currencies" },
   "stocks-us":    { ar: "أسهم أمريكية",    en: "US Stocks" },
   "stocks-saudi": { ar: "أسهم سعودية",     en: "Saudi Stocks" },
+  commodity:      { ar: "السلع",           en: "Commodities" },
+  etf_bond:       { ar: "صناديق وسندات",   en: "ETFs & Bonds" },
 };
 
 function toPicked(c: Cell): PickedAsset {
@@ -46,6 +56,8 @@ function toPicked(c: Cell): PickedAsset {
   if (c.group === "metals")        return { symbol: c.symbol, name: c.name, asset_type: "METAL",       market: "Metals",       category: "metal" };
   if (c.group === "currencies")    return { symbol: c.symbol, name: c.name, asset_type: "COMMODITY",   market: "FX",           category: "commodity" };
   if (c.group === "stocks-saudi")  return { symbol: c.symbol, name: c.name, asset_type: "SAUDI_STOCK", market: "Tadawul",      category: "sa_stock" };
+  if (c.group === "commodity")     return { symbol: c.symbol, name: c.name, asset_type: "COMMODITY",   market: "Commodities",  category: "commodity" };
+  if (c.group === "etf_bond")      return { symbol: c.symbol, name: c.name, asset_type: "US_STOCK",    market: "US",           category: "etf_bond" };
   return                                  { symbol: c.symbol, name: c.name, asset_type: "US_STOCK",   market: "US",            category: "us_stock" };
 }
 
