@@ -214,11 +214,10 @@ export const updateUserAsset = createServerFn({ method: "POST" })
   .inputValidator((d) => UpdateInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const patch: Record<string, unknown> = { ...data.patch };
+    const patch = { ...data.patch } as Record<string, unknown>;
     if (typeof patch.symbol === "string") patch.symbol = patch.symbol.toUpperCase();
     if (typeof patch.currency === "string") patch.currency = (patch.currency as string).toUpperCase();
-    const { error } = await supabase
-      .from("user_assets")
+    const { error } = await (supabase.from("user_assets") as any)
       .update(patch)
       .eq("id", data.id)
       .eq("user_id", userId);
