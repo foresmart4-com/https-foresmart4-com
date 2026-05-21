@@ -473,9 +473,11 @@ async function runSahmk(_asset: ResolvedAsset, sym: string): Promise<UpstreamRes
   const q = r as Exclude<typeof r, { ok: false }>;
   return {
     price: q.price,
+    change: q.change,
     changePercent: q.changePercent,
     volume: q.volume,
-    timestamp: Date.now(),
+    liquidity: q.liquidity,
+    timestamp: q.updatedAt,
     delayed: q.delayed,
   };
 }
