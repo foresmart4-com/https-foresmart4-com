@@ -1,71 +1,53 @@
-## Plan: Full i18n System + Growth Portfolio Restoration
+سأقسّم العمل إلى مراحل قابلة للتنفيذ والمراجعة. هذا الطلب ضخم جداً (15 أولوية تمسّ معظم المنصة) ولا يمكن إنجازه بأمان دفعة واحدة دون كسر التشغيل الحالي. سأقترح خطة مرحلية، وأبدأ بالمرحلة الأولى فور موافقتك.
 
-### Part 1 — Centralized i18n Architecture
+## المبادئ العامة (تُطبَّق على كل المراحل)
+- الحفاظ على التصميم الحالي RTL/Dark/Arabic.
+- لا مفاتيح API في الواجهة — كل قراءة عبر `createServerFn` تقرأ من `process.env`.
+- `LIVE_TRADING_ENABLED=false` افتراضياً، ولا تنفيذ حقيقي.
+- لكل صفحة حالات واضحة: Loading / Empty / Error / Mock-Badge.
+- استخدام `DataStatusBadge` الحالي (موجود) في كل بطاقة بيانات (Live / Delayed / Mock / Not Connected / Error).
+- تعريب كامل + Tooltips عالية التباين + شرح "ما فائدة هذا القسم؟" لكل صفحة.
 
-**1. Translation files**
-- Create `src/locales/ar.json` and `src/locales/en.json` with namespaces: `common`, `nav`, `dashboard`, `markets`, `subscription`, `portfolio`, `signals`, `alerts`, `settings`, `billing`, `footer`, `notifications`, `errors`, `empty`, `seo`.
-- Migrate every key currently in `src/lib/i18n.tsx` `dict` into these JSON files and expand with the missing surfaces.
+## المرحلة 1 — البنية التحتية للبيانات والمزودين (أولويات 1 + 6)
+**الهدف:** مصدر حقيقة موحّد لحالة البيانات قبل أي تطوير وظيفي.
+- توحيد `DataStatus` (`live | delayed | mock | error | not_connected | rate_limited`) عبر hook `useDataMode(provider)`.
+- توسعة `provider-health.functions.ts` ليشمل كل المزودين المطلوبين: Finnhub, TwelveData, AlphaVantage, CoinGecko, Binance, Alpaca, IBKR, TradingEconomics, GDELT, NewsAPI, Plaid, Stripe, Moyasar, PayPal — مع `connected/missing_key/error/rate_limited`, آخر نجاح/خطأ، زمن الاستجابة، endpoint الفاشل.
+- إعادة بناء `/provider-health` كلوحة موحّدة.
+- إصلاح `/data-fusion`: إضافة `ErrorBoundary` يعرض الخطأ، جدول الأصل/السعر لكل مزود/الفرق/المصدر المعتمد/سبب الاختيار/آخر تحديث، fallback عند فشل مزود.
 
-**2. Rewrite `src/lib/i18n.tsx`**
-- Load both JSON dictionaries statically (small, fine to bundle).
-- `t(key)` accepts dot-paths like `dashboard.title`. Fallback chain: current lang → English → key.
-- Default language detection: 
-  1. Saved profile language (loaded post-auth via a new `useUserLanguage` effect)
-  2. `localStorage.lang`
-  3. `navigator.language.startsWith('ar') ? 'ar' : 'en'`
-- Persist to `localStorage` on every change.
-- Expose `formatDate`, `formatNumber`, `formatCurrency` helpers using `Intl` with `ar-SA` / `en-US` locales — for charts/tables/tooltips.
-- Keep the old flat `t(key)` API working for legacy callers by aliasing flat keys to `common.*`.
+## المرحلة 2 — محفظة الأصول الشاملة (أولوية 2)
+- إعادة تسمية `/stocks-portfolio` → `/assets-portfolio` (مع redirect).
+- جدول `portfolio_assets` (asset_type, market, symbol, qty, avg_cost, manual_price?, notes, dividends/coupons).
+- CRUD يدوي للأصول + Manual Cash + متوسط تكلفة + سعر حالي (من المزود حسب النوع) + P/L.
+- تصنيف: US Stocks / Saudi / Crypto / Metals / Commodities / Bonds-ETFs / Cash.
+- إبقاء ربط Alpaca/Binance اختيارياً للقراءة فقط.
 
-**3. Profile persistence**
-- Add `language` column to `profiles` table via migration (text, default `'ar'`, check `in ('ar','en')`).
-- On login (`auth.tsx` / root auth listener), fetch `profiles.language` and call `setLang` if present.
-- On `setLang`, if user is signed in, update `profiles.language` (fire-and-forget).
+## المرحلة 3 — Portfolio AI + Market Intelligence + AI Learning (أولويات 3 + 4 + 5)
+- إعادة بناء بطاقات التوصيات: الاقتراح / سبب الاقتراح / المخاطر / متى يتغير القرار / Confidence / Impact per factor / تنبيه "ليست توصية ملزمة".
+- Market Intelligence: قائمة اختيار للأصول حسب الفئة، جلب السعر، تحليل عربي (شراء/بيع/انتظار/مخاطرة عالية) + سبب + سيناريو معاكس. ترجمة كل bullish/bearish.
+- AI Learning: سجل الاستراتيجيات، معدل النجاح، توقع vs فعلي، أفضل/أسوأ قرارات، مصادر القرار، إزالة "موثوقية 100%".
 
-**4. Language selector**
-- Build `<LanguageSwitcher />` component (compact + full variants).
-- Mount in: Settings page, desktop sidebar footer (`_app.tsx`), mobile sidebar sheet.
+## المرحلة 4 — الأسواق والخريطة الحرارية + التقويم + الأرشيف (أولويات 7 + 8 + 15)
+- Heatmap: تبويبات بالفئات + فلاتر (السوق/النوع/Gainers/Losers/Volatility/بحث)، كل بطاقة برمز+اسم+سعر+تغير%+مصدر+Live/Delayed.
+- Economic Calendar: شرح عربي لكل حدث + تأثير على الأسهم/الدولار/الذهب/النفط/السندات/الكريبتو + Tooltip + السابق/المتوقع/الفعلي.
+- Archive: فلاتر زمنية (24س/7/30/90/سنة/3سنوات) لكل فئة + رسالة واضحة عند غياب المزود التاريخي.
 
-**5. RTL/LTR**
-- Already handled by current provider (`document.dir`). Verify all custom panels use logical properties (`ms-*`, `me-*`, `start/end`) — fix any `ml-/mr-/left-/right-` in headers, nav, footer.
+## المرحلة 5 — المحاكي + المحفظة/Binance + الاشتراكات (أولويات 9 + 10 + 11)
+- Paper Trading: شرح "محفظة تدريب"، رصيد افتراضي قابل للتعديل، Buy/Sell، سجل صفقات، P/L، مقارنة مع السوق.
+- Wallet: Manual Deposit + Demo Balance + Binance read-only + رسالة "اتصال ناجح بلا أصول".
+- Subscription: Free / Pro + زر اشتراك + "الدفع غير مفعّل حالياً" عند غياب المفاتيح، بدلاً من دفع المستخدم لتجربة 14 يوم فقط.
 
-**6. SEO**
-- Update each route's `head()` to return localized `title` + `description`. Where `head()` is static, convert to function reading the current lang from a server-safe lookup OR set `<title>` from inside the component via TanStack `useDocumentHead` equivalent. Practical approach: localize from inside the component using `useEffect` on `document.title` for the routes where SSR-time language can't be known.
+## المرحلة 6 — المتابعة والتنبيهات + الإخلاء + التعريب (أولويات 12 + 13 + 14)
+- Watchlists: CRUD قوائم + إضافة من قائمة اختيار متعددة الفئات + سعر حالي.
+- Alerts: اختيار أصل + سعر حالي + شرط (>, <, %24h) + مركز تنبيهات (نشط/تحقق/فشل/آخر تشغيل) + زر تنبيه تجريبي.
+- Disclaimer: عرض مرة واحدة بعد تسجيل الدخول + حفظ في `localStorage` + `disclaimer_acceptances` مع `disclaimerVersion`.
+- مسح شامل للنصوص الإنجليزية + Tooltips بتباين عالٍ + صفحات "ما فائدة هذا القسم؟".
 
-**7. Sweep hardcoded strings**
-- Pages to convert: `routes/_app/dashboard.tsx`, `markets.tsx`, `subscription.tsx`, `portfolios.tsx`, `signals.tsx`, `alerts.tsx`, `settings.tsx`, `billing.tsx`, plus `LegalFooter.tsx`, toast notifications, error boundaries, empty-state components.
-- Replace inline `lang === 'ar' ? 'X' : 'Y'` patterns with `t('namespace.key')`.
+## ملاحظات تقنية
+- كل مرحلة تنتهي بحالة قابلة للنشر؛ لا تنكسر الصفحات الموجودة.
+- البيانات Mock تظهر دوماً بشارة "بيانات تجريبية".
+- جداول جديدة عبر migrations مع RLS صارمة (owner-scoped).
+- اختبار سريع بعد كل مرحلة لأهم المسارات.
 
-### Part 2 — Growth Portfolio Restoration
-
-**1. Investigate**
-- Read `src/services/investment/planEngine.ts`, `routes/_app/portfolios.tsx`, dashboard summary components, and `InvestmentPlansPanel.tsx` to find where "Growth" was removed during the SaaS pivot.
-
-**2. Restore Growth plan**
-- Add Growth plan entry alongside Starter/Pro/Elite (or as a portfolio risk profile: Conservative / **Growth** / Aggressive depending on existing schema).
-- Wire into:
-  - `portfolios.tsx` selector
-  - `InvestmentPlansPanel.tsx`
-  - Dashboard summary cards
-- Provide deterministic mock data when backend returns nothing: allocation, risk score, perf chart series, historical growth.
-
-**3. Resilience**
-- Add try/catch + `console.error` around portfolio loading.
-- Loading skeleton + empty state (localized).
-- Both AR + EN labels in locale JSON under `portfolio.growth.*`.
-
-**4. Constraints**
-- No theme, layout, or sidebar redesign.
-- No backend trading logic changes.
-
-### Technical notes
-
-- JSON imports: TanStack Start + Vite handle `import en from '@/locales/en.json'` natively.
-- The dict file is small enough (<50KB combined) to ship in the main bundle; no async loading needed.
-- For server-rendered SEO titles, default to Arabic (matches default) and let the client effect override post-hydration.
-- Existing `useI18n` consumers (~30+ files) keep working via the flat-key alias layer; new code uses dot paths.
-
-### Out of scope
-- No changes to design tokens, color palette, fonts, or component layouts.
-- No new routes.
-- No real-money / broker behavior changes.
+## السؤال قبل البدء
+هل أبدأ بالمرحلة 1 (البنية التحتية للمزودين + إصلاح data-fusion)؟ أم تفضّل ترتيباً مختلفاً (مثلاً البدء بمحفظة الأصول الشاملة لأنها الأكثر ظهوراً للمستخدم)؟
