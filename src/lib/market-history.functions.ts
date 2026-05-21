@@ -122,9 +122,11 @@ async function fetchFxHistory(from: string, to: string, days: number): Promise<H
 }
 
 async function fetchYahooHistory(symbol: string, days: number): Promise<{ name: string; currency: string; points: HistoryPoint[] }> {
-  const range = days <= 7 ? "7d" : days <= 30 ? "1mo" : days <= 90 ? "3mo" : days <= 180 ? "6mo" : days <= 365 ? "1y" : days <= 730 ? "2y" : "5y";
+  const intraday = days <= 1;
+  const range = intraday ? "1d" : days <= 7 ? "7d" : days <= 30 ? "1mo" : days <= 90 ? "3mo" : days <= 180 ? "6mo" : days <= 365 ? "1y" : days <= 730 ? "2y" : "5y";
+  const interval = intraday ? "15m" : "1d";
   const r = await fetch(
-    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=${range}`,
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`,
     { headers: { "User-Agent": "Mozilla/5.0" } },
   );
   if (!r.ok) return { name: symbol, currency: "USD", points: [] };
@@ -143,7 +145,9 @@ async function fetchYahooHistory(symbol: string, days: number): Promise<{ name: 
   if (!res) return { name: symbol, currency: "USD", points: [] };
   const q = res.indicators.quote[0];
   const points: HistoryPoint[] = res.timestamp.map((t, i) => ({
-    date: new Date(t * 1000).toISOString().slice(0, 10),
+    date: intraday
+      ? new Date(t * 1000).toISOString().slice(0, 16).replace("T", " ")
+      : new Date(t * 1000).toISOString().slice(0, 10),
     open: q.open[i] ?? undefined,
     high: q.high[i] ?? undefined,
     low: q.low[i] ?? undefined,
