@@ -299,8 +299,8 @@ function num(v: unknown): number | null {
   return null;
 }
 
-async function runFinnhub(asset: ResolvedAsset): Promise<UpstreamResult> {
-  const q = await fhQuote(asset.normalized);
+async function runFinnhub(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  const q = await fhQuote(sym);
   if (!q || !Number.isFinite(q.c) || q.c <= 0) throw new Error("finnhub: empty quote");
   return {
     price: q.c,
@@ -311,9 +311,8 @@ async function runFinnhub(asset: ResolvedAsset): Promise<UpstreamResult> {
   };
 }
 
-async function runTwelveData(asset: ResolvedAsset): Promise<UpstreamResult> {
-  const mapped = mapForProvider(asset.raw, "twelvedata");
-  const q = await tdQuote(mapped);
+async function runTwelveData(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  const q = await tdQuote(sym);
   const price = num(q.close);
   if (price == null) throw new Error("twelvedata: empty quote");
   return {
@@ -325,14 +324,14 @@ async function runTwelveData(asset: ResolvedAsset): Promise<UpstreamResult> {
   };
 }
 
-async function runAlphaVantage(asset: ResolvedAsset): Promise<UpstreamResult> {
+async function runAlphaVantage(asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
   if (asset.assetClass === "forex" && asset.forex) {
     const r = await avFx(asset.forex.from, asset.forex.to);
     const rate = num(r["Realtime Currency Exchange Rate"]?.["5. Exchange Rate"]);
     if (rate == null) throw new Error("alphavantage: empty fx");
     return { price: rate, changePercent: null, volume: null, timestamp: Date.now(), delayed: true };
   }
-  const r = await avEquity(asset.normalized);
+  const r = await avEquity(sym);
   const g = r["Global Quote"];
   const price = num(g?.["05. price"]);
   if (price == null) throw new Error("alphavantage: empty quote");
@@ -346,12 +345,12 @@ async function runAlphaVantage(asset: ResolvedAsset): Promise<UpstreamResult> {
   };
 }
 
-async function runBinance(asset: ResolvedAsset): Promise<UpstreamResult> {
-  const sym = asset.normalized.endsWith("USDT") ? asset.normalized : `${asset.normalized}USDT`;
+async function runBinance(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  const symbol = sym.endsWith("USDT") || sym.endsWith("USDC") || sym.endsWith("BUSD") ? sym : `${sym}USDT`;
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 5000);
   try {
-    const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${sym}`, { signal: ctrl.signal });
+    const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`, { signal: ctrl.signal });
     if (res.status === 429) throw Object.assign(new Error("binance: rate limit"), { rateLimited: true });
     if (!res.ok) throw new Error(`binance: HTTP ${res.status}`);
     const j = await res.json() as { lastPrice?: string; priceChangePercent?: string; volume?: string; closeTime?: number };
@@ -369,15 +368,20 @@ async function runBinance(asset: ResolvedAsset): Promise<UpstreamResult> {
   }
 }
 
-async function runCoinGecko(asset: ResolvedAsset): Promise<UpstreamResult> {
-  const base = asset.normalized.replace(/USDT?|USDC|BUSD$/i, "").toLowerCase();
-  const map: Record<string, string> = {
-    btc: "bitcoin", eth: "ethereum", sol: "solana", bnb: "binancecoin",
-    xrp: "ripple", ada: "cardano", doge: "dogecoin", avax: "avalanche-2",
-    matic: "matic-network", dot: "polkadot", ltc: "litecoin", link: "chainlink",
-  };
-  const id = map[base];
-  if (!id) throw new Error(`coingecko: unsupported ${base}`);
+async function runCoinGecko(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  // sym is already a coingecko id (e.g. "bitcoin") via translateSymbol; fall
+  // back to deriving from base symbol if translation returned the raw input.
+  let id = /^[a-z0-9-]+$/.test(sym) && !/USDT?$|USDC$|BUSD$/i.test(sym) ? sym : "";
+  if (!id) {
+    const base = sym.replace(/USDT?|USDC|BUSD$/i, "").toLowerCase();
+    const map: Record<string, string> = {
+      btc: "bitcoin", eth: "ethereum", sol: "solana", bnb: "binancecoin",
+      xrp: "ripple", ada: "cardano", doge: "dogecoin", avax: "avalanche-2",
+      matic: "matic-network", dot: "polkadot", ltc: "litecoin", link: "chainlink",
+    };
+    id = map[base] ?? "";
+  }
+  if (!id) throw new Error(`coingecko: unsupported ${sym}`);
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 6000);
   try {
@@ -408,20 +412,30 @@ async function runCoinGecko(asset: ResolvedAsset): Promise<UpstreamResult> {
   }
 }
 
-async function runAlpaca(_asset: ResolvedAsset): Promise<UpstreamResult> {
+async function runAlpaca(_asset: ResolvedAsset, _sym: string): Promise<UpstreamResult> {
   // Alpaca quote pipeline is not wired into the router yet; declared in the
   // chain so the priority order is honoured the moment we add it. For now we
   // throw and the router transparently falls through to the next provider.
   throw new Error("alpaca: not implemented");
 }
 
-const RUNNERS: Record<ProviderId, (a: ResolvedAsset) => Promise<UpstreamResult>> = {
+const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<UpstreamResult>> = {
   finnhub: runFinnhub,
   twelvedata: runTwelveData,
   alphavantage: runAlphaVantage,
   binance: runBinance,
   coingecko: runCoinGecko,
   alpaca: runAlpaca,
+};
+
+/** Map our internal ProviderId → the symbol-map ProviderKey. 1:1 today. */
+const PROVIDER_KEY: Record<ProviderId, ProviderKey> = {
+  finnhub: "finnhub",
+  twelvedata: "twelvedata",
+  alphavantage: "alphavantage",
+  binance: "binance",
+  coingecko: "coingecko",
+  alpaca: "alpaca",
 };
 
 // ---------- Core router ----------
