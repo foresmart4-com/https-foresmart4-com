@@ -35,11 +35,16 @@ function SubscriptionPage() {
   const plansFn = useServerFn(listPlans);
   const subFn = useServerFn(getMySubscription);
   const portalFn = useServerFn(createBillingPortalSession);
+  const healthFn = useServerFn(getPaymentProvidersHealth);
 
-  const { data: plans } = useQuery({ queryKey: ["plans"], queryFn: () => plansFn() });
-  const { data: sub } = useQuery({ queryKey: ["my-sub"], queryFn: () => subFn() });
+  const plansQ = useQuery({ queryKey: ["plans"], queryFn: () => plansFn() });
+  const subQ   = useQuery({ queryKey: ["my-sub"], queryFn: () => subFn() });
+  const healthQ = useQuery({ queryKey: ["payments-health"], queryFn: () => healthFn(), staleTime: 60_000 });
+  const plans = plansQ.data;
+  const sub   = subQ.data;
   const [selectedPrice, setSelectedPrice] = useState<SubPriceId | null>(null);
   const [tier, setTier] = useState<"basic" | "pro">("basic");
+  const [withTrial, setWithTrial] = useState(true);
 
   const portal = useMutation({
     mutationFn: () => portalFn({ data: { returnUrl: `${window.location.origin}/subscription`, environment: getStripeEnvironment() } }),
