@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
+import { createServerFn, useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,12 +11,113 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useI18n } from "@/lib/i18n";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
-  getBrokerPortfolio, placeStockOrder, cancelStockOrder,
-  triggerStockEmergencyStop, resumeStockTrading,
+  placeStockOrder, cancelStockOrder,
   getRecentStockDecisions, previewStockOrderRisk,
 } from "@/lib/stockBroker.functions";
 import { Briefcase, RefreshCw, ShieldAlert, Shield, AlertTriangle, Building2, LineChart, CheckCircle2 } from "lucide-react";
+
+type AlpacaAccountRaw = Record<string, string | boolean | null | undefined>;
+type AlpacaPositionRaw = Record<string, string | null | undefined>;
+type AlpacaOrderRaw = Record<string, string | null | undefined>;
+
+const LIVE_TRADING_ENABLED = false;
+
+function cleanEnvValue(value: string | undefined): string {
+  return (value ?? "").trim().replace(/^[A-Z_]+\s*=\s*/i, "").replace(/^['\"]|['\"]$/g, "");
+}
+
+const syncAlpacaPortfolio = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const baseUrl = cleanEnvValue(process.env.ALPACA_BASE_URL).replace(/\/+$/, "");
+    const apiKey = cleanEnvValue(process.env.ALPACA_API_KEY || process.env.ALPACA_API_KEY_ID);
+    const apiSecret = cleanEnvValue(process.env.ALPACA_SECRET_KEY || process.env.ALPACA_API_SECRET_KEY);
+
+    console.info(`hasKey=${Boolean(apiKey)}`);
+    console.info(`hasSecret=${Boolean(apiSecret)}`);
+    console.info(`baseUrl=${baseUrl || "missing"}`);
+
+    if (!baseUrl || !apiKey || !apiSecret) {
+      return {
+        ok: false as const,
+        status: "not_configured" as const,
+        provider: "alpaca" as const,
+        liveTradingEnabled: LIVE_TRADING_ENABLED,
+        reason: "Alpaca credentials are not configured",
+      };
+    }
+
+    const headers = {
+      "APCA-API-KEY-ID": apiKey,
+      "APCA-API-SECRET-KEY": apiSecret,
+      "Content-Type": "application/json",
+    };
+
+    const requestAlpaca = async <T,>(path: string): Promise<T> => {
+      const response = await fetch(`${baseUrl}${path}`, { method: "GET", headers });
+      if (!response.ok) {
+        const body = await response.text().catch(() => "");
+        console.error(`Alpaca ${path} failed status=${response.status} body=${body.slice(0, 180)}`);
+        throw new Error(`Alpaca request failed (${response.status})`);
+      }
+      return (await response.json()) as T;
+    };
+
+    try {
+      const [account, positions, orders] = await Promise.all([
+        requestAlpaca<AlpacaAccountRaw>("/v2/account"),
+        requestAlpaca<AlpacaPositionRaw[]>("/v2/positions"),
+        requestAlpaca<AlpacaOrderRaw[]>("/v2/orders?status=open&limit=100"),
+      ]);
+
+      return {
+        ok: true as const,
+        status: "connected" as const,
+        provider: "alpaca" as const,
+        liveTradingEnabled: LIVE_TRADING_ENABLED,
+        account: {
+          accountId: String(account.id ?? ""),
+          status: String(account.status ?? ""),
+          currency: String(account.currency ?? "USD"),
+          cash: Number(account.cash ?? 0),
+          equity: Number(account.portfolio_value ?? account.equity ?? 0),
+          buyingPower: Number(account.buying_power ?? 0),
+          tradingBlocked: account.trading_blocked === "true" || account.account_blocked === "true",
+        },
+        positions: positions.map((position) => ({
+          symbol: String(position.symbol ?? ""),
+          qty: Number(position.qty ?? 0),
+          avgPrice: Number(position.avg_entry_price ?? 0),
+          marketPrice: Number(position.current_price ?? 0),
+          marketValue: Number(position.market_value ?? 0),
+          unrealizedPnl: Number(position.unrealized_pl ?? 0),
+          unrealizedPnlPct: Number(position.unrealized_plpc ?? 0) * 100,
+          side: (position.side === "short" ? "short" : "long") as "long" | "short",
+        })),
+        orders: orders.map((order) => ({
+          id: String(order.id ?? ""),
+          symbol: String(order.symbol ?? ""),
+          side: String(order.side ?? ""),
+          type: String(order.type ?? ""),
+          qty: Number(order.qty ?? 0),
+          limitPrice: order.limit_price ? Number(order.limit_price) : undefined,
+          status: String(order.status ?? ""),
+          filledQty: Number(order.filled_qty ?? 0),
+        })),
+        syncedAt: Date.now(),
+      };
+    } catch (error) {
+      return {
+        ok: false as const,
+        status: "error" as const,
+        provider: "alpaca" as const,
+        liveTradingEnabled: LIVE_TRADING_ENABLED,
+        reason: (error as Error).message,
+      };
+    }
+  });
 
 export const Route = createFileRoute("/_app/stocks-portfolio")({
   head: () => ({
@@ -32,11 +133,9 @@ function StocksPortfolioPage() {
   const { lang, dir } = useI18n();
   const ar = lang === "ar";
   const qc = useQueryClient();
-  const fetchPortfolio = useServerFn(getBrokerPortfolio);
+  const fetchPortfolio = useServerFn(syncAlpacaPortfolio);
   const placeOrderFn = useServerFn(placeStockOrder);
   const cancelOrderFn = useServerFn(cancelStockOrder);
-  const eStopFn = useServerFn(triggerStockEmergencyStop);
-  const resumeFn = useServerFn(resumeStockTrading);
   const decisionsFn = useServerFn(getRecentStockDecisions);
   const previewRiskFn = useServerFn(previewStockOrderRisk);
 
@@ -93,7 +192,7 @@ function StocksPortfolioPage() {
           {configured && data.provider === "alpaca" && (
             <Badge variant="default" className="gap-1 bg-success text-success-foreground">
               <CheckCircle2 className="h-3 w-3" />
-              {ar ? "Alpaca متصل" : "Alpaca Connected"}
+              Alpaca Connected
             </Badge>
           )}
           <Button variant="outline" onClick={() => portfolio.refetch()} disabled={portfolio.isFetching} className="gap-2">
@@ -113,11 +212,11 @@ function StocksPortfolioPage() {
             {configured && (
               <Badge variant="default" className="gap-1 bg-success text-success-foreground">
                 <CheckCircle2 className="h-3 w-3" />
-                {data.provider === "alpaca" ? (ar ? "Alpaca متصل" : "Alpaca Connected") : (ar ? "متصل" : "Connected")}
+                {data.provider === "alpaca" ? "Alpaca Connected" : (ar ? "متصل" : "Connected")}
               </Badge>
             )}
             <Badge variant={data.liveTradingEnabled ? "default" : "outline"}>
-              {data.liveTradingEnabled ? (ar ? "تداول حقيقي مفعّل" : "Live trading ON") : (ar ? "معاينة فقط — LIVE_TRADING_ENABLED=false" : "Preview only — LIVE_TRADING_ENABLED=false")}
+              {data.liveTradingEnabled ? (ar ? "تداول حقيقي مفعّل" : "Live trading ON") : (ar ? "معاينة فقط — التداول الحقيقي معطل" : "Preview only — live trading disabled")}
             </Badge>
             {!configured && (
               <span className="text-muted-foreground">
@@ -130,10 +229,7 @@ function StocksPortfolioPage() {
 
       {configured && (
         <>
-          <AccountCard account={data.account} dailyPnl={data.risk.dailyPnlUsd} maxOrder={data.risk.maxOrderNotionalUsd} dailyLimit={data.risk.dailyLossLimitUsd} emergencyStop={data.risk.emergencyStopActive}
-            onEStop={async () => { await eStopFn({ data: { reason: "User triggered from Stocks Portfolio" } }); toast.message(ar ? "تم تفعيل الإيقاف الطارئ" : "Emergency stop activated"); qc.invalidateQueries({ queryKey: ["stocks-portfolio"] }); }}
-            onResume={async () => { await resumeFn(); toast.message(ar ? "تم استئناف التداول" : "Trading resumed"); qc.invalidateQueries({ queryKey: ["stocks-portfolio"] }); }}
-          />
+          <AccountCard account={data.account} />
 
           <OrderTicket
             onSubmit={(o) => place.mutate(o)}
@@ -151,31 +247,16 @@ function StocksPortfolioPage() {
   );
 }
 
-function AccountCard({ account, dailyPnl, maxOrder, dailyLimit, emergencyStop, onEStop, onResume }: {
-  account: { accountId: string; currency: string; cash: number; equity: number; buyingPower: number };
-  dailyPnl: number; maxOrder: number; dailyLimit: number; emergencyStop: boolean;
-  onEStop: () => void; onResume: () => void;
+function AccountCard({ account }: {
+  account: { accountId: string; status: string; currency: string; cash: number; equity: number; buyingPower: number };
 }) {
   const { lang } = useI18n(); const ar = lang === "ar";
   return (
-    <Card className="grid gap-3 p-4 md:grid-cols-5">
-      <Stat label={ar ? "الحساب" : "Account"} value={account.accountId} mono />
-      <Stat label={ar ? "النقد" : "Cash"} value={fmtUsd(account.cash, account.currency)} />
-      <Stat label={ar ? "قيمة المحفظة" : "Portfolio Value"} value={fmtUsd(account.equity, account.currency)} />
-      <Stat label={ar ? "قوة الشراء" : "Buying Power"} value={fmtUsd(account.buyingPower, account.currency)} />
-      <div className="rounded-md border border-border bg-muted/20 p-2">
-        <div className="text-[11px] uppercase text-muted-foreground">{ar ? "P&L اليومي" : "Daily P&L"}</div>
-        <div className={`font-mono text-sm font-semibold ${dailyPnl < 0 ? "text-destructive" : "text-success"}`}>{fmtUsd(dailyPnl, "USD")}</div>
-      </div>
-      <div className="md:col-span-5 flex flex-wrap items-center gap-3 border-t border-border pt-3 text-xs">
-        <span className="text-muted-foreground">{ar ? "حد الأمر الأقصى:" : "Max order:"} <strong>{fmtUsd(maxOrder, "USD")}</strong></span>
-        <span className="text-muted-foreground">{ar ? "حد الخسارة اليومي:" : "Daily loss limit:"} <strong>{fmtUsd(dailyLimit, "USD")}</strong></span>
-        {emergencyStop ? (
-          <Button size="sm" variant="outline" className="ms-auto gap-2" onClick={onResume}><Shield className="h-4 w-4" /> {ar ? "استئناف" : "Resume"}</Button>
-        ) : (
-          <Button size="sm" variant="destructive" className="ms-auto gap-2" onClick={onEStop}><ShieldAlert className="h-4 w-4" /> {ar ? "إيقاف طارئ" : "Emergency Stop"}</Button>
-        )}
-      </div>
+    <Card className="grid gap-3 p-4 md:grid-cols-4">
+      <Stat label="Portfolio Value" value={fmtUsd(account.equity, account.currency)} />
+      <Stat label="Cash" value={fmtUsd(account.cash, account.currency)} />
+      <Stat label="Buying Power" value={fmtUsd(account.buyingPower, account.currency)} />
+      <Stat label={ar ? "حالة الحساب" : "Account Status"} value={account.status || "—"} mono />
     </Card>
   );
 }
@@ -389,7 +470,7 @@ function PositionsTable({ positions }: { positions: Array<{ symbol: string; qty:
               </tr>
             ))}
             {positions.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">{ar ? "لا توجد مراكز" : "No positions"}</td></tr>
+              <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">{ar ? "لا توجد مراكز مفتوحة" : "No open positions"}</td></tr>
             )}
           </tbody>
         </table>
@@ -429,7 +510,7 @@ function OrdersTable({ orders, onCancel, canCancel }: { orders: Array<{ id: stri
               </tr>
             ))}
             {orders.length === 0 && (
-              <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">{ar ? "لا توجد أوامر" : "No open orders"}</td></tr>
+              <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">{ar ? "لا توجد أوامر مفتوحة" : "No open orders"}</td></tr>
             )}
           </tbody>
         </table>
