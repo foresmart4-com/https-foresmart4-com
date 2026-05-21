@@ -100,6 +100,8 @@ function MarketIntelligencePage() {
     name: selected?.name ?? quote.name,
     asset_type: CAT_TO_ASSET_TYPE[category],
     last_price: quote.price ?? null,
+    market: CATEGORY_LABELS[category].ar,
+    category,
   } : null;
 
   const assetsForCategory = ASSET_PICKER[category];
