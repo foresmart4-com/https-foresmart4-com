@@ -134,11 +134,9 @@ function StocksPortfolioPage() {
   const { lang, dir } = useI18n();
   const ar = lang === "ar";
   const qc = useQueryClient();
-  const fetchPortfolio = useServerFn(getBrokerPortfolio);
+  const fetchPortfolio = useServerFn(syncAlpacaPortfolio);
   const placeOrderFn = useServerFn(placeStockOrder);
   const cancelOrderFn = useServerFn(cancelStockOrder);
-  const eStopFn = useServerFn(triggerStockEmergencyStop);
-  const resumeFn = useServerFn(resumeStockTrading);
   const decisionsFn = useServerFn(getRecentStockDecisions);
   const previewRiskFn = useServerFn(previewStockOrderRisk);
 
@@ -232,10 +230,7 @@ function StocksPortfolioPage() {
 
       {configured && (
         <>
-          <AccountCard account={data.account} dailyPnl={data.risk.dailyPnlUsd} maxOrder={data.risk.maxOrderNotionalUsd} dailyLimit={data.risk.dailyLossLimitUsd} emergencyStop={data.risk.emergencyStopActive}
-            onEStop={async () => { await eStopFn({ data: { reason: "User triggered from Stocks Portfolio" } }); toast.message(ar ? "تم تفعيل الإيقاف الطارئ" : "Emergency stop activated"); qc.invalidateQueries({ queryKey: ["stocks-portfolio"] }); }}
-            onResume={async () => { await resumeFn(); toast.message(ar ? "تم استئناف التداول" : "Trading resumed"); qc.invalidateQueries({ queryKey: ["stocks-portfolio"] }); }}
-          />
+          <AccountCard account={data.account} />
 
           <OrderTicket
             onSubmit={(o) => place.mutate(o)}
