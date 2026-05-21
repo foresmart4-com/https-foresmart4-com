@@ -67,7 +67,7 @@ interface Row {
   captured_at: string;
 }
 
-type Category = "crypto" | "metals" | "currencies" | "stocks";
+type Category = "crypto" | "metals" | "currencies" | "stocks" | "etf_bond" | "commodity";
 type DisplayCurrency = "USD" | "SAR";
 
 const USD_SAR_RATE = 3.75;
