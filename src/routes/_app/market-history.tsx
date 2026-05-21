@@ -48,7 +48,7 @@ function MarketHistoryPage() {
   const [range, setRange] = useState<Range>("30d");
   const [interval, setInterval] = useState<Interval>("1d");
 
-  const assets = useMemo(() => ALL_INTEL_ASSETS, []);
+  const assets = useMemo<PickerAsset[]>(() => Object.values(ASSET_PICKER).flat(), []);
 
   const histKey = ["history", symbol, range, interval] as const;
   const history = useQuery({
