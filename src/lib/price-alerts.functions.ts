@@ -113,7 +113,12 @@ export const updatePriceAlert = createServerFn({ method: "POST" })
   .inputValidator((d) => UpdateInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      condition?: AlertCondition;
+      target_value?: number;
+      note?: string | null;
+      enabled?: boolean;
+    } = {};
     if (data.condition !== undefined) patch.condition = data.condition;
     if (data.target_value !== undefined) patch.target_value = data.target_value;
     if (data.note !== undefined) patch.note = data.note;
