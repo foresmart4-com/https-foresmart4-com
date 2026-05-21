@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Anyone can submit interest" ON public.interest_leads;
