@@ -414,10 +414,39 @@ async function runCoinGecko(_asset: ResolvedAsset, sym: string): Promise<Upstrea
 }
 
 async function runAlpaca(_asset: ResolvedAsset, _sym: string): Promise<UpstreamResult> {
-  // Alpaca quote pipeline is not wired into the router yet; declared in the
-  // chain so the priority order is honoured the moment we add it. For now we
-  // throw and the router transparently falls through to the next provider.
   throw new Error("alpaca: not implemented");
+}
+
+/**
+ * TradingView quote runner — hits the public scanner endpoint that powers
+ * tradingview.com tickers. Symbols MUST be in TV format (EXCHANGE:TICKER),
+ * which the symbol-map provides via the `tradingview` provider key.
+ */
+async function runTradingView(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  if (!/^[A-Z0-9_]+:[A-Z0-9._!-]+$/.test(sym)) {
+    throw new Error(`tradingview: invalid symbol "${sym}"`);
+  }
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 6000);
+  try {
+    const res = await fetch(
+      `https://scanner.tradingview.com/symbol?symbol=${encodeURIComponent(sym)}&fields=lp,ch,chp,volume,update_mode`,
+      { signal: ctrl.signal, headers: { Accept: "application/json" } },
+    );
+    if (res.status === 429) throw Object.assign(new Error("tradingview: rate limit"), { rateLimited: true });
+    if (!res.ok) throw new Error(`tradingview: HTTP ${res.status}`);
+    const j = await res.json() as { lp?: number; chp?: number; volume?: number; update_mode?: string };
+    if (typeof j.lp !== "number" || !Number.isFinite(j.lp)) throw new Error("tradingview: empty quote");
+    return {
+      price: j.lp,
+      changePercent: typeof j.chp === "number" ? j.chp : null,
+      volume: typeof j.volume === "number" ? j.volume : null,
+      timestamp: Date.now(),
+      delayed: j.update_mode !== "streaming",
+    };
+  } finally {
+    clearTimeout(t);
+  }
 }
 
 const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<UpstreamResult>> = {
@@ -427,6 +456,7 @@ const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<Ups
   binance: runBinance,
   coingecko: runCoinGecko,
   alpaca: runAlpaca,
+  tradingview: runTradingView,
 };
 
 /** Map our internal ProviderId → the symbol-map ProviderKey. 1:1 today. */
@@ -437,6 +467,7 @@ const PROVIDER_KEY: Record<ProviderId, ProviderKey> = {
   binance: "binance",
   coingecko: "coingecko",
   alpaca: "alpaca",
+  tradingview: "tradingview",
 };
 
 // ---------- Core router ----------
