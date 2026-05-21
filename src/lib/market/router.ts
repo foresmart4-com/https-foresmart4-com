@@ -478,8 +478,10 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
   const promise = (async (): Promise<RouterQuote> => {
     const chain = CHAINS[asset.assetClass] ?? CHAINS.unknown;
     const attempted: ProviderId[] = [];
+    const translations: Partial<Record<ProviderId, string>> = {};
     let fallbackUsed = false;
     let lastError = "no provider available";
+    let lastTranslated: string | undefined;
 
     for (let i = 0; i < chain.length; i++) {
       const p = chain[i];
@@ -487,9 +489,25 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
       attempted.push(p);
       const runner = RUNNERS[p];
       if (!runner) continue;
+
+      // Translate per-provider. Wrapped so a translation oddity for ONE
+      // provider can never bubble up and fail the entire request — we mark
+      // this provider failed and continue down the chain.
+      let translated: string;
+      try {
+        translated = translateSymbol(asset.raw, PROVIDER_KEY[p]) || asset.normalized;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        recordError(p, `translate: ${msg}`, false);
+        lastError = `translate: ${msg}`;
+        continue;
+      }
+      translations[p] = translated;
+      lastTranslated = translated;
+
       const start = Date.now();
       try {
-        const r = await runner(asset);
+        const r = await runner(asset, translated);
         const latency = Date.now() - start;
         recordSuccess(p, latency);
         if (i > 0) { fallbackUsed = true; recordFailover(p); }
@@ -507,6 +525,8 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
           symbol: asset.normalized,
           assetClass: asset.assetClass,
           attempted,
+          translatedSymbol: translated,
+          translations,
         });
         const ttl = TTL_MS[asset.assetClass];
         CACHE.set(cKey, { quote, expiresAt: Date.now() + ttl });
@@ -521,7 +541,7 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
     }
 
     const stale = staleCache(cKey);
-    if (stale) return stamp({ ...stale, fallbackUsed: true, error: lastError, attempted });
+    if (stale) return stamp({ ...stale, fallbackUsed: true, error: lastError, attempted, translations, translatedSymbol: lastTranslated });
     return stamp({
       success: false,
       provider: null,
@@ -537,6 +557,8 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
       assetClass: asset.assetClass,
       error: lastError,
       attempted,
+      translations,
+      translatedSymbol: lastTranslated,
     });
   })();
 
