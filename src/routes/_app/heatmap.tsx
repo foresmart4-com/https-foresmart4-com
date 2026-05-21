@@ -218,54 +218,68 @@ function HeatmapPage() {
           <div className="py-16 text-center text-muted-foreground">{lang === "ar" ? "لا توجد أصول تطابق الفلتر." : "No assets match this filter."}</div>
         ) : (
           <div className={"grid gap-1.5 " + sizeClass}>
-            {filtered.map((c) => {
-              const pct = c.changePct;
-              const abs = Math.abs(pct);
-              // conviction tiers: weak <1, mod 1-3, strong 3-6, extreme >6
-              const intensity = abs >= 6 ? 1 : abs >= 3 ? 0.8 : abs >= 1 ? 0.55 : 0.3;
-              const hue = pct >= 0 ? 150 : 25;
-              const bg = `oklch(0.55 ${0.12 + intensity * 0.12} ${hue} / ${0.35 + intensity * 0.55})`;
-              const tier = abs >= 6 ? "★★★" : abs >= 3 ? "★★" : abs >= 1 ? "★" : "";
-              return (
-                <DropdownMenu key={c.symbol + c.group}>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="rounded-lg p-2.5 text-white text-start transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary"
-                      style={{ background: bg, minHeight: size === "large" ? 90 : 70 }}
-                      title={`${c.name} • ${c.price.toLocaleString(undefined, { maximumFractionDigits: 4 })}`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="font-bold text-sm truncate">{c.symbol}</div>
-                        {tier && <span className="text-[10px] opacity-80">{tier}</span>}
-                      </div>
-                      <div className="text-xs font-semibold flex items-center gap-1">
-                        {pct >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                        {pct >= 0 ? "+" : ""}{pct.toFixed(2)}%
-                      </div>
-                      <div className="text-[10px] opacity-80 truncate">{c.name}</div>
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56">
-                    <DropdownMenuItem asChild>
-                      <Link to="/market-intelligence">
-                        <BarChart3 className="h-4 w-4 me-2" />
-                        {lang === "ar" ? "فتح في ذكاء السوق" : "Open in Market Intelligence"}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { setPicked(toPicked(c)); setOpenWatch(true); }}>
-                      <Plus className="h-4 w-4 me-2" />
-                      {lang === "ar" ? "إضافة لقائمة المراقبة" : "Add to watchlist"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { setPicked(toPicked(c)); setOpenAlert(true); }}>
-                      <Bell className="h-4 w-4 me-2" />
-                      {lang === "ar" ? "إنشاء تنبيه" : "Create alert"}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              );
-            })}
-          </div>
+          <TooltipProvider delayDuration={200}>
+            <div className={"grid gap-1.5 " + sizeClass}>
+              {filtered.map((c) => {
+                const pct = c.changePct;
+                const abs = Math.abs(pct);
+                const intensity = abs >= 6 ? 1 : abs >= 3 ? 0.8 : abs >= 1 ? 0.55 : 0.3;
+                const hue = pct >= 0 ? 150 : 25;
+                const bg = `oklch(0.55 ${0.12 + intensity * 0.12} ${hue} / ${0.35 + intensity * 0.55})`;
+                const tier = abs >= 6 ? "★★★" : abs >= 3 ? "★★" : abs >= 1 ? "★" : "";
+                const when = c.updatedAt ? new Date(c.updatedAt).toLocaleTimeString() : "—";
+                return (
+                  <DropdownMenu key={c.symbol + c.group}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            className="rounded-lg p-2.5 text-white text-start transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary"
+                            style={{ background: bg, minHeight: size === "large" ? 90 : 70 }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="font-bold text-sm truncate">{c.symbol}</div>
+                              {tier && <span className="text-[10px] opacity-80">{tier}</span>}
+                            </div>
+                            <div className="text-xs font-semibold flex items-center gap-1">
+                              {pct >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                              {pct >= 0 ? "+" : ""}{pct.toFixed(2)}%
+                            </div>
+                            <div className="text-[10px] opacity-80 truncate">{c.name}</div>
+                          </button>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="text-xs space-y-0.5">
+                          <div className="font-semibold">{c.name} ({c.symbol})</div>
+                          <div>{lang === "ar" ? "السعر" : "Price"}: {c.price.toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
+                          <div>{lang === "ar" ? "المصدر" : "Source"}: {c.source || "—"} • {c.mode || "—"}</div>
+                          <div className="text-muted-foreground">{lang === "ar" ? "آخر تحديث" : "Updated"}: {when}</div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent align="start" className="w-56">
+                      <DropdownMenuItem asChild>
+                        <Link to="/market-intelligence">
+                          <BarChart3 className="h-4 w-4 me-2" />
+                          {lang === "ar" ? "فتح في ذكاء السوق" : "Open in Market Intelligence"}
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setPicked(toPicked(c)); setOpenWatch(true); }}>
+                        <Plus className="h-4 w-4 me-2" />
+                        {lang === "ar" ? "إضافة لقائمة المراقبة" : "Add to watchlist"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setPicked(toPicked(c)); setOpenAlert(true); }}>
+                        <Bell className="h-4 w-4 me-2" />
+                        {lang === "ar" ? "إنشاء تنبيه" : "Create alert"}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                );
+              })}
+            </div>
+          </TooltipProvider>
         )}
       </Card>
 
