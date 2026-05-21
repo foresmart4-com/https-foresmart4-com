@@ -634,10 +634,27 @@ function HistoryView() {
       )}
 
       <div className="rounded-xl border border-border bg-card p-4">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
           <div>
             <div className="font-semibold">{data?.name ?? symbol}</div>
-            <div className="text-xs text-muted-foreground">{data?.currency ?? "USD"}</div>
+            <div className="text-xs text-muted-foreground flex items-center gap-2">
+              <span>{data?.currency ?? "USD"}</span>
+              {data?.source && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded border border-border bg-muted/30">
+                  {lang === "ar" ? "المصدر: " : "Source: "}{data.source}
+                </span>
+              )}
+              {data?.points?.length ? (
+                <span className="text-[10px] px-1.5 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/15 text-emerald-500">
+                  {lang === "ar" ? "حي" : "Live"}
+                </span>
+              ) : null}
+              {data?.points?.length ? (
+                <span className="text-[10px] text-muted-foreground">
+                  {lang === "ar" ? "نقاط:" : "Points:"} {data.points.length}
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
         <div className="h-72">
@@ -653,9 +670,13 @@ function HistoryView() {
                   ? lang === "ar"
                     ? "تعذّر تحميل بيانات السوق الآن. أعد المحاولة أو اختر أصلًا آخر."
                     : "Market data could not be loaded. Try again or choose another asset."
-                  : lang === "ar"
-                    ? "لا توجد قيم تاريخية متاحة لهذا الاختيار حاليًا."
-                    : "No historical values are available for this selection yet."}
+                  : data?.reason === "range_unsupported"
+                    ? lang === "ar"
+                      ? "هذه المدة غير مدعومة من المزود لهذا الأصل. جرّب مدة أطول."
+                      : "This range is not supported by the provider for this asset. Try a longer range."
+                    : lang === "ar"
+                      ? "لا توجد قيم تاريخية متاحة لهذا الاختيار حاليًا."
+                      : "No historical values are available for this selection yet."}
               </div>
               {isError && <div className="text-xs text-muted-foreground/80">{error.message}</div>}
               <button
