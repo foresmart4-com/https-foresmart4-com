@@ -117,6 +117,7 @@ function HeatmapPage() {
         });
       });
       setCells(arr);
+      setLastUpdated(Date.now());
     } finally {
       setLoading(false); setRefreshing(false);
     }
@@ -124,11 +125,21 @@ function HeatmapPage() {
 
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const id = setInterval(load, 60_000);
+    return () => clearInterval(id);
+  }, [autoRefresh]);
+
   const filtered = useMemo(() => {
     let out = group === "all" ? cells : cells.filter((c) => c.group === group);
     if (filter === "gainers") out = out.filter((c) => c.changePct > 0);
     else if (filter === "losers") out = out.filter((c) => c.changePct < 0);
     else if (filter === "strong") out = out.filter((c) => Math.abs(c.changePct) >= 2);
+    if (respectRisk) {
+      const cap = maxVolatilityPctForRisk(risk);
+      if (cap > 0) out = out.filter((c) => Math.abs(c.changePct) <= cap);
+    }
     const q = search.trim().toLowerCase();
     if (q) out = out.filter((c) => c.symbol.toLowerCase().includes(q) || c.name.toLowerCase().includes(q));
     return out.sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct));
