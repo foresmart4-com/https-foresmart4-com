@@ -95,60 +95,48 @@ export interface ResolvedAsset {
 }
 
 export function resolveAsset(rawSymbol: string): ResolvedAsset {
-  const symbol = rawSymbol.trim().toUpperCase();
-  if (!symbol) return { assetClass: "unknown", normalized: symbol };
+  const raw = (rawSymbol ?? "").trim().toUpperCase();
+  const make = (
+    assetClass: AssetClass,
+    normalized: string,
+    resolverPath: string,
+    extra: Partial<ResolvedAsset> = {},
+  ): ResolvedAsset => ({ assetClass, normalized, resolverPath, raw, ...extra });
 
-  // Saudi: .SR suffix or :TADAWUL
-  if (/\.SR$/.test(symbol) || /:TADAWUL$/.test(symbol)) {
-    return { assetClass: "saudi_stock", normalized: symbol.replace(/:TADAWUL$/, ".SR") };
+  if (!raw) return make("unknown", "", "empty");
+
+  // Saudi: .SR suffix or :TADAWUL — keep numeric tickers intact (e.g. "2222.SR")
+  if (/\.SR$/.test(raw) || /:TADAWUL$/.test(raw)) {
+    return make("saudi_stock", raw.replace(/:TADAWUL$/, ".SR"), "saudi:.SR");
   }
 
-  // Metals
-  if (METAL_SYMBOLS.has(symbol) || /^XAU|XAG|XPT|XPD/.test(symbol)) {
-    return { assetClass: "metal", normalized: symbol };
+  // Metals (XAU, XAUUSD, GOLD, ...) — keep raw for branching but tag class
+  if (METAL_SYMBOLS.has(raw) || /^(XAU|XAG|XPT|XPD)/.test(raw)) {
+    return make("metal", raw, "metal:prefix");
   }
 
-  // Commodities
-  if (COMMODITY_SYMBOLS.has(symbol)) {
-    return { assetClass: "commodity", normalized: symbol };
-  }
+  if (COMMODITY_SYMBOLS.has(raw)) return make("commodity", raw, "commodity:set");
+  if (BOND_PATTERNS.some((re) => re.test(raw))) return make("bond", raw, "bond:pattern");
+  if (COMMON_ETFS.has(raw)) return make("etf", raw, "etf:set");
 
-  // Bonds
-  if (BOND_PATTERNS.some((re) => re.test(symbol))) {
-    return { assetClass: "bond", normalized: symbol };
-  }
-
-  // ETFs
-  if (COMMON_ETFS.has(symbol)) {
-    return { assetClass: "etf", normalized: symbol };
-  }
-
-  // Crypto with explicit suffix
-  const cryptoMatch = symbol.match(CRYPTO_SUFFIX_RE);
+  const cryptoMatch = raw.match(CRYPTO_SUFFIX_RE);
   if (cryptoMatch) {
     const [, base, quote] = cryptoMatch;
-    return { assetClass: "crypto", normalized: `${base}${quote.endsWith("USD") ? quote : quote + ""}` };
+    return make("crypto", `${base}${quote}`, "crypto:suffix");
   }
-  if (CRYPTO_PLAIN.has(symbol)) {
-    return { assetClass: "crypto", normalized: `${symbol}USDT` };
-  }
+  if (CRYPTO_PLAIN.has(raw)) return make("crypto", `${raw}USDT`, "crypto:plain");
 
-  // Forex
-  const fx = symbol.match(FOREX_RE);
+  const fx = raw.match(FOREX_RE);
   if (fx) {
     const [, from, to] = fx;
     const FIATS = new Set(["USD", "EUR", "GBP", "JPY", "CHF", "AUD", "CAD", "NZD", "CNY", "SAR", "AED", "TRY"]);
     if (FIATS.has(from) && FIATS.has(to)) {
-      return { assetClass: "forex", normalized: `${from}${to}`, forex: { from, to } };
+      return make("forex", `${from}${to}`, "forex:pair", { forex: { from, to } });
     }
   }
 
-  // Default: treat 1–5 letter alpha as US stock
-  if (/^[A-Z]{1,5}$/.test(symbol)) {
-    return { assetClass: "us_stock", normalized: symbol };
-  }
-
-  return { assetClass: "unknown", normalized: symbol };
+  if (/^[A-Z]{1,5}$/.test(raw)) return make("us_stock", raw, "us:alpha");
+  return make("unknown", raw, "fallback");
 }
 
 // ---------- Provider priority chains ----------
