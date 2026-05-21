@@ -157,18 +157,6 @@ function MarketIntelligencePage() {
     onError: (e: any) => toast.error(e?.message ?? "error"),
   });
 
-  const addToWatchlist = useMutation({
-    mutationFn: async () => {
-      if (!user || !quote) throw new Error("login_required");
-      const { error } = await supabase.from("watchlist_items").insert({
-        user_id: user.id, symbol: quote.symbol,
-        asset_name: selected?.name ?? quote.name, category,
-      });
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => toast.success(t("أضيف إلى قائمة المتابعة", "Added to watchlist")),
-    onError: (e: any) => toast.error(e?.message ?? "error"),
-  });
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6" dir={ar ? "rtl" : "ltr"}>
