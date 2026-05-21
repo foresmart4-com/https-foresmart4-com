@@ -11,7 +11,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
   LayoutDashboard, LineChart, Bell, Archive, User as UserIcon,
-  Brain, LogOut, Globe2, Menu, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap, Eye, Search, Flame, CalendarDays, GraduationCap, Layers, Cpu, Activity, HelpCircle, Compass,
+  Brain, LogOut, Globe2, Menu, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap, Eye, Search, Flame, CalendarDays, GraduationCap, Layers, Cpu, Activity, HelpCircle, Compass, History, Rocket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
@@ -72,9 +72,12 @@ function AppLayout() {
     { to: "/archive", icon: Archive, label: t("nav.archive"), hint: hint("الأرشيف", "Archive") },
     ...(isAdmin ? [{ to: "/members", icon: Users, label: t("nav.members"), hint: hint("إدارة الأعضاء (مشرفون)", "Members admin") }] : []),
     { to: "/help", icon: HelpCircle, label: hint("مركز المساعدة", "Help Center"), hint: hint("شرح المحفظة، Binance، Alpaca، IBKR، الاشتراكات", "Wallet, Binance, Alpaca, IBKR, subscriptions") },
+    { to: "/changelog", icon: History, label: hint("سجل التغييرات", "Changelog"), hint: hint("آخر نسخة منشورة من الواجهة مع التاريخ والملخص", "Latest published frontend release with date and summary") },
     { to: "/profile", icon: UserIcon, label: t("nav.profile"), hint: hint("الملف الشخصي", "Profile") },
     { to: "/settings", icon: Settings, label: t("nav.settings"), hint: hint("الإعدادات", "Settings") },
   ];
+
+  const editorUrl = "https://lovable.dev/projects/5a68377c-93dc-42f4-9999-fc0850af1ae2";
 
   const handleSignOut = async () => { await signOut(); navigate({ to: "/" }); };
 
