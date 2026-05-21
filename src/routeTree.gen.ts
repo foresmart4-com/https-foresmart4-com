@@ -38,6 +38,7 @@ import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppMarketsRouteImport } from './routes/_app/markets'
 import { Route as AppMarketUniverseRouteImport } from './routes/_app/market-universe'
 import { Route as AppMarketIntelligenceRouteImport } from './routes/_app/market-intelligence'
+import { Route as AppMarketHistoryRouteImport } from './routes/_app/market-history'
 import { Route as AppMarketDataMonitorRouteImport } from './routes/_app/market-data-monitor'
 import { Route as AppHelpRouteImport } from './routes/_app/help'
 import { Route as AppHeatmapRouteImport } from './routes/_app/heatmap'
@@ -224,6 +225,11 @@ const AppMarketUniverseRoute = AppMarketUniverseRouteImport.update({
 const AppMarketIntelligenceRoute = AppMarketIntelligenceRouteImport.update({
   id: '/market-intelligence',
   path: '/market-intelligence',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMarketHistoryRoute = AppMarketHistoryRouteImport.update({
+  id: '/market-history',
+  path: '/market-history',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMarketDataMonitorRoute = AppMarketDataMonitorRouteImport.update({
@@ -485,6 +491,7 @@ export interface FileRoutesByFullPath {
   '/heatmap': typeof AppHeatmapRoute
   '/help': typeof AppHelpRoute
   '/market-data-monitor': typeof AppMarketDataMonitorRoute
+  '/market-history': typeof AppMarketHistoryRoute
   '/market-intelligence': typeof AppMarketIntelligenceRoute
   '/market-universe': typeof AppMarketUniverseRoute
   '/markets': typeof AppMarketsRoute
@@ -558,6 +565,7 @@ export interface FileRoutesByTo {
   '/heatmap': typeof AppHeatmapRoute
   '/help': typeof AppHelpRoute
   '/market-data-monitor': typeof AppMarketDataMonitorRoute
+  '/market-history': typeof AppMarketHistoryRoute
   '/market-intelligence': typeof AppMarketIntelligenceRoute
   '/market-universe': typeof AppMarketUniverseRoute
   '/markets': typeof AppMarketsRoute
@@ -633,6 +641,7 @@ export interface FileRoutesById {
   '/_app/heatmap': typeof AppHeatmapRoute
   '/_app/help': typeof AppHelpRoute
   '/_app/market-data-monitor': typeof AppMarketDataMonitorRoute
+  '/_app/market-history': typeof AppMarketHistoryRoute
   '/_app/market-intelligence': typeof AppMarketIntelligenceRoute
   '/_app/market-universe': typeof AppMarketUniverseRoute
   '/_app/markets': typeof AppMarketsRoute
@@ -708,6 +717,7 @@ export interface FileRouteTypes {
     | '/heatmap'
     | '/help'
     | '/market-data-monitor'
+    | '/market-history'
     | '/market-intelligence'
     | '/market-universe'
     | '/markets'
@@ -781,6 +791,7 @@ export interface FileRouteTypes {
     | '/heatmap'
     | '/help'
     | '/market-data-monitor'
+    | '/market-history'
     | '/market-intelligence'
     | '/market-universe'
     | '/markets'
@@ -855,6 +866,7 @@ export interface FileRouteTypes {
     | '/_app/heatmap'
     | '/_app/help'
     | '/_app/market-data-monitor'
+    | '/_app/market-history'
     | '/_app/market-intelligence'
     | '/_app/market-universe'
     | '/_app/markets'
@@ -1120,6 +1132,13 @@ declare module '@tanstack/react-router' {
       path: '/market-intelligence'
       fullPath: '/market-intelligence'
       preLoaderRoute: typeof AppMarketIntelligenceRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/market-history': {
+      id: '/_app/market-history'
+      path: '/market-history'
+      fullPath: '/market-history'
+      preLoaderRoute: typeof AppMarketHistoryRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/market-data-monitor': {
@@ -1456,6 +1475,7 @@ interface AppRouteChildren {
   AppHeatmapRoute: typeof AppHeatmapRoute
   AppHelpRoute: typeof AppHelpRoute
   AppMarketDataMonitorRoute: typeof AppMarketDataMonitorRoute
+  AppMarketHistoryRoute: typeof AppMarketHistoryRoute
   AppMarketIntelligenceRoute: typeof AppMarketIntelligenceRoute
   AppMarketUniverseRoute: typeof AppMarketUniverseRoute
   AppMarketsRoute: typeof AppMarketsRoute
@@ -1507,6 +1527,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppHeatmapRoute: AppHeatmapRoute,
   AppHelpRoute: AppHelpRoute,
   AppMarketDataMonitorRoute: AppMarketDataMonitorRoute,
+  AppMarketHistoryRoute: AppMarketHistoryRoute,
   AppMarketIntelligenceRoute: AppMarketIntelligenceRoute,
   AppMarketUniverseRoute: AppMarketUniverseRoute,
   AppMarketsRoute: AppMarketsRoute,
