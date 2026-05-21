@@ -273,6 +273,7 @@ const PROVIDERS: Record<ProviderId, undefined | ((s: string, r: Range, i: Interv
   binance: fetchBinance,
   alpaca: undefined,
   tradingview: undefined,
+  sahmk: undefined, // SAHMK historical not enabled on current plan
 };
 
 // ---------- Supabase persistent cache ----------
