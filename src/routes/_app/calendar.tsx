@@ -134,15 +134,38 @@ function CalendarPage() {
   return (
     <TooltipProvider>
       <div className="container mx-auto max-w-5xl space-y-6 p-6">
-        <header>
-          <h1 className="font-display text-3xl font-bold flex items-center gap-2">
-            <CalendarDays className="h-7 w-7 text-primary" /> {lang === "ar" ? "التقويم الاقتصادي" : "Economic Calendar"}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {lang === "ar"
-              ? "أهم الأحداث الاقتصادية والمؤشرات التي تحرك الأسواق — مع شرح فوري لتأثير كل حدث."
-              : "Key macro events and indicators moving markets — with instant impact explanations."}
-          </p>
+        <header className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="font-display text-3xl font-bold flex items-center gap-2">
+              <CalendarDays className="h-7 w-7 text-primary" /> {lang === "ar" ? "التقويم الاقتصادي" : "Economic Calendar"}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {lang === "ar"
+                ? "أهم الأحداث الاقتصادية والمؤشرات التي تحرك الأسواق — مع شرح فوري لتأثير كل حدث."
+                : "Key macro events and indicators moving markets — with instant impact explanations."}
+            </p>
+          </div>
+          {source && (
+            <div className="flex flex-col items-end gap-1 text-xs">
+              <span className="text-muted-foreground">
+                {lang === "ar" ? "المصدر: " : "Source: "}{source}
+              </span>
+              <span className={
+                "px-2 py-0.5 rounded border text-[10px] font-semibold " +
+                (mode === "live"
+                  ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-500"
+                  : mode === "delayed"
+                    ? "border-amber-500/40 bg-amber-500/15 text-amber-500"
+                    : "border-violet-500/40 bg-violet-500/15 text-violet-500")
+              }>
+                {mode === "live"
+                  ? (lang === "ar" ? "حي" : "Live")
+                  : mode === "delayed"
+                    ? (lang === "ar" ? "ضيف/متأخر" : "Guest/Delayed")
+                    : (lang === "ar" ? "تجريبي" : "Mock")}
+              </span>
+            </div>
+          )}
         </header>
 
         <div className="grid grid-cols-3 gap-3">
