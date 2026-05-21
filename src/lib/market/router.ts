@@ -20,7 +20,7 @@
 import { getQuote as fhQuote } from "@/services/providers/finnhub";
 import { getQuote as tdQuote } from "@/services/providers/twelvedata";
 import { getEquityQuote as avEquity, getFxRate as avFx } from "@/services/providers/alphavantage";
-import { mapForProvider } from "@/lib/market/symbol-map";
+import { translateSymbol, type ProviderKey } from "@/lib/market/symbol-map";
 
 // ---------- Public types ----------
 
@@ -67,6 +67,10 @@ export interface RouterQuote {
   inflightKey?: string;
   resolverPath?: string;
   rawSymbol?: string;
+  /** The provider-specific symbol string used for the successful (or last attempted) upstream call. */
+  translatedSymbol?: string;
+  /** Per-provider translations attempted, keyed by ProviderId. */
+  translations?: Partial<Record<ProviderId, string>>;
 }
 
 // ---------- Asset resolver ----------
@@ -295,8 +299,8 @@ function num(v: unknown): number | null {
   return null;
 }
 
-async function runFinnhub(asset: ResolvedAsset): Promise<UpstreamResult> {
-  const q = await fhQuote(asset.normalized);
+async function runFinnhub(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  const q = await fhQuote(sym);
   if (!q || !Number.isFinite(q.c) || q.c <= 0) throw new Error("finnhub: empty quote");
   return {
     price: q.c,
@@ -307,9 +311,8 @@ async function runFinnhub(asset: ResolvedAsset): Promise<UpstreamResult> {
   };
 }
 
-async function runTwelveData(asset: ResolvedAsset): Promise<UpstreamResult> {
-  const mapped = mapForProvider(asset.raw, "twelvedata");
-  const q = await tdQuote(mapped);
+async function runTwelveData(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  const q = await tdQuote(sym);
   const price = num(q.close);
   if (price == null) throw new Error("twelvedata: empty quote");
   return {
@@ -321,14 +324,14 @@ async function runTwelveData(asset: ResolvedAsset): Promise<UpstreamResult> {
   };
 }
 
-async function runAlphaVantage(asset: ResolvedAsset): Promise<UpstreamResult> {
+async function runAlphaVantage(asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
   if (asset.assetClass === "forex" && asset.forex) {
     const r = await avFx(asset.forex.from, asset.forex.to);
     const rate = num(r["Realtime Currency Exchange Rate"]?.["5. Exchange Rate"]);
     if (rate == null) throw new Error("alphavantage: empty fx");
     return { price: rate, changePercent: null, volume: null, timestamp: Date.now(), delayed: true };
   }
-  const r = await avEquity(asset.normalized);
+  const r = await avEquity(sym);
   const g = r["Global Quote"];
   const price = num(g?.["05. price"]);
   if (price == null) throw new Error("alphavantage: empty quote");
@@ -342,12 +345,12 @@ async function runAlphaVantage(asset: ResolvedAsset): Promise<UpstreamResult> {
   };
 }
 
-async function runBinance(asset: ResolvedAsset): Promise<UpstreamResult> {
-  const sym = asset.normalized.endsWith("USDT") ? asset.normalized : `${asset.normalized}USDT`;
+async function runBinance(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  const symbol = sym.endsWith("USDT") || sym.endsWith("USDC") || sym.endsWith("BUSD") ? sym : `${sym}USDT`;
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 5000);
   try {
-    const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${sym}`, { signal: ctrl.signal });
+    const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`, { signal: ctrl.signal });
     if (res.status === 429) throw Object.assign(new Error("binance: rate limit"), { rateLimited: true });
     if (!res.ok) throw new Error(`binance: HTTP ${res.status}`);
     const j = await res.json() as { lastPrice?: string; priceChangePercent?: string; volume?: string; closeTime?: number };
@@ -365,15 +368,20 @@ async function runBinance(asset: ResolvedAsset): Promise<UpstreamResult> {
   }
 }
 
-async function runCoinGecko(asset: ResolvedAsset): Promise<UpstreamResult> {
-  const base = asset.normalized.replace(/USDT?|USDC|BUSD$/i, "").toLowerCase();
-  const map: Record<string, string> = {
-    btc: "bitcoin", eth: "ethereum", sol: "solana", bnb: "binancecoin",
-    xrp: "ripple", ada: "cardano", doge: "dogecoin", avax: "avalanche-2",
-    matic: "matic-network", dot: "polkadot", ltc: "litecoin", link: "chainlink",
-  };
-  const id = map[base];
-  if (!id) throw new Error(`coingecko: unsupported ${base}`);
+async function runCoinGecko(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  // sym is already a coingecko id (e.g. "bitcoin") via translateSymbol; fall
+  // back to deriving from base symbol if translation returned the raw input.
+  let id = /^[a-z0-9-]+$/.test(sym) && !/USDT?$|USDC$|BUSD$/i.test(sym) ? sym : "";
+  if (!id) {
+    const base = sym.replace(/USDT?|USDC|BUSD$/i, "").toLowerCase();
+    const map: Record<string, string> = {
+      btc: "bitcoin", eth: "ethereum", sol: "solana", bnb: "binancecoin",
+      xrp: "ripple", ada: "cardano", doge: "dogecoin", avax: "avalanche-2",
+      matic: "matic-network", dot: "polkadot", ltc: "litecoin", link: "chainlink",
+    };
+    id = map[base] ?? "";
+  }
+  if (!id) throw new Error(`coingecko: unsupported ${sym}`);
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 6000);
   try {
@@ -404,20 +412,30 @@ async function runCoinGecko(asset: ResolvedAsset): Promise<UpstreamResult> {
   }
 }
 
-async function runAlpaca(_asset: ResolvedAsset): Promise<UpstreamResult> {
+async function runAlpaca(_asset: ResolvedAsset, _sym: string): Promise<UpstreamResult> {
   // Alpaca quote pipeline is not wired into the router yet; declared in the
   // chain so the priority order is honoured the moment we add it. For now we
   // throw and the router transparently falls through to the next provider.
   throw new Error("alpaca: not implemented");
 }
 
-const RUNNERS: Record<ProviderId, (a: ResolvedAsset) => Promise<UpstreamResult>> = {
+const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<UpstreamResult>> = {
   finnhub: runFinnhub,
   twelvedata: runTwelveData,
   alphavantage: runAlphaVantage,
   binance: runBinance,
   coingecko: runCoinGecko,
   alpaca: runAlpaca,
+};
+
+/** Map our internal ProviderId → the symbol-map ProviderKey. 1:1 today. */
+const PROVIDER_KEY: Record<ProviderId, ProviderKey> = {
+  finnhub: "finnhub",
+  twelvedata: "twelvedata",
+  alphavantage: "alphavantage",
+  binance: "binance",
+  coingecko: "coingecko",
+  alpaca: "alpaca",
 };
 
 // ---------- Core router ----------
@@ -460,8 +478,10 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
   const promise = (async (): Promise<RouterQuote> => {
     const chain = CHAINS[asset.assetClass] ?? CHAINS.unknown;
     const attempted: ProviderId[] = [];
+    const translations: Partial<Record<ProviderId, string>> = {};
     let fallbackUsed = false;
     let lastError = "no provider available";
+    let lastTranslated: string | undefined;
 
     for (let i = 0; i < chain.length; i++) {
       const p = chain[i];
@@ -469,9 +489,25 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
       attempted.push(p);
       const runner = RUNNERS[p];
       if (!runner) continue;
+
+      // Translate per-provider. Wrapped so a translation oddity for ONE
+      // provider can never bubble up and fail the entire request — we mark
+      // this provider failed and continue down the chain.
+      let translated: string;
+      try {
+        translated = translateSymbol(asset.raw, PROVIDER_KEY[p]) || asset.normalized;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        recordError(p, `translate: ${msg}`, false);
+        lastError = `translate: ${msg}`;
+        continue;
+      }
+      translations[p] = translated;
+      lastTranslated = translated;
+
       const start = Date.now();
       try {
-        const r = await runner(asset);
+        const r = await runner(asset, translated);
         const latency = Date.now() - start;
         recordSuccess(p, latency);
         if (i > 0) { fallbackUsed = true; recordFailover(p); }
@@ -489,6 +525,8 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
           symbol: asset.normalized,
           assetClass: asset.assetClass,
           attempted,
+          translatedSymbol: translated,
+          translations,
         });
         const ttl = TTL_MS[asset.assetClass];
         CACHE.set(cKey, { quote, expiresAt: Date.now() + ttl });
@@ -503,7 +541,7 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
     }
 
     const stale = staleCache(cKey);
-    if (stale) return stamp({ ...stale, fallbackUsed: true, error: lastError, attempted });
+    if (stale) return stamp({ ...stale, fallbackUsed: true, error: lastError, attempted, translations, translatedSymbol: lastTranslated });
     return stamp({
       success: false,
       provider: null,
@@ -519,6 +557,8 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
       assetClass: asset.assetClass,
       error: lastError,
       attempted,
+      translations,
+      translatedSymbol: lastTranslated,
     });
   })();
 
