@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { computeTopupFees } from "./moyasar.server";
 import { type StripeEnv, createStripeClient, resolveOrCreateCustomer } from "./stripe.server";
 import { assertSafeReturnUrl } from "./security/safeRedirect";
