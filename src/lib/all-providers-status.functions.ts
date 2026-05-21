@@ -126,6 +126,15 @@ export const getAllProvidersStatus = createServerFn({ method: "GET" })
         endpoint: "https://api.coingecko.com/api/v3",
         note: "Public, keyless",
       },
+      {
+        id: "sahmk", label: "SAHMK (Saudi)", category: "market_data",
+        connState: reconcile(probes.sahmk, hasEnv("SAHMK_API_KEY") ? "connected" : "missing_key"),
+        dataMode: modeFor(reconcile(probes.sahmk, hasEnv("SAHMK_API_KEY") ? "connected" : "missing_key")),
+        configured: hasEnv("SAHMK_API_KEY"),
+        envKeys: ["SAHMK_API_KEY"],
+        endpoint: "https://app.sahmk.sa/api/v1",
+        note: "Native Tadawul quotes · historical requires plan upgrade",
+      },
       // ---- News / geopolitics ----
       {
         id: "newsapi", label: "NewsAPI", category: "news",
