@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { AlertCircle, Briefcase, CheckCircle2, RefreshCw, ShieldCheck, TrendingUp } from "lucide-react";
+import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, Briefcase, CheckCircle2, RefreshCw, ShieldCheck, TrendingUp } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,12 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { getAlpacaPortfolio, type AlpacaPortfolioResult } from "@/lib/alpaca.server";
 import { useI18n } from "@/lib/i18n";
 
 const LIVE_TRADING_ENABLED = false;
+const AUTO_REFRESH_MS = 60_000;
 
 type PortfolioSuccess = Extract<AlpacaPortfolioResult, { ok: true }>;
 type Position = PortfolioSuccess["data"]["positions"][number];
@@ -26,6 +28,8 @@ type PreviewOrder = {
   qty: number;
   limitPrice?: number;
 };
+type SortKey = "symbol" | "marketValue" | "unrealizedPnl";
+type SortDir = "asc" | "desc";
 
 export const Route = createFileRoute("/_app/stocks-portfolio")({
   head: () => ({
@@ -41,21 +45,50 @@ function StocksPortfolioPage() {
   const { lang, dir } = useI18n();
   const ar = lang === "ar";
   const fetchPortfolio = useServerFn(getAlpacaPortfolio);
-  const [lastSyncState, setLastSyncState] = useState<"idle" | "syncing" | "connected" | "error">("idle");
+  const queryClient = useQueryClient();
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
+  const lastErrorToastRef = useRef<string | null>(null);
 
   const portfolio = useQuery({
     queryKey: ["alpaca-portfolio"],
     queryFn: async () => {
-      setLastSyncState("syncing");
       const result = await fetchPortfolio();
-      setLastSyncState(result.ok ? "connected" : "error");
+      setLastSyncAt(Date.now());
       return result;
     },
     refetchOnWindowFocus: false,
+    refetchInterval: autoRefresh ? (q) => (q.state.data && !("ok" in q.state.data && !q.state.data.ok) ? AUTO_REFRESH_MS : false) : false,
   });
 
-  const snapshot = portfolio.data?.ok ? portfolio.data.data : null;
+  const result = portfolio.data;
+  const snapshot = result?.ok ? result.data : null;
   const connected = Boolean(snapshot);
+  const isUnauthorized = result && !result.ok && result.status === "account_error" && /401/.test(result.error);
+
+  // Auto-disable auto-refresh on error and surface a single toast
+  useEffect(() => {
+    if (result && !result.ok) {
+      if (autoRefresh) setAutoRefresh(false);
+      const msg = isUnauthorized
+        ? (ar ? "فشل الاتصال بحساب Alpaca: 401 Unauthorized — تحقق من مفاتيح API." : "Alpaca account request failed: 401 Unauthorized — check API keys.")
+        : (ar ? "تعذّر تحديث بعض بيانات Alpaca." : "Couldn't refresh some Alpaca data.");
+      if (lastErrorToastRef.current !== msg) {
+        lastErrorToastRef.current = msg;
+        if (isUnauthorized) toast.error(msg);
+        else toast.warning(msg);
+      }
+    } else if (result?.ok) {
+      lastErrorToastRef.current = null;
+    }
+  }, [result, isUnauthorized, ar, autoRefresh]);
+
+  const handleSync = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["alpaca-portfolio"] });
+    const res = await portfolio.refetch();
+    if (res.data?.ok) toast.success(ar ? "تمت مزامنة Alpaca." : "Alpaca synced.");
+  };
+
   const syncLabel = portfolio.isFetching
     ? ar ? "جارٍ مزامنة Alpaca..." : "Syncing Alpaca…"
     : ar ? "مزامنة Alpaca" : "Sync Alpaca";
@@ -72,23 +105,41 @@ function StocksPortfolioPage() {
             {ar ? "اتصال مباشر من السيرفر مع Alpaca Paper API بدون أي طلبات من الواجهة إلى Alpaca." : "Server-side Alpaca Paper API connection with no frontend requests to Alpaca."}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <ConnectionBadge connected={connected} syncing={portfolio.isFetching} lastSyncState={lastSyncState} />
-          <Button variant="outline" onClick={() => portfolio.refetch()} disabled={portfolio.isFetching} className="gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <ConnectionBadge connected={connected} syncing={portfolio.isFetching} />
+          <div className="flex items-center gap-2 rounded-md border border-border px-3 py-1.5">
+            <Switch id="auto-refresh" checked={autoRefresh} onCheckedChange={setAutoRefresh} disabled={Boolean(result && !result.ok)} />
+            <Label htmlFor="auto-refresh" className="text-xs">
+              {ar ? "تحديث تلقائي كل 60ث" : "Auto-refresh 60s"}
+            </Label>
+          </div>
+          <Button onClick={handleSync} disabled={portfolio.isFetching} className="gap-2">
             <RefreshCw className={`h-4 w-4 ${portfolio.isFetching ? "animate-spin" : ""}`} />
             {syncLabel}
           </Button>
         </div>
       </header>
 
-      <Alert className={connected ? "border-success/40" : "border-warning/40"}>
+      <Alert className={connected ? "border-success/40" : isUnauthorized ? "border-destructive/40" : "border-warning/40"}>
         {connected ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
         <AlertDescription className="flex flex-wrap items-center gap-2 text-sm">
           <Badge variant="secondary">BROKER_PROVIDER=alpaca</Badge>
           <Badge variant={LIVE_TRADING_ENABLED ? "default" : "outline"}>
             {LIVE_TRADING_ENABLED ? (ar ? "التداول الحقيقي مفعّل" : "Live trading ON") : (ar ? "Preview فقط — التداول الحقيقي معطّل" : "Preview only — live trading disabled")}
           </Badge>
-          {!connected && portfolio.data && !portfolio.data.ok && <span className="text-muted-foreground">{portfolio.data.error}</span>}
+          {lastSyncAt && connected && (
+            <span className="text-muted-foreground">
+              {ar ? "آخر مزامنة:" : "Last sync:"} {new Date(lastSyncAt).toLocaleTimeString()}
+            </span>
+          )}
+          {isUnauthorized && (
+            <span className="text-destructive font-medium">
+              {ar ? "فشل /v2/account: 401 Unauthorized. تحقق من APCA-API-KEY-ID و APCA-API-SECRET-KEY على السيرفر." : "/v2/account failed: 401 Unauthorized. Verify APCA-API-KEY-ID and APCA-API-SECRET-KEY on the server."}
+            </span>
+          )}
+          {result && !result.ok && !isUnauthorized && (
+            <span className="text-muted-foreground">{ar ? "تعذّر التحديث، حاول لاحقاً." : "Update failed, please retry."}</span>
+          )}
         </AlertDescription>
       </Alert>
 
@@ -106,8 +157,8 @@ function StocksPortfolioPage() {
   );
 }
 
-function ConnectionBadge({ connected, syncing, lastSyncState }: { connected: boolean; syncing: boolean; lastSyncState: "idle" | "syncing" | "connected" | "error" }) {
-  if (syncing || lastSyncState === "syncing") {
+function ConnectionBadge({ connected, syncing }: { connected: boolean; syncing: boolean }) {
+  if (syncing) {
     return <Badge variant="outline" className="gap-1"><RefreshCw className="h-3 w-3 animate-spin" /> Alpaca Syncing</Badge>;
   }
   if (connected) {
@@ -246,42 +297,95 @@ function PreviewOrderTicket() {
 function PositionsTable({ positions }: { positions: Position[] }) {
   const { lang } = useI18n();
   const ar = lang === "ar";
+  const [sortKey, setSortKey] = useState<SortKey>("marketValue");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const sorted = useMemo(() => {
+    const arr = [...positions];
+    arr.sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === "symbol") cmp = a.symbol.localeCompare(b.symbol);
+      else cmp = (a[sortKey] as number) - (b[sortKey] as number);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [positions, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir(key === "symbol" ? "asc" : "desc"); }
+  };
+
+  const totalMV = positions.reduce((s, p) => s + p.marketValue, 0);
+  const totalPnl = positions.reduce((s, p) => s + p.unrealizedPnl, 0);
+
+  const SortHeader = ({ k, children, align = "end" }: { k: SortKey; children: ReactNode; align?: "start" | "end" }) => (
+    <th className={`px-3 py-2 text-${align}`}>
+      <button onClick={() => toggleSort(k)} className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
+        {children}
+        {sortKey === k ? (sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+      </button>
+    </th>
+  );
+
   return (
-    <Card className="p-0">
-      <header className="flex items-center justify-between border-b border-border p-3">
-        <h2 className="font-semibold">{ar ? "Positions" : "Positions"}</h2>
-        <span className="text-xs text-muted-foreground">{positions.length}</span>
+    <Card className="overflow-hidden p-0">
+      <header className="flex items-center justify-between border-b border-border bg-gradient-to-r from-muted/50 to-transparent p-3">
+        <div className="flex items-center gap-2">
+          <h2 className="font-display font-semibold">{ar ? "Positions" : "Positions"}</h2>
+          <Badge variant="outline">{positions.length}</Badge>
+        </div>
+        {positions.length > 0 && (
+          <div className="flex items-center gap-3 text-xs">
+            <span className="text-muted-foreground">{ar ? "إجمالي:" : "Total:"} <span className="font-mono font-semibold text-foreground">{formatUsd(totalMV, "USD")}</span></span>
+            <span className={`font-mono font-semibold ${totalPnl < 0 ? "text-destructive" : "text-success"}`}>
+              {totalPnl >= 0 ? "▲" : "▼"} {formatUsd(totalPnl, "USD")}
+            </span>
+          </div>
+        )}
       </header>
       <div className="overflow-auto">
         <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+          <thead className="bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="px-3 py-2 text-start">Symbol</th>
+              <SortHeader k="symbol" align="start">Symbol</SortHeader>
               <th className="px-3 py-2 text-end">Qty</th>
               <th className="px-3 py-2 text-end">Avg Entry</th>
               <th className="px-3 py-2 text-end">Current</th>
-              <th className="px-3 py-2 text-end">Market Value</th>
-              <th className="px-3 py-2 text-end">P&amp;L</th>
+              <SortHeader k="marketValue">Market Value</SortHeader>
+              <SortHeader k="unrealizedPnl">P&amp;L</SortHeader>
             </tr>
           </thead>
           <tbody>
-            {positions.map((position) => (
-              <tr key={position.symbol} className="border-t border-border">
-                <td className="px-3 py-2 font-mono font-semibold">{position.symbol}</td>
-                <td className="px-3 py-2 text-end font-mono">{position.qty}</td>
-                <td className="px-3 py-2 text-end font-mono">{formatUsd(position.avgEntryPrice, "USD")}</td>
-                <td className="px-3 py-2 text-end font-mono">{formatUsd(position.currentPrice, "USD")}</td>
-                <td className="px-3 py-2 text-end font-mono">{formatUsd(position.marketValue, "USD")}</td>
-                <td className={`px-3 py-2 text-end font-mono ${position.unrealizedPnl < 0 ? "text-destructive" : "text-success"}`}>{formatUsd(position.unrealizedPnl, "USD")}</td>
-              </tr>
-            ))}
-            {positions.length === 0 && <tr><td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">{ar ? "لا توجد Positions حالياً" : "No positions currently"}</td></tr>}
+            {sorted.map((position) => {
+              const pnlPct = position.avgEntryPrice > 0 && position.qty > 0
+                ? (position.unrealizedPnl / (position.avgEntryPrice * position.qty)) * 100
+                : 0;
+              const pnlPositive = position.unrealizedPnl >= 0;
+              return (
+                <tr key={position.symbol} className="border-t border-border transition-colors hover:bg-muted/30">
+                  <td className="px-3 py-2.5 font-mono font-bold tracking-wide">{position.symbol}</td>
+                  <td className="px-3 py-2.5 text-end font-mono">{position.qty}</td>
+                  <td className="px-3 py-2.5 text-end font-mono text-muted-foreground">{formatUsd(position.avgEntryPrice, "USD")}</td>
+                  <td className="px-3 py-2.5 text-end font-mono">{formatUsd(position.currentPrice, "USD")}</td>
+                  <td className="px-3 py-2.5 text-end font-mono font-medium">{formatUsd(position.marketValue, "USD")}</td>
+                  <td className="px-3 py-2.5 text-end">
+                    <div className={`inline-flex flex-col items-end rounded px-2 py-1 font-mono text-xs font-semibold ${pnlPositive ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                      <span>{pnlPositive ? "+" : ""}{formatUsd(position.unrealizedPnl, "USD")}</span>
+                      <span className="text-[10px] opacity-80">{pnlPositive ? "+" : ""}{pnlPct.toFixed(2)}%</span>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            {positions.length === 0 && <tr><td colSpan={6} className="px-3 py-10 text-center text-muted-foreground">{ar ? "لا توجد Positions حالياً" : "No positions currently"}</td></tr>}
           </tbody>
         </table>
       </div>
     </Card>
   );
 }
+
 
 function OpenOrdersTable({ orders }: { orders: OpenOrder[] }) {
   const { lang } = useI18n();
