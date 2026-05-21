@@ -6,8 +6,8 @@ import { toast } from "sonner";
 import { getUniversalQuote, type UniversalQuote } from "@/lib/universal-quote.functions";
 import { analyzeAsset, type AssetVerdict } from "@/lib/asset-analysis.functions";
 import { addUserAsset } from "@/lib/assets.functions";
-import { createAlert } from "@/lib/alerts.functions";
-import { supabase } from "@/integrations/supabase/client";
+import { AddToWatchlistDialog } from "@/components/pickers/AddToWatchlistDialog";
+import { CreateAlertDialog } from "@/components/pickers/CreateAlertDialog";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import {
