@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ArrowDownToLine, ArrowUpFromLine, Banknote, ReceiptText, Info } from "lucide-react";
 import { calcTransferFee, MONTHLY_WALLET_FEE_PCT } from "@/lib/mock-data";
+import { submitManualTopupRequest } from "@/lib/payments.functions";
 
 type TxKind = "buy" | "sell" | "deposit" | "withdraw";
 type PayMethod = "payment_link" | "bank_transfer" | "card_mada" | "moyasar" | "paytabs" | "tap";
@@ -24,6 +25,7 @@ export function ManualOperationForm() {
   const [method, setMethod] = useState<PayMethod>("payment_link");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const submitTopup = useServerFn(submitManualTopupRequest);
 
   const amt = Number(amount) || 0;
   const fee = (kind === "deposit" || kind === "withdraw") ? calcTransferFee(amt) : 0;
@@ -35,15 +37,14 @@ export function ManualOperationForm() {
     if (amt <= 0) { toast.error(lang === "ar" ? "أدخل مبلغاً صالحاً" : "Enter a valid amount"); return; }
     setBusy(true);
     if (kind === "deposit") {
-      const { error } = await supabase.from("wallet_topups").insert({
-        user_id: user.id, amount_sar: amt,
-        moyasar_fee_sar: 0, service_fee_sar: fee, net_credit_sar: net,
-        status: "pending",
-        payment_method: method,
-        metadata: { source: "manual_form", note },
-      });
-      if (error) { toast.error(error.message); setBusy(false); return; }
-      toast.success(lang === "ar" ? "تم إنشاء طلب الإيداع — قيد المراجعة" : "Deposit submitted — under review");
+      try {
+        await submitTopup({ data: { amountSar: amt, paymentMethod: method, note: note || undefined } });
+        toast.success(lang === "ar" ? "تم إنشاء طلب الإيداع — قيد المراجعة" : "Deposit submitted — under review");
+      } catch (e: any) {
+        toast.error(e?.message ?? (lang === "ar" ? "تعذّر إرسال الطلب" : "Could not submit request"));
+        setBusy(false);
+        return;
+      }
     } else {
       toast.success(lang === "ar"
         ? `تم تسجيل عملية ${kind} — قيد المراجعة (تجريبي)`
