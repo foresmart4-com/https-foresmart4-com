@@ -35,6 +35,7 @@ const US_STOCKS: PickerAsset[] = [
 ].map(([s,n,a]) => ({ symbol:s, name:n, nameAr:a, category:"us_stock" as const }));
 
 const SA_STOCKS: PickerAsset[] = [
+  ["TASI.SR","Tadawul All Share Index","المؤشر العام (تاسي)"],
   ["2222.SR","Saudi Aramco","أرامكو السعودية"],
   ["1120.SR","Al Rajhi Bank","مصرف الراجحي"],
   ["7010.SR","STC","الاتصالات السعودية"],

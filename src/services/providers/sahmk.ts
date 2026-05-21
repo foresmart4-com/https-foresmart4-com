@@ -9,8 +9,11 @@ const BASE_URL = "https://app.sahmk.sa/api/v1";
 
 export interface SahmkQuoteRaw {
   price?: number | string;
+  change?: number | string;
   change_percent?: number | string;
   volume?: number | string;
+  liquidity?: number | string;
+  updated_at?: number | string;
   is_delayed?: boolean;
   [k: string]: unknown;
 }
@@ -20,8 +23,11 @@ export interface SahmkQuote {
   translatedSymbol: string;
   endpoint: string;
   price: number;
+  change: number | null;
   changePercent: number | null;
   volume: number | null;
+  liquidity: number | null;
+  updatedAt: number;       // ms epoch
   delayed: boolean;
   latencyMs: number;
   raw: SahmkQuoteRaw;
@@ -99,13 +105,24 @@ export async function getSahmkQuote(symbol: string): Promise<SahmkQuote | SahmkE
     if (price == null) {
       return { ok: false, reason: "empty", message: "SAHMK empty quote", httpStatus: res.status, latencyMs, endpoint, translatedSymbol: translated };
     }
+    // updated_at may arrive as ISO string, epoch seconds, or epoch ms.
+    let updatedAt = Date.now();
+    if (typeof j.updated_at === "number") {
+      updatedAt = j.updated_at > 1e12 ? j.updated_at : j.updated_at * 1000;
+    } else if (typeof j.updated_at === "string") {
+      const parsed = Date.parse(j.updated_at);
+      if (Number.isFinite(parsed)) updatedAt = parsed;
+    }
     return {
       symbol: translated,
       translatedSymbol: translated,
       endpoint,
       price,
+      change: num(j.change),
       changePercent: num(j.change_percent),
       volume: num(j.volume),
+      liquidity: num(j.liquidity),
+      updatedAt,
       delayed: j.is_delayed === true,
       latencyMs,
       raw: j,

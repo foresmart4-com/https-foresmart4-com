@@ -55,8 +55,10 @@ export interface RouterQuote {
   mode: ProviderMode;
   latency: number;          // ms for the upstream call (0 when served from cache)
   price: number | null;
+  change: number | null;
   changePercent: number | null;
   volume: number | null;
+  liquidity: number | null;
   timestamp: number;        // ms — when the quote was produced upstream
   delayed: boolean;
   fallbackUsed: boolean;
@@ -295,8 +297,10 @@ function staleCache(key: string): RouterQuote | null {
 
 interface UpstreamResult {
   price: number;
+  change?: number | null;
   changePercent: number | null;
   volume: number | null;
+  liquidity?: number | null;
   timestamp: number;
   delayed: boolean;
 }
@@ -469,9 +473,11 @@ async function runSahmk(_asset: ResolvedAsset, sym: string): Promise<UpstreamRes
   const q = r as Exclude<typeof r, { ok: false }>;
   return {
     price: q.price,
+    change: q.change,
     changePercent: q.changePercent,
     volume: q.volume,
-    timestamp: Date.now(),
+    liquidity: q.liquidity,
+    timestamp: q.updatedAt,
     delayed: q.delayed,
   };
 }
@@ -598,8 +604,10 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
           mode,
           latency,
           price: r.price,
+          change: r.change ?? null,
           changePercent: r.changePercent,
           volume: r.volume,
+          liquidity: r.liquidity ?? null,
           timestamp: r.timestamp,
           delayed: mode === "delayed",
           fallbackUsed,
@@ -630,8 +638,10 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
       mode: "synthetic",
       latency: 0,
       price: null,
+      change: null,
       changePercent: null,
       volume: null,
+      liquidity: null,
       timestamp: Date.now(),
       delayed: true,
       fallbackUsed: true,
