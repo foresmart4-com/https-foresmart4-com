@@ -359,6 +359,9 @@ function MarketIntelligencePage() {
           </Card>
         </div>
       )}
+
+      <AddToWatchlistDialog open={wlOpen} onOpenChange={setWlOpen} prefilled={pickedAsset} />
+      <CreateAlertDialog open={alertOpen} onOpenChange={setAlertOpen} prefilled={pickedAsset} />
     </div>
   );
 }
