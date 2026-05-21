@@ -145,6 +145,18 @@ function MarketIntelligencePage() {
     } finally { setLoading(false); }
   }, [callQuote, callAnalyze, selected, customSymbol, category, ar]);
 
+  // Auto-run analysis when arrived with ?auto=1 from calendar/heatmap
+  const autoRan = useRef(false);
+  useEffect(() => {
+    if (autoRan.current) return;
+    if (search.auto && (selected || customSymbol)) {
+      autoRan.current = true;
+      runAnalysis();
+    }
+  }, [search.auto, selected, customSymbol, runAnalysis]);
+
+
+
   // ----- actions -----
   const addToPortfolio = useMutation({
     mutationFn: async () => {
