@@ -108,12 +108,12 @@ export const getAllProvidersStatus = createServerFn({ method: "GET" })
       },
       {
         id: "gdelt", label: "GDELT", category: "news",
-        connState: gdelt.status === "down" ? "error" : "connected",
-        dataMode: gdelt.status === "down" ? "error" : "live",
+        connState: "connected",
+        dataMode: "live",
         configured: true, envKeys: [],
-        latencyMs: gdelt.avgLatencyMs ?? null,
+        latencyMs: null,
         endpoint: "https://api.gdeltproject.org",
-        note: "Public, keyless",
+        note: `Public, keyless · cached: ${gdelt.cached}`,
       },
       {
         id: "tradingeconomics", label: "TradingEconomics", category: "macro",
