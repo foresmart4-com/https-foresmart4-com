@@ -272,6 +272,7 @@ const PROVIDERS: Record<ProviderId, undefined | ((s: string, r: Range, i: Interv
   coingecko: fetchCoinGecko,
   binance: fetchBinance,
   alpaca: undefined,
+  tradingview: undefined,
 };
 
 // ---------- Supabase persistent cache ----------
