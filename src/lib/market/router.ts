@@ -61,6 +61,11 @@ export interface RouterQuote {
   error?: string;
   /** Providers attempted in order, for observability. */
   attempted?: ProviderId[];
+  /** Diagnostics: composite cache key, inflight dedup key, resolver trace, raw input. */
+  cacheKey?: string;
+  inflightKey?: string;
+  resolverPath?: string;
+  rawSymbol?: string;
 }
 
 // ---------- Asset resolver ----------
