@@ -67,6 +67,7 @@ function HeatmapPage() {
   const [group, setGroup] = useState<"all" | Group>("all");
   const [filter, setFilter] = useState<"all" | "gainers" | "losers" | "strong">("all");
   const [size, setSize] = useState<"compact" | "regular" | "large">("regular");
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [picked, setPicked] = useState<PickedAsset | null>(null);
@@ -76,19 +77,39 @@ function HeatmapPage() {
   async function load() {
     setRefreshing(true);
     try {
-      const [m, s] = await Promise.all([getMarketData(), getStocksData()]);
+      // Compose extras from asset-picker for commodities + ETFs/Bonds (subset to limit batch <=40).
+      const extras = [
+        ...ASSET_PICKER.commodity.slice(0, 7).map((a) => ({ category: "commodity" as const, symbol: a.symbol, name: a.name })),
+        ...ASSET_PICKER.etf_bond.slice(0, 12).map((a) => ({ category: "etf_bond" as const, symbol: a.symbol, name: a.name })),
+      ];
+      const [m, s, batch] = await Promise.all([
+        getMarketData(),
+        getStocksData(),
+        getUniversalQuoteBatch({ data: { items: extras } }).catch(() => [] as any[]),
+      ]);
       const arr: Cell[] = [];
       m.assets.forEach((a) => arr.push({
         symbol: a.symbol, name: a.name,
         group: (a.category === "metals" ? "metals" : a.category === "currencies" ? "currencies" : "crypto") as Group,
         price: a.price, changePct: a.changePct,
         weight: Math.max(1, Math.log(a.volume || 1)),
+        source: a.source || "—", mode: "live", updatedAt: Date.now(),
       }));
       s.stocks.forEach((a) => arr.push({
         symbol: a.symbol, name: a.name,
         group: (a.region === "saudi" ? "stocks-saudi" : "stocks-us") as Group,
         price: a.price, changePct: a.changePct, weight: 1,
+        source: a.source || "Yahoo", mode: "live", updatedAt: Date.now(),
       }));
+      (batch as Array<{ symbol: string; name: string; category: string; price: number; changePct: number; source: string; mode: "live" | "delayed" | "manual" | "mock"; fetchedAt: number }>).forEach((q) => {
+        if (!q.price) return;
+        arr.push({
+          symbol: q.symbol, name: q.name,
+          group: (q.category === "etf_bond" ? "etf_bond" : "commodity") as Group,
+          price: q.price, changePct: q.changePct, weight: 1,
+          source: q.source, mode: q.mode, updatedAt: q.fetchedAt,
+        });
+      });
       setCells(arr);
     } finally {
       setLoading(false); setRefreshing(false);
