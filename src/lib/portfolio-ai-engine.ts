@@ -309,7 +309,7 @@ export function buildPortfolioAI(
     : "الإبقاء على التوزيع الحالي مع المراقبة";
 
   const summaryConfidence = clamp(
-    Math.round(50 + (intel?.confidence?.average ?? 0) * 0.3 + diversification * 0.15 - (varPct ?? 0) * 3),
+    Math.round(50 + (intel?.confidence?.averageCalibrated ?? 0) * 0.3 + diversification * 0.15 - (varPct ?? 0) * 3),
     20, 90,
   );
 
