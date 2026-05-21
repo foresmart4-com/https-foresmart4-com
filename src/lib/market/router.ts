@@ -68,6 +68,8 @@ export interface RouterQuote {
   error?: string;
   /** Providers attempted in order, for observability. */
   attempted?: ProviderId[];
+  /** Provider chain selected for this asset class before skips/failures. */
+  providerPriority?: ProviderId[];
   /** Diagnostics: composite cache key, inflight dedup key, resolver trace, raw input. */
   cacheKey?: string;
   inflightKey?: string;
@@ -156,9 +158,8 @@ export function resolveAsset(rawSymbol: string): ResolvedAsset {
 
 const CHAINS: Record<AssetClass, ProviderId[]> = {
   us_stock:    ["finnhub", "alpaca", "twelvedata", "alphavantage"],
-  // Saudi: TradingView (TADAWUL feed) → TwelveData → AlphaVantage
-  // Saudi: SAHMK (native) → TradingView (TADAWUL feed) → TwelveData → AlphaVantage
-  saudi_stock: ["sahmk", "tradingview", "twelvedata", "alphavantage"],
+  // Saudi: SAHMK (native) → TwelveData → AlphaVantage
+  saudi_stock: ["sahmk", "twelvedata", "alphavantage"],
   crypto:      ["binance", "coingecko", "twelvedata"],
   // Metals: TwelveData → Finnhub FX feed → AlphaVantage → TradingView
   metal:       ["twelvedata", "finnhub", "alphavantage", "tradingview"],
@@ -523,9 +524,11 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
   const asset = resolveAsset(rawSymbol);
   const cKey = buildCacheKey(asset);
   const iKey = buildInflightKey(asset);
+  const providerPriority = [...(CHAINS[asset.assetClass] ?? CHAINS.unknown)];
 
   const stamp = <T extends RouterQuote>(q: T): T => ({
     ...q,
+    providerPriority,
     cacheKey: cKey,
     inflightKey: iKey,
     resolverPath: asset.resolverPath,
@@ -543,7 +546,7 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
   if (existing) return existing;
 
   const promise = (async (): Promise<RouterQuote> => {
-    const chain = CHAINS[asset.assetClass] ?? CHAINS.unknown;
+    const chain = providerPriority;
     const attempted: ProviderId[] = [];
     const skipped: Array<{ provider: ProviderId; reason: string }> = [];
     const translations: Partial<Record<ProviderId, string>> = {};
@@ -668,6 +671,9 @@ export function getRouterDiagnostics() {
   const cooldowns: Record<string, { until: number; reason: string; lastError: string }> = {};
   for (const [k, v] of COOLDOWN) cooldowns[k] = v;
   return {
+    providerPriority: Object.fromEntries(
+      Object.entries(CHAINS).map(([assetClass, chain]) => [assetClass, [...chain]]),
+    ) as Record<AssetClass, ProviderId[]>,
     metrics: getRouterMetrics(),
     cooldowns,
     cacheSize: CACHE.size,
