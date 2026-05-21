@@ -121,6 +121,27 @@ const ASSET_OPTIONS: Record<Category, { symbol: string; name: string }[]> = {
     { symbol: "1120.SR", name: "Al Rajhi Bank" },
     { symbol: "2010.SR", name: "SABIC" },
   ],
+  etf_bond: [
+    { symbol: "SPY", name: "S&P 500 ETF" },
+    { symbol: "QQQ", name: "Nasdaq 100 ETF" },
+    { symbol: "VOO", name: "Vanguard S&P 500" },
+    { symbol: "VTI", name: "Total US Market" },
+    { symbol: "TLT", name: "20+ Yr Treasury" },
+    { symbol: "IEF", name: "7-10 Yr Treasury" },
+    { symbol: "AGG", name: "US Aggregate Bond" },
+    { symbol: "LQD", name: "Investment Grade Bonds" },
+    { symbol: "HYG", name: "High Yield Bonds" },
+    { symbol: "TIP", name: "TIPS Inflation Bonds" },
+  ],
+  commodity: [
+    { symbol: "WTI/USD", name: "WTI Crude Oil" },
+    { symbol: "BRENT/USD", name: "Brent Crude Oil" },
+    { symbol: "NG/USD", name: "Natural Gas" },
+    { symbol: "USO", name: "US Oil Fund ETF" },
+    { symbol: "UNG", name: "US Natural Gas ETF" },
+    { symbol: "CORN", name: "Corn" },
+    { symbol: "WEAT", name: "Wheat" },
+  ],
 };
 
 function ArchivePage() {
