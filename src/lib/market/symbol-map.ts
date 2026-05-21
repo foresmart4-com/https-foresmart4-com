@@ -32,37 +32,37 @@ interface SymbolEntry extends Partial<Record<ProviderKey, string>> {
 /** Canonical user input → provider-specific normalizations. */
 const STATIC_MAP: Record<string, SymbolEntry> = {
   // ---------- Metals ----------
-  XAUUSD: { canonical: "XAU/USD", twelvedata: "XAU/USD", finnhub: "OANDA:XAU_USD", alphavantage: "XAUUSD" },
-  XAGUSD: { canonical: "XAG/USD", twelvedata: "XAG/USD", finnhub: "OANDA:XAG_USD", alphavantage: "XAGUSD" },
-  XPTUSD: { canonical: "XPT/USD", twelvedata: "XPT/USD", alphavantage: "XPTUSD" },
-  XPDUSD: { canonical: "XPD/USD", twelvedata: "XPD/USD", alphavantage: "XPDUSD" },
-  GOLD:   { canonical: "XAU/USD", twelvedata: "XAU/USD", finnhub: "OANDA:XAU_USD", alphavantage: "XAUUSD" },
-  SILVER: { canonical: "XAG/USD", twelvedata: "XAG/USD", finnhub: "OANDA:XAG_USD", alphavantage: "XAGUSD" },
+  XAUUSD: { canonical: "XAU/USD", twelvedata: "XAU/USD", finnhub: "OANDA:XAU_USD", alphavantage: "XAUUSD", tradingview: "OANDA:XAUUSD" },
+  XAGUSD: { canonical: "XAG/USD", twelvedata: "XAG/USD", finnhub: "OANDA:XAG_USD", alphavantage: "XAGUSD", tradingview: "OANDA:XAGUSD" },
+  XPTUSD: { canonical: "XPT/USD", twelvedata: "XPT/USD", alphavantage: "XPTUSD", tradingview: "TVC:PLATINUM" },
+  XPDUSD: { canonical: "XPD/USD", twelvedata: "XPD/USD", alphavantage: "XPDUSD", tradingview: "TVC:PALLADIUM" },
+  GOLD:   { canonical: "XAU/USD", twelvedata: "XAU/USD", finnhub: "OANDA:XAU_USD", alphavantage: "XAUUSD", tradingview: "OANDA:XAUUSD" },
+  SILVER: { canonical: "XAG/USD", twelvedata: "XAG/USD", finnhub: "OANDA:XAG_USD", alphavantage: "XAGUSD", tradingview: "OANDA:XAGUSD" },
 
   // ---------- Oil / commodities ----------
-  USOIL:  { canonical: "USOIL",   twelvedata: "CL=F",    finnhub: "OANDA:BCO_USD", alphavantage: "WTI" },
-  WTI:    { canonical: "USOIL",   twelvedata: "CL=F",    finnhub: "OANDA:WTICO_USD", alphavantage: "WTI" },
-  BRENT:  { canonical: "BRENT",   twelvedata: "BZ=F",    finnhub: "OANDA:BCO_USD", alphavantage: "BRENT" },
-  NATGAS: { canonical: "NATGAS",  twelvedata: "NG=F",    alphavantage: "NATURAL_GAS" },
-  COPPER: { canonical: "COPPER",  twelvedata: "HG=F",    alphavantage: "COPPER" },
+  USOIL:  { canonical: "USOIL",   twelvedata: "CL=F",    finnhub: "OANDA:BCO_USD",   alphavantage: "WTI", tradingview: "TVC:USOIL" },
+  WTI:    { canonical: "USOIL",   twelvedata: "CL=F",    finnhub: "OANDA:WTICO_USD", alphavantage: "WTI", tradingview: "TVC:USOIL" },
+  BRENT:  { canonical: "BRENT",   twelvedata: "BZ=F",    finnhub: "OANDA:BCO_USD",   alphavantage: "BRENT", tradingview: "TVC:UKOIL" },
+  NATGAS: { canonical: "NATGAS",  twelvedata: "NG=F",    alphavantage: "NATURAL_GAS", tradingview: "NYMEX:NG1!" },
+  COPPER: { canonical: "COPPER",  twelvedata: "HG=F",    alphavantage: "COPPER", tradingview: "COMEX:HG1!" },
 
   // ---------- Crypto ----------
-  BTC: { canonical: "BTCUSDT", binance: "BTCUSDT", coingecko: "bitcoin",     twelvedata: "BTC/USD" },
-  ETH: { canonical: "ETHUSDT", binance: "ETHUSDT", coingecko: "ethereum",    twelvedata: "ETH/USD" },
-  SOL: { canonical: "SOLUSDT", binance: "SOLUSDT", coingecko: "solana",      twelvedata: "SOL/USD" },
-  BNB: { canonical: "BNBUSDT", binance: "BNBUSDT", coingecko: "binancecoin" },
-  XRP: { canonical: "XRPUSDT", binance: "XRPUSDT", coingecko: "ripple" },
-  ADA: { canonical: "ADAUSDT", binance: "ADAUSDT", coingecko: "cardano" },
-  DOGE:{ canonical: "DOGEUSDT",binance: "DOGEUSDT",coingecko: "dogecoin" },
-  AVAX:{ canonical: "AVAXUSDT",binance: "AVAXUSDT",coingecko: "avalanche-2" },
-  MATIC:{canonical: "MATICUSDT",binance:"MATICUSDT",coingecko:"matic-network" },
-  DOT: { canonical: "DOTUSDT", binance: "DOTUSDT", coingecko: "polkadot" },
-  LTC: { canonical: "LTCUSDT", binance: "LTCUSDT", coingecko: "litecoin" },
-  LINK:{ canonical: "LINKUSDT",binance: "LINKUSDT",coingecko: "chainlink" },
+  BTC: { canonical: "BTCUSDT", binance: "BTCUSDT", coingecko: "bitcoin",     twelvedata: "BTC/USD", tradingview: "BINANCE:BTCUSDT" },
+  ETH: { canonical: "ETHUSDT", binance: "ETHUSDT", coingecko: "ethereum",    twelvedata: "ETH/USD", tradingview: "BINANCE:ETHUSDT" },
+  SOL: { canonical: "SOLUSDT", binance: "SOLUSDT", coingecko: "solana",      twelvedata: "SOL/USD", tradingview: "BINANCE:SOLUSDT" },
+  BNB: { canonical: "BNBUSDT", binance: "BNBUSDT", coingecko: "binancecoin", tradingview: "BINANCE:BNBUSDT" },
+  XRP: { canonical: "XRPUSDT", binance: "XRPUSDT", coingecko: "ripple",      tradingview: "BINANCE:XRPUSDT" },
+  ADA: { canonical: "ADAUSDT", binance: "ADAUSDT", coingecko: "cardano",     tradingview: "BINANCE:ADAUSDT" },
+  DOGE:{ canonical: "DOGEUSDT",binance: "DOGEUSDT",coingecko: "dogecoin",    tradingview: "BINANCE:DOGEUSDT" },
+  AVAX:{ canonical: "AVAXUSDT",binance: "AVAXUSDT",coingecko: "avalanche-2", tradingview: "BINANCE:AVAXUSDT" },
+  MATIC:{canonical: "MATICUSDT",binance:"MATICUSDT",coingecko:"matic-network",tradingview: "BINANCE:MATICUSDT" },
+  DOT: { canonical: "DOTUSDT", binance: "DOTUSDT", coingecko: "polkadot",    tradingview: "BINANCE:DOTUSDT" },
+  LTC: { canonical: "LTCUSDT", binance: "LTCUSDT", coingecko: "litecoin",    tradingview: "BINANCE:LTCUSDT" },
+  LINK:{ canonical: "LINKUSDT",binance: "LINKUSDT",coingecko: "chainlink",   tradingview: "BINANCE:LINKUSDT" },
 
   // ---------- Saudi indices ----------
-  TASI:      { canonical: "TASI.SR", twelvedata: "TASI",    alphavantage: "TASI.SR" },
-  "TASI.SR": { canonical: "TASI.SR", twelvedata: "TASI",    alphavantage: "TASI.SR" },
+  TASI:      { canonical: "TASI.SR", twelvedata: "TASI", alphavantage: "TASI.SR", tradingview: "TVC:TASI" },
+  "TASI.SR": { canonical: "TASI.SR", twelvedata: "TASI", alphavantage: "TASI.SR", tradingview: "TVC:TASI" },
 };
 
 /** Lookup the canonical (display) form for a raw symbol. */
