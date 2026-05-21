@@ -430,7 +430,7 @@ export function buildRoutingPlan(probes: Record<string, ProbeResult>): RoutingPl
 
   const chains: Record<AssetClass, string[]> = {
     us_stock: ["finnhub", "twelvedata", "alphavantage"],
-    sa_stock: ["twelvedata"],
+    sa_stock: ["sahmk", "twelvedata"],
     crypto: ["coingecko", "binance"],
     macro: ["tradingeconomics", "alphavantage"],
     news: ["newsapi", "gdelt"],
@@ -438,7 +438,7 @@ export function buildRoutingPlan(probes: Record<string, ProbeResult>): RoutingPl
 
   const reasons: Record<AssetClass, string> = {
     us_stock: "US equities prefer Finnhub for breadth, fall back to TwelveData, then AlphaVantage.",
-    sa_stock: "Saudi tickers route through TwelveData (.SR) when configured.",
+    sa_stock: "Saudi tickers prefer native SAHMK, fall back to TwelveData (:SAU).",
     crypto: "Crypto prefers public CoinGecko, falls back to public Binance.",
     macro: "Macro indicators prefer TradingEconomics, fall back to AlphaVantage.",
     news: "News prefers NewsAPI, falls back to public GDELT.",
