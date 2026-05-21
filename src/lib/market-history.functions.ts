@@ -242,7 +242,7 @@ export const getAssetHistory = createServerFn({ method: "GET" })
     z.object({
       symbol: z.string().min(1),
       category: z.enum(["crypto", "metals", "currencies", "stocks"]),
-      days: z.number().int().min(7).max(365).default(30),
+      days: z.number().int().min(7).max(1095).default(30),
     }).parse(data),
   )
   .handler(async ({ data }): Promise<AssetHistory> => {
