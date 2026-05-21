@@ -204,7 +204,7 @@ function HeatmapPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-56">
                     <DropdownMenuItem asChild>
-                      <Link to="/market-intelligence" search={{ symbol: c.symbol } as any}>
+                      <Link to="/market-intelligence">
                         <BarChart3 className="h-4 w-4 me-2" />
                         {lang === "ar" ? "فتح في ذكاء السوق" : "Open in Market Intelligence"}
                       </Link>
