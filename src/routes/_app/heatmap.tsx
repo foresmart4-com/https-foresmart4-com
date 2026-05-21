@@ -2,48 +2,109 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Flame } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { Flame, TrendingUp, TrendingDown, Plus, Bell, BarChart3, RefreshCw } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { getMarketData } from "@/lib/market-data";
 import { getStocksData } from "@/lib/stocks-data";
+import { AddToWatchlistDialog } from "@/components/pickers/AddToWatchlistDialog";
+import { CreateAlertDialog } from "@/components/pickers/CreateAlertDialog";
+import type { PickedAsset } from "@/components/pickers/AssetPickerDialog";
 
-export const Route = createFileRoute("/_app/heatmap")({ component: HeatmapPage });
+export const Route = createFileRoute("/_app/heatmap")({
+  component: HeatmapPage,
+  head: () => ({
+    meta: [
+      { title: "Market Heatmap — ForeSmart" },
+      { name: "description", content: "Visual heatmap across crypto, stocks, metals & FX with conviction-tiered colors." },
+    ],
+  }),
+});
 
-interface Cell { symbol: string; name: string; group: string; price: number; changePct: number; weight: number; }
+type Group = "crypto" | "metals" | "currencies" | "stocks-us" | "stocks-saudi";
+interface Cell {
+  symbol: string; name: string; group: Group;
+  price: number; changePct: number; weight: number;
+}
+
+const GROUP_LABEL: Record<Group, { ar: string; en: string }> = {
+  crypto:         { ar: "العملات الرقمية", en: "Crypto" },
+  metals:         { ar: "المعادن",         en: "Metals" },
+  currencies:     { ar: "العملات",         en: "Currencies" },
+  "stocks-us":    { ar: "أسهم أمريكية",    en: "US Stocks" },
+  "stocks-saudi": { ar: "أسهم سعودية",     en: "Saudi Stocks" },
+};
+
+function toPicked(c: Cell): PickedAsset {
+  if (c.group === "crypto")        return { symbol: c.symbol, name: c.name, asset_type: "CRYPTO",      market: "Crypto",       category: "crypto" };
+  if (c.group === "metals")        return { symbol: c.symbol, name: c.name, asset_type: "METAL",       market: "Metals",       category: "metal" };
+  if (c.group === "currencies")    return { symbol: c.symbol, name: c.name, asset_type: "COMMODITY",   market: "FX",           category: "commodity" };
+  if (c.group === "stocks-saudi")  return { symbol: c.symbol, name: c.name, asset_type: "SAUDI_STOCK", market: "Tadawul",      category: "sa_stock" };
+  return                                  { symbol: c.symbol, name: c.name, asset_type: "US_STOCK",   market: "US",            category: "us_stock" };
+}
 
 function HeatmapPage() {
   const { lang } = useI18n();
   const [cells, setCells] = useState<Cell[]>([]);
-  const [group, setGroup] = useState<string>("all");
+  const [group, setGroup] = useState<"all" | Group>("all");
+  const [filter, setFilter] = useState<"all" | "gainers" | "losers" | "strong">("all");
+  const [size, setSize] = useState<"compact" | "regular" | "large">("regular");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [picked, setPicked] = useState<PickedAsset | null>(null);
+  const [openWatch, setOpenWatch] = useState(false);
+  const [openAlert, setOpenAlert] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const [m, s] = await Promise.all([getMarketData(), getStocksData()]);
-        const arr: Cell[] = [];
-        m.assets.forEach((a) => arr.push({
-          symbol: a.symbol, name: a.name, group: a.category,
-          price: a.price, changePct: a.changePct, weight: Math.max(1, Math.log(a.volume || 1)),
-        }));
-        s.stocks.forEach((a) => arr.push({
-          symbol: a.symbol, name: a.name, group: "stocks-" + a.region,
-          price: a.price, changePct: a.changePct, weight: 1,
-        }));
-        setCells(arr);
-      } finally { setLoading(false); }
-    })();
-  }, []);
+  async function load() {
+    setRefreshing(true);
+    try {
+      const [m, s] = await Promise.all([getMarketData(), getStocksData()]);
+      const arr: Cell[] = [];
+      m.assets.forEach((a) => arr.push({
+        symbol: a.symbol, name: a.name,
+        group: (a.category === "metals" ? "metals" : a.category === "currencies" ? "currencies" : "crypto") as Group,
+        price: a.price, changePct: a.changePct,
+        weight: Math.max(1, Math.log(a.volume || 1)),
+      }));
+      s.stocks.forEach((a) => arr.push({
+        symbol: a.symbol, name: a.name,
+        group: (a.region === "saudi" ? "stocks-saudi" : "stocks-us") as Group,
+        price: a.price, changePct: a.changePct, weight: 1,
+      }));
+      setCells(arr);
+    } finally {
+      setLoading(false); setRefreshing(false);
+    }
+  }
 
-  const filtered = useMemo(
-    () => cells.filter((c) => group === "all" || c.group.startsWith(group)),
-    [cells, group],
-  );
+  useEffect(() => { load(); }, []);
 
-  const groups = useMemo(() => {
-    const g = new Set(cells.map((c) => c.group.split("-")[0]));
-    return Array.from(g);
-  }, [cells]);
+  const filtered = useMemo(() => {
+    let out = group === "all" ? cells : cells.filter((c) => c.group === group);
+    if (filter === "gainers") out = out.filter((c) => c.changePct > 0);
+    else if (filter === "losers") out = out.filter((c) => c.changePct < 0);
+    else if (filter === "strong") out = out.filter((c) => Math.abs(c.changePct) >= 2);
+    return out.sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct));
+  }, [cells, group, filter]);
+
+  const stats = useMemo(() => {
+    const up = filtered.filter((c) => c.changePct > 0).length;
+    const down = filtered.filter((c) => c.changePct < 0).length;
+    const avg = filtered.length ? filtered.reduce((s, c) => s + c.changePct, 0) / filtered.length : 0;
+    return { up, down, total: filtered.length, avg };
+  }, [filtered]);
+
+  const sizeClass = size === "compact"
+    ? "grid-cols-3 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12"
+    : size === "large"
+      ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
+      : "grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8";
 
   return (
     <div className="container mx-auto max-w-7xl space-y-6 p-6">
@@ -53,51 +114,125 @@ function HeatmapPage() {
             <Flame className="h-7 w-7 text-primary" /> {lang === "ar" ? "خريطة السوق الحرارية" : "Market Heatmap"}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {lang === "ar" ? "نظرة بصرية فورية على أداء جميع الأصول." : "Visual snapshot of every asset's performance."}
+            {lang === "ar"
+              ? "نظرة بصرية فورية على أداء جميع الأصول مع إمكانية الإضافة للمراقبة وإنشاء التنبيهات."
+              : "Live visual snapshot across asset classes — click any tile to add to watchlist, set an alert, or open intelligence."}
           </p>
         </div>
-        <Select value={group} onValueChange={setGroup}>
-          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{lang === "ar" ? "كل الأسواق" : "All markets"}</SelectItem>
-            {groups.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <button
+          type="button"
+          onClick={load}
+          className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium hover:bg-muted/40"
+          disabled={refreshing}
+        >
+          <RefreshCw className={"h-3.5 w-3.5 " + (refreshing ? "animate-spin" : "")} />
+          {lang === "ar" ? "تحديث" : "Refresh"}
+        </button>
       </header>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="p-3"><div className="text-xs text-muted-foreground">{lang === "ar" ? "أصول مرتفعة" : "Up"}</div><div className="text-2xl font-bold text-success">{stats.up}</div></Card>
+        <Card className="p-3"><div className="text-xs text-muted-foreground">{lang === "ar" ? "أصول هابطة" : "Down"}</div><div className="text-2xl font-bold text-danger">{stats.down}</div></Card>
+        <Card className="p-3"><div className="text-xs text-muted-foreground">{lang === "ar" ? "إجمالي" : "Total"}</div><div className="text-2xl font-bold">{stats.total}</div></Card>
+        <Card className="p-3"><div className="text-xs text-muted-foreground">{lang === "ar" ? "متوسط التغير" : "Avg change"}</div><div className={"text-2xl font-bold " + (stats.avg >= 0 ? "text-success" : "text-danger")}>{stats.avg >= 0 ? "+" : ""}{stats.avg.toFixed(2)}%</div></Card>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Tabs value={group} onValueChange={(v) => setGroup(v as any)}>
+          <TabsList>
+            <TabsTrigger value="all">{lang === "ar" ? "الكل" : "All"}</TabsTrigger>
+            {(Object.keys(GROUP_LABEL) as Group[]).map((g) => (
+              <TabsTrigger key={g} value={g}>{lang === "ar" ? GROUP_LABEL[g].ar : GROUP_LABEL[g].en}</TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <div className="ms-auto flex items-center gap-2">
+          <Select value={filter} onValueChange={(v) => setFilter(v as any)}>
+            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{lang === "ar" ? "كل التغيرات" : "All moves"}</SelectItem>
+              <SelectItem value="gainers">{lang === "ar" ? "المرتفعون فقط" : "Gainers only"}</SelectItem>
+              <SelectItem value="losers">{lang === "ar" ? "الهابطون فقط" : "Losers only"}</SelectItem>
+              <SelectItem value="strong">{lang === "ar" ? "حركة قوية (≥٢٪)" : "Strong moves (≥2%)"}</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={size} onValueChange={(v) => setSize(v as any)}>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="compact">{lang === "ar" ? "مضغوط" : "Compact"}</SelectItem>
+              <SelectItem value="regular">{lang === "ar" ? "عادي" : "Regular"}</SelectItem>
+              <SelectItem value="large">{lang === "ar" ? "كبير" : "Large"}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       <Card className="p-3">
         {loading ? (
           <div className="py-16 text-center text-muted-foreground">{lang === "ar" ? "جاري التحميل..." : "Loading..."}</div>
+        ) : filtered.length === 0 ? (
+          <div className="py-16 text-center text-muted-foreground">{lang === "ar" ? "لا توجد أصول تطابق الفلتر." : "No assets match this filter."}</div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
+          <div className={"grid gap-1.5 " + sizeClass}>
             {filtered.map((c) => {
               const pct = c.changePct;
-              const intensity = Math.min(1, Math.abs(pct) / 6);
-              const bg = pct >= 0
-                ? `oklch(0.55 ${0.15 + intensity * 0.1} 150 / ${0.4 + intensity * 0.6})`
-                : `oklch(0.55 ${0.15 + intensity * 0.1} 25 / ${0.4 + intensity * 0.6})`;
+              const abs = Math.abs(pct);
+              // conviction tiers: weak <1, mod 1-3, strong 3-6, extreme >6
+              const intensity = abs >= 6 ? 1 : abs >= 3 ? 0.8 : abs >= 1 ? 0.55 : 0.3;
+              const hue = pct >= 0 ? 150 : 25;
+              const bg = `oklch(0.55 ${0.12 + intensity * 0.12} ${hue} / ${0.35 + intensity * 0.55})`;
+              const tier = abs >= 6 ? "★★★" : abs >= 3 ? "★★" : abs >= 1 ? "★" : "";
               return (
-                <div
-                  key={c.symbol + c.group}
-                  className="rounded-lg p-2.5 text-white transition-transform hover:scale-105 hover:z-10 cursor-default"
-                  style={{ background: bg, minHeight: 70 }}
-                  title={`${c.name} • $${c.price}`}
-                >
-                  <div className="font-bold text-sm truncate">{c.symbol}</div>
-                  <div className={"text-xs font-semibold " + (pct >= 0 ? "" : "")}>
-                    {pct >= 0 ? "+" : ""}{pct.toFixed(2)}%
-                  </div>
-                  <div className="text-[10px] opacity-80 truncate">{c.name}</div>
-                </div>
+                <DropdownMenu key={c.symbol + c.group}>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="rounded-lg p-2.5 text-white text-start transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary"
+                      style={{ background: bg, minHeight: size === "large" ? 90 : 70 }}
+                      title={`${c.name} • ${c.price.toLocaleString(undefined, { maximumFractionDigits: 4 })}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="font-bold text-sm truncate">{c.symbol}</div>
+                        {tier && <span className="text-[10px] opacity-80">{tier}</span>}
+                      </div>
+                      <div className="text-xs font-semibold flex items-center gap-1">
+                        {pct >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                        {pct >= 0 ? "+" : ""}{pct.toFixed(2)}%
+                      </div>
+                      <div className="text-[10px] opacity-80 truncate">{c.name}</div>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuItem asChild>
+                      <Link to="/market-intelligence" search={{ symbol: c.symbol } as any}>
+                        <BarChart3 className="h-4 w-4 me-2" />
+                        {lang === "ar" ? "فتح في ذكاء السوق" : "Open in Market Intelligence"}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { setPicked(toPicked(c)); setOpenWatch(true); }}>
+                      <Plus className="h-4 w-4 me-2" />
+                      {lang === "ar" ? "إضافة لقائمة المراقبة" : "Add to watchlist"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { setPicked(toPicked(c)); setOpenAlert(true); }}>
+                      <Bell className="h-4 w-4 me-2" />
+                      {lang === "ar" ? "إنشاء تنبيه" : "Create alert"}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               );
             })}
           </div>
         )}
       </Card>
 
-      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-        <span>{lang === "ar" ? "الأخضر = صعود، الأحمر = هبوط، شدة اللون = حجم التغير" : "Green = up, Red = down, intensity = magnitude"}</span>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+        <span>{lang === "ar" ? "الأخضر = صعود، الأحمر = هبوط" : "Green = up, Red = down"}</span>
+        <span>★ ≥1% • ★★ ≥3% • ★★★ ≥6%</span>
+        <span>{lang === "ar" ? "اضغط أي خلية لقائمة الإجراءات" : "Click any tile for actions"}</span>
       </div>
+
+      <AddToWatchlistDialog open={openWatch} onOpenChange={setOpenWatch} prefilled={picked} />
+      <CreateAlertDialog open={openAlert} onOpenChange={setOpenAlert} prefilled={picked} />
     </div>
   );
 }
