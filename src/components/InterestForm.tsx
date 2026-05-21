@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { submitInterestLead } from "@/lib/interest-leads.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +29,7 @@ export function InterestForm({ onSuccess }: { onSuccess?: () => void } = {}) {
   const { lang } = useI18n();
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const submitLead = useServerFn(submitInterestLead);
   const [form, setForm] = useState({
     full_name: "",
     email: "",
@@ -46,21 +48,27 @@ export function InterestForm({ onSuccess }: { onSuccess?: () => void } = {}) {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.from("interest_leads").insert({
-      full_name: parsed.data.full_name,
-      email: parsed.data.email,
-      phone: parsed.data.phone || null,
-      interested_plan: parsed.data.interested_plan,
-      notes: parsed.data.notes || null,
-    });
-    setLoading(false);
-    if (error) {
-      toast.error(t("تعذر الإرسال، حاول لاحقاً", "Could not submit, try again"));
-      return;
+    try {
+      await submitLead({ data: {
+        full_name: parsed.data.full_name,
+        email: parsed.data.email,
+        phone: parsed.data.phone || null,
+        interested_plan: parsed.data.interested_plan,
+        notes: parsed.data.notes || null,
+      }});
+      setDone(true);
+      toast.success(t("تم استلام طلبك! سنرسل لك رابط الدعوة قريباً", "Received! We'll email your invite soon"));
+      onSuccess?.();
+    } catch (err: any) {
+      const msg = String(err?.message || "");
+      if (msg.includes("Too many")) {
+        toast.error(t("محاولات كثيرة، حاول لاحقاً", "Too many submissions, try later"));
+      } else {
+        toast.error(t("تعذر الإرسال، حاول لاحقاً", "Could not submit, try again"));
+      }
+    } finally {
+      setLoading(false);
     }
-    setDone(true);
-    toast.success(t("تم استلام طلبك! سنرسل لك رابط الدعوة قريباً", "Received! We'll email your invite soon"));
-    onSuccess?.();
   }
 
   if (done) {
