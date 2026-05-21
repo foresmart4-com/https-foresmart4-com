@@ -73,6 +73,8 @@ export interface RouterQuote {
   translatedSymbol?: string;
   /** Per-provider translations attempted, keyed by ProviderId. */
   translations?: Partial<Record<ProviderId, string>>;
+  /** Providers skipped before any network call (capability mismatch, cooldown). */
+  skippedProviders?: Array<{ provider: ProviderId; reason: string }>;
 }
 
 // ---------- Asset resolver ----------
