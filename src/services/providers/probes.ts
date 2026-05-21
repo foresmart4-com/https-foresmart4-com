@@ -348,6 +348,23 @@ async function probePlaid(): Promise<ProbeResult> {
   }
 }
 
+async function probeSahmk(): Promise<ProbeResult> {
+  const key = process.env.SAHMK_API_KEY;
+  if (!key) return pack("sahmk", "missing_key", null, null);
+  try {
+    // 2222 = Saudi Aramco — a stable, always-listed ticker.
+    const { res, latencyMs } = await timedFetch("https://app.sahmk.sa/api/v1/quote/2222/", {
+      headers: { "X-API-Key": key, Accept: "application/json" },
+    });
+    const outcome = classify(res.status);
+    record("sahmk", outcome === "connected", outcome === "connected" ? undefined : `HTTP ${res.status}`);
+    return pack("sahmk", outcome, latencyMs, res.status);
+  } catch (e) {
+    record("sahmk", false, e instanceof Error ? e.message : "network");
+    return pack("sahmk", "error", null, null);
+  }
+}
+
 const REGISTRY: Record<string, () => Promise<ProbeResult>> = {
   finnhub: probeFinnhub,
   twelvedata: probeTwelveData,
@@ -363,6 +380,7 @@ const REGISTRY: Record<string, () => Promise<ProbeResult>> = {
   moyasar: probeMoyasar,
   paypal: probePayPal,
   plaid: probePlaid,
+  sahmk: probeSahmk,
 };
 
 /**
@@ -412,7 +430,7 @@ export function buildRoutingPlan(probes: Record<string, ProbeResult>): RoutingPl
 
   const chains: Record<AssetClass, string[]> = {
     us_stock: ["finnhub", "twelvedata", "alphavantage"],
-    sa_stock: ["twelvedata"],
+    sa_stock: ["sahmk", "twelvedata"],
     crypto: ["coingecko", "binance"],
     macro: ["tradingeconomics", "alphavantage"],
     news: ["newsapi", "gdelt"],
@@ -420,7 +438,7 @@ export function buildRoutingPlan(probes: Record<string, ProbeResult>): RoutingPl
 
   const reasons: Record<AssetClass, string> = {
     us_stock: "US equities prefer Finnhub for breadth, fall back to TwelveData, then AlphaVantage.",
-    sa_stock: "Saudi tickers route through TwelveData (.SR) when configured.",
+    sa_stock: "Saudi tickers prefer native SAHMK, fall back to TwelveData (:SAU).",
     crypto: "Crypto prefers public CoinGecko, falls back to public Binance.",
     macro: "Macro indicators prefer TradingEconomics, fall back to AlphaVantage.",
     news: "News prefers NewsAPI, falls back to public GDELT.",

@@ -43,6 +43,7 @@ export const CAPABILITIES: Record<ProviderId, ProviderCapabilities> = {
   tradingview:  { ...F, supportsUsStock: true, supportsEtf: true, supportsCrypto: true,
                   supportsForex: true, supportsMetals: true, supportsCommodities: true,
                   supportsSaudi: true, supportsBond: true, supportsRealtime: true },
+  sahmk:        { ...F, supportsSaudi: true, supportsRealtime: true },
 };
 
 const CLASS_TO_CAP: Record<AssetClass, keyof ProviderCapabilities | null> = {

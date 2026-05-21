@@ -23,7 +23,8 @@ export type ProviderKey =
   | "binance"
   | "coingecko"
   | "alpaca"
-  | "tradingview";
+  | "tradingview"
+  | "sahmk";
 
 interface SymbolEntry extends Partial<Record<ProviderKey, string>> {
   canonical?: string;
@@ -90,6 +91,7 @@ export function translateSymbol(symbol: string, provider: ProviderKey): string {
   // Saudi tickers (e.g. "2222.SR")
   if (/\.SR$/i.test(key)) {
     if (provider === "twelvedata") return key.replace(/\.SR$/i, ":SAU");
+    if (provider === "sahmk") return key.replace(/\.SR$/i, "");
     return key; // AlphaVantage uses .SR; others stay as-is
   }
 
