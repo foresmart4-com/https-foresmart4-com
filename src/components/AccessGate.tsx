@@ -14,7 +14,7 @@ export function AccessGate({ children }: { children: ReactNode }) {
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  if (loading || role === null) {
+  if (loading || role === null || accepted === null) {
     return <div className="grid min-h-screen place-items-center text-muted-foreground">{t("loading")}</div>;
   }
 
