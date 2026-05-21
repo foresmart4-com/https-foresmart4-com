@@ -151,3 +151,33 @@ export const previewTopupFees = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     return { fees: computeTopupFees(data.amountSar, data.isMada ?? false), minTopup: MIN_TOPUP_SAR };
   });
+
+// Manual top-up request: client provides ONLY the amount and payment method.
+// All fees / net credit are computed server-side; client-supplied amounts are ignored.
+export const submitManualTopupRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    amountSar: z.number().min(MIN_TOPUP_SAR).max(500000),
+    paymentMethod: z.enum(["payment_link", "bank_transfer", "card_mada", "moyasar", "paytabs", "tap"]),
+    note: z.string().max(1000).optional(),
+  }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const isMada = data.paymentMethod === "card_mada";
+    const fees = computeTopupFees(data.amountSar, isMada);
+
+    const { data: topup, error } = await supabase.from("wallet_topups").insert({
+      user_id: userId,
+      amount_sar: data.amountSar,
+      moyasar_fee_sar: fees.moyasarFee,
+      service_fee_sar: fees.serviceFee,
+      net_credit_sar: fees.netCredit,
+      status: "pending",
+      payment_method: data.paymentMethod,
+      metadata: { source: "manual_form", note: data.note ?? null },
+    }).select("id").single();
+    if (error) throw new Error(error.message);
+
+    return { topupId: topup.id, fees };
+  });
+
