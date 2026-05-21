@@ -78,7 +78,7 @@ function HeatmapPage() {
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [respectRisk, setRespectRisk] = useState(true);
-  const risk = useRiskTolerance();
+  const [risk] = useRiskTolerance();
 
   async function load() {
     setRefreshing(true);
