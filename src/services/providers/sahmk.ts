@@ -9,8 +9,11 @@ const BASE_URL = "https://app.sahmk.sa/api/v1";
 
 export interface SahmkQuoteRaw {
   price?: number | string;
+  change?: number | string;
   change_percent?: number | string;
   volume?: number | string;
+  liquidity?: number | string;
+  updated_at?: number | string;
   is_delayed?: boolean;
   [k: string]: unknown;
 }
@@ -20,8 +23,11 @@ export interface SahmkQuote {
   translatedSymbol: string;
   endpoint: string;
   price: number;
+  change: number | null;
   changePercent: number | null;
   volume: number | null;
+  liquidity: number | null;
+  updatedAt: number;       // ms epoch
   delayed: boolean;
   latencyMs: number;
   raw: SahmkQuoteRaw;
