@@ -82,12 +82,17 @@ function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [impactFilter, setImpactFilter] = useState<"all" | "high" | "medium" | "low">("all");
   const [region, setRegion] = useState<string>("all");
+  const [range, setRange] = useState<"all" | "today" | "week">("all");
+  const [source, setSource] = useState<string>("");
+  const [mode, setMode] = useState<"live" | "delayed" | "mock">("mock");
 
   useEffect(() => {
     (async () => {
       try {
         const data = await getEconomicEvents();
         setEvents(data.events as EvtItem[]);
+        setSource(data.source || "");
+        setMode((data.mode as "live" | "delayed" | "mock") || "mock");
       } finally { setLoading(false); }
     })();
   }, []);
