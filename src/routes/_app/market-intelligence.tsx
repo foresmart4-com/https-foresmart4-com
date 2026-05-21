@@ -78,7 +78,7 @@ function MarketIntelligencePage() {
   const callQuote = useServerFn(getUniversalQuote);
   const callAnalyze = useServerFn(analyzeAsset);
   const callAddAsset = useServerFn(addUserAsset);
-  const callCreateAlert = useServerFn(createAlert);
+  
 
   const [category, setCategory] = useState<IntelCategory>("us_stock");
   const [selected, setSelected] = useState<PickerAsset | null>(ASSET_PICKER.us_stock[0]);
