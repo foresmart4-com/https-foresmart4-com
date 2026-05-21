@@ -181,7 +181,16 @@ function HeatmapPage() {
             ))}
           </TabsList>
         </Tabs>
-        <div className="ms-auto flex items-center gap-2">
+        <div className="ms-auto flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search className="absolute start-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={lang === "ar" ? "بحث رمز/اسم..." : "Search symbol/name..."}
+              className="h-9 w-44 ps-7 text-xs"
+            />
+          </div>
           <Select value={filter} onValueChange={(v) => setFilter(v as any)}>
             <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
             <SelectContent>
