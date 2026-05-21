@@ -271,8 +271,8 @@ export const getAssetHistory = createServerFn({ method: "GET" })
   .inputValidator((data) =>
     z.object({
       symbol: z.string().min(1),
-      category: z.enum(["crypto", "metals", "currencies", "stocks"]),
-      days: z.number().int().min(7).max(1095).default(30),
+      category: z.enum(["crypto", "metals", "currencies", "stocks", "etf_bond", "commodity"]),
+      days: z.number().int().min(1).max(1095).default(30),
     }).parse(data),
   )
   .handler(async ({ data }): Promise<AssetHistory> => {
@@ -282,7 +282,7 @@ export const getAssetHistory = createServerFn({ method: "GET" })
       try {
         const yahoo = await fetchYahooHistory(yahooMeta.ticker, days);
         if (yahoo.points.length > 0) {
-          return { symbol, name: yahooMeta.name, category, currency: yahoo.currency, points: yahoo.points };
+          return { symbol, name: yahooMeta.name, category, currency: yahoo.currency, points: yahoo.points, source: "Yahoo Finance", supported: true };
         }
       } catch (error) {
         console.error("Yahoo history fallback failed", error);
@@ -291,26 +291,28 @@ export const getAssetHistory = createServerFn({ method: "GET" })
 
     if (category === "crypto" || category === "metals") {
       const meta = CRYPTO_MAP[symbol];
-      if (!meta) return { symbol, name: symbol, category, currency: "USD", points: [] };
+      if (!meta) return { symbol, name: symbol, category, currency: "USD", points: [], source: "—", supported: false, reason: "unmapped_symbol" };
       const points = await fetchCryptoHistory(meta.id, days).catch((error) => {
         console.error("CoinGecko history failed", error);
         return [];
       });
-      return { symbol, name: meta.name, category, currency: "USD", points };
+      return { symbol, name: meta.name, category, currency: "USD", points, source: "CoinGecko", supported: points.length > 0 };
     }
     if (category === "currencies") {
       const meta = FX_MAP[symbol];
-      if (!meta) return { symbol, name: symbol, category, currency: "USD", points: [] };
+      if (!meta) return { symbol, name: symbol, category, currency: "USD", points: [], source: "—", supported: false, reason: "unmapped_symbol" };
+      if (days <= 1) {
+        return { symbol, name: meta.name, category, currency: meta.to, points: [], source: "Frankfurter", supported: false, reason: "range_unsupported" };
+      }
       const points = await fetchFxHistory(meta.from, meta.to, days).catch((error) => {
         console.error("FX history failed", error);
         return [];
       });
-      return { symbol, name: meta.name, category, currency: meta.to, points };
+      return { symbol, name: meta.name, category, currency: meta.to, points, source: "Frankfurter", supported: points.length > 0 };
     }
-    // stocks
     const r = await fetchYahooHistory(symbol, days).catch((error) => {
       console.error("Stock history failed", error);
       return { name: symbol, currency: "USD", points: [] };
     });
-    return { symbol, name: r.name, category, currency: r.currency, points: r.points };
+    return { symbol, name: r.name, category, currency: r.currency, points: r.points, source: "Yahoo Finance", supported: r.points.length > 0 };
   });
