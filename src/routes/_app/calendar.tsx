@@ -98,12 +98,16 @@ function CalendarPage() {
   }, []);
 
   const filtered = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const weekFromNow = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
     return events.filter((e) => {
       if (impactFilter !== "all" && e.impact !== impactFilter) return false;
       if (region !== "all" && REGION_MAP[e.country] !== region) return false;
+      if (range === "today" && e.date !== today) return false;
+      if (range === "week" && (e.date < today || e.date > weekFromNow)) return false;
       return true;
     });
-  }, [events, impactFilter, region]);
+  }, [events, impactFilter, region, range]);
 
   const grouped = useMemo(() => {
     return filtered.reduce<Record<string, EvtItem[]>>((acc, e) => {
