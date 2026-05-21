@@ -165,3 +165,31 @@ export const getUniversalQuote = createServerFn({ method: "POST" })
       fetchedAt: Date.now(),
     };
   });
+
+const BatchInput = z.object({
+  items: z.array(Input).min(1).max(40),
+});
+
+export const getUniversalQuoteBatch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => BatchInput.parse(d))
+  .handler(async ({ data }): Promise<UniversalQuote[]> => {
+    const out = await Promise.all(
+      data.items.map(async (it) => {
+        const q = await resolveQuote(it.category, it.symbol);
+        return {
+          symbol: it.symbol.toUpperCase(),
+          name: it.name ?? it.symbol.toUpperCase(),
+          category: it.category,
+          price: Number(q.price ?? 0),
+          changePct: Number(q.changePct ?? 0),
+          high24h: q.high24h,
+          low24h: q.low24h,
+          source: String(q.source ?? "unavailable"),
+          mode: (q.mode as IntelDataMode) ?? "mock",
+          fetchedAt: Date.now(),
+        } as UniversalQuote;
+      }),
+    );
+    return out;
+  });
