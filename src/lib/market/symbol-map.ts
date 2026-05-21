@@ -22,7 +22,8 @@ export type ProviderKey =
   | "finnhub"
   | "binance"
   | "coingecko"
-  | "alpaca";
+  | "alpaca"
+  | "tradingview";
 
 interface SymbolEntry extends Partial<Record<ProviderKey, string>> {
   canonical?: string;
