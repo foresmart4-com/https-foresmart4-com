@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/tooltip";
 import { CalendarDays, AlertTriangle, TrendingUp, Info, RefreshCw, ExternalLink } from "lucide-react";
 import { getEconomicEvents } from "@/lib/economic-calendar.functions";
+import { useBooleanPref } from "@/lib/investor-prefs";
 import type { IntelCategory } from "@/lib/asset-picker";
 
 export const Route = createFileRoute("/_app/calendar")({
@@ -127,8 +128,9 @@ function CalendarPage() {
   const [events, setEvents] = useState<EvtItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useBooleanPref("calendar.autoRefresh", true);
   const [impactFilter, setImpactFilter] = useState<"all" | "high" | "medium" | "low">("all");
   const [region, setRegion] = useState<string>("all");
   const [range, setRange] = useState<"all" | "today" | "week">("all");
@@ -137,12 +139,15 @@ function CalendarPage() {
 
   async function load() {
     setRefreshing(true);
+    setError(null);
     try {
       const data = await getEconomicEvents();
       setEvents(data.events as EvtItem[]);
       setSource(data.source || "");
       setMode((data.mode as "live" | "delayed" | "mock") || "mock");
       setLastUpdated(Date.now());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load events");
     } finally { setLoading(false); setRefreshing(false); }
   }
 
@@ -279,10 +284,46 @@ function CalendarPage() {
           </Select>
         </div>
 
-        {loading && <div className="text-center text-muted-foreground py-12">{ar ? "جاري التحميل..." : "Loading..."}</div>}
+        {loading && (
+          <Card className="p-12 text-center text-muted-foreground">
+            <RefreshCw className="mx-auto h-6 w-6 animate-spin mb-2 text-primary" />
+            <div>{ar ? "جاري تحميل الأحداث الاقتصادية..." : "Loading economic events..."}</div>
+          </Card>
+        )}
 
-        {!loading && Object.keys(grouped).length === 0 && (
-          <Card className="p-12 text-center text-muted-foreground">{ar ? "لا توجد أحداث مطابقة." : "No matching events."}</Card>
+        {!loading && error && (
+          <Card className="p-8 text-center">
+            <AlertTriangle className="mx-auto h-7 w-7 text-danger mb-2" />
+            <div className="font-semibold mb-1">{ar ? "تعذّر تحميل التقويم" : "Could not load calendar"}</div>
+            <div className="text-xs text-muted-foreground mb-3">{error}</div>
+            <button
+              type="button"
+              onClick={load}
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/40"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              {ar ? "إعادة المحاولة" : "Retry"}
+            </button>
+          </Card>
+        )}
+
+        {!loading && !error && events.length === 0 && (
+          <Card className="p-12 text-center text-muted-foreground">
+            {ar ? "لم يُعِد المزود أي أحداث في الوقت الحالي." : "The provider returned no events right now."}
+          </Card>
+        )}
+
+        {!loading && !error && events.length > 0 && Object.keys(grouped).length === 0 && (
+          <Card className="p-12 text-center text-muted-foreground">
+            {ar ? "لا توجد أحداث تطابق فلاتر المنطقة/التأثير/الفترة المختارة." : "No events match the selected region / impact / range filters."}
+          </Card>
+        )}
+
+        {refreshing && !loading && (
+          <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 justify-end">
+            <RefreshCw className="h-3 w-3 animate-spin" />
+            {ar ? "جاري التحديث..." : "Refreshing..."}
+          </div>
         )}
 
         {Object.entries(grouped).map(([date, items]) => (

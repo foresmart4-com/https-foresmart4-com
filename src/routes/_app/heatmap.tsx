@@ -23,7 +23,8 @@ import { ASSET_PICKER } from "@/lib/asset-picker";
 import { AddToWatchlistDialog } from "@/components/pickers/AddToWatchlistDialog";
 import { CreateAlertDialog } from "@/components/pickers/CreateAlertDialog";
 import type { PickedAsset } from "@/components/pickers/AssetPickerDialog";
-import { useRiskTolerance, maxVolatilityPctForRisk, riskLabel } from "@/lib/investor-prefs";
+import { useRiskTolerance, maxVolatilityPctForRisk, riskLabel, useBooleanPref } from "@/lib/investor-prefs";
+import { AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/_app/heatmap")({
   component: HeatmapPage,
@@ -72,18 +73,19 @@ function HeatmapPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<PickedAsset | null>(null);
   const [openWatch, setOpenWatch] = useState(false);
   const [openAlert, setOpenAlert] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [respectRisk, setRespectRisk] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useBooleanPref("heatmap.autoRefresh", true);
+  const [respectRisk, setRespectRisk] = useBooleanPref("heatmap.respectRisk", true);
   const [risk] = useRiskTolerance();
 
   async function load() {
     setRefreshing(true);
+    setError(null);
     try {
-      // Compose extras from asset-picker for commodities + ETFs/Bonds (subset to limit batch <=40).
       const extras = [
         ...ASSET_PICKER.commodity.slice(0, 7).map((a) => ({ category: "commodity" as const, symbol: a.symbol, name: a.name })),
         ...ASSET_PICKER.etf_bond.slice(0, 12).map((a) => ({ category: "etf_bond" as const, symbol: a.symbol, name: a.name })),
@@ -118,6 +120,8 @@ function HeatmapPage() {
       });
       setCells(arr);
       setLastUpdated(Date.now());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load market data");
     } finally {
       setLoading(false); setRefreshing(false);
     }
@@ -249,11 +253,42 @@ function HeatmapPage() {
         </div>
       </div>
 
-      <Card className="p-3">
+      <Card className="p-3 relative">
+        {refreshing && !loading && (
+          <div className="absolute top-2 end-2 z-10 flex items-center gap-1.5 rounded-full bg-background/80 px-2 py-1 text-[10px] text-muted-foreground shadow border border-border">
+            <RefreshCw className="h-3 w-3 animate-spin" />
+            {lang === "ar" ? "جاري التحديث..." : "Refreshing..."}
+          </div>
+        )}
         {loading ? (
-          <div className="py-16 text-center text-muted-foreground">{lang === "ar" ? "جاري التحميل..." : "Loading..."}</div>
+          <div className="py-16 text-center text-muted-foreground">
+            <RefreshCw className="mx-auto h-6 w-6 animate-spin mb-2 text-primary" />
+            <div>{lang === "ar" ? "جاري تحميل بيانات السوق..." : "Loading market data..."}</div>
+          </div>
+        ) : error ? (
+          <div className="py-16 text-center">
+            <AlertTriangle className="mx-auto h-7 w-7 text-danger mb-2" />
+            <div className="font-semibold mb-1">{lang === "ar" ? "تعذّر تحميل الخريطة" : "Could not load heatmap"}</div>
+            <div className="text-xs text-muted-foreground mb-3">{error}</div>
+            <button
+              type="button"
+              onClick={load}
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium hover:bg-muted/40"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              {lang === "ar" ? "إعادة المحاولة" : "Retry"}
+            </button>
+          </div>
+        ) : cells.length === 0 ? (
+          <div className="py-16 text-center text-muted-foreground">
+            {lang === "ar" ? "لا توجد بيانات متاحة من المزودين حالياً." : "No market data available from providers right now."}
+          </div>
         ) : filtered.length === 0 ? (
-          <div className="py-16 text-center text-muted-foreground">{lang === "ar" ? "لا توجد أصول تطابق الفلتر." : "No assets match this filter."}</div>
+          <div className="py-16 text-center text-muted-foreground">
+            {lang === "ar"
+              ? `لا توجد أصول تطابق الفلتر الحالي${respectRisk ? " (قد يكون بسبب تصفية المخاطرة)" : ""}.`
+              : `No assets match the current filter${respectRisk ? " (risk filter may be active)" : ""}.`}
+          </div>
         ) : (
           <TooltipProvider delayDuration={200}>
             <div className={"grid gap-1.5 " + sizeClass}>

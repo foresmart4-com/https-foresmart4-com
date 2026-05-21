@@ -43,7 +43,37 @@ export function maxVolatilityPctForRisk(r: RiskTolerance): number {
 }
 
 export function riskLabel(r: RiskTolerance, ar: boolean): string {
-  if (r === "low") return ar ? "محافظ (مخاطرة منخفضة)" : "Conservative (Low risk)";
-  if (r === "high") return ar ? "هجومي (مخاطرة مرتفعة)" : "Aggressive (High risk)";
-  return ar ? "متوازن (مخاطرة متوسطة)" : "Balanced (Medium risk)";
+  if (r === "low") return ar ? "محافظ" : "Conservative";
+  if (r === "high") return ar ? "هجومي" : "Aggressive";
+  return ar ? "متوازن" : "Balanced";
+}
+
+/**
+ * Persistent boolean preference (auto-refresh toggles, etc.) backed by
+ * localStorage. Survives reloads and syncs across tabs via the storage event.
+ */
+export function useBooleanPref(key: string, defaultValue: boolean): [boolean, (v: boolean) => void] {
+  const storageKey = `foresmart:pref:${key}`;
+  const read = (): boolean => {
+    if (typeof window === "undefined") return defaultValue;
+    const v = window.localStorage.getItem(storageKey);
+    if (v === "1") return true;
+    if (v === "0") return false;
+    return defaultValue;
+  };
+  const [value, setValueState] = useState<boolean>(defaultValue);
+  useEffect(() => {
+    setValueState(read());
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === storageKey) setValueState(read());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
+  const setValue = (v: boolean) => {
+    setValueState(v);
+    if (typeof window !== "undefined") window.localStorage.setItem(storageKey, v ? "1" : "0");
+  };
+  return [value, setValue];
 }
