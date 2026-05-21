@@ -459,6 +459,23 @@ async function runTradingView(_asset: ResolvedAsset, sym: string): Promise<Upstr
   }
 }
 
+async function runSahmk(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  const r = await getSahmkQuote(sym);
+  if ("ok" in r && r.ok === false) {
+    const err = new Error(`sahmk: ${r.reason} — ${r.message}`);
+    if (r.reason === "rate_limited") Object.assign(err, { rateLimited: true });
+    throw err;
+  }
+  const q = r as Exclude<typeof r, { ok: false }>;
+  return {
+    price: q.price,
+    changePercent: q.changePercent,
+    volume: q.volume,
+    timestamp: Date.now(),
+    delayed: q.delayed,
+  };
+}
+
 const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<UpstreamResult>> = {
   finnhub: runFinnhub,
   twelvedata: runTwelveData,
@@ -467,6 +484,7 @@ const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<Ups
   coingecko: runCoinGecko,
   alpaca: runAlpaca,
   tradingview: runTradingView,
+  sahmk: runSahmk,
 };
 
 /** Map our internal ProviderId → the symbol-map ProviderKey. 1:1 today. */
@@ -478,6 +496,7 @@ const PROVIDER_KEY: Record<ProviderId, ProviderKey> = {
   coingecko: "coingecko",
   alpaca: "alpaca",
   tradingview: "tradingview",
+  sahmk: "sahmk",
 };
 
 // ---------- Core router ----------
