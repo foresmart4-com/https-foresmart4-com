@@ -13,7 +13,8 @@ import {
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Flame, TrendingUp, TrendingDown, Plus, Bell, BarChart3, RefreshCw, Search } from "lucide-react";
+import { Flame, TrendingUp, TrendingDown, Plus, Bell, BarChart3, RefreshCw, Search, ShieldCheck } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Link } from "@tanstack/react-router";
 import { getMarketData } from "@/lib/market-data";
 import { getStocksData } from "@/lib/stocks-data";
@@ -22,6 +23,7 @@ import { ASSET_PICKER } from "@/lib/asset-picker";
 import { AddToWatchlistDialog } from "@/components/pickers/AddToWatchlistDialog";
 import { CreateAlertDialog } from "@/components/pickers/CreateAlertDialog";
 import type { PickedAsset } from "@/components/pickers/AssetPickerDialog";
+import { useRiskTolerance, maxVolatilityPctForRisk, riskLabel } from "@/lib/investor-prefs";
 
 export const Route = createFileRoute("/_app/heatmap")({
   component: HeatmapPage,
@@ -73,6 +75,10 @@ function HeatmapPage() {
   const [picked, setPicked] = useState<PickedAsset | null>(null);
   const [openWatch, setOpenWatch] = useState(false);
   const [openAlert, setOpenAlert] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [respectRisk, setRespectRisk] = useState(true);
+  const [risk] = useRiskTolerance();
 
   async function load() {
     setRefreshing(true);
@@ -111,6 +117,7 @@ function HeatmapPage() {
         });
       });
       setCells(arr);
+      setLastUpdated(Date.now());
     } finally {
       setLoading(false); setRefreshing(false);
     }
@@ -118,11 +125,21 @@ function HeatmapPage() {
 
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const id = setInterval(load, 60_000);
+    return () => clearInterval(id);
+  }, [autoRefresh]);
+
   const filtered = useMemo(() => {
     let out = group === "all" ? cells : cells.filter((c) => c.group === group);
     if (filter === "gainers") out = out.filter((c) => c.changePct > 0);
     else if (filter === "losers") out = out.filter((c) => c.changePct < 0);
     else if (filter === "strong") out = out.filter((c) => Math.abs(c.changePct) >= 2);
+    if (respectRisk) {
+      const cap = maxVolatilityPctForRisk(risk);
+      if (cap > 0) out = out.filter((c) => Math.abs(c.changePct) <= cap);
+    }
     const q = search.trim().toLowerCase();
     if (q) out = out.filter((c) => c.symbol.toLowerCase().includes(q) || c.name.toLowerCase().includes(q));
     return out.sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct));
@@ -154,16 +171,37 @@ function HeatmapPage() {
               : "Live visual snapshot across asset classes — click any tile to add to watchlist, set an alert, or open intelligence."}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={load}
-          className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium hover:bg-muted/40"
-          disabled={refreshing}
-        >
-          <RefreshCw className={"h-3.5 w-3.5 " + (refreshing ? "animate-spin" : "")} />
-          {lang === "ar" ? "تحديث" : "Refresh"}
-        </button>
+        <div className="flex flex-col items-end gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={load}
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium hover:bg-muted/40"
+              disabled={refreshing}
+            >
+              <RefreshCw className={"h-3.5 w-3.5 " + (refreshing ? "animate-spin" : "")} />
+              {lang === "ar" ? "تحديث الآن" : "Refresh now"}
+            </button>
+            <label className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              <Switch checked={autoRefresh} onCheckedChange={setAutoRefresh} />
+              {lang === "ar" ? "تحديث تلقائي" : "Auto-refresh"}
+            </label>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <ShieldCheck className="h-3 w-3" />
+              {lang === "ar" ? "تصفية حسب مستوى المخاطرة" : "Filter by risk"} ({riskLabel(risk, lang === "ar")})
+              <Switch checked={respectRisk} onCheckedChange={setRespectRisk} />
+            </label>
+            {lastUpdated && (
+              <span className="text-muted-foreground">
+                {lang === "ar" ? "آخر تحديث:" : "Updated:"} {new Date(lastUpdated).toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+        </div>
       </header>
+
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="p-3"><div className="text-xs text-muted-foreground">{lang === "ar" ? "أصول مرتفعة" : "Up"}</div><div className="text-2xl font-bold text-success">{stats.up}</div></Card>

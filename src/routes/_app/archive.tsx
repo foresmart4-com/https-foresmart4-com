@@ -656,7 +656,26 @@ function HistoryView() {
               ) : null}
             </div>
           </div>
+          {(data?.points?.length ?? 0) > 0 && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => exportArchiveCSV(data!, symbol)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/40"
+              >
+                {lang === "ar" ? "تصدير CSV" : "Export CSV"}
+              </button>
+              <button
+                type="button"
+                onClick={() => exportArchivePDF(data!, symbol, lang === "ar")}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/40"
+              >
+                {lang === "ar" ? "تصدير PDF" : "Export PDF"}
+              </button>
+            </div>
+          )}
         </div>
+
         <div className="h-72">
           {isLoading ? (
             <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -900,3 +919,61 @@ function SnapshotsTable({ rows, lang, t }: { rows: Row[]; lang: string; t: (k: n
     </div>
   );
 }
+
+// ---------- Export helpers (CSV + print-to-PDF) ----------
+type HistoryData = {
+  name?: string;
+  currency?: string;
+  source?: string;
+  points: Array<{ date: string; open?: number; high?: number; low?: number; close: number; volume?: number }>;
+};
+
+function downloadBlob(content: string, mime: string, filename: string) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function exportArchiveCSV(data: HistoryData, symbol: string) {
+  const header = ["date", "open", "high", "low", "close", "volume"];
+  const lines = [header.join(",")];
+  for (const p of data.points) {
+    lines.push([p.date, p.open ?? "", p.high ?? "", p.low ?? "", p.close, p.volume ?? ""].join(","));
+  }
+  const ts = new Date().toISOString().slice(0, 10);
+  downloadBlob("\uFEFF" + lines.join("\n"), "text/csv;charset=utf-8", `${symbol}-archive-${ts}.csv`);
+}
+
+function exportArchivePDF(data: HistoryData, symbol: string, ar: boolean) {
+  const ts = new Date().toLocaleString(ar ? "ar-EG" : "en-US");
+  const rows = data.points.slice(-500).map((p) =>
+    `<tr><td>${p.date}</td><td>${p.open ?? ""}</td><td>${p.high ?? ""}</td><td>${p.low ?? ""}</td><td>${p.close}</td><td>${p.volume ?? ""}</td></tr>`
+  ).join("");
+  const html = `<!doctype html><html dir="${ar ? "rtl" : "ltr"}"><head><meta charset="utf-8"/>
+<title>${symbol} — ForeSmart Archive</title>
+<style>
+  body{font-family:Arial,sans-serif;padding:24px;color:#111}
+  h1{margin:0 0 4px;font-size:20px}
+  .meta{color:#555;font-size:12px;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th,td{border:1px solid #ddd;padding:4px 6px;text-align:${ar ? "right" : "left"}}
+  th{background:#f3f4f6}
+  .foot{margin-top:16px;color:#777;font-size:10px}
+</style></head><body>
+  <h1>${data.name ?? symbol} (${symbol})</h1>
+  <div class="meta">${ar ? "العملة" : "Currency"}: ${data.currency ?? "USD"} • ${ar ? "المصدر" : "Source"}: ${data.source ?? "—"} • ${ar ? "تم التصدير" : "Exported"}: ${ts}</div>
+  <table><thead><tr>
+    <th>${ar ? "التاريخ" : "Date"}</th><th>${ar ? "افتتاح" : "Open"}</th><th>${ar ? "أعلى" : "High"}</th>
+    <th>${ar ? "أدنى" : "Low"}</th><th>${ar ? "إغلاق" : "Close"}</th><th>${ar ? "حجم" : "Volume"}</th>
+  </tr></thead><tbody>${rows}</tbody></table>
+  <div class="foot">ForeSmart • ${ar ? "للأغراض التحليلية فقط، لا يشكل توصية استثمارية." : "Analytical use only, not investment advice."}</div>
+  <script>window.onload=()=>{setTimeout(()=>window.print(),300)}</script>
+</body></html>`;
+  const w = window.open("", "_blank", "noopener,noreferrer,width=900,height=700");
+  if (!w) return;
+  w.document.open(); w.document.write(html); w.document.close();
+}
+

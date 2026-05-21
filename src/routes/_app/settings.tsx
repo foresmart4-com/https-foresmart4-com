@@ -22,6 +22,7 @@ import { AdminReviewPanel } from "@/components/AdminReviewPanel";
 import { SystemReadinessPanel } from "@/components/SystemReadinessPanel";
 import { PaymentLinksSettings } from "@/components/PaymentLinksSettings";
 import { ProductionRoadmap } from "@/components/ProductionRoadmap";
+import { useRiskTolerance } from "@/lib/investor-prefs";
 
 export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
@@ -33,6 +34,7 @@ function SettingsPage() {
   const { isAdmin } = useAccess();
   const navigate = useNavigate();
   const [currency, setCurrency] = useState("USD");
+  const [risk, setRisk] = useRiskTolerance();
   const subFn = useServerFn(getMySubscription);
   const { data: sub } = useQuery({ queryKey: ["my-sub-settings"], queryFn: () => subFn() });
 
@@ -103,15 +105,21 @@ function SettingsPage() {
             </div>
             <div>
               <Label className="mb-1.5 block">{lang === "ar" ? "درجة المخاطر المفضلة" : "Risk tolerance"}</Label>
-              <Select defaultValue="medium">
+              <Select value={risk} onValueChange={(v) => setRisk(v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">{lang === "ar" ? "منخفضة" : "Low"}</SelectItem>
-                  <SelectItem value="medium">{lang === "ar" ? "متوسطة" : "Medium"}</SelectItem>
-                  <SelectItem value="high">{lang === "ar" ? "مرتفعة" : "High"}</SelectItem>
+                  <SelectItem value="low">{lang === "ar" ? "منخفضة — حركة ≤ 2٪" : "Low — moves ≤ 2%"}</SelectItem>
+                  <SelectItem value="medium">{lang === "ar" ? "متوسطة — حركة ≤ 6٪" : "Medium — moves ≤ 6%"}</SelectItem>
+                  <SelectItem value="high">{lang === "ar" ? "مرتفعة — جميع الحركات" : "High — all moves"}</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {lang === "ar"
+                  ? "يُستخدم لتصفية الخريطة الحرارية والتوصيات تلقائياً."
+                  : "Auto-filters the heatmap and recommendations."}
+              </p>
             </div>
+
             <div>
               <Label className="mb-1.5 block">{lang === "ar" ? "تنبيهات السوق" : "Market alerts"}</Label>
               <Select defaultValue="on">
