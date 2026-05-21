@@ -30,6 +30,11 @@ import {
 
 export const Route = createFileRoute("/_app/market-intelligence")({
   component: MarketIntelligencePage,
+  validateSearch: (s: Record<string, unknown>) => ({
+    category: typeof s.category === "string" ? (s.category as IntelCategory) : undefined,
+    symbol: typeof s.symbol === "string" ? s.symbol : undefined,
+    auto: s.auto === "1" || s.auto === 1 || s.auto === true,
+  }),
   head: () => ({
     meta: [
       { title: "Market Intelligence — ForeSmart" },
@@ -37,6 +42,7 @@ export const Route = createFileRoute("/_app/market-intelligence")({
     ],
   }),
 });
+
 
 const LIVE_TRADING_ENABLED = false;
 
