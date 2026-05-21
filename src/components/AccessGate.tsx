@@ -14,7 +14,7 @@ export function AccessGate({ children }: { children: ReactNode }) {
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  if (loading || role === null) {
+  if (loading || role === null || accepted === null) {
     return <div className="grid min-h-screen place-items-center text-muted-foreground">{t("loading")}</div>;
   }
 
@@ -56,6 +56,11 @@ export function AccessGate({ children }: { children: ReactNode }) {
           </div>
           <div className="max-h-[50vh] overflow-y-auto rounded-lg bg-muted/30 p-4 text-sm leading-relaxed text-foreground/90">
             {t("disclaimerBody")}
+          </div>
+          <div className="mt-2 text-end">
+            <a href="/disclaimer" target="_blank" rel="noreferrer" className="text-xs text-primary underline-offset-2 hover:underline">
+              {t("readFullDetails") || (typeof document !== "undefined" && document.documentElement.lang === "ar" ? "قراءة التفاصيل الكاملة" : "Read full details")}
+            </a>
           </div>
           <label className="mt-5 flex items-start gap-3 cursor-pointer">
             <Checkbox checked={agree} onCheckedChange={(v) => setAgree(v === true)} className="mt-0.5" />
