@@ -937,34 +937,69 @@ function downloadBlob(content: string, mime: string, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function exportArchiveCSV(data: HistoryData, symbol: string) {
+type ExportFilter = { symbol: string; category: Category; days: number; displayCurrency: DisplayCurrency };
+
+function rangeLabel(days: number, ar: boolean): string {
+  if (days <= 1) return ar ? "24 ساعة" : "24h";
+  if (days <= 7) return ar ? "7 أيام" : "7d";
+  if (days <= 30) return ar ? "30 يوم" : "30d";
+  if (days <= 90) return ar ? "90 يوم" : "90d";
+  if (days <= 365) return ar ? "سنة" : "1y";
+  return ar ? "3 سنوات" : "3y";
+}
+
+function categoryLabel(c: Category, ar: boolean): string {
+  const map: Record<Category, { ar: string; en: string }> = {
+    crypto: { ar: "العملات الرقمية", en: "Crypto" },
+    metals: { ar: "المعادن", en: "Metals" },
+    currencies: { ar: "العملات", en: "Currencies" },
+    stocks: { ar: "الأسهم", en: "Stocks" },
+    etf_bond: { ar: "صناديق وسندات", en: "ETFs & Bonds" },
+    commodity: { ar: "السلع", en: "Commodities" },
+  };
+  return ar ? map[c].ar : map[c].en;
+}
+
+function exportArchiveCSV(data: HistoryData, f: ExportFilter) {
   const header = ["date", "open", "high", "low", "close", "volume"];
-  const lines = [header.join(",")];
+  const lines = [
+    `# ForeSmart Archive Export`,
+    `# Asset: ${data.name ?? f.symbol} (${f.symbol})`,
+    `# Market: ${f.category}`,
+    `# Range: ${f.days}d`,
+    `# Source currency: ${data.currency ?? "USD"} • Display: ${f.displayCurrency}`,
+    `# Source: ${data.source ?? "—"}`,
+    `# Exported: ${new Date().toISOString()}`,
+    header.join(","),
+  ];
   for (const p of data.points) {
     lines.push([p.date, p.open ?? "", p.high ?? "", p.low ?? "", p.close, p.volume ?? ""].join(","));
   }
   const ts = new Date().toISOString().slice(0, 10);
-  downloadBlob("\uFEFF" + lines.join("\n"), "text/csv;charset=utf-8", `${symbol}-archive-${ts}.csv`);
+  const safe = f.symbol.replace(/[^a-zA-Z0-9._-]/g, "_");
+  downloadBlob("\uFEFF" + lines.join("\n"), "text/csv;charset=utf-8", `foresmart_${f.category}_${safe}_${f.days}d_${ts}.csv`);
 }
 
-function exportArchivePDF(data: HistoryData, symbol: string, ar: boolean) {
+function exportArchivePDF(data: HistoryData, f: ExportFilter, ar: boolean) {
   const ts = new Date().toLocaleString(ar ? "ar-EG" : "en-US");
   const rows = data.points.slice(-500).map((p) =>
     `<tr><td>${p.date}</td><td>${p.open ?? ""}</td><td>${p.high ?? ""}</td><td>${p.low ?? ""}</td><td>${p.close}</td><td>${p.volume ?? ""}</td></tr>`
   ).join("");
   const html = `<!doctype html><html dir="${ar ? "rtl" : "ltr"}"><head><meta charset="utf-8"/>
-<title>${symbol} — ForeSmart Archive</title>
+<title>${f.symbol} — ForeSmart Archive</title>
 <style>
   body{font-family:Arial,sans-serif;padding:24px;color:#111}
   h1{margin:0 0 4px;font-size:20px}
-  .meta{color:#555;font-size:12px;margin-bottom:16px}
+  .meta{color:#555;font-size:12px;margin-bottom:6px}
+  .filter{color:#333;font-size:12px;margin-bottom:16px;padding:6px 10px;background:#f3f4f6;border-radius:4px;display:inline-block}
   table{width:100%;border-collapse:collapse;font-size:11px}
   th,td{border:1px solid #ddd;padding:4px 6px;text-align:${ar ? "right" : "left"}}
   th{background:#f3f4f6}
   .foot{margin-top:16px;color:#777;font-size:10px}
 </style></head><body>
-  <h1>${data.name ?? symbol} (${symbol})</h1>
+  <h1>${data.name ?? f.symbol} (${f.symbol})</h1>
   <div class="meta">${ar ? "العملة" : "Currency"}: ${data.currency ?? "USD"} • ${ar ? "المصدر" : "Source"}: ${data.source ?? "—"} • ${ar ? "تم التصدير" : "Exported"}: ${ts}</div>
+  <div class="filter"><b>${ar ? "الفلتر الحالي" : "Current filter"}:</b> ${ar ? "السوق" : "Market"} = ${categoryLabel(f.category, ar)} • ${ar ? "الأصل" : "Asset"} = ${f.symbol} • ${ar ? "المدة" : "Range"} = ${rangeLabel(f.days, ar)} • ${ar ? "عملة العرض" : "Display"} = ${f.displayCurrency}</div>
   <table><thead><tr>
     <th>${ar ? "التاريخ" : "Date"}</th><th>${ar ? "افتتاح" : "Open"}</th><th>${ar ? "أعلى" : "High"}</th>
     <th>${ar ? "أدنى" : "Low"}</th><th>${ar ? "إغلاق" : "Close"}</th><th>${ar ? "حجم" : "Volume"}</th>
