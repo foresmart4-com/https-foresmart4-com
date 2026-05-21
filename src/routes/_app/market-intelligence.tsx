@@ -6,8 +6,8 @@ import { toast } from "sonner";
 import { getUniversalQuote, type UniversalQuote } from "@/lib/universal-quote.functions";
 import { analyzeAsset, type AssetVerdict } from "@/lib/asset-analysis.functions";
 import { addUserAsset } from "@/lib/assets.functions";
-import { createAlert } from "@/lib/alerts.functions";
-import { supabase } from "@/integrations/supabase/client";
+import { AddToWatchlistDialog } from "@/components/pickers/AddToWatchlistDialog";
+import { CreateAlertDialog } from "@/components/pickers/CreateAlertDialog";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import {
@@ -22,9 +22,6 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
-} from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Brain, TrendingUp, TrendingDown, Sparkles, Loader2,
@@ -78,7 +75,7 @@ function MarketIntelligencePage() {
   const callQuote = useServerFn(getUniversalQuote);
   const callAnalyze = useServerFn(analyzeAsset);
   const callAddAsset = useServerFn(addUserAsset);
-  const callCreateAlert = useServerFn(createAlert);
+  
 
   const [category, setCategory] = useState<IntelCategory>("us_stock");
   const [selected, setSelected] = useState<PickerAsset | null>(ASSET_PICKER.us_stock[0]);
@@ -88,6 +85,21 @@ function MarketIntelligencePage() {
   const [verdict, setVerdict] = useState<AssetVerdict | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [wlOpen, setWlOpen] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
+
+  const CAT_TO_ASSET_TYPE: Record<IntelCategory, "US_STOCK" | "SAUDI_STOCK" | "CRYPTO" | "METAL" | "COMMODITY" | "ETF"> = {
+    us_stock: "US_STOCK", sa_stock: "SAUDI_STOCK", crypto: "CRYPTO",
+    metal: "METAL", commodity: "COMMODITY", etf_bond: "ETF",
+  };
+  const pickedAsset = quote ? {
+    symbol: quote.symbol,
+    name: selected?.name ?? quote.name,
+    asset_type: CAT_TO_ASSET_TYPE[category],
+    last_price: quote.price ?? null,
+    market: CATEGORY_LABELS[category].ar,
+    category,
+  } : null;
 
   const assetsForCategory = ASSET_PICKER[category];
 
@@ -144,18 +156,6 @@ function MarketIntelligencePage() {
     onError: (e: any) => toast.error(e?.message ?? "error"),
   });
 
-  const addToWatchlist = useMutation({
-    mutationFn: async () => {
-      if (!user || !quote) throw new Error("login_required");
-      const { error } = await supabase.from("watchlist_items").insert({
-        user_id: user.id, symbol: quote.symbol,
-        asset_name: selected?.name ?? quote.name, category,
-      });
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => toast.success(t("أضيف إلى قائمة المتابعة", "Added to watchlist")),
-    onError: (e: any) => toast.error(e?.message ?? "error"),
-  });
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6" dir={ar ? "rtl" : "ltr"}>
@@ -338,21 +338,14 @@ function MarketIntelligencePage() {
                       {addToPortfolio.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
                       <span className="ms-1">{t("أضف إلى محفظتي", "Add to my portfolio")}</span>
                     </Button>
-                    <Button size="sm" variant="secondary" onClick={() => addToWatchlist.mutate()} disabled={addToWatchlist.isPending || !user}>
-                      {addToWatchlist.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
+                    <Button size="sm" variant="secondary" onClick={() => setWlOpen(true)} disabled={!user}>
+                      <Eye className="h-3 w-3" />
                       <span className="ms-1">{t("أضف إلى قائمة المتابعة", "Add to watchlist")}</span>
                     </Button>
-                    <CreatePriceAlertDialog
-                      symbol={quote.symbol}
-                      name={selected?.name ?? quote.name}
-                      currentPrice={quote.price}
-                      onSubmit={async (condition, target_price) => {
-                        await callCreateAlert({
-                          data: { symbol: quote.symbol, asset_name: selected?.name ?? quote.name, condition, target_price },
-                        });
-                      }}
-                      ar={ar}
-                    />
+                    <Button size="sm" variant="outline" onClick={() => setAlertOpen(true)} disabled={!user}>
+                      <BellPlus className="h-3 w-3" />
+                      <span className="ms-1">{t("إنشاء تنبيه سعر","Create price alert")}</span>
+                    </Button>
                   </div>
                   <p className="text-[11px] text-muted-foreground flex items-center gap-1 pt-1">
                     <Info className="h-3 w-3" />
@@ -365,6 +358,9 @@ function MarketIntelligencePage() {
           </Card>
         </div>
       )}
+
+      <AddToWatchlistDialog open={wlOpen} onOpenChange={setWlOpen} prefilled={pickedAsset} />
+      <CreateAlertDialog open={alertOpen} onOpenChange={setAlertOpen} prefilled={pickedAsset} />
     </div>
   );
 }
@@ -388,64 +384,3 @@ function KV({ label, value }: { label: string; value: string }) {
   );
 }
 
-function CreatePriceAlertDialog({
-  symbol, name, currentPrice, onSubmit, ar,
-}: {
-  symbol: string; name: string; currentPrice: number;
-  onSubmit: (condition: "above" | "below", target: number) => Promise<void>;
-  ar: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const [condition, setCondition] = useState<"above" | "below">("above");
-  const [target, setTarget] = useState(currentPrice ? (currentPrice * 1.05).toFixed(2) : "");
-  const [busy, setBusy] = useState(false);
-  const t = (a: string, e: string) => (ar ? a : e);
-
-  const submit = async () => {
-    const n = Number(target);
-    if (!Number.isFinite(n) || n <= 0) { toast.error(t("سعر غير صالح","Invalid price")); return; }
-    setBusy(true);
-    try {
-      await onSubmit(condition, n);
-      toast.success(t("تم إنشاء التنبيه", "Alert created"));
-      setOpen(false);
-    } catch (e: any) { toast.error(e?.message ?? "error"); }
-    finally { setBusy(false); }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="outline"><BellPlus className="h-3 w-3" /><span className="ms-1">{t("إنشاء تنبيه سعر","Create price alert")}</span></Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t("تنبيه سعر","Price alert")} — {symbol}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div className="text-xs text-muted-foreground">{name} · {t("السعر الحالي","Current")}: {currentPrice?.toFixed(2) ?? "—"}</div>
-          <div>
-            <Label className="text-xs">{t("الشرط","Condition")}</Label>
-            <Select value={condition} onValueChange={(v) => setCondition(v as any)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="above">{t("عندما يصعد فوق","When price rises above")}</SelectItem>
-                <SelectItem value="below">{t("عندما يهبط دون","When price falls below")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs">{t("السعر المستهدف","Target price")}</Label>
-            <Input type="number" step="0.0001" value={target} onChange={(e) => setTarget(e.target.value)} />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button onClick={submit} disabled={busy}>
-            {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <BellPlus className="h-3 w-3" />}
-            <span className="ms-1">{t("إنشاء","Create")}</span>
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}

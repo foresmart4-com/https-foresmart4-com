@@ -19,6 +19,7 @@ import { Route as DisclaimerRouteImport } from './routes/disclaimer'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppWatchlistsRouteImport } from './routes/_app/watchlists'
 import { Route as AppWatchlistRouteImport } from './routes/_app/watchlist'
 import { Route as AppWalletRouteImport } from './routes/_app/wallet'
 import { Route as AppSystemHealthRouteImport } from './routes/_app/system-health'
@@ -127,6 +128,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppWatchlistsRoute = AppWatchlistsRouteImport.update({
+  id: '/watchlists',
+  path: '/watchlists',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppWatchlistRoute = AppWatchlistRouteImport.update({
   id: '/watchlist',
@@ -485,6 +491,7 @@ export interface FileRoutesByFullPath {
   '/system-health': typeof AppSystemHealthRoute
   '/wallet': typeof AppWalletRoute
   '/watchlist': typeof AppWatchlistRoute
+  '/watchlists': typeof AppWatchlistsRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
@@ -555,6 +562,7 @@ export interface FileRoutesByTo {
   '/system-health': typeof AppSystemHealthRoute
   '/wallet': typeof AppWalletRoute
   '/watchlist': typeof AppWatchlistRoute
+  '/watchlists': typeof AppWatchlistsRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
@@ -627,6 +635,7 @@ export interface FileRoutesById {
   '/_app/system-health': typeof AppSystemHealthRoute
   '/_app/wallet': typeof AppWalletRoute
   '/_app/watchlist': typeof AppWatchlistRoute
+  '/_app/watchlists': typeof AppWatchlistsRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
@@ -699,6 +708,7 @@ export interface FileRouteTypes {
     | '/system-health'
     | '/wallet'
     | '/watchlist'
+    | '/watchlists'
     | '/api/finnhub/stream'
     | '/api/public/email-config-check'
     | '/api/public/moyasar-webhook'
@@ -769,6 +779,7 @@ export interface FileRouteTypes {
     | '/system-health'
     | '/wallet'
     | '/watchlist'
+    | '/watchlists'
     | '/api/finnhub/stream'
     | '/api/public/email-config-check'
     | '/api/public/moyasar-webhook'
@@ -840,6 +851,7 @@ export interface FileRouteTypes {
     | '/_app/system-health'
     | '/_app/wallet'
     | '/_app/watchlist'
+    | '/_app/watchlists'
     | '/api/finnhub/stream'
     | '/api/public/email-config-check'
     | '/api/public/moyasar-webhook'
@@ -950,6 +962,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/watchlists': {
+      id: '/_app/watchlists'
+      path: '/watchlists'
+      fullPath: '/watchlists'
+      preLoaderRoute: typeof AppWatchlistsRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/watchlist': {
       id: '/_app/watchlist'
@@ -1415,6 +1434,7 @@ interface AppRouteChildren {
   AppSystemHealthRoute: typeof AppSystemHealthRoute
   AppWalletRoute: typeof AppWalletRoute
   AppWatchlistRoute: typeof AppWatchlistRoute
+  AppWatchlistsRoute: typeof AppWatchlistsRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -1465,6 +1485,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSystemHealthRoute: AppSystemHealthRoute,
   AppWalletRoute: AppWalletRoute,
   AppWatchlistRoute: AppWatchlistRoute,
+  AppWatchlistsRoute: AppWatchlistsRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

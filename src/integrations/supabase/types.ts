@@ -1545,6 +1545,44 @@ export type Database = {
         }
         Relationships: []
       }
+      user_alert_events: {
+        Row: {
+          alert_id: string
+          created_at: string
+          id: string
+          message: string | null
+          price: number | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          alert_id: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          price?: number | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          alert_id?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          price?: number | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_alert_events_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "user_price_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_api_keys: {
         Row: {
           auth_tag: string
@@ -1647,6 +1685,66 @@ export type Database = {
         }
         Relationships: []
       }
+      user_price_alerts: {
+        Row: {
+          asset_type: string
+          condition: string
+          created_at: string
+          enabled: boolean
+          id: string
+          last_checked_at: string | null
+          last_error: string | null
+          last_price: number | null
+          last_status: string | null
+          market: string | null
+          name: string | null
+          note: string | null
+          symbol: string
+          target_value: number
+          triggered_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asset_type: string
+          condition: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_checked_at?: string | null
+          last_error?: string | null
+          last_price?: number | null
+          last_status?: string | null
+          market?: string | null
+          name?: string | null
+          note?: string | null
+          symbol: string
+          target_value: number
+          triggered_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asset_type?: string
+          condition?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_checked_at?: string | null
+          last_error?: string | null
+          last_price?: number | null
+          last_status?: string | null
+          market?: string | null
+          name?: string | null
+          note?: string | null
+          symbol?: string
+          target_value?: number
+          triggered_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1664,6 +1762,74 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_watchlist_items: {
+        Row: {
+          asset_type: string
+          created_at: string
+          id: string
+          market: string | null
+          name: string | null
+          note: string | null
+          symbol: string
+          user_id: string
+          watchlist_id: string
+        }
+        Insert: {
+          asset_type: string
+          created_at?: string
+          id?: string
+          market?: string | null
+          name?: string | null
+          note?: string | null
+          symbol: string
+          user_id: string
+          watchlist_id: string
+        }
+        Update: {
+          asset_type?: string
+          created_at?: string
+          id?: string
+          market?: string | null
+          name?: string | null
+          note?: string | null
+          symbol?: string
+          user_id?: string
+          watchlist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_watchlist_items_watchlist_id_fkey"
+            columns: ["watchlist_id"]
+            isOneToOne: false
+            referencedRelation: "user_watchlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_watchlists: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
