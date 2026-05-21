@@ -11,7 +11,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
   LayoutDashboard, LineChart, Bell, Archive, User as UserIcon,
-  Brain, LogOut, Globe2, Menu, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap, Eye, Search, Flame, CalendarDays, GraduationCap, Layers, Cpu, Activity, HelpCircle, Compass,
+  Brain, LogOut, Globe2, Menu, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap, Eye, Search, Flame, CalendarDays, GraduationCap, Layers, Cpu, Activity, HelpCircle, Compass, History, Rocket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
@@ -72,9 +72,12 @@ function AppLayout() {
     { to: "/archive", icon: Archive, label: t("nav.archive"), hint: hint("الأرشيف", "Archive") },
     ...(isAdmin ? [{ to: "/members", icon: Users, label: t("nav.members"), hint: hint("إدارة الأعضاء (مشرفون)", "Members admin") }] : []),
     { to: "/help", icon: HelpCircle, label: hint("مركز المساعدة", "Help Center"), hint: hint("شرح المحفظة، Binance، Alpaca، IBKR، الاشتراكات", "Wallet, Binance, Alpaca, IBKR, subscriptions") },
+    { to: "/changelog", icon: History, label: hint("سجل التغييرات", "Changelog"), hint: hint("آخر نسخة منشورة من الواجهة مع التاريخ والملخص", "Latest published frontend release with date and summary") },
     { to: "/profile", icon: UserIcon, label: t("nav.profile"), hint: hint("الملف الشخصي", "Profile") },
     { to: "/settings", icon: Settings, label: t("nav.settings"), hint: hint("الإعدادات", "Settings") },
   ];
+
+  const editorUrl = "https://lovable.dev/projects/5a68377c-93dc-42f4-9999-fc0850af1ae2";
 
   const handleSignOut = async () => { await signOut(); navigate({ to: "/" }); };
 
@@ -115,6 +118,16 @@ function AppLayout() {
 
   const SidebarFooter = () => (
     <div className="space-y-1 border-t border-sidebar-border p-2">
+      <a
+        href={editorUrl}
+        target="_blank"
+        rel="noreferrer"
+        title={hint("نشر آخر تحديثات الواجهة إلى الموقع المباشر بنقرة واحدة", "Publish the latest frontend to the live site in one click")}
+        className="flex w-full items-center gap-3 rounded-lg gradient-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 min-h-11"
+      >
+        <Rocket className="h-4 w-4 shrink-0" />
+        {!collapsed && <span>{hint("نشر التحديث", "Publish update")}</span>}
+      </a>
       <button
         onClick={() => setLang(lang === "ar" ? "en" : "ar")}
         className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/60 min-h-11"
@@ -187,6 +200,18 @@ function AppLayout() {
             <img src={brandLogo} alt={t("appName")} className="h-7 w-7 rounded-md object-contain" />
             <span className="font-display text-sm font-bold truncate">{t("appName")}</span>
           </Link>
+
+          <a
+            href={editorUrl}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={hint("نشر التحديث", "Publish update")}
+            title={hint("نشر آخر تحديثات الواجهة إلى الموقع المباشر", "Publish the latest frontend to the live site")}
+            className="inline-flex h-10 items-center gap-1.5 rounded-md gradient-primary px-3 text-xs font-semibold text-primary-foreground"
+          >
+            <Rocket className="h-4 w-4" />
+            <span>{hint("نشر", "Publish")}</span>
+          </a>
 
           <Button
             variant="ghost"

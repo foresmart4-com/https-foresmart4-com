@@ -55,6 +55,7 @@ import { Route as AppDbDiagnosticsRouteImport } from './routes/_app/db-diagnosti
 import { Route as AppDataFusionRouteImport } from './routes/_app/data-fusion'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCompanyTradingRouteImport } from './routes/_app/company-trading'
+import { Route as AppChangelogRouteImport } from './routes/_app/changelog'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppBillingMonitorRouteImport } from './routes/_app/billing-monitor'
 import { Route as AppBillingRouteImport } from './routes/_app/billing'
@@ -312,6 +313,11 @@ const AppCompanyTradingRoute = AppCompanyTradingRouteImport.update({
   path: '/company-trading',
   getParentRoute: () => AppRoute,
 } as any)
+const AppChangelogRoute = AppChangelogRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCalendarRoute = AppCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
@@ -475,6 +481,7 @@ export interface FileRoutesByFullPath {
   '/billing': typeof AppBillingRoute
   '/billing-monitor': typeof AppBillingMonitorRoute
   '/calendar': typeof AppCalendarRoute
+  '/changelog': typeof AppChangelogRoute
   '/company-trading': typeof AppCompanyTradingRoute
   '/dashboard': typeof AppDashboardRoute
   '/data-fusion': typeof AppDataFusionRoute
@@ -549,6 +556,7 @@ export interface FileRoutesByTo {
   '/billing': typeof AppBillingRoute
   '/billing-monitor': typeof AppBillingMonitorRoute
   '/calendar': typeof AppCalendarRoute
+  '/changelog': typeof AppChangelogRoute
   '/company-trading': typeof AppCompanyTradingRoute
   '/dashboard': typeof AppDashboardRoute
   '/data-fusion': typeof AppDataFusionRoute
@@ -625,6 +633,7 @@ export interface FileRoutesById {
   '/_app/billing': typeof AppBillingRoute
   '/_app/billing-monitor': typeof AppBillingMonitorRoute
   '/_app/calendar': typeof AppCalendarRoute
+  '/_app/changelog': typeof AppChangelogRoute
   '/_app/company-trading': typeof AppCompanyTradingRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/data-fusion': typeof AppDataFusionRoute
@@ -701,6 +710,7 @@ export interface FileRouteTypes {
     | '/billing'
     | '/billing-monitor'
     | '/calendar'
+    | '/changelog'
     | '/company-trading'
     | '/dashboard'
     | '/data-fusion'
@@ -775,6 +785,7 @@ export interface FileRouteTypes {
     | '/billing'
     | '/billing-monitor'
     | '/calendar'
+    | '/changelog'
     | '/company-trading'
     | '/dashboard'
     | '/data-fusion'
@@ -850,6 +861,7 @@ export interface FileRouteTypes {
     | '/_app/billing'
     | '/_app/billing-monitor'
     | '/_app/calendar'
+    | '/_app/changelog'
     | '/_app/company-trading'
     | '/_app/dashboard'
     | '/_app/data-fusion'
@@ -1253,6 +1265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCompanyTradingRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/changelog': {
+      id: '/_app/changelog'
+      path: '/changelog'
+      fullPath: '/changelog'
+      preLoaderRoute: typeof AppChangelogRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/calendar': {
       id: '/_app/calendar'
       path: '/calendar'
@@ -1459,6 +1478,7 @@ interface AppRouteChildren {
   AppBillingRoute: typeof AppBillingRoute
   AppBillingMonitorRoute: typeof AppBillingMonitorRoute
   AppCalendarRoute: typeof AppCalendarRoute
+  AppChangelogRoute: typeof AppChangelogRoute
   AppCompanyTradingRoute: typeof AppCompanyTradingRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDataFusionRoute: typeof AppDataFusionRoute
@@ -1511,6 +1531,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppBillingRoute: AppBillingRoute,
   AppBillingMonitorRoute: AppBillingMonitorRoute,
   AppCalendarRoute: AppCalendarRoute,
+  AppChangelogRoute: AppChangelogRoute,
   AppCompanyTradingRoute: AppCompanyTradingRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDataFusionRoute: AppDataFusionRoute,
