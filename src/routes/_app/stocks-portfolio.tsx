@@ -54,7 +54,8 @@ function StocksPortfolioPage() {
     refetchOnWindowFocus: false,
   });
 
-  const connected = portfolio.data?.ok === true;
+  const snapshot = portfolio.data?.ok ? portfolio.data.data : null;
+  const connected = Boolean(snapshot);
   const syncLabel = portfolio.isFetching
     ? ar ? "جارٍ مزامنة Alpaca..." : "Syncing Alpaca…"
     : ar ? "مزامنة Alpaca" : "Sync Alpaca";
@@ -93,12 +94,12 @@ function StocksPortfolioPage() {
 
       {portfolio.isLoading && <LoadingState />}
 
-      {connected && (
+      {snapshot && (
         <>
-          <AccountOverview account={portfolio.data.data.account} />
+          <AccountOverview account={snapshot.account} />
           <PreviewOrderTicket />
-          <PositionsTable positions={portfolio.data.data.positions} />
-          <OpenOrdersTable orders={portfolio.data.data.orders} />
+          <PositionsTable positions={snapshot.positions} />
+          <OpenOrdersTable orders={snapshot.orders} />
         </>
       )}
     </main>
