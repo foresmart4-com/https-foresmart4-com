@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/tooltip";
 import { CalendarDays, AlertTriangle, TrendingUp, Info, RefreshCw, ExternalLink } from "lucide-react";
 import { getEconomicEvents } from "@/lib/economic-calendar.functions";
+import { useBooleanPref } from "@/lib/investor-prefs";
 import type { IntelCategory } from "@/lib/asset-picker";
 
 export const Route = createFileRoute("/_app/calendar")({
