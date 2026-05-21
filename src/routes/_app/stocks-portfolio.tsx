@@ -247,31 +247,16 @@ function StocksPortfolioPage() {
   );
 }
 
-function AccountCard({ account, dailyPnl, maxOrder, dailyLimit, emergencyStop, onEStop, onResume }: {
-  account: { accountId: string; currency: string; cash: number; equity: number; buyingPower: number };
-  dailyPnl: number; maxOrder: number; dailyLimit: number; emergencyStop: boolean;
-  onEStop: () => void; onResume: () => void;
+function AccountCard({ account }: {
+  account: { accountId: string; status: string; currency: string; cash: number; equity: number; buyingPower: number };
 }) {
   const { lang } = useI18n(); const ar = lang === "ar";
   return (
-    <Card className="grid gap-3 p-4 md:grid-cols-5">
-      <Stat label={ar ? "الحساب" : "Account"} value={account.accountId} mono />
-      <Stat label={ar ? "النقد" : "Cash"} value={fmtUsd(account.cash, account.currency)} />
-      <Stat label={ar ? "قيمة المحفظة" : "Portfolio Value"} value={fmtUsd(account.equity, account.currency)} />
-      <Stat label={ar ? "قوة الشراء" : "Buying Power"} value={fmtUsd(account.buyingPower, account.currency)} />
-      <div className="rounded-md border border-border bg-muted/20 p-2">
-        <div className="text-[11px] uppercase text-muted-foreground">{ar ? "P&L اليومي" : "Daily P&L"}</div>
-        <div className={`font-mono text-sm font-semibold ${dailyPnl < 0 ? "text-destructive" : "text-success"}`}>{fmtUsd(dailyPnl, "USD")}</div>
-      </div>
-      <div className="md:col-span-5 flex flex-wrap items-center gap-3 border-t border-border pt-3 text-xs">
-        <span className="text-muted-foreground">{ar ? "حد الأمر الأقصى:" : "Max order:"} <strong>{fmtUsd(maxOrder, "USD")}</strong></span>
-        <span className="text-muted-foreground">{ar ? "حد الخسارة اليومي:" : "Daily loss limit:"} <strong>{fmtUsd(dailyLimit, "USD")}</strong></span>
-        {emergencyStop ? (
-          <Button size="sm" variant="outline" className="ms-auto gap-2" onClick={onResume}><Shield className="h-4 w-4" /> {ar ? "استئناف" : "Resume"}</Button>
-        ) : (
-          <Button size="sm" variant="destructive" className="ms-auto gap-2" onClick={onEStop}><ShieldAlert className="h-4 w-4" /> {ar ? "إيقاف طارئ" : "Emergency Stop"}</Button>
-        )}
-      </div>
+    <Card className="grid gap-3 p-4 md:grid-cols-4">
+      <Stat label="Portfolio Value" value={fmtUsd(account.equity, account.currency)} />
+      <Stat label="Cash" value={fmtUsd(account.cash, account.currency)} />
+      <Stat label="Buying Power" value={fmtUsd(account.buyingPower, account.currency)} />
+      <Stat label={ar ? "حالة الحساب" : "Account Status"} value={account.status || "—"} mono />
     </Card>
   );
 }
