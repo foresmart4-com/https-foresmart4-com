@@ -58,11 +58,13 @@ const UpdateInput = z.object({
 });
 
 const CashInput = z.object({
-  amount: z.number().refine((n) => n !== 0, "amount cannot be zero").gte(-1e9).lte(1e9),
+  amount: z.number().min(-1e9).max(1e9).refine((n) => n !== 0, "amount cannot be zero"),
   currency: z.string().trim().min(2).max(8).default("USD"),
   kind: z.enum(["deposit", "withdrawal", "adjustment"]).default("deposit"),
   note: z.string().trim().max(300).optional().nullable(),
 });
+type CashInputT = z.infer<typeof CashInput>;
+type UpdateInputT = z.infer<typeof UpdateInput>;
 
 // ---------- Price fetchers (server-only) ----------
 async function fetchCryptoPrice(symbol: string): Promise<{ price: number; mode: AssetDataMode } | null> {
