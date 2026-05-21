@@ -99,7 +99,7 @@ function HeatmapPage() {
         symbol: a.symbol, name: a.name,
         group: (a.region === "saudi" ? "stocks-saudi" : "stocks-us") as Group,
         price: a.price, changePct: a.changePct, weight: 1,
-        source: a.source || "Yahoo", mode: "live", updatedAt: Date.now(),
+        source: "Yahoo", mode: "live", updatedAt: Date.now(),
       }));
       (batch as Array<{ symbol: string; name: string; category: string; price: number; changePct: number; source: string; mode: "live" | "delayed" | "manual" | "mock"; fetchedAt: number }>).forEach((q) => {
         if (!q.price) return;
