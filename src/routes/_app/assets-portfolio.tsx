@@ -240,6 +240,9 @@ function AssetsPortfolioPage() {
             </div>
           ))}
         </div>
+        <p className="mt-2 text-xs text-muted-foreground">الربط يستورد المراكز كقراءة فقط. لا تتأثر أصولك اليدوية.</p>
+      </Card>
+
       <AddAssetDialog open={addOpen} onOpenChange={setAddOpen} />
       <ManualCashDialog open={cashOpen} onOpenChange={setCashOpen} />
       <EditAssetDialog asset={editAsset} onClose={() => setEditAsset(null)} />
