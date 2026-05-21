@@ -10,6 +10,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { allProvidersHealth, selectMarketProvider, selectMacroProvider, lastFailoverEvents } from "@/services/providers";
 import { gdeltProviderHealth } from "@/services/providers/gdelt";
+import { probeAllProviders, buildRoutingPlan, type RoutingPlanRow, type ProbeResult } from "@/services/providers/probes";
 
 export type ProviderCategory = "market_data" | "news" | "macro" | "broker" | "payments" | "kyc";
 export type ProviderConnState = "connected" | "missing_key" | "error" | "rate_limited" | "not_implemented" | "unknown";
@@ -29,6 +30,7 @@ export interface ProviderStatusRow {
   latencyMs?: number | null;
   errorRate?: number | null;
   rateLimited?: number | null;
+  httpStatus?: number | null;
   endpoint?: string | null;
   note?: string;
 }
@@ -48,21 +50,48 @@ function modeFor(conn: ProviderConnState, defaultLive: ProviderDataMode = "live"
   return "not_connected";
 }
 
+/** Probe outcome wins for connection state; cached health enriches metrics. */
+function reconcile(probe: ProbeResult | undefined, fallback: ProviderConnState): ProviderConnState {
+  if (!probe) return fallback;
+  return probe.outcome === "connected" ? "connected"
+    : probe.outcome === "rate_limited" ? "rate_limited"
+    : probe.outcome === "missing_key" ? "missing_key"
+    : probe.outcome === "not_implemented" ? "not_implemented"
+    : "error";
+}
+
+function probeFields(p: ProbeResult | undefined) {
+  return {
+    lastSuccessAt: p?.lastSuccessAt ?? null,
+    lastErrorAt: p?.lastErrorAt ?? null,
+    lastError: p?.lastError ?? null,
+    httpStatus: p?.httpStatus ?? null,
+  };
+}
+
 export const getAllProvidersStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async (): Promise<{ generatedAt: number; routing: { market: string; macro: string }; providers: ProviderStatusRow[]; failoverEvents: ReturnType<typeof lastFailoverEvents> }> => {
+  .handler(async (): Promise<{
+    generatedAt: number;
+    routing: { market: string; macro: string };
+    routingPlan: RoutingPlanRow[];
+    providers: ProviderStatusRow[];
+    failoverEvents: ReturnType<typeof lastFailoverEvents>;
+  }> => {
     const health = allProvidersHealth();
     const gdelt = gdeltProviderHealth();
+    // Probes use Promise.allSettled internally → never throws.
+    const probes = await probeAllProviders();
 
     const fh = health.finnhub;
     const td = health.twelvedata;
     const av = health.alphavantage;
     const na = health.newsapi;
 
-    const finnhubConn: ProviderConnState = !fh.configured ? "missing_key" : fh.status === "down" ? "error" : "connected";
-    const tdConn: ProviderConnState = !td.configured ? "missing_key" : td.status === "down" ? "error" : "connected";
-    const avConn: ProviderConnState = !av.configured ? "missing_key" : av.status === "down" ? "error" : "connected";
-    const naConn: ProviderConnState = !na.configured ? "missing_key" : na.status === "down" ? "error" : "connected";
+    const finnhubConn = reconcile(probes.finnhub, !fh.configured ? "missing_key" : fh.status === "down" ? "error" : "connected");
+    const tdConn = reconcile(probes.twelvedata, !td.configured ? "missing_key" : td.status === "down" ? "error" : "connected");
+    const avConn = reconcile(probes.alphavantage, !av.configured ? "missing_key" : av.status === "down" ? "error" : "connected");
+    const naConn = reconcile(probes.newsapi, !na.configured ? "missing_key" : na.status === "down" ? "error" : "connected");
 
     const providers: ProviderStatusRow[] = [
       // ---- Market data ----
