@@ -3,13 +3,32 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./auth";
 
 export const DISCLAIMER_VERSION = "2026-05-08-v1";
+const ACCEPT_CACHE_PREFIX = "fs-disclaimer-accepted:";
+
+function cacheKey(userId: string) {
+  return `${ACCEPT_CACHE_PREFIX}${userId}:${DISCLAIMER_VERSION}`;
+}
+
+function readCachedAccept(userId: string): boolean {
+  if (typeof window === "undefined") return false;
+  try { return window.localStorage.getItem(cacheKey(userId)) === "1"; } catch { return false; }
+}
+
+function writeCachedAccept(userId: string) {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.setItem(cacheKey(userId), "1"); } catch { /* ignore */ }
+}
 
 export type AppRole = "admin" | "subscriber" | "pending";
 
 export function useAccess() {
   const { user } = useAuth();
+  // Hydrate optimistically from localStorage so the disclaimer modal does not
+  // re-flash on every page load for users who have already accepted it.
   const [role, setRole] = useState<AppRole | null>(null);
-  const [accepted, setAccepted] = useState<boolean | null>(null);
+  const [accepted, setAccepted] = useState<boolean | null>(
+    user ? (readCachedAccept(user.id) ? true : null) : null,
+  );
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
@@ -22,7 +41,9 @@ export function useAccess() {
     const rs = (roles ?? []).map((r) => r.role as AppRole);
     const primary: AppRole = rs.includes("admin") ? "admin" : rs.includes("subscriber") ? "subscriber" : "pending";
     setRole(primary);
-    setAccepted(acc === true);
+    const ok = acc === true;
+    setAccepted(ok);
+    if (ok) writeCachedAccept(user.id);
     setLoading(false);
   }, [user]);
 
@@ -35,7 +56,10 @@ export function useAccess() {
       version: DISCLAIMER_VERSION,
       user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
     });
-    if (!error) setAccepted(true);
+    if (!error) {
+      setAccepted(true);
+      writeCachedAccept(user.id);
+    }
     return { error: error?.message ?? null };
   };
 
