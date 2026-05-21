@@ -14,7 +14,6 @@ import { useI18n } from "@/lib/i18n";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   placeStockOrder, cancelStockOrder,
-  triggerStockEmergencyStop, resumeStockTrading,
   getRecentStockDecisions, previewStockOrderRisk,
 } from "@/lib/stockBroker.functions";
 import { Briefcase, RefreshCw, ShieldAlert, Shield, AlertTriangle, Building2, LineChart, CheckCircle2 } from "lucide-react";
@@ -193,7 +192,7 @@ function StocksPortfolioPage() {
           {configured && data.provider === "alpaca" && (
             <Badge variant="default" className="gap-1 bg-success text-success-foreground">
               <CheckCircle2 className="h-3 w-3" />
-              {ar ? "Alpaca متصل" : "Alpaca Connected"}
+              Alpaca Connected
             </Badge>
           )}
           <Button variant="outline" onClick={() => portfolio.refetch()} disabled={portfolio.isFetching} className="gap-2">
@@ -213,11 +212,11 @@ function StocksPortfolioPage() {
             {configured && (
               <Badge variant="default" className="gap-1 bg-success text-success-foreground">
                 <CheckCircle2 className="h-3 w-3" />
-                {data.provider === "alpaca" ? (ar ? "Alpaca متصل" : "Alpaca Connected") : (ar ? "متصل" : "Connected")}
+                {data.provider === "alpaca" ? "Alpaca Connected" : (ar ? "متصل" : "Connected")}
               </Badge>
             )}
             <Badge variant={data.liveTradingEnabled ? "default" : "outline"}>
-              {data.liveTradingEnabled ? (ar ? "تداول حقيقي مفعّل" : "Live trading ON") : (ar ? "معاينة فقط — LIVE_TRADING_ENABLED=false" : "Preview only — LIVE_TRADING_ENABLED=false")}
+              {data.liveTradingEnabled ? (ar ? "تداول حقيقي مفعّل" : "Live trading ON") : (ar ? "معاينة فقط — التداول الحقيقي معطل" : "Preview only — live trading disabled")}
             </Badge>
             {!configured && (
               <span className="text-muted-foreground">
