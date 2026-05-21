@@ -809,6 +809,36 @@ export type Database = {
         }
         Relationships: []
       }
+      manual_cash_entries: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          kind: Database["public"]["Enums"]["manual_cash_kind"]
+          note: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["manual_cash_kind"]
+          note?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["manual_cash_kind"]
+          note?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       market_archive: {
         Row: {
           asset_name: string
@@ -1560,6 +1590,63 @@ export type Database = {
         }
         Relationships: []
       }
+      user_assets: {
+        Row: {
+          asset_class: Database["public"]["Enums"]["asset_class"]
+          avg_cost: number
+          created_at: string
+          currency: string
+          data_mode: Database["public"]["Enums"]["asset_data_mode"]
+          id: string
+          is_active: boolean
+          market: string | null
+          name: string | null
+          notes: string | null
+          quantity: number
+          source: Database["public"]["Enums"]["asset_source"]
+          symbol: string
+          updated_at: string
+          user_id: string
+          yield_pct: number | null
+        }
+        Insert: {
+          asset_class: Database["public"]["Enums"]["asset_class"]
+          avg_cost?: number
+          created_at?: string
+          currency?: string
+          data_mode?: Database["public"]["Enums"]["asset_data_mode"]
+          id?: string
+          is_active?: boolean
+          market?: string | null
+          name?: string | null
+          notes?: string | null
+          quantity?: number
+          source?: Database["public"]["Enums"]["asset_source"]
+          symbol: string
+          updated_at?: string
+          user_id: string
+          yield_pct?: number | null
+        }
+        Update: {
+          asset_class?: Database["public"]["Enums"]["asset_class"]
+          avg_cost?: number
+          created_at?: string
+          currency?: string
+          data_mode?: Database["public"]["Enums"]["asset_data_mode"]
+          id?: string
+          is_active?: boolean
+          market?: string | null
+          name?: string | null
+          notes?: string | null
+          quantity?: number
+          source?: Database["public"]["Enums"]["asset_source"]
+          symbol?: string
+          updated_at?: string
+          user_id?: string
+          yield_pct?: number | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1842,6 +1929,19 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "subscriber" | "pending"
+      asset_class:
+        | "us_stock"
+        | "sa_stock"
+        | "etf"
+        | "bond"
+        | "crypto"
+        | "metal"
+        | "commodity"
+        | "cash"
+        | "other"
+      asset_data_mode: "live" | "delayed" | "manual" | "mock"
+      asset_source: "manual" | "binance" | "alpaca" | "ibkr" | "demo"
+      manual_cash_kind: "deposit" | "withdrawal" | "adjustment"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1970,6 +2070,20 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "subscriber", "pending"],
+      asset_class: [
+        "us_stock",
+        "sa_stock",
+        "etf",
+        "bond",
+        "crypto",
+        "metal",
+        "commodity",
+        "cash",
+        "other",
+      ],
+      asset_data_mode: ["live", "delayed", "manual", "mock"],
+      asset_source: ["manual", "binance", "alpaca", "ibkr", "demo"],
+      manual_cash_kind: ["deposit", "withdrawal", "adjustment"],
     },
   },
 } as const
