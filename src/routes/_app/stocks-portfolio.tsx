@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { AlertCircle, Briefcase, CheckCircle2, RefreshCw, ShieldCheck, TrendingUp } from "lucide-react";
+import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, Briefcase, CheckCircle2, RefreshCw, ShieldCheck, TrendingUp } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,12 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { getAlpacaPortfolio, type AlpacaPortfolioResult } from "@/lib/alpaca.server";
 import { useI18n } from "@/lib/i18n";
 
 const LIVE_TRADING_ENABLED = false;
+const AUTO_REFRESH_MS = 60_000;
 
 type PortfolioSuccess = Extract<AlpacaPortfolioResult, { ok: true }>;
 type Position = PortfolioSuccess["data"]["positions"][number];
@@ -26,6 +28,8 @@ type PreviewOrder = {
   qty: number;
   limitPrice?: number;
 };
+type SortKey = "symbol" | "marketValue" | "unrealizedPnl";
+type SortDir = "asc" | "desc";
 
 export const Route = createFileRoute("/_app/stocks-portfolio")({
   head: () => ({
@@ -41,21 +45,50 @@ function StocksPortfolioPage() {
   const { lang, dir } = useI18n();
   const ar = lang === "ar";
   const fetchPortfolio = useServerFn(getAlpacaPortfolio);
-  const [lastSyncState, setLastSyncState] = useState<"idle" | "syncing" | "connected" | "error">("idle");
+  const queryClient = useQueryClient();
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
+  const lastErrorToastRef = useRef<string | null>(null);
 
   const portfolio = useQuery({
     queryKey: ["alpaca-portfolio"],
     queryFn: async () => {
-      setLastSyncState("syncing");
       const result = await fetchPortfolio();
-      setLastSyncState(result.ok ? "connected" : "error");
+      setLastSyncAt(Date.now());
       return result;
     },
     refetchOnWindowFocus: false,
+    refetchInterval: autoRefresh ? (q) => (q.state.data && !("ok" in q.state.data && !q.state.data.ok) ? AUTO_REFRESH_MS : false) : false,
   });
 
-  const snapshot = portfolio.data?.ok ? portfolio.data.data : null;
+  const result = portfolio.data;
+  const snapshot = result?.ok ? result.data : null;
   const connected = Boolean(snapshot);
+  const isUnauthorized = result && !result.ok && result.status === "account_error" && /401/.test(result.error);
+
+  // Auto-disable auto-refresh on error and surface a single toast
+  useEffect(() => {
+    if (result && !result.ok) {
+      if (autoRefresh) setAutoRefresh(false);
+      const msg = isUnauthorized
+        ? (ar ? "فشل الاتصال بحساب Alpaca: 401 Unauthorized — تحقق من مفاتيح API." : "Alpaca account request failed: 401 Unauthorized — check API keys.")
+        : (ar ? "تعذّر تحديث بعض بيانات Alpaca." : "Couldn't refresh some Alpaca data.");
+      if (lastErrorToastRef.current !== msg) {
+        lastErrorToastRef.current = msg;
+        if (isUnauthorized) toast.error(msg);
+        else toast.warning(msg);
+      }
+    } else if (result?.ok) {
+      lastErrorToastRef.current = null;
+    }
+  }, [result, isUnauthorized, ar, autoRefresh]);
+
+  const handleSync = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["alpaca-portfolio"] });
+    const res = await portfolio.refetch();
+    if (res.data?.ok) toast.success(ar ? "تمت مزامنة Alpaca." : "Alpaca synced.");
+  };
+
   const syncLabel = portfolio.isFetching
     ? ar ? "جارٍ مزامنة Alpaca..." : "Syncing Alpaca…"
     : ar ? "مزامنة Alpaca" : "Sync Alpaca";
@@ -72,23 +105,41 @@ function StocksPortfolioPage() {
             {ar ? "اتصال مباشر من السيرفر مع Alpaca Paper API بدون أي طلبات من الواجهة إلى Alpaca." : "Server-side Alpaca Paper API connection with no frontend requests to Alpaca."}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <ConnectionBadge connected={connected} syncing={portfolio.isFetching} lastSyncState={lastSyncState} />
-          <Button variant="outline" onClick={() => portfolio.refetch()} disabled={portfolio.isFetching} className="gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <ConnectionBadge connected={connected} syncing={portfolio.isFetching} />
+          <div className="flex items-center gap-2 rounded-md border border-border px-3 py-1.5">
+            <Switch id="auto-refresh" checked={autoRefresh} onCheckedChange={setAutoRefresh} disabled={Boolean(result && !result.ok)} />
+            <Label htmlFor="auto-refresh" className="text-xs">
+              {ar ? "تحديث تلقائي كل 60ث" : "Auto-refresh 60s"}
+            </Label>
+          </div>
+          <Button onClick={handleSync} disabled={portfolio.isFetching} className="gap-2">
             <RefreshCw className={`h-4 w-4 ${portfolio.isFetching ? "animate-spin" : ""}`} />
             {syncLabel}
           </Button>
         </div>
       </header>
 
-      <Alert className={connected ? "border-success/40" : "border-warning/40"}>
+      <Alert className={connected ? "border-success/40" : isUnauthorized ? "border-destructive/40" : "border-warning/40"}>
         {connected ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
         <AlertDescription className="flex flex-wrap items-center gap-2 text-sm">
           <Badge variant="secondary">BROKER_PROVIDER=alpaca</Badge>
           <Badge variant={LIVE_TRADING_ENABLED ? "default" : "outline"}>
             {LIVE_TRADING_ENABLED ? (ar ? "التداول الحقيقي مفعّل" : "Live trading ON") : (ar ? "Preview فقط — التداول الحقيقي معطّل" : "Preview only — live trading disabled")}
           </Badge>
-          {!connected && portfolio.data && !portfolio.data.ok && <span className="text-muted-foreground">{portfolio.data.error}</span>}
+          {lastSyncAt && connected && (
+            <span className="text-muted-foreground">
+              {ar ? "آخر مزامنة:" : "Last sync:"} {new Date(lastSyncAt).toLocaleTimeString()}
+            </span>
+          )}
+          {isUnauthorized && (
+            <span className="text-destructive font-medium">
+              {ar ? "فشل /v2/account: 401 Unauthorized. تحقق من APCA-API-KEY-ID و APCA-API-SECRET-KEY على السيرفر." : "/v2/account failed: 401 Unauthorized. Verify APCA-API-KEY-ID and APCA-API-SECRET-KEY on the server."}
+            </span>
+          )}
+          {result && !result.ok && !isUnauthorized && (
+            <span className="text-muted-foreground">{ar ? "تعذّر التحديث، حاول لاحقاً." : "Update failed, please retry."}</span>
+          )}
         </AlertDescription>
       </Alert>
 
@@ -106,8 +157,8 @@ function StocksPortfolioPage() {
   );
 }
 
-function ConnectionBadge({ connected, syncing, lastSyncState }: { connected: boolean; syncing: boolean; lastSyncState: "idle" | "syncing" | "connected" | "error" }) {
-  if (syncing || lastSyncState === "syncing") {
+function ConnectionBadge({ connected, syncing }: { connected: boolean; syncing: boolean }) {
+  if (syncing) {
     return <Badge variant="outline" className="gap-1"><RefreshCw className="h-3 w-3 animate-spin" /> Alpaca Syncing</Badge>;
   }
   if (connected) {
