@@ -121,10 +121,10 @@ export const initiateTopup = createServerFn({ method: "POST" })
     isMada: z.boolean().optional(),
   }).parse(d))
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = context;
+    const { userId } = context;
     const fees = computeTopupFees(data.amountSar, data.isMada ?? false);
 
-    const { data: topup, error } = await supabase.from("wallet_topups").insert({
+    const { data: topup, error } = await supabaseAdmin.from("wallet_topups").insert({
       user_id: userId,
       amount_sar: data.amountSar,
       moyasar_fee_sar: fees.moyasarFee,
