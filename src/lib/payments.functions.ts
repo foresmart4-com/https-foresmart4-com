@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { computeTopupFees } from "./moyasar.server";
 import { type StripeEnv, createStripeClient, resolveOrCreateCustomer } from "./stripe.server";
 import { assertSafeReturnUrl } from "./security/safeRedirect";
@@ -120,10 +121,10 @@ export const initiateTopup = createServerFn({ method: "POST" })
     isMada: z.boolean().optional(),
   }).parse(d))
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = context;
+    const { userId } = context;
     const fees = computeTopupFees(data.amountSar, data.isMada ?? false);
 
-    const { data: topup, error } = await supabase.from("wallet_topups").insert({
+    const { data: topup, error } = await supabaseAdmin.from("wallet_topups").insert({
       user_id: userId,
       amount_sar: data.amountSar,
       moyasar_fee_sar: fees.moyasarFee,
@@ -162,11 +163,11 @@ export const submitManualTopupRequest = createServerFn({ method: "POST" })
     note: z.string().max(1000).optional(),
   }).parse(d))
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = context;
+    const { userId } = context;
     const isMada = data.paymentMethod === "card_mada";
     const fees = computeTopupFees(data.amountSar, isMada);
 
-    const { data: topup, error } = await supabase.from("wallet_topups").insert({
+    const { data: topup, error } = await supabaseAdmin.from("wallet_topups").insert({
       user_id: userId,
       amount_sar: data.amountSar,
       moyasar_fee_sar: fees.moyasarFee,

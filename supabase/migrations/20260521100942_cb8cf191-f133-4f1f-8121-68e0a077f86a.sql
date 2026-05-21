@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "own topups insert" ON public.wallet_topups;
