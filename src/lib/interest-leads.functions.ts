@@ -64,8 +64,6 @@ export const submitInterestLead = createServerFn({ method: "POST" })
       throw new Error("Service temporarily unavailable. Please try again.");
     }
 
-    const ua = (() => { try { return getRequestHeader("user-agent")?.slice(0, 300) ?? null; } catch { return null; } })();
-
     const { error } = await supabaseAdmin.from("interest_leads").insert({
       full_name: data.full_name,
       email: data.email,
@@ -73,7 +71,6 @@ export const submitInterestLead = createServerFn({ method: "POST" })
       interested_plan: data.interested_plan ?? null,
       notes: data.notes || null,
       status: "new",
-      ...(ua ? { notes: [data.notes || "", `\n[ua:${ua}]`].join("").slice(0, 1000) } : {}),
     });
 
     if (error) {
