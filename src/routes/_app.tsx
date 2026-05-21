@@ -201,6 +201,18 @@ function AppLayout() {
             <span className="font-display text-sm font-bold truncate">{t("appName")}</span>
           </Link>
 
+          <a
+            href={editorUrl}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={hint("نشر التحديث", "Publish update")}
+            title={hint("نشر آخر تحديثات الواجهة إلى الموقع المباشر", "Publish the latest frontend to the live site")}
+            className="inline-flex h-10 items-center gap-1.5 rounded-md gradient-primary px-3 text-xs font-semibold text-primary-foreground"
+          >
+            <Rocket className="h-4 w-4" />
+            <span>{hint("نشر", "Publish")}</span>
+          </a>
+
           <Button
             variant="ghost"
             size="icon"
