@@ -155,7 +155,8 @@ export function resolveAsset(rawSymbol: string): ResolvedAsset {
 const CHAINS: Record<AssetClass, ProviderId[]> = {
   us_stock:    ["finnhub", "alpaca", "twelvedata", "alphavantage"],
   // Saudi: TradingView (TADAWUL feed) → TwelveData → AlphaVantage
-  saudi_stock: ["tradingview", "twelvedata", "alphavantage"],
+  // Saudi: SAHMK (native) → TradingView (TADAWUL feed) → TwelveData → AlphaVantage
+  saudi_stock: ["sahmk", "tradingview", "twelvedata", "alphavantage"],
   crypto:      ["binance", "coingecko", "twelvedata"],
   // Metals: TwelveData → Finnhub FX feed → AlphaVantage → TradingView
   metal:       ["twelvedata", "finnhub", "alphavantage", "tradingview"],
