@@ -1,260 +1,225 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { allProviderHealth } from "@/lib/providers.functions";
-import { logProviderHealth, getAllProviderHealthTimeline } from "@/lib/provider-health.functions";
+import { getAllProvidersStatus, type ProviderStatusRow, type ProviderCategory } from "@/lib/all-providers-status.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useI18n } from "@/lib/i18n";
-import { Activity, RefreshCw, Wifi, WifiOff, Zap, History } from "lucide-react";
+import { Activity, RefreshCw, CheckCircle2, KeyRound, AlertTriangle, Clock, Wrench, Wifi } from "lucide-react";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const Route = createFileRoute("/_app/provider-health")({
-  component: ProviderHealthPage,
+  component: () => (
+    <ErrorBoundary><ProviderHealthPage /></ErrorBoundary>
+  ),
   head: () => ({
     meta: [
       { title: "Provider Health — ForeSmart" },
-      { name: "description", content: "Per-provider status, latency, error rates, failover routing, and stale/down timeline." },
+      { name: "description", content: "Status of every external provider: market data, news, brokers, payments, KYC." },
     ],
   }),
 });
 
-type Aggregate = {
-  routing: { marketChosen: string; macroChosen: string };
-  failoverEvents: Array<{ ts: number; kind: string; primary: string; chosen: string; reason: string }>;
-} & Record<string, unknown>;
-type ProviderRow = {
-  id: string;
-  status: "healthy" | "degraded" | "down" | "unknown";
-  configured: boolean;
-  errorRate: number;
-  avgLatencyMs: number | null;
-  rateLimited: number;
-  role: string;
-  failoverScore?: number;
+const CATEGORY_LABELS: Record<ProviderCategory, { ar: string; en: string }> = {
+  market_data: { ar: "بيانات الأسواق", en: "Market Data" },
+  news: { ar: "الأخبار والجغرافيا السياسية", en: "News & Geopolitics" },
+  macro: { ar: "البيانات الاقتصادية الكلية", en: "Macro" },
+  broker: { ar: "الوسطاء", en: "Brokers" },
+  payments: { ar: "الدفع والاشتراكات", en: "Payments" },
+  kyc: { ar: "التحقق والبنوك", en: "KYC & Banking" },
 };
 
-const KNOWN = ["finnhub", "twelvedata", "alphavantage", "newsapi"] as const;
+const CATEGORY_ORDER: ProviderCategory[] = ["market_data", "macro", "news", "broker", "payments", "kyc"];
 
-function statusColor(s: string) {
-  if (s === "healthy") return "bg-emerald-500/10 text-emerald-600 border-emerald-500/30";
-  if (s === "degraded") return "bg-amber-500/10 text-amber-600 border-amber-500/30";
-  if (s === "down") return "bg-rose-500/10 text-rose-600 border-rose-500/30";
-  return "bg-muted text-muted-foreground border-border";
+function stateBadge(row: ProviderStatusRow, ar: boolean) {
+  const map: Record<ProviderStatusRow["connState"], { cls: string; ar: string; en: string; Icon: typeof CheckCircle2 }> = {
+    connected:       { cls: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30", ar: "متصل",         en: "Connected",       Icon: CheckCircle2 },
+    missing_key:     { cls: "bg-amber-500/10  text-amber-500  border-amber-500/30",     ar: "مفتاح مفقود",  en: "Missing Key",     Icon: KeyRound },
+    error:           { cls: "bg-rose-500/10   text-rose-500   border-rose-500/30",      ar: "خطأ",          en: "Error",           Icon: AlertTriangle },
+    rate_limited:    { cls: "bg-orange-500/10 text-orange-500 border-orange-500/30",    ar: "تجاوز الحد",   en: "Rate Limited",    Icon: Clock },
+    not_implemented: { cls: "bg-muted text-muted-foreground border-border",              ar: "غير مُفعّل",   en: "Not Implemented", Icon: Wrench },
+    unknown:         { cls: "bg-muted text-muted-foreground border-border",              ar: "غير معروف",    en: "Unknown",         Icon: Wrench },
+  };
+  const m = map[row.connState];
+  const Icon = m.Icon;
+  return (
+    <Badge variant="outline" className={`gap-1 ${m.cls}`}>
+      <Icon className="h-3 w-3" />
+      {ar ? m.ar : m.en}
+    </Badge>
+  );
+}
+
+function dataModeBadge(mode: ProviderStatusRow["dataMode"], ar: boolean) {
+  const map = {
+    live:          { cls: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30", ar: "مباشر",   en: "Live" },
+    delayed:       { cls: "bg-amber-500/10  text-amber-500  border-amber-500/30",    ar: "متأخر",   en: "Delayed" },
+    mock:          { cls: "bg-warning/10    text-warning    border-warning/30",      ar: "تجريبي",  en: "Demo/Mock" },
+    not_connected: { cls: "bg-muted         text-muted-foreground border-border",    ar: "غير متصل", en: "Not Connected" },
+    error:         { cls: "bg-rose-500/10   text-rose-500   border-rose-500/30",     ar: "خطأ",     en: "Error" },
+  } as const;
+  const m = map[mode];
+  return <Badge variant="outline" className={`text-[10px] ${m.cls}`}>{ar ? m.ar : m.en}</Badge>;
 }
 
 function ProviderHealthPage() {
-  const { lang } = useI18n();
+  const { lang, dir } = useI18n();
   const ar = lang === "ar";
-  const callHealth = useServerFn(allProviderHealth);
-  const callLog = useServerFn(logProviderHealth);
-  const callTimeline = useServerFn(getAllProviderHealthTimeline);
-
-  const [agg, setAgg] = useState<Aggregate | null>(null);
+  const fetchStatus = useServerFn(getAllProvidersStatus);
+  const [data, setData] = useState<Awaited<ReturnType<typeof getAllProvidersStatus>> | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [timeline, setTimeline] = useState<Array<{ id: string; provider: string; status: string; stale_state: string | null; avg_latency_ms: number | null; error_rate: number | null; rate_limited: number; recorded_at: string }>>([]);
-
-  const rows: ProviderRow[] = useMemo(() => {
-    if (!agg) return [];
-    const out: ProviderRow[] = [];
-    for (const id of KNOWN) {
-      const p = (agg as Record<string, unknown>)[id] as undefined | {
-        status: ProviderRow["status"]; configured: boolean; errorRate: number;
-        avgLatencyMs: number | null; rateLimited: number; role?: string; failoverScore?: number;
-      };
-      if (!p) continue;
-      out.push({
-        id, status: p.status, configured: p.configured, errorRate: p.errorRate,
-        avgLatencyMs: p.avgLatencyMs, rateLimited: p.rateLimited,
-        role: p.role ?? id, failoverScore: p.failoverScore,
-      });
-    }
-    return out;
-  }, [agg]);
 
   const refresh = async () => {
     setLoading(true); setErr(null);
-    try {
-      const data = (await callHealth()) as unknown as Aggregate;
-      setAgg(data);
-      // Archive a sample per provider for the per-user timeline.
-      await Promise.allSettled(rowsFromAgg(data).map((r) => callLog({ data: {
-        provider: r.id,
-        status: r.status,
-        staleState: r.status === "down" ? "down" : r.status === "degraded" ? "stale" : "fresh",
-        avgLatencyMs: r.avgLatencyMs,
-        errorRate: r.errorRate,
-        rateLimited: r.rateLimited,
-        lastSuccessAgeS: null,
-      } })));
-      const tl = await callTimeline({ data: { hours: 24, providers: [...KNOWN] } });
-      if (tl.ok) setTimeline(tl.rows);
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Failed to load");
-    } finally { setLoading(false); }
+    try { setData(await fetchStatus()); }
+    catch (e) { setErr(e instanceof Error ? e.message : "Failed to load"); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => { refresh(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   useEffect(() => {
-    const t = setInterval(refresh, 30_000);
+    const t = setInterval(refresh, 60_000);
     return () => clearInterval(t);
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, []);
 
+  const grouped = useMemo(() => {
+    const out: Record<ProviderCategory, ProviderStatusRow[]> = {
+      market_data: [], news: [], macro: [], broker: [], payments: [], kyc: [],
+    };
+    if (data) for (const p of data.providers) out[p.category].push(p);
+    return out;
+  }, [data]);
+
+  const totals = useMemo(() => {
+    if (!data) return { connected: 0, missing: 0, error: 0, total: 0 };
+    let connected = 0, missing = 0, error = 0;
+    for (const p of data.providers) {
+      if (p.connState === "connected") connected++;
+      else if (p.connState === "missing_key" || p.connState === "not_implemented") missing++;
+      else if (p.connState === "error" || p.connState === "rate_limited") error++;
+    }
+    return { connected, missing, error, total: data.providers.length };
+  }, [data]);
+
   return (
-    <div className="space-y-4 p-4" dir={ar ? "rtl" : "ltr"}>
-      <header className="flex items-center justify-between gap-2 flex-wrap">
+    <div className="mx-auto w-full max-w-7xl space-y-4 p-4 md:p-6" dir={dir}>
+      <header className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
-            <Activity className="size-6" /> {ar ? "صحة المزودين" : "Provider Health"}
+          <h1 className="flex items-center gap-2 text-2xl font-semibold">
+            <Activity className="h-6 w-6" />
+            {ar ? "صحة المزودين" : "Provider Health"}
           </h1>
           <p className="text-sm text-muted-foreground">
             {ar
-              ? "حالة كل مزود بيانات مع التوجيه التلقائي وسجل التدهور لكل مستخدم."
-              : "Per-provider status with automatic failover routing and per-user stale/down timeline."}
+              ? "حالة كل خدمة خارجية متصلة بالمنصة: بيانات الأسواق، الأخبار، الوسطاء، والدفع."
+              : "Status of every external service connected to the platform: market data, news, brokers, and payments."}
           </p>
         </div>
-        <Button onClick={refresh} disabled={loading} variant="outline" size="sm">
-          <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
-          <span className="ms-2">{ar ? "تحديث" : "Refresh"}</span>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className="gap-1"><CheckCircle2 className="h-3 w-3 text-emerald-500" /> {totals.connected}/{totals.total} {ar ? "متصل" : "connected"}</Badge>
+          {totals.missing > 0 && <Badge variant="outline" className="gap-1"><KeyRound className="h-3 w-3 text-amber-500" /> {totals.missing} {ar ? "مفتاح ناقص" : "missing"}</Badge>}
+          {totals.error > 0 && <Badge variant="outline" className="gap-1"><AlertTriangle className="h-3 w-3 text-rose-500" /> {totals.error} {ar ? "خطأ" : "error"}</Badge>}
+          <Button onClick={refresh} disabled={loading} variant="outline" size="sm" className="gap-2">
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            {ar ? "تحديث" : "Refresh"}
+          </Button>
+        </div>
       </header>
 
-      {err && <Card><CardContent className="p-4 text-sm text-rose-600">{err}</CardContent></Card>}
-
-      {agg && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Zap className="size-4" /> {ar ? "التوجيه الحالي" : "Active routing"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm grid sm:grid-cols-2 gap-2">
-            <div>{ar ? "أسعار السوق" : "Market quotes"}: <Badge variant="secondary">{agg.routing.marketChosen}</Badge></div>
-            <div>{ar ? "بيانات الاقتصاد الكلي" : "Macro"}: <Badge variant="secondary">{agg.routing.macroChosen}</Badge></div>
-          </CardContent>
-        </Card>
+      {err && (
+        <Card><CardContent className="p-4 text-sm text-rose-500">{err}</CardContent></Card>
       )}
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {rows.map((r) => (
-          <Card key={r.id}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center justify-between">
-                <span className="capitalize">{r.id}</span>
-                <Badge className={statusColor(r.status)} variant="outline">
-                  {r.configured ? r.status : "unconfigured"}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-xs space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">{ar ? "الدور" : "Role"}</span>
-                <span>{r.role}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">{ar ? "زمن الاستجابة" : "Latency"}</span>
-                <span>{r.avgLatencyMs != null ? `${r.avgLatencyMs} ms` : "—"}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">{ar ? "نسبة الأخطاء" : "Error rate"}</span>
-                <span>{(r.errorRate * 100).toFixed(1)}%</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">429</span>
-                <span>{r.rateLimited}</span>
-              </div>
-              {typeof r.failoverScore === "number" && (
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{ar ? "نقاط الاحتياط" : "Failover score"}</span>
-                  <span>{r.failoverScore.toFixed(2)}</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {agg && agg.failoverEvents.length > 0 && (
+      {data && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm flex items-center gap-2">
-              <WifiOff className="size-4" /> {ar ? "أحداث التحويل الأخيرة" : "Recent failover events"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs space-y-1.5">
-            {agg.failoverEvents.slice(0, 10).map((e, i) => (
-              <div key={i} className="flex items-center justify-between gap-2 border-b border-border/40 pb-1">
-                <span className="text-muted-foreground">{new Date(e.ts).toLocaleTimeString(ar ? "ar" : "en")}</span>
-                <span className="font-mono">{e.kind}</span>
-                <span><Badge variant="outline">{e.chosen}</Badge></span>
-                <span className="truncate text-muted-foreground">{e.reason}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
-            <History className="size-4" /> {ar ? "الجدول الزمني (24 ساعة)" : "Timeline (24h)"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-xs">
-          {timeline.length === 0 ? (
-            <p className="text-muted-foreground">{ar ? "لا توجد عينات بعد." : "No samples yet."}</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="text-muted-foreground">
-                  <tr>
-                    <th className="text-left p-1.5">{ar ? "الوقت" : "Time"}</th>
-                    <th className="text-left p-1.5">{ar ? "المزود" : "Provider"}</th>
-                    <th className="text-left p-1.5">{ar ? "الحالة" : "Status"}</th>
-                    <th className="text-left p-1.5">{ar ? "الكمون" : "Latency"}</th>
-                    <th className="text-left p-1.5">{ar ? "الأخطاء" : "Errors"}</th>
-                    <th className="text-left p-1.5">429</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {timeline.slice(0, 120).map((r) => (
-                    <tr key={r.id} className="border-t border-border/40">
-                      <td className="p-1.5 whitespace-nowrap">{new Date(r.recorded_at).toLocaleTimeString(ar ? "ar" : "en")}</td>
-                      <td className="p-1.5 capitalize">{r.provider}</td>
-                      <td className="p-1.5"><Badge className={statusColor(r.status)} variant="outline">{r.stale_state ?? r.status}</Badge></td>
-                      <td className="p-1.5">{r.avg_latency_ms ?? "—"}</td>
-                      <td className="p-1.5">{r.error_rate != null ? `${(r.error_rate * 100).toFixed(1)}%` : "—"}</td>
-                      <td className="p-1.5">{r.rate_limited}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">{ar ? "التوجيه الحالي" : "Active routing"}</CardTitle></CardHeader>
+          <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
+            <div className="flex items-center justify-between rounded border border-border/60 p-2">
+              <span className="text-muted-foreground">{ar ? "أسعار السوق" : "Market quotes"}</span>
+              <Badge variant="secondary" className="capitalize">{data.routing.market}</Badge>
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <div className="flex items-center justify-between rounded border border-border/60 p-2">
+              <span className="text-muted-foreground">{ar ? "البيانات الاقتصادية" : "Macro data"}</span>
+              <Badge variant="secondary" className="capitalize">{data.routing.macro}</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-        <Wifi className="size-3" /> {ar ? "يتم التحديث تلقائيًا كل 30 ثانية." : "Auto-refreshes every 30 seconds."}
+      {CATEGORY_ORDER.map((cat) => {
+        const rows = grouped[cat];
+        if (!rows || rows.length === 0) return null;
+        const label = CATEGORY_LABELS[cat];
+        return (
+          <section key={cat} className="space-y-2">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{ar ? label.ar : label.en}</h2>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {rows.map((row) => (
+                <Card key={row.id} className="overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center justify-between gap-2 text-sm">
+                      <span className="capitalize">{row.label}</span>
+                      {stateBadge(row, ar)}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">{ar ? "وضع البيانات" : "Data mode"}</span>
+                      {dataModeBadge(row.dataMode, ar)}
+                    </div>
+                    {row.envKeys.length > 0 && (
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-muted-foreground">{ar ? "المفاتيح المطلوبة" : "Required keys"}</span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-help font-mono text-[10px]">{row.envKeys.length}× ENV</span>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <div className="font-mono text-[11px]">{row.envKeys.join(", ")}</div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    )}
+                    {row.endpoint && (
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-muted-foreground">Endpoint</span>
+                        <span className="truncate font-mono text-[10px]">{row.endpoint}</span>
+                      </div>
+                    )}
+                    {row.latencyMs != null && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">{ar ? "زمن الاستجابة" : "Latency"}</span>
+                        <span>{row.latencyMs} ms</span>
+                      </div>
+                    )}
+                    {row.errorRate != null && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">{ar ? "نسبة الأخطاء" : "Error rate"}</span>
+                        <span>{(row.errorRate * 100).toFixed(1)}%</span>
+                      </div>
+                    )}
+                    {row.rateLimited != null && row.rateLimited > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">429</span>
+                        <span>{row.rateLimited}</span>
+                      </div>
+                    )}
+                    {row.note && <p className="pt-1 text-[10px] text-muted-foreground">{row.note}</p>}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        );
+      })}
+
+      <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+        <Wifi className="h-3 w-3" /> {ar ? "تحديث تلقائي كل 60 ثانية. لا تُعرض قيم المفاتيح أبداً." : "Auto-refresh every 60s. Key values are never exposed."}
       </p>
     </div>
   );
-}
-
-function rowsFromAgg(agg: Aggregate): ProviderRow[] {
-  const out: ProviderRow[] = [];
-  for (const id of KNOWN) {
-    const p = (agg as Record<string, unknown>)[id] as undefined | {
-      status: ProviderRow["status"]; configured: boolean; errorRate: number;
-      avgLatencyMs: number | null; rateLimited: number; role?: string;
-    };
-    if (!p) continue;
-    out.push({
-      id, status: p.status, configured: p.configured, errorRate: p.errorRate,
-      avgLatencyMs: p.avgLatencyMs, rateLimited: p.rateLimited, role: p.role ?? id,
-    });
-  }
-  return out;
 }
