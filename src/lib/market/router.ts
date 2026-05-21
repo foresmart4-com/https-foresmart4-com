@@ -44,7 +44,8 @@ export type ProviderId =
   | "alpaca"
   | "binance"
   | "coingecko"
-  | "tradingview";
+  | "tradingview"
+  | "sahmk";
 
 export type ProviderMode = "live" | "delayed" | "cached" | "stale" | "synthetic";
 
