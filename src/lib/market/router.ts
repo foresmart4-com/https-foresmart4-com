@@ -436,17 +436,26 @@ export interface RouterOptions {
 
 export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): Promise<RouterQuote> {
   const asset = resolveAsset(rawSymbol);
-  const key = cacheKey(asset.normalized);
+  const cKey = buildCacheKey(asset);
+  const iKey = buildInflightKey(asset);
+
+  const stamp = <T extends RouterQuote>(q: T): T => ({
+    ...q,
+    cacheKey: cKey,
+    inflightKey: iKey,
+    resolverPath: asset.resolverPath,
+    rawSymbol: asset.raw,
+  });
 
   // Cache hit
   if (!opts.force) {
-    const cached = fromCache(key);
-    if (cached) return cached;
+    const cached = fromCache(cKey);
+    if (cached) return stamp(cached);
   }
 
-  // Dedup: piggyback on any in-flight request for the same symbol
-  const inflight = INFLIGHT.get(key);
-  if (inflight) return inflight;
+  // Dedup: piggyback on any in-flight request for the SAME symbol only
+  const existing = INFLIGHT.get(iKey);
+  if (existing) return existing;
 
   const promise = (async (): Promise<RouterQuote> => {
     const chain = CHAINS[asset.assetClass] ?? CHAINS.unknown;
@@ -466,7 +475,7 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
         const latency = Date.now() - start;
         recordSuccess(p, latency);
         if (i > 0) { fallbackUsed = true; recordFailover(p); }
-        const quote: RouterQuote = {
+        const quote: RouterQuote = stamp({
           success: true,
           provider: p,
           mode: r.delayed ? "delayed" : "live",
@@ -480,9 +489,9 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
           symbol: asset.normalized,
           assetClass: asset.assetClass,
           attempted,
-        };
+        });
         const ttl = TTL_MS[asset.assetClass];
-        CACHE.set(key, { quote, expiresAt: Date.now() + ttl });
+        CACHE.set(cKey, { quote, expiresAt: Date.now() + ttl });
         return quote;
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -490,16 +499,12 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
         recordError(p, msg, rl);
         setCooldown(p, rl ? "rate_limited" : "error", msg);
         lastError = msg;
-        // continue to next provider
       }
     }
 
-    // All providers failed — graceful degradation
-    const stale = staleCache(key);
-    if (stale) {
-      return { ...stale, fallbackUsed: true, error: lastError, attempted };
-    }
-    return {
+    const stale = staleCache(cKey);
+    if (stale) return stamp({ ...stale, fallbackUsed: true, error: lastError, attempted });
+    return stamp({
       success: false,
       provider: null,
       mode: "synthetic",
@@ -514,14 +519,14 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
       assetClass: asset.assetClass,
       error: lastError,
       attempted,
-    };
+    });
   })();
 
-  INFLIGHT.set(key, promise);
+  INFLIGHT.set(iKey, promise);
   try {
     return await promise;
   } finally {
-    INFLIGHT.delete(key);
+    INFLIGHT.delete(iKey);
   }
 }
 
