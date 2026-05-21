@@ -55,8 +55,10 @@ export interface RouterQuote {
   mode: ProviderMode;
   latency: number;          // ms for the upstream call (0 when served from cache)
   price: number | null;
+  change: number | null;
   changePercent: number | null;
   volume: number | null;
+  liquidity: number | null;
   timestamp: number;        // ms — when the quote was produced upstream
   delayed: boolean;
   fallbackUsed: boolean;
