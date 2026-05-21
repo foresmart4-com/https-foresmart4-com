@@ -156,8 +156,25 @@ async function probeAlphaVantage(): Promise<ProbeResult> {
 async function probeCoinGecko(): Promise<ProbeResult> {
   try {
     const { res, latencyMs } = await timedFetch("https://api.coingecko.com/api/v3/ping");
-    const outcome = classify(res.status);
-    record("coingecko", outcome === "connected", outcome === "connected" ? undefined : `HTTP ${res.status}`);
+    let outcome = classify(res.status);
+    const ctype = res.headers.get("content-type") || "";
+    // Safe body read — never throw on HTML/text responses
+    let bodyText = "";
+    try { bodyText = await res.text(); } catch { /* ignore */ }
+    const looksJson = ctype.includes("application/json") || bodyText.trim().startsWith("{");
+    const rateLimited =
+      res.status === 429 ||
+      /rate.?limit|throttl|too many requests/i.test(bodyText);
+    if (rateLimited) {
+      outcome = "rate_limited";
+    } else if (outcome === "connected" && !looksJson) {
+      // Reachable but not returning JSON → treat as transient error
+      outcome = "error";
+    }
+    const errMsg = outcome === "rate_limited" ? "Rate limited"
+      : outcome !== "connected" ? `HTTP ${res.status}${looksJson ? "" : " (non-JSON)"}`
+      : undefined;
+    record("coingecko", outcome === "connected", errMsg);
     return pack("coingecko", outcome, latencyMs, res.status);
   } catch (e) {
     record("coingecko", false, e instanceof Error ? e.message : "network");
