@@ -338,21 +338,14 @@ function MarketIntelligencePage() {
                       {addToPortfolio.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
                       <span className="ms-1">{t("أضف إلى محفظتي", "Add to my portfolio")}</span>
                     </Button>
-                    <Button size="sm" variant="secondary" onClick={() => addToWatchlist.mutate()} disabled={addToWatchlist.isPending || !user}>
-                      {addToWatchlist.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
+                    <Button size="sm" variant="secondary" onClick={() => setWlOpen(true)} disabled={!user}>
+                      <Eye className="h-3 w-3" />
                       <span className="ms-1">{t("أضف إلى قائمة المتابعة", "Add to watchlist")}</span>
                     </Button>
-                    <CreatePriceAlertDialog
-                      symbol={quote.symbol}
-                      name={selected?.name ?? quote.name}
-                      currentPrice={quote.price}
-                      onSubmit={async (condition, target_price) => {
-                        await callCreateAlert({
-                          data: { symbol: quote.symbol, asset_name: selected?.name ?? quote.name, condition, target_price },
-                        });
-                      }}
-                      ar={ar}
-                    />
+                    <Button size="sm" variant="outline" onClick={() => setAlertOpen(true)} disabled={!user}>
+                      <BellPlus className="h-3 w-3" />
+                      <span className="ms-1">{t("إنشاء تنبيه سعر","Create price alert")}</span>
+                    </Button>
                   </div>
                   <p className="text-[11px] text-muted-foreground flex items-center gap-1 pt-1">
                     <Info className="h-3 w-3" />
