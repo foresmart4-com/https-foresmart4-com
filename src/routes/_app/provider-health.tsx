@@ -244,6 +244,27 @@ function ProviderHealthPage() {
                         <span>{row.rateLimited}</span>
                       </div>
                     )}
+                    {row.lastSuccessAt && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">{ar ? "آخر نجاح" : "Last success"}</span>
+                        <span className="text-emerald-500">{new Date(row.lastSuccessAt).toLocaleTimeString()}</span>
+                      </div>
+                    )}
+                    {row.lastErrorAt && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex cursor-help items-center justify-between">
+                            <span className="text-muted-foreground">{ar ? "آخر خطأ" : "Last error"}</span>
+                            <span className="text-rose-500">{new Date(row.lastErrorAt).toLocaleTimeString()}</span>
+                          </div>
+                        </TooltipTrigger>
+                        {row.lastError && (
+                          <TooltipContent className="max-w-xs">
+                            <div className="font-mono text-[11px]">{row.lastError}</div>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    )}
                     {row.note && <p className="pt-1 text-[10px] text-muted-foreground">{row.note}</p>}
                   </CardContent>
                 </Card>
