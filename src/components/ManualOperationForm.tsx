@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ArrowDownToLine, ArrowUpFromLine, Banknote, ReceiptText, Info } from "lucide-react";
 import { calcTransferFee, MONTHLY_WALLET_FEE_PCT } from "@/lib/mock-data";
+import { submitManualTopupRequest } from "@/lib/payments.functions";
 
 type TxKind = "buy" | "sell" | "deposit" | "withdraw";
 type PayMethod = "payment_link" | "bank_transfer" | "card_mada" | "moyasar" | "paytabs" | "tap";
