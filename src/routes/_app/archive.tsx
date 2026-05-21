@@ -559,6 +559,8 @@ function HistoryView() {
               <SelectItem value="90">{lang === "ar" ? "90 يومًا" : "90 days"}</SelectItem>
               <SelectItem value="180">{lang === "ar" ? "180 يومًا" : "180 days"}</SelectItem>
               <SelectItem value="365">{lang === "ar" ? "سنة" : "1 year"}</SelectItem>
+              <SelectItem value="730">{lang === "ar" ? "سنتان" : "2 years"}</SelectItem>
+              <SelectItem value="1095">{lang === "ar" ? "3 سنوات" : "3 years"}</SelectItem>
             </SelectContent>
           </Select>
         </div>

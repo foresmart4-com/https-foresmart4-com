@@ -96,7 +96,7 @@ async function fetchFxHistory(from: string, to: string, days: number): Promise<H
 }
 
 async function fetchYahooHistory(symbol: string, days: number): Promise<{ name: string; currency: string; points: HistoryPoint[] }> {
-  const range = days <= 7 ? "7d" : days <= 30 ? "1mo" : days <= 90 ? "3mo" : days <= 180 ? "6mo" : "1y";
+  const range = days <= 7 ? "7d" : days <= 30 ? "1mo" : days <= 90 ? "3mo" : days <= 180 ? "6mo" : days <= 365 ? "1y" : days <= 730 ? "2y" : "5y";
   const r = await fetch(
     `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=${range}`,
     { headers: { "User-Agent": "Mozilla/5.0" } },
@@ -242,7 +242,7 @@ export const getAssetHistory = createServerFn({ method: "GET" })
     z.object({
       symbol: z.string().min(1),
       category: z.enum(["crypto", "metals", "currencies", "stocks"]),
-      days: z.number().int().min(7).max(365).default(30),
+      days: z.number().int().min(7).max(1095).default(30),
     }).parse(data),
   )
   .handler(async ({ data }): Promise<AssetHistory> => {
