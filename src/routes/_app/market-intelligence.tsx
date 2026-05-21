@@ -88,6 +88,19 @@ function MarketIntelligencePage() {
   const [verdict, setVerdict] = useState<AssetVerdict | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [wlOpen, setWlOpen] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
+
+  const CAT_TO_ASSET_TYPE: Record<IntelCategory, "US_STOCK" | "SAUDI_STOCK" | "CRYPTO" | "METAL" | "COMMODITY" | "ETF"> = {
+    us_stock: "US_STOCK", sa_stock: "SAUDI_STOCK", crypto: "CRYPTO",
+    metal: "METAL", commodity: "COMMODITY", etf_bond: "ETF",
+  };
+  const pickedAsset = quote ? {
+    symbol: quote.symbol,
+    name: selected?.name ?? quote.name,
+    asset_type: CAT_TO_ASSET_TYPE[category],
+    last_price: quote.price ?? null,
+  } : null;
 
   const assetsForCategory = ASSET_PICKER[category];
 
