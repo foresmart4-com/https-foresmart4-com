@@ -186,6 +186,9 @@ function AILearningPage() {
         </div>
       </div>
 
+      {/* Phase 9 — Arabic-first insights panel (always visible, RTL) */}
+      <AILearningInsightsPanel sinceMs={RANGE_MS[range]} key={`insights-${tick}-${range}`} />
+
       {/* Dimension filters: strategy / agent / regime — scoped to current range */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs text-muted-foreground">{ar ? "فلترة حسب:" : "Filter by:"}</span>
