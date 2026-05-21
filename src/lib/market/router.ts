@@ -308,7 +308,8 @@ async function runFinnhub(asset: ResolvedAsset): Promise<UpstreamResult> {
 }
 
 async function runTwelveData(asset: ResolvedAsset): Promise<UpstreamResult> {
-  const q = await tdQuote(asset.normalized);
+  const mapped = mapForProvider(asset.raw, "twelvedata");
+  const q = await tdQuote(mapped);
   const price = num(q.close);
   if (price == null) throw new Error("twelvedata: empty quote");
   return {
