@@ -121,7 +121,7 @@ export const getAllProvidersStatus = createServerFn({ method: "GET" })
       },
       {
         id: "coingecko", label: "CoinGecko", category: "market_data",
-        connState: "connected", dataMode: "live",
+        connState: reconcile(probes.coingecko, "connected"), dataMode: "live",
         configured: true, envKeys: [],
         endpoint: "https://api.coingecko.com/api/v3",
         note: "Public, keyless",
@@ -137,7 +137,7 @@ export const getAllProvidersStatus = createServerFn({ method: "GET" })
       },
       {
         id: "gdelt", label: "GDELT", category: "news",
-        connState: "connected",
+        connState: reconcile(probes.gdelt, "connected"),
         dataMode: "live",
         configured: true, envKeys: [],
         latencyMs: null,
@@ -146,8 +146,8 @@ export const getAllProvidersStatus = createServerFn({ method: "GET" })
       },
       {
         id: "tradingeconomics", label: "TradingEconomics", category: "macro",
-        connState: hasEnv("TRADINGECONOMICS_API_KEY") ? "connected" : "missing_key",
-        dataMode: hasEnv("TRADINGECONOMICS_API_KEY") ? "live" : "not_connected",
+        connState: reconcile(probes.tradingeconomics, hasEnv("TRADINGECONOMICS_API_KEY") ? "connected" : "missing_key"),
+        dataMode: modeFor(reconcile(probes.tradingeconomics, hasEnv("TRADINGECONOMICS_API_KEY") ? "connected" : "missing_key")),
         configured: hasEnv("TRADINGECONOMICS_API_KEY"),
         envKeys: ["TRADINGECONOMICS_API_KEY"],
         endpoint: "https://api.tradingeconomics.com",
@@ -155,8 +155,8 @@ export const getAllProvidersStatus = createServerFn({ method: "GET" })
       // ---- Brokers ----
       {
         id: "binance", label: "Binance", category: "broker",
-        connState: hasEnv("BINANCE_API_KEY", "BINANCE_SECRET_KEY") ? "connected" : "missing_key",
-        dataMode: hasEnv("BINANCE_API_KEY", "BINANCE_SECRET_KEY") ? "live" : "not_connected",
+        connState: reconcile(probes.binance, hasEnv("BINANCE_API_KEY", "BINANCE_SECRET_KEY") ? "connected" : "missing_key"),
+        dataMode: modeFor(reconcile(probes.binance, hasEnv("BINANCE_API_KEY", "BINANCE_SECRET_KEY") ? "connected" : "missing_key")),
         configured: hasEnv("BINANCE_API_KEY") && hasEnv("BINANCE_SECRET_KEY"),
         envKeys: ["BINANCE_API_KEY", "BINANCE_SECRET_KEY"],
         endpoint: "https://api.binance.com",
@@ -164,16 +164,16 @@ export const getAllProvidersStatus = createServerFn({ method: "GET" })
       },
       {
         id: "alpaca", label: "Alpaca", category: "broker",
-        connState: hasEnv("ALPACA_API_KEY_ID", "ALPACA_API_SECRET_KEY") ? "connected" : "missing_key",
-        dataMode: hasEnv("ALPACA_API_KEY_ID", "ALPACA_API_SECRET_KEY") ? "live" : "not_connected",
+        connState: reconcile(probes.alpaca, hasEnv("ALPACA_API_KEY_ID", "ALPACA_API_SECRET_KEY") ? "connected" : "missing_key"),
+        dataMode: modeFor(reconcile(probes.alpaca, hasEnv("ALPACA_API_KEY_ID", "ALPACA_API_SECRET_KEY") ? "connected" : "missing_key")),
         configured: hasEnv("ALPACA_API_KEY_ID") && hasEnv("ALPACA_API_SECRET_KEY"),
         envKeys: ["ALPACA_API_KEY_ID", "ALPACA_API_SECRET_KEY", "ALPACA_BASE_URL"],
         endpoint: (process.env.ALPACA_BASE_URL || "https://paper-api.alpaca.markets"),
       },
       {
         id: "ibkr", label: "Interactive Brokers", category: "broker",
-        connState: hasEnv("IBKR_GATEWAY_URL") ? "connected" : "not_implemented",
-        dataMode: hasEnv("IBKR_GATEWAY_URL") ? "live" : "not_connected",
+        connState: reconcile(probes.ibkr, hasEnv("IBKR_GATEWAY_URL") ? "connected" : "not_implemented"),
+        dataMode: modeFor(reconcile(probes.ibkr, hasEnv("IBKR_GATEWAY_URL") ? "connected" : "not_implemented")),
         configured: hasEnv("IBKR_GATEWAY_URL"),
         envKeys: ["IBKR_GATEWAY_URL"],
         note: "Bridge not yet provisioned",
@@ -181,24 +181,24 @@ export const getAllProvidersStatus = createServerFn({ method: "GET" })
       // ---- Payments ----
       {
         id: "stripe", label: "Stripe", category: "payments",
-        connState: hasEnv("STRIPE_SANDBOX_API_KEY", "STRIPE_LIVE_API_KEY") ? "connected" : "missing_key",
-        dataMode: hasEnv("STRIPE_SANDBOX_API_KEY", "STRIPE_LIVE_API_KEY") ? "live" : "not_connected",
+        connState: reconcile(probes.stripe, hasEnv("STRIPE_SANDBOX_API_KEY", "STRIPE_LIVE_API_KEY") ? "connected" : "missing_key"),
+        dataMode: modeFor(reconcile(probes.stripe, hasEnv("STRIPE_SANDBOX_API_KEY", "STRIPE_LIVE_API_KEY") ? "connected" : "missing_key")),
         configured: hasEnv("STRIPE_SANDBOX_API_KEY", "STRIPE_LIVE_API_KEY"),
         envKeys: ["STRIPE_SANDBOX_API_KEY", "STRIPE_LIVE_API_KEY"],
         endpoint: "https://api.stripe.com",
       },
       {
         id: "paypal", label: "PayPal", category: "payments",
-        connState: hasEnv("PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET") ? "connected" : "missing_key",
-        dataMode: hasEnv("PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET") ? "live" : "not_connected",
+        connState: reconcile(probes.paypal, hasEnv("PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET") ? "connected" : "missing_key"),
+        dataMode: modeFor(reconcile(probes.paypal, hasEnv("PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET") ? "connected" : "missing_key")),
         configured: hasEnv("PAYPAL_CLIENT_ID") && hasEnv("PAYPAL_CLIENT_SECRET"),
         envKeys: ["PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET", "PAYPAL_ENVIRONMENT"],
         endpoint: (process.env.PAYPAL_ENVIRONMENT || "sandbox") + ".paypal.com",
       },
       {
         id: "moyasar", label: "Moyasar", category: "payments",
-        connState: hasEnv("MOYASAR_SECRET_KEY") ? "connected" : "missing_key",
-        dataMode: hasEnv("MOYASAR_SECRET_KEY") ? "live" : "not_connected",
+        connState: reconcile(probes.moyasar, hasEnv("MOYASAR_SECRET_KEY") ? "connected" : "missing_key"),
+        dataMode: modeFor(reconcile(probes.moyasar, hasEnv("MOYASAR_SECRET_KEY") ? "connected" : "missing_key")),
         configured: hasEnv("MOYASAR_SECRET_KEY"),
         envKeys: ["MOYASAR_SECRET_KEY"],
         endpoint: "https://api.moyasar.com",
@@ -206,17 +206,27 @@ export const getAllProvidersStatus = createServerFn({ method: "GET" })
       // ---- KYC / banking ----
       {
         id: "plaid", label: "Plaid", category: "kyc",
-        connState: hasEnv("PLAID_CLIENT_ID", "PLAID_SECRET") ? "connected" : "missing_key",
-        dataMode: hasEnv("PLAID_CLIENT_ID", "PLAID_SECRET") ? "live" : "not_connected",
+        connState: reconcile(probes.plaid, hasEnv("PLAID_CLIENT_ID", "PLAID_SECRET") ? "connected" : "missing_key"),
+        dataMode: modeFor(reconcile(probes.plaid, hasEnv("PLAID_CLIENT_ID", "PLAID_SECRET") ? "connected" : "missing_key")),
         configured: hasEnv("PLAID_CLIENT_ID") && hasEnv("PLAID_SECRET"),
         envKeys: ["PLAID_CLIENT_ID", "PLAID_SECRET", "PLAID_ENV"],
         endpoint: "https://api.plaid.com",
       },
     ];
 
+    // Merge live probe metadata (lastSuccessAt, lastErrorAt, lastError,
+    // httpStatus, and probe-measured latency when the cached value is empty).
+    for (const row of providers) {
+      const p = probes[row.id];
+      if (!p) continue;
+      Object.assign(row, probeFields(p));
+      if (row.latencyMs == null) row.latencyMs = p.latencyMs;
+    }
+
     return {
       generatedAt: Date.now(),
       routing: { market: selectMarketProvider(), macro: selectMacroProvider() },
+      routingPlan: buildRoutingPlan(probes),
       providers,
       failoverEvents: lastFailoverEvents(25),
     };
