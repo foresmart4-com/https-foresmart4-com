@@ -51,6 +51,29 @@ const YAHOO_MAP: Record<Category, Record<string, { ticker: string; name: string 
     "1120.SR": { ticker: "1120.SR", name: "Al Rajhi Bank" },
     "2010.SR": { ticker: "2010.SR", name: "SABIC" },
   },
+  etf_bond: {
+    SPY: { ticker: "SPY", name: "S&P 500 ETF" },
+    QQQ: { ticker: "QQQ", name: "Nasdaq 100 ETF" },
+    VOO: { ticker: "VOO", name: "Vanguard S&P 500" },
+    VTI: { ticker: "VTI", name: "Total US Market ETF" },
+    VXUS: { ticker: "VXUS", name: "Total International ETF" },
+    TLT: { ticker: "TLT", name: "20+ Year Treasury Bond" },
+    IEF: { ticker: "IEF", name: "7-10 Year Treasury" },
+    SHY: { ticker: "SHY", name: "1-3 Year Treasury" },
+    AGG: { ticker: "AGG", name: "US Aggregate Bond" },
+    LQD: { ticker: "LQD", name: "Investment Grade Bonds" },
+    HYG: { ticker: "HYG", name: "High Yield Bonds" },
+    TIP: { ticker: "TIP", name: "TIPS Inflation Bonds" },
+  },
+  commodity: {
+    "WTI/USD": { ticker: "CL=F", name: "WTI Crude Oil" },
+    "BRENT/USD": { ticker: "BZ=F", name: "Brent Crude Oil" },
+    "NG/USD": { ticker: "NG=F", name: "Natural Gas" },
+    USO: { ticker: "USO", name: "US Oil Fund ETF" },
+    UNG: { ticker: "UNG", name: "US Natural Gas ETF" },
+    CORN: { ticker: "CORN", name: "Teucrium Corn" },
+    WEAT: { ticker: "WEAT", name: "Teucrium Wheat" },
+  },
 };
 
 const CRYPTO_MAP: Record<string, { id: string; name: string }> = {
