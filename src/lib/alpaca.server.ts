@@ -1,3 +1,6 @@
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
 type AlpacaRawAccount = Record<string, string | boolean | null | undefined>;
 type AlpacaRawPosition = Record<string, string | null | undefined>;
 type AlpacaRawOrder = Record<string, string | null | undefined>;
@@ -131,3 +134,7 @@ export async function fetchAlpacaPortfolio(): Promise<AlpacaPortfolioResult> {
     },
   };
 }
+
+export const getAlpacaPortfolio = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => fetchAlpacaPortfolio());
