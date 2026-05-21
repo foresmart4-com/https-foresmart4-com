@@ -73,6 +73,7 @@ import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/str
 import { Route as ApiWebhooksPaddleRouteImport } from './routes/api/webhooks/paddle'
 import { Route as ApiWebhooksLemonsqueezyRouteImport } from './routes/api/webhooks/lemonsqueezy'
 import { Route as ApiPublicRouterTestRouteImport } from './routes/api/public/router-test'
+import { Route as ApiPublicRouterRegressionRouteImport } from './routes/api/public/router-regression'
 import { Route as ApiPublicMoyasarWebhookRouteImport } from './routes/api/public/moyasar-webhook'
 import { Route as ApiPublicHistoryTestRouteImport } from './routes/api/public/history-test'
 import { Route as ApiPublicEmailConfigCheckRouteImport } from './routes/api/public/email-config-check'
@@ -403,6 +404,12 @@ const ApiPublicRouterTestRoute = ApiPublicRouterTestRouteImport.update({
   path: '/api/public/router-test',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicRouterRegressionRoute =
+  ApiPublicRouterRegressionRouteImport.update({
+    id: '/api/public/router-regression',
+    path: '/api/public/router-regression',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicMoyasarWebhookRoute = ApiPublicMoyasarWebhookRouteImport.update({
   id: '/api/public/moyasar-webhook',
   path: '/api/public/moyasar-webhook',
@@ -522,6 +529,7 @@ export interface FileRoutesByFullPath {
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
+  '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
@@ -597,6 +605,7 @@ export interface FileRoutesByTo {
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
+  '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
@@ -674,6 +683,7 @@ export interface FileRoutesById {
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
+  '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
@@ -751,6 +761,7 @@ export interface FileRouteTypes {
     | '/api/public/email-config-check'
     | '/api/public/history-test'
     | '/api/public/moyasar-webhook'
+    | '/api/public/router-regression'
     | '/api/public/router-test'
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
@@ -826,6 +837,7 @@ export interface FileRouteTypes {
     | '/api/public/email-config-check'
     | '/api/public/history-test'
     | '/api/public/moyasar-webhook'
+    | '/api/public/router-regression'
     | '/api/public/router-test'
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
@@ -902,6 +914,7 @@ export interface FileRouteTypes {
     | '/api/public/email-config-check'
     | '/api/public/history-test'
     | '/api/public/moyasar-webhook'
+    | '/api/public/router-regression'
     | '/api/public/router-test'
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
@@ -929,6 +942,7 @@ export interface RootRouteChildren {
   ApiPublicEmailConfigCheckRoute: typeof ApiPublicEmailConfigCheckRoute
   ApiPublicHistoryTestRoute: typeof ApiPublicHistoryTestRoute
   ApiPublicMoyasarWebhookRoute: typeof ApiPublicMoyasarWebhookRoute
+  ApiPublicRouterRegressionRoute: typeof ApiPublicRouterRegressionRoute
   ApiPublicRouterTestRoute: typeof ApiPublicRouterTestRoute
   ApiWebhooksLemonsqueezyRoute: typeof ApiWebhooksLemonsqueezyRoute
   ApiWebhooksPaddleRoute: typeof ApiWebhooksPaddleRoute
@@ -1391,6 +1405,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicRouterTestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/router-regression': {
+      id: '/api/public/router-regression'
+      path: '/api/public/router-regression'
+      fullPath: '/api/public/router-regression'
+      preLoaderRoute: typeof ApiPublicRouterRegressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/moyasar-webhook': {
       id: '/api/public/moyasar-webhook'
       path: '/api/public/moyasar-webhook'
@@ -1587,6 +1608,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicEmailConfigCheckRoute: ApiPublicEmailConfigCheckRoute,
   ApiPublicHistoryTestRoute: ApiPublicHistoryTestRoute,
   ApiPublicMoyasarWebhookRoute: ApiPublicMoyasarWebhookRoute,
+  ApiPublicRouterRegressionRoute: ApiPublicRouterRegressionRoute,
   ApiPublicRouterTestRoute: ApiPublicRouterTestRoute,
   ApiWebhooksLemonsqueezyRoute: ApiWebhooksLemonsqueezyRoute,
   ApiWebhooksPaddleRoute: ApiWebhooksPaddleRoute,
