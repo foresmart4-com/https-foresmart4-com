@@ -123,8 +123,10 @@ function HeatmapPage() {
     if (filter === "gainers") out = out.filter((c) => c.changePct > 0);
     else if (filter === "losers") out = out.filter((c) => c.changePct < 0);
     else if (filter === "strong") out = out.filter((c) => Math.abs(c.changePct) >= 2);
+    const q = search.trim().toLowerCase();
+    if (q) out = out.filter((c) => c.symbol.toLowerCase().includes(q) || c.name.toLowerCase().includes(q));
     return out.sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct));
-  }, [cells, group, filter]);
+  }, [cells, group, filter, search]);
 
   const stats = useMemo(() => {
     const up = filtered.filter((c) => c.changePct > 0).length;
