@@ -217,7 +217,6 @@ function HeatmapPage() {
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center text-muted-foreground">{lang === "ar" ? "لا توجد أصول تطابق الفلتر." : "No assets match this filter."}</div>
         ) : (
-          <div className={"grid gap-1.5 " + sizeClass}>
           <TooltipProvider delayDuration={200}>
             <div className={"grid gap-1.5 " + sizeClass}>
               {filtered.map((c) => {
