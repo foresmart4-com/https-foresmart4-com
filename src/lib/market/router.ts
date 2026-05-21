@@ -21,6 +21,7 @@ import { getQuote as fhQuote } from "@/services/providers/finnhub";
 import { getQuote as tdQuote } from "@/services/providers/twelvedata";
 import { getEquityQuote as avEquity, getFxRate as avFx } from "@/services/providers/alphavantage";
 import { translateSymbol, type ProviderKey } from "@/lib/market/symbol-map";
+import { supports, unsupportedReason, isRealtime } from "@/lib/market/capabilities";
 
 // ---------- Public types ----------
 
@@ -41,7 +42,8 @@ export type ProviderId =
   | "alphavantage"
   | "alpaca"
   | "binance"
-  | "coingecko";
+  | "coingecko"
+  | "tradingview";
 
 export type ProviderMode = "live" | "delayed" | "cached" | "stale" | "synthetic";
 
@@ -71,6 +73,8 @@ export interface RouterQuote {
   translatedSymbol?: string;
   /** Per-provider translations attempted, keyed by ProviderId. */
   translations?: Partial<Record<ProviderId, string>>;
+  /** Providers skipped before any network call (capability mismatch, cooldown). */
+  skippedProviders?: Array<{ provider: ProviderId; reason: string }>;
 }
 
 // ---------- Asset resolver ----------
@@ -148,13 +152,17 @@ export function resolveAsset(rawSymbol: string): ResolvedAsset {
 
 const CHAINS: Record<AssetClass, ProviderId[]> = {
   us_stock:    ["finnhub", "alpaca", "twelvedata", "alphavantage"],
-  saudi_stock: ["twelvedata", "alphavantage"],
+  // Saudi: TradingView (TADAWUL feed) → TwelveData → AlphaVantage
+  saudi_stock: ["tradingview", "twelvedata", "alphavantage"],
   crypto:      ["binance", "coingecko", "twelvedata"],
-  metal:       ["twelvedata", "alphavantage", "finnhub"],
-  commodity:   ["twelvedata", "alphavantage", "finnhub"],
+  // Metals: TwelveData → Finnhub FX feed → AlphaVantage → TradingView
+  metal:       ["twelvedata", "finnhub", "alphavantage", "tradingview"],
+  // Commodities: TwelveData → AlphaVantage → TradingView (TVC feeds) → Finnhub
+  commodity:   ["twelvedata", "alphavantage", "tradingview", "finnhub"],
   etf:         ["finnhub", "twelvedata", "alphavantage"],
   bond:        ["twelvedata", "alphavantage"],
-  forex:       ["twelvedata", "alphavantage", "finnhub"],
+  // Forex: TwelveData → Finnhub OANDA → AlphaVantage
+  forex:       ["twelvedata", "finnhub", "alphavantage"],
   unknown:     ["finnhub", "twelvedata", "alphavantage"],
 };
 
@@ -413,10 +421,39 @@ async function runCoinGecko(_asset: ResolvedAsset, sym: string): Promise<Upstrea
 }
 
 async function runAlpaca(_asset: ResolvedAsset, _sym: string): Promise<UpstreamResult> {
-  // Alpaca quote pipeline is not wired into the router yet; declared in the
-  // chain so the priority order is honoured the moment we add it. For now we
-  // throw and the router transparently falls through to the next provider.
   throw new Error("alpaca: not implemented");
+}
+
+/**
+ * TradingView quote runner — hits the public scanner endpoint that powers
+ * tradingview.com tickers. Symbols MUST be in TV format (EXCHANGE:TICKER),
+ * which the symbol-map provides via the `tradingview` provider key.
+ */
+async function runTradingView(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  if (!/^[A-Z0-9_]+:[A-Z0-9._!-]+$/.test(sym)) {
+    throw new Error(`tradingview: invalid symbol "${sym}"`);
+  }
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 6000);
+  try {
+    const res = await fetch(
+      `https://scanner.tradingview.com/symbol?symbol=${encodeURIComponent(sym)}&fields=lp,ch,chp,volume,update_mode`,
+      { signal: ctrl.signal, headers: { Accept: "application/json" } },
+    );
+    if (res.status === 429) throw Object.assign(new Error("tradingview: rate limit"), { rateLimited: true });
+    if (!res.ok) throw new Error(`tradingview: HTTP ${res.status}`);
+    const j = await res.json() as { lp?: number; chp?: number; volume?: number; update_mode?: string };
+    if (typeof j.lp !== "number" || !Number.isFinite(j.lp)) throw new Error("tradingview: empty quote");
+    return {
+      price: j.lp,
+      changePercent: typeof j.chp === "number" ? j.chp : null,
+      volume: typeof j.volume === "number" ? j.volume : null,
+      timestamp: Date.now(),
+      delayed: j.update_mode !== "streaming",
+    };
+  } finally {
+    clearTimeout(t);
+  }
 }
 
 const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<UpstreamResult>> = {
@@ -426,6 +463,7 @@ const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<Ups
   binance: runBinance,
   coingecko: runCoinGecko,
   alpaca: runAlpaca,
+  tradingview: runTradingView,
 };
 
 /** Map our internal ProviderId → the symbol-map ProviderKey. 1:1 today. */
@@ -436,6 +474,7 @@ const PROVIDER_KEY: Record<ProviderId, ProviderKey> = {
   binance: "binance",
   coingecko: "coingecko",
   alpaca: "alpaca",
+  tradingview: "tradingview",
 };
 
 // ---------- Core router ----------
@@ -478,6 +517,7 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
   const promise = (async (): Promise<RouterQuote> => {
     const chain = CHAINS[asset.assetClass] ?? CHAINS.unknown;
     const attempted: ProviderId[] = [];
+    const skipped: Array<{ provider: ProviderId; reason: string }> = [];
     const translations: Partial<Record<ProviderId, string>> = {};
     let fallbackUsed = false;
     let lastError = "no provider available";
@@ -485,10 +525,26 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
 
     for (let i = 0; i < chain.length; i++) {
       const p = chain[i];
-      if (isCoolingDown(p)) { attempted.push(p); continue; }
+
+      // Capability check — never send a symbol to a provider that does not
+      // support its asset class. Saves a network round-trip and a guaranteed
+      // 4xx, and gives us a clean diagnostic line.
+      if (!supports(p, asset.assetClass)) {
+        skipped.push({ provider: p, reason: unsupportedReason(p, asset.assetClass) });
+        continue;
+      }
+      if (isCoolingDown(p)) {
+        skipped.push({ provider: p, reason: `cooling down (${COOLDOWN.get(p)?.reason})` });
+        attempted.push(p);
+        continue;
+      }
+
       attempted.push(p);
       const runner = RUNNERS[p];
-      if (!runner) continue;
+      if (!runner) {
+        skipped.push({ provider: p, reason: "no runner registered" });
+        continue;
+      }
 
       // Translate per-provider. Wrapped so a translation oddity for ONE
       // provider can never bubble up and fail the entire request — we mark
@@ -511,22 +567,26 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
         const latency = Date.now() - start;
         recordSuccess(p, latency);
         if (i > 0) { fallbackUsed = true; recordFailover(p); }
+        // True classification: provider must declare realtime AND the upstream
+        // response must not flag delayed. AlphaVantage is always delayed.
+        const mode: ProviderMode = r.delayed || !isRealtime(p) ? "delayed" : "live";
         const quote: RouterQuote = stamp({
           success: true,
           provider: p,
-          mode: r.delayed ? "delayed" : "live",
+          mode,
           latency,
           price: r.price,
           changePercent: r.changePercent,
           volume: r.volume,
           timestamp: r.timestamp,
-          delayed: r.delayed,
+          delayed: mode === "delayed",
           fallbackUsed,
           symbol: asset.normalized,
           assetClass: asset.assetClass,
           attempted,
           translatedSymbol: translated,
           translations,
+          skippedProviders: skipped,
         });
         const ttl = TTL_MS[asset.assetClass];
         CACHE.set(cKey, { quote, expiresAt: Date.now() + ttl });
@@ -541,7 +601,7 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
     }
 
     const stale = staleCache(cKey);
-    if (stale) return stamp({ ...stale, fallbackUsed: true, error: lastError, attempted, translations, translatedSymbol: lastTranslated });
+    if (stale) return stamp({ ...stale, fallbackUsed: true, error: lastError, attempted, translations, translatedSymbol: lastTranslated, skippedProviders: skipped });
     return stamp({
       success: false,
       provider: null,
@@ -559,6 +619,7 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
       attempted,
       translations,
       translatedSymbol: lastTranslated,
+      skippedProviders: skipped,
     });
   })();
 
