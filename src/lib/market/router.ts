@@ -21,6 +21,7 @@ import { getQuote as fhQuote } from "@/services/providers/finnhub";
 import { getQuote as tdQuote } from "@/services/providers/twelvedata";
 import { getEquityQuote as avEquity, getFxRate as avFx } from "@/services/providers/alphavantage";
 import { translateSymbol, type ProviderKey } from "@/lib/market/symbol-map";
+import { supports, unsupportedReason, isRealtime } from "@/lib/market/capabilities";
 
 // ---------- Public types ----------
 
