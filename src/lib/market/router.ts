@@ -879,3 +879,29 @@ export function getRouterDiagnostics() {
     liveTradingEnabled: process.env.LIVE_TRADING_ENABLED === "true",
   };
 }
+
+/**
+ * Clear the in-memory quote cache and in-flight dedup table. Used to flush
+ * any contaminated entries after a resolver rule change or by tests.
+ * Returns the count of cleared cache/inflight entries.
+ */
+export function clearRouterCache(opts: { assetClass?: AssetClass } = {}) {
+  let cacheCleared = 0;
+  if (opts.assetClass) {
+    const prefix = `${opts.assetClass}::`;
+    for (const k of [...CACHE.keys()]) {
+      if (k.startsWith(prefix)) { CACHE.delete(k); cacheCleared++; }
+    }
+  } else {
+    cacheCleared = CACHE.size;
+    CACHE.clear();
+  }
+  const inflightCleared = INFLIGHT.size;
+  INFLIGHT.clear();
+  return { cacheCleared, inflightCleared };
+}
+
+// Module-load safety: flush any pre-existing cache entries that might have
+// been populated by the prior (looser) resolver before this stricter version
+// shipped. Pure in-memory; cheap.
+clearRouterCache();
