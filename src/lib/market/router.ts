@@ -673,7 +673,7 @@ const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<Ups
   tradingview: runTradingView,
   sahmk: runSahmk,
   fmp: runFmp,
-  commodityprice: runCommodityPriceApi,
+  commodityprice: runCommodityPrice,
   fred: runFred,
 };
 
