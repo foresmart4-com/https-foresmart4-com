@@ -95,13 +95,23 @@ export interface RouterQuote {
 // ---------- Asset resolver ----------
 
 const METAL_SYMBOLS = new Set(["XAU", "XAG", "XPT", "XPD", "GOLD", "SILVER", "PLATINUM", "PALLADIUM"]);
-const COMMODITY_SYMBOLS = new Set(["WTI", "BRENT", "OIL", "NATGAS", "NG", "CL", "BZ", "COPPER", "HG"]);
+const COMMODITY_SYMBOLS = new Set(["WTI", "BRENT", "OIL", "USOIL", "UKOIL", "NATGAS", "NG", "CL", "BZ", "COPPER", "HG"]);
 const COMMON_ETFS = new Set([
   "SPY", "QQQ", "DIA", "IWM", "VTI", "VOO", "VEA", "VWO", "AGG", "BND",
   "GLD", "SLV", "USO", "TLT", "XLK", "XLF", "XLE", "XLY", "XLV", "XLI",
   "ARKK", "EEM", "EFA",
 ]);
-const BOND_PATTERNS = [/^US\d+Y$/i, /^DE\d+Y$/i, /^UK\d+Y$/i, /^TLT$/i, /^IEF$/i, /^SHY$/i];
+const BOND_PATTERNS = [/^DE\d+Y$/i, /^UK\d+Y$/i, /^TLT$/i, /^IEF$/i, /^SHY$/i];
+const TREASURY_SYMBOLS = new Set([
+  "US02Y", "US05Y", "US10Y", "US30Y",
+  "FEDFUNDS", "FED_FUNDS",
+  "CPI", "CPI_YOY", "CORE_CPI", "PCE", "CORE_PCE",
+  "UNEMPLOYMENT", "GDP", "M2",
+]);
+const INDEX_SYMBOLS = new Set([
+  "SPX", "S&P500", "SP500", "DJI", "DOW", "NDX", "NASDAQ", "IXIC", "VIX",
+  "^GSPC", "^DJI", "^IXIC", "^NDX", "^VIX", "^TASI",
+]);
 const FOREX_RE = /^([A-Z]{3})[\/-]?([A-Z]{3})$/;
 const CRYPTO_SUFFIX_RE = /^([A-Z0-9]{2,8})[-/](USDT?|BUSD|USDC|BTC|ETH)$/i;
 const CRYPTO_PLAIN = new Set(["BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "DOGE", "AVAX", "MATIC", "DOT", "LTC", "LINK", "ATOM", "TRX"]);
@@ -132,6 +142,16 @@ export function resolveAsset(rawSymbol: string): ResolvedAsset {
   // Saudi: .SR suffix or :TADAWUL — keep numeric tickers intact (e.g. "2222.SR")
   if (/\.SR$/.test(raw) || /:TADAWUL$/.test(raw)) {
     return make("saudi_stock", raw.replace(/:TADAWUL$/, ".SR"), "saudi:.SR");
+  }
+
+  // Treasuries / macro series (FRED-backed)
+  if (TREASURY_SYMBOLS.has(raw) || /^US\d+Y$/i.test(raw)) {
+    return make("treasury", raw, "treasury:set");
+  }
+
+  // Indices
+  if (INDEX_SYMBOLS.has(raw) || /^\^[A-Z0-9]+$/.test(raw)) {
+    return make("index", raw, "index:set");
   }
 
   // Metals (XAU, XAUUSD, GOLD, ...) — keep raw for branching but tag class
@@ -166,18 +186,23 @@ export function resolveAsset(rawSymbol: string): ResolvedAsset {
 // ---------- Provider priority chains ----------
 
 const CHAINS: Record<AssetClass, ProviderId[]> = {
-  us_stock:    ["finnhub", "alpaca", "twelvedata", "alphavantage"],
-  // Saudi: SAHMK (native) → TwelveData → AlphaVantage
-  saudi_stock: ["sahmk", "twelvedata", "alphavantage"],
-  crypto:      ["binance", "coingecko", "twelvedata"],
-  // Metals: TwelveData → Finnhub FX feed → AlphaVantage → TradingView
-  metal:       ["twelvedata", "finnhub", "alphavantage", "tradingview"],
-  // Commodities: TwelveData → AlphaVantage → TradingView (TVC feeds) → Finnhub
-  commodity:   ["twelvedata", "alphavantage", "tradingview", "finnhub"],
-  etf:         ["finnhub", "twelvedata", "alphavantage"],
-  bond:        ["twelvedata", "alphavantage"],
-  // Forex: TwelveData → Finnhub OANDA → AlphaVantage
-  forex:       ["twelvedata", "finnhub", "alphavantage"],
+  us_stock:    ["finnhub", "alpaca", "twelvedata", "fmp", "alphavantage"],
+  // Saudi: SAHMK (native) → TwelveData → FMP → AlphaVantage
+  saudi_stock: ["sahmk", "twelvedata", "fmp", "alphavantage"],
+  crypto:      ["binance", "coingecko", "twelvedata", "fmp"],
+  // Metals: TwelveData → CommodityPriceAPI → FMP → AlphaVantage → TradingView
+  metal:       ["twelvedata", "commoditypriceapi", "fmp", "alphavantage", "tradingview"],
+  // Commodities (oil/gas): CommodityPriceAPI → FMP → AlphaVantage → TwelveData → TradingView
+  commodity:   ["commoditypriceapi", "fmp", "alphavantage", "twelvedata", "tradingview"],
+  etf:         ["finnhub", "twelvedata", "fmp", "alphavantage"],
+  bond:        ["fred", "twelvedata", "alphavantage"],
+  treasury:    ["fred"],
+  index:       ["fmp", "twelvedata", "finnhub", "tradingview"],
+  // Forex: TwelveData → FMP → AlphaVantage → Finnhub OANDA
+  forex:       ["twelvedata", "fmp", "alphavantage", "finnhub"],
+  unknown:     ["finnhub", "twelvedata", "fmp", "alphavantage"],
+};
+
   unknown:     ["finnhub", "twelvedata", "alphavantage"],
 };
 
