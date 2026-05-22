@@ -519,6 +519,60 @@ async function runSahmk(_asset: ResolvedAsset, sym: string): Promise<UpstreamRes
   };
 }
 
+async function runFmp(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  const r = await getFmpQuote(sym);
+  if ("ok" in r && r.ok === false) {
+    const err = new Error(`fmp: ${r.reason} — ${r.message}`);
+    if (r.reason === "rate_limited") Object.assign(err, { rateLimited: true });
+    throw err;
+  }
+  const q = r as Exclude<typeof r, { ok: false }>;
+  return {
+    price: q.price,
+    change: q.change,
+    changePercent: q.changePercent,
+    volume: q.volume,
+    timestamp: q.timestamp,
+    delayed: q.delayed,
+  };
+}
+
+async function runCommodityPriceApi(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  const r = await getCommodityQuote(sym);
+  if ("ok" in r && r.ok === false) {
+    const err = new Error(`commoditypriceapi: ${r.reason} — ${r.message}`);
+    if (r.reason === "rate_limited") Object.assign(err, { rateLimited: true });
+    throw err;
+  }
+  const q = r as Exclude<typeof r, { ok: false }>;
+  return {
+    price: q.price,
+    change: q.change,
+    changePercent: q.changePercent,
+    volume: q.volume,
+    timestamp: q.timestamp,
+    delayed: q.delayed,
+  };
+}
+
+async function runFred(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  const r = await getFredQuote(sym);
+  if ("ok" in r && r.ok === false) {
+    const err = new Error(`fred: ${r.reason} — ${r.message}`);
+    if (r.reason === "rate_limited") Object.assign(err, { rateLimited: true });
+    throw err;
+  }
+  const q = r as Exclude<typeof r, { ok: false }>;
+  return {
+    price: q.price,
+    change: q.change,
+    changePercent: q.changePercent,
+    volume: null,
+    timestamp: q.timestamp,
+    delayed: q.delayed,
+  };
+}
+
 const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<UpstreamResult>> = {
   finnhub: runFinnhub,
   twelvedata: runTwelveData,
@@ -528,6 +582,9 @@ const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<Ups
   alpaca: runAlpaca,
   tradingview: runTradingView,
   sahmk: runSahmk,
+  fmp: runFmp,
+  commoditypriceapi: runCommodityPriceApi,
+  fred: runFred,
 };
 
 /** Map our internal ProviderId → the symbol-map ProviderKey. 1:1 today. */
@@ -538,6 +595,7 @@ const PROVIDER_KEY: Record<ProviderId, ProviderKey> = {
   binance: "binance",
   coingecko: "coingecko",
   alpaca: "alpaca",
+
   tradingview: "tradingview",
   sahmk: "sahmk",
 };
