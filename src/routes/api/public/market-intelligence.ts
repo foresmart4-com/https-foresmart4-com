@@ -87,33 +87,56 @@ export const Route = createFileRoute("/api/public/market-intelligence")({
           });
 
           const body: Record<string, unknown> = {
+            success: true,
             symbol: quote.symbol,
             assetClass: quote.assetClass,
             quote,
             intelligence,
             disclaimerAr: "تحليل تعليمي غير ملزم وليس توصية مالية",
             liveTradingEnabled: false,
-          };
-
-          if (debug) {
-            body.diagnostics = {
+            diagnostics: debug ? {
               resolved,
               router: getRouterDiagnostics(),
               newsCount: news.count,
               newsSentiment: news.sentiment,
               sahmkRawAvailable: !!sahmkRaw,
-            };
-          }
+            } : {
+              resolved: { assetClass: resolved.assetClass, resolverPath: resolved.resolverPath },
+              attempted: quote.attempted,
+              skippedProviders: quote.skippedProviders,
+            },
+          };
 
           return new Response(JSON.stringify(body, null, 2), {
             status: 200,
             headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
           });
         } catch (e) {
+          // Graceful fallback — never 500 to the client.
+          const message = e instanceof Error ? e.message : "intelligence failed";
+          const resolved = resolveAsset(symbol);
+          const fallback = buildMarketIntelligence({
+            symbol: resolved.normalized || symbol,
+            assetClass: resolved.assetClass,
+            price: null, change: null, changePercent: null, volume: null, liquidity: null,
+            delayed: true, provider: null, mode: "synthetic", success: false,
+          });
           return new Response(JSON.stringify({
-            error: e instanceof Error ? e.message : "intelligence failed",
-          }), { status: 500, headers: { "Content-Type": "application/json" } });
+            success: false,
+            symbol: resolved.normalized || symbol,
+            assetClass: resolved.assetClass,
+            quote: null,
+            intelligence: fallback,
+            error: message,
+            disclaimerAr: "تحليل تعليمي غير ملزم وليس توصية مالية",
+            liveTradingEnabled: false,
+            diagnostics: { resolved, error: message },
+          }, null, 2), {
+            status: 200,
+            headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+          });
         }
+
       },
     },
   },
