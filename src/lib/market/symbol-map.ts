@@ -49,7 +49,8 @@ const STATIC_MAP: Record<string, SymbolEntry> = {
   WTI:    { canonical: "USOIL",   twelvedata: "CL=F",    finnhub: "OANDA:WTICO_USD", alphavantage: "WTI",         tradingview: "TVC:USOIL", commodityprice: "WTI" },
   BRENT:  { canonical: "BRENT",   twelvedata: "BZ=F",    finnhub: "OANDA:BCO_USD",   alphavantage: "BRENT",       tradingview: "TVC:UKOIL", commodityprice: "BRENT" },
   UKOIL:  { canonical: "BRENT",   twelvedata: "BZ=F",    finnhub: "OANDA:BCO_USD",   alphavantage: "BRENT",       tradingview: "TVC:UKOIL", commodityprice: "BRENT" },
-  NATGAS: { canonical: "NATGAS",  twelvedata: "NG=F",    alphavantage: "NATURAL_GAS", tradingview: "NYMEX:NG1!",  commodityprice: "NG" },
+  NATGAS: { canonical: "NATGAS",  twelvedata: "NG=F",    alphavantage: "NATURAL_GAS", tradingview: "NYMEX:NG1!",  commodityprice: "NATGAS" },
+  NG:     { canonical: "NATGAS",  twelvedata: "NG=F",    alphavantage: "NATURAL_GAS", tradingview: "NYMEX:NG1!",  commodityprice: "NATGAS" },
   COPPER: { canonical: "COPPER",  twelvedata: "HG=F",    alphavantage: "COPPER",      tradingview: "COMEX:HG1!" },
 
   // ---------- Crypto ----------
