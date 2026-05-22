@@ -26,7 +26,7 @@ export type ProviderKey =
   | "tradingview"
   | "sahmk"
   | "fmp"
-  | "commoditypriceapi"
+  | "commodityprice"
   | "fred";
 
 

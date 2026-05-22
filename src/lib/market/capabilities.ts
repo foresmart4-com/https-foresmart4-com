@@ -54,7 +54,7 @@ export const CAPABILITIES: Record<ProviderId, ProviderCapabilities> = {
                   supportsMetals: true, supportsCommodities: true, supportsCrypto: true,
                   supportsSaudi: true, supportsIndex: true, supportsBond: true,
                   supportsRealtime: false /* free tier mostly delayed */ },
-  commoditypriceapi: { ...F, supportsMetals: true, supportsCommodities: true, supportsRealtime: true },
+  commodityprice: { ...F, supportsMetals: true, supportsCommodities: true, supportsRealtime: true },
   fred:         { ...F, supportsBond: true, supportsTreasury: true, supportsRealtime: false /* EOD */ },
 };
 

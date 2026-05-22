@@ -22,7 +22,7 @@ import { getQuote as tdQuote } from "@/services/providers/twelvedata";
 import { getEquityQuote as avEquity, getFxRate as avFx } from "@/services/providers/alphavantage";
 import { getSahmkQuote } from "@/services/providers/sahmk";
 import { getFmpQuote } from "@/services/providers/fmp";
-import { getCommodityQuote } from "@/services/providers/commoditypriceapi";
+import { getCommodityQuote } from "@/services/providers/commodityprice";
 import { getFredQuote } from "@/services/providers/fred";
 import { translateSymbol, type ProviderKey } from "@/lib/market/symbol-map";
 import { supports, unsupportedReason, isRealtime } from "@/lib/market/capabilities";
@@ -52,7 +52,7 @@ export type ProviderId =
   | "tradingview"
   | "sahmk"
   | "fmp"
-  | "commoditypriceapi"
+  | "commodityprice"
   | "fred";
 
 
@@ -282,9 +282,9 @@ const CHAINS: Record<AssetClass, ProviderId[]> = {
   saudi_stock: ["sahmk", "twelvedata", "fmp", "alphavantage"],
   crypto:      ["binance", "coingecko", "twelvedata", "fmp"],
   // Metals: TwelveData → CommodityPriceAPI → FMP → AlphaVantage → TradingView
-  metal:       ["twelvedata", "commoditypriceapi", "fmp", "alphavantage", "tradingview"],
+  metal:       ["twelvedata", "commodityprice", "fmp", "alphavantage", "tradingview"],
   // Commodities (oil/gas): CommodityPriceAPI → FMP → AlphaVantage → TwelveData → TradingView
-  commodity:   ["commoditypriceapi", "fmp", "alphavantage", "twelvedata", "tradingview"],
+  commodity:   ["commodityprice", "fmp", "alphavantage", "twelvedata", "tradingview"],
   etf:         ["finnhub", "twelvedata", "fmp", "alphavantage"],
   bond:        ["fred", "twelvedata", "alphavantage"],
   treasury:    ["fred"],
@@ -631,7 +631,7 @@ async function runFmp(_asset: ResolvedAsset, sym: string): Promise<UpstreamResul
 async function runCommodityPriceApi(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
   const r = await getCommodityQuote(sym);
   if ("ok" in r && r.ok === false) {
-    const err = new Error(`commoditypriceapi: ${r.reason} — ${r.message}`);
+    const err = new Error(`commodityprice: ${r.reason} — ${r.message}`);
     if (r.reason === "rate_limited") Object.assign(err, { rateLimited: true });
     throw err;
   }
@@ -674,7 +674,7 @@ const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<Ups
   tradingview: runTradingView,
   sahmk: runSahmk,
   fmp: runFmp,
-  commoditypriceapi: runCommodityPriceApi,
+  commodityprice: runCommodityPriceApi,
   fred: runFred,
 };
 
@@ -689,7 +689,7 @@ const PROVIDER_KEY: Record<ProviderId, ProviderKey> = {
   tradingview: "tradingview",
   sahmk: "sahmk",
   fmp: "fmp",
-  commoditypriceapi: "commoditypriceapi",
+  commodityprice: "commodityprice",
   fred: "fred",
 
 };
