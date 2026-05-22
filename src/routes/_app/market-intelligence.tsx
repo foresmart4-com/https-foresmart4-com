@@ -25,8 +25,63 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Brain, TrendingUp, TrendingDown, Sparkles, Loader2,
-  Plus, Eye, BellPlus, ShieldAlert, AlertTriangle, Info,
+  Plus, Eye, BellPlus, ShieldAlert, AlertTriangle, Info, HelpCircle,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+// ---------- Intelligence layer types (mirror server shape) ----------
+type IntelDecision = "شراء" | "بيع" | "انتظار" | "مراقبة" | "مخاطرة عالية";
+type IntelTrend = "صاعد" | "هابط" | "جانبي";
+interface IntelReportApi {
+  decision: IntelDecision;
+  confidence: number;
+  risk: number;
+  trend: IntelTrend;
+  summaryAr: string;
+  reasonsAr: string[];
+  positiveFactorsAr: string[];
+  negativeFactorsAr: string[];
+  oppositeScenarioAr: string;
+  decisionChangeTriggerAr: string;
+  dataMode: string;
+  provider: string | null;
+  saudiLiquidity?: {
+    inflow: number | null; outflow: number | null; net: number | null;
+    classification: string; explanationAr: string;
+  };
+}
+interface IntelEnvelope {
+  symbol: string;
+  assetClass: string;
+  intelligence: IntelReportApi;
+  disclaimerAr: string;
+}
+
+const DECISION_CLS: Record<IntelDecision, string> = {
+  "شراء": "bg-emerald-600 text-white",
+  "بيع": "bg-rose-600 text-white",
+  "انتظار": "bg-amber-500/20 text-amber-700 border-amber-500/30",
+  "مراقبة": "bg-sky-500/20 text-sky-700 border-sky-500/30",
+  "مخاطرة عالية": "bg-rose-700 text-white",
+};
+const TREND_CLS: Record<IntelTrend, string> = {
+  "صاعد": "text-emerald-600",
+  "هابط": "text-rose-600",
+  "جانبي": "text-muted-foreground",
+};
+
+function InfoTip({ text }: { text: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button type="button" className="inline-flex items-center text-muted-foreground hover:text-foreground">
+          <HelpCircle className="h-3 w-3" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs text-right" dir="rtl">{text}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 export const Route = createFileRoute("/_app/market-intelligence")({
   component: MarketIntelligencePage,
