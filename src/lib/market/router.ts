@@ -101,6 +101,12 @@ export interface RouterQuote {
   resolverRule?: string;
   /** Diagnostics: true when the returned quote was served from the in-memory cache. */
   cacheHit?: boolean;
+  /**
+   * Diagnostics: per-provider configuration status (true when the provider's
+   * API key/credentials are present in the runtime environment). Lets the UI
+   * distinguish "provider failed at network" from "provider never wired".
+   */
+  providerConnected?: Partial<Record<ProviderId, boolean>>;
 }
 
 // ---------- Asset resolver ----------
