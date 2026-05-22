@@ -63,6 +63,8 @@ const CHAINS: Record<AssetClass, ProviderId[]> = {
   us_stock:    ["twelvedata", "alphavantage", "finnhub"],
   etf:         ["twelvedata", "alphavantage", "finnhub"],
   bond:        ["twelvedata", "alphavantage", "finnhub"],
+  treasury:    ["alphavantage"],
+  index:       ["twelvedata", "alphavantage", "finnhub"],
   saudi_stock: ["twelvedata"],
   crypto:      ["coingecko", "binance"],
   metal:       ["twelvedata", "alphavantage"],
@@ -70,6 +72,7 @@ const CHAINS: Record<AssetClass, ProviderId[]> = {
   forex:       ["twelvedata", "alphavantage"],
   unknown:     ["twelvedata", "alphavantage"],
 };
+
 
 // ---------- Memory cache ----------
 
@@ -274,7 +277,11 @@ const PROVIDERS: Record<ProviderId, undefined | ((s: string, r: Range, i: Interv
   alpaca: undefined,
   tradingview: undefined,
   sahmk: undefined, // SAHMK historical not enabled on current plan
+  fmp: undefined,
+  commoditypriceapi: undefined,
+  fred: undefined,
 };
+
 
 // ---------- Supabase persistent cache ----------
 
