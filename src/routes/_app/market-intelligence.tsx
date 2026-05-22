@@ -198,7 +198,42 @@ function MarketIntelligencePage() {
     } catch (e) {
       setErr(e instanceof Error ? e.message : "failed");
     } finally { setLoading(false); }
+  const [intel, setIntel] = useState<IntelReportApi | null>(null);
+  const [intelLoading, setIntelLoading] = useState(false);
+
+  const runAnalysis = useCallback(async () => {
+    const sym = selected?.symbol || customSymbol.trim().toUpperCase();
+    if (!sym) return;
+    const name = selected?.name || sym;
+    setLoading(true); setErr(null); setQuote(null); setVerdict(null); setIntel(null);
+    try {
+      const q = await callQuote({ data: { category, symbol: sym, name } });
+      setQuote(q);
+      const a = await callAnalyze({
+        data: {
+          symbol: q.symbol, name, category,
+          price: q.price || 0, changePct: q.changePct || 0,
+          high24h: q.high24h, low24h: q.low24h,
+          language: ar ? "ar" : "en",
+        },
+      });
+      if (a.error) setErr(a.error);
+      setVerdict(a.verdict);
+      // Real intelligence via unified router
+      setIntelLoading(true);
+      try {
+        const res = await fetch(`/api/public/market-intelligence?symbol=${encodeURIComponent(sym)}`);
+        if (res.ok) {
+          const json = await res.json() as IntelEnvelope;
+          setIntel(json.intelligence);
+        }
+      } catch { /* keep UI alive */ }
+      finally { setIntelLoading(false); }
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "failed");
+    } finally { setLoading(false); }
   }, [callQuote, callAnalyze, selected, customSymbol, category, ar]);
+
 
   // Auto-run analysis when arrived with ?auto=1 from calendar/heatmap
   const autoRan = useRef(false);
