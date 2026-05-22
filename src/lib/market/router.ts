@@ -203,8 +203,7 @@ const CHAINS: Record<AssetClass, ProviderId[]> = {
   unknown:     ["finnhub", "twelvedata", "fmp", "alphavantage"],
 };
 
-  unknown:     ["finnhub", "twelvedata", "alphavantage"],
-};
+
 
 // ---------- Cooldown memory ----------
 
@@ -296,8 +295,11 @@ const TTL_MS: Record<AssetClass, number> = {
   commodity: 5 * 60_000,
   forex: 5 * 60_000,
   bond: 5 * 60_000,
+  treasury: 30 * 60_000,
+  index: 30_000,
   unknown: 30_000,
 };
+
 
 /**
  * Composite cache key. Includes asset class, normalized symbol AND the original
