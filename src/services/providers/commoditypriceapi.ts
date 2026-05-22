@@ -45,7 +45,7 @@ export interface CommodityError {
 }
 
 function getKey(): string | null {
-  const k = process.env.COMMODITYPRICEAPI_KEY;
+  const k = process.env.COMMODITYPRICEAPI_KEY ?? process.env.COMMODITYPRICE_API_KEY;
   return k && k.trim() ? k.trim() : null;
 }
 
