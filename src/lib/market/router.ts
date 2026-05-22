@@ -635,7 +635,10 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
     inflightKey: iKey,
     resolverPath: asset.resolverPath,
     rawSymbol: asset.raw,
+    dataMode: q.mode,
+    lastError: q.error,
   });
+
 
   // Cache hit
   if (!opts.force) {
