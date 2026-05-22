@@ -718,6 +718,19 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
   const cKey = buildCacheKey(asset);
   const iKey = buildInflightKey(asset);
   const providerPriority = [...(CHAINS[asset.assetClass] ?? CHAINS.unknown)];
+  const providerConnected: Partial<Record<ProviderId, boolean>> = {
+    finnhub:        !!process.env.FINNHUB_API_KEY,
+    twelvedata:     !!process.env.TWELVEDATA_API_KEY,
+    alphavantage:   !!process.env.ALPHAVANTAGE_API_KEY,
+    sahmk:          !!process.env.SAHMK_API_KEY,
+    fmp:            !!process.env.FMP_API_KEY,
+    fred:           !!process.env.FRED_API_KEY,
+    commodityprice: !!(process.env.COMMODITYPRICE_API_KEY ?? process.env.COMMODITYPRICEAPI_KEY),
+    binance:        true,
+    coingecko:      true,
+    tradingview:    true,
+    alpaca:         !!(process.env.ALPACA_KEY_ID && process.env.ALPACA_SECRET_KEY),
+  };
 
   const stamp = <T extends RouterQuote>(q: T, cacheHit = false): T => ({
     ...q,
@@ -731,6 +744,7 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
     resolverMatchedBy: asset.resolverMatchedBy,
     resolverRule: asset.resolverRule,
     cacheHit,
+    providerConnected,
   });
 
   // Strict asset-class guard: refuse any cache entry whose stored assetClass
