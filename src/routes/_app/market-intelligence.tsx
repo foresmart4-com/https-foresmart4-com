@@ -25,8 +25,63 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Brain, TrendingUp, TrendingDown, Sparkles, Loader2,
-  Plus, Eye, BellPlus, ShieldAlert, AlertTriangle, Info,
+  Plus, Eye, BellPlus, ShieldAlert, AlertTriangle, Info, HelpCircle,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+// ---------- Intelligence layer types (mirror server shape) ----------
+type IntelDecision = "شراء" | "بيع" | "انتظار" | "مراقبة" | "مخاطرة عالية";
+type IntelTrend = "صاعد" | "هابط" | "جانبي";
+interface IntelReportApi {
+  decision: IntelDecision;
+  confidence: number;
+  risk: number;
+  trend: IntelTrend;
+  summaryAr: string;
+  reasonsAr: string[];
+  positiveFactorsAr: string[];
+  negativeFactorsAr: string[];
+  oppositeScenarioAr: string;
+  decisionChangeTriggerAr: string;
+  dataMode: string;
+  provider: string | null;
+  saudiLiquidity?: {
+    inflow: number | null; outflow: number | null; net: number | null;
+    classification: string; explanationAr: string;
+  };
+}
+interface IntelEnvelope {
+  symbol: string;
+  assetClass: string;
+  intelligence: IntelReportApi;
+  disclaimerAr: string;
+}
+
+const DECISION_CLS: Record<IntelDecision, string> = {
+  "شراء": "bg-emerald-600 text-white",
+  "بيع": "bg-rose-600 text-white",
+  "انتظار": "bg-amber-500/20 text-amber-700 border-amber-500/30",
+  "مراقبة": "bg-sky-500/20 text-sky-700 border-sky-500/30",
+  "مخاطرة عالية": "bg-rose-700 text-white",
+};
+const TREND_CLS: Record<IntelTrend, string> = {
+  "صاعد": "text-emerald-600",
+  "هابط": "text-rose-600",
+  "جانبي": "text-muted-foreground",
+};
+
+function InfoTip({ text }: { text: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button type="button" className="inline-flex items-center text-muted-foreground hover:text-foreground">
+          <HelpCircle className="h-3 w-3" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs text-right" dir="rtl">{text}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 export const Route = createFileRoute("/_app/market-intelligence")({
   component: MarketIntelligencePage,
@@ -122,11 +177,16 @@ function MarketIntelligencePage() {
     setQuote(null); setVerdict(null); setErr(null);
   };
 
+  const [intel, setIntel] = useState<IntelReportApi | null>(null);
+  const [intelLoading, setIntelLoading] = useState(false);
+
+
+
   const runAnalysis = useCallback(async () => {
     const sym = selected?.symbol || customSymbol.trim().toUpperCase();
     if (!sym) return;
     const name = selected?.name || sym;
-    setLoading(true); setErr(null); setQuote(null); setVerdict(null);
+    setLoading(true); setErr(null); setQuote(null); setVerdict(null); setIntel(null);
     try {
       const q = await callQuote({ data: { category, symbol: sym, name } });
       setQuote(q);
@@ -140,10 +200,21 @@ function MarketIntelligencePage() {
       });
       if (a.error) setErr(a.error);
       setVerdict(a.verdict);
+      // Real intelligence via unified router
+      setIntelLoading(true);
+      try {
+        const res = await fetch(`/api/public/market-intelligence?symbol=${encodeURIComponent(sym)}`);
+        if (res.ok) {
+          const json = await res.json() as IntelEnvelope;
+          setIntel(json.intelligence);
+        }
+      } catch { /* keep UI alive */ }
+      finally { setIntelLoading(false); }
     } catch (e) {
       setErr(e instanceof Error ? e.message : "failed");
     } finally { setLoading(false); }
   }, [callQuote, callAnalyze, selected, customSymbol, category, ar]);
+
 
   // Auto-run analysis when arrived with ?auto=1 from calendar/heatmap
   const autoRan = useRef(false);
@@ -384,9 +455,139 @@ function MarketIntelligencePage() {
         </div>
       )}
 
+      {/* Real Market Intelligence (router-backed) */}
+      {(intel || intelLoading) && (
+        <TooltipProvider delayDuration={200}>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Brain className="h-4 w-4 text-primary" />
+                {t("ذكاء السوق الحقيقي", "Real Market Intelligence")}
+              </CardTitle>
+              {intel && (
+                <div className="flex items-center gap-2">
+                  <Badge className={DECISION_CLS[intel.decision]}>{intel.decision}</Badge>
+                  <Badge variant="outline" className={
+                    intel.dataMode === "live" ? "border-emerald-500/40 text-emerald-700" :
+                    intel.dataMode === "delayed" ? "border-amber-500/40 text-amber-700" :
+                    "border-rose-500/40 text-rose-700"
+                  }>
+                    {intel.dataMode === "live" ? "Live" : intel.dataMode === "delayed" ? "Delayed" : "Synthetic"}
+                  </Badge>
+                  {intel.provider && <Badge variant="outline" className="text-xs">{intel.provider}</Badge>}
+                </div>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {intelLoading && !intel && (
+                <div className="text-sm text-muted-foreground">
+                  <Loader2 className="inline h-3 w-3 animate-spin" /> جارٍ توليد الذكاء الحقيقي…
+                </div>
+              )}
+              {intel && (
+                <>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="rounded border p-2">
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        الثقة <InfoTip text="مدى توافق العوامل (الزخم، الأخبار، السيولة) على نفس الاتجاه. 100% يعني توافق تام." />
+                      </div>
+                      <div className="text-sm font-bold">{intel.confidence}%</div>
+                    </div>
+                    <div className="rounded border p-2">
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        المخاطر <InfoTip text="تستند للتذبذب الحالي ونوع الأصل. أعلى من 80 يعني ظروف غير مستقرة." />
+                      </div>
+                      <div className="text-sm font-bold">{intel.risk}/100</div>
+                    </div>
+                    <div className="rounded border p-2">
+                      <div className="text-[11px] text-muted-foreground">الاتجاه</div>
+                      <div className={`text-sm font-bold ${TREND_CLS[intel.trend]}`}>{intel.trend}</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-semibold text-muted-foreground">ملخص القرار</div>
+                    <p className="text-sm leading-relaxed mt-1">{intel.summaryAr}</p>
+                  </div>
+
+                  {intel.reasonsAr.length > 0 && (
+                    <div>
+                      <div className="text-xs font-semibold text-muted-foreground">لماذا هذا القرار؟</div>
+                      <ul className="text-sm list-disc ms-5 mt-1 space-y-0.5">
+                        {intel.reasonsAr.map((r, i) => <li key={i}>{r}</li>)}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {intel.positiveFactorsAr.length > 0 && (
+                      <div className="rounded border border-emerald-500/30 bg-emerald-500/5 p-3">
+                        <div className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
+                          <TrendingUp className="h-3 w-3" /> العوامل الداعمة
+                        </div>
+                        <ul className="text-sm list-disc ms-5 mt-1 space-y-0.5">
+                          {intel.positiveFactorsAr.map((r, i) => <li key={i}>{r}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                    {intel.negativeFactorsAr.length > 0 && (
+                      <div className="rounded border border-rose-500/30 bg-rose-500/5 p-3">
+                        <div className="text-xs font-semibold text-rose-700 flex items-center gap-1">
+                          <TrendingDown className="h-3 w-3" /> العوامل السلبية
+                        </div>
+                        <ul className="text-sm list-disc ms-5 mt-1 space-y-0.5">
+                          {intel.negativeFactorsAr.map((r, i) => <li key={i}>{r}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  {intel.saudiLiquidity && (
+                    <div className="rounded-md border bg-muted/30 p-3">
+                      <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                        السيولة السعودية — {intel.saudiLiquidity.classification}
+                        <InfoTip text="تجميع = تدفقات شراء صافية موجبة. تصريف = ضغط بيع. محايد = توازن نسبي." />
+                      </div>
+                      <p className="text-sm mt-1">{intel.saudiLiquidity.explanationAr}</p>
+                      {intel.saudiLiquidity.net != null && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          صافي السيولة: {intel.saudiLiquidity.net.toLocaleString("en-US")}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="rounded-md border bg-muted/30 p-3">
+                    <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" /> السيناريو المعاكس
+                      <InfoTip text="ماذا يحدث لو تحركت السوق ضد التوقعات؟ تحضير للمخاطر قبل وقوعها." />
+                    </div>
+                    <p className="text-sm mt-1">{intel.oppositeScenarioAr}</p>
+                  </div>
+
+                  <div className="rounded-md border bg-muted/30 p-3">
+                    <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                      متى يتغير القرار؟
+                      <InfoTip text="مستويات السعر/التذبذب التي إذا تجاوزها السوق تستدعي مراجعة القرار." />
+                    </div>
+                    <p className="text-sm mt-1">{intel.decisionChangeTriggerAr}</p>
+                  </div>
+
+                  <p className="text-[11px] text-muted-foreground flex items-center gap-1 pt-1 border-t">
+                    <Info className="h-3 w-3" />
+                    تحليل تعليمي غير ملزم وليس توصية مالية. التداول الحقيقي معطّل.
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TooltipProvider>
+      )}
+
       <AddToWatchlistDialog open={wlOpen} onOpenChange={setWlOpen} prefilled={pickedAsset} />
       <CreateAlertDialog open={alertOpen} onOpenChange={setAlertOpen} prefilled={pickedAsset} />
     </div>
+
   );
 }
 
