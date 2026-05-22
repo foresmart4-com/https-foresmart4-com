@@ -75,6 +75,11 @@ export interface RouterQuote {
   assetClass: AssetClass;
   /** When success=false: human-readable last error. */
   error?: string;
+  /** Alias of `error` for diagnostics consumers. */
+  lastError?: string;
+  /** Alias of `mode` — explicit naming for downstream UI. */
+  dataMode?: ProviderMode;
+
   /** Providers attempted in order, for observability. */
   attempted?: ProviderId[];
   /** Provider chain selected for this asset class before skips/failures. */
