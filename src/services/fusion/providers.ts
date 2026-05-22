@@ -23,6 +23,7 @@ export const PROVIDERS: ProviderSpec[] = [
   { id: "oanda",         label: "OANDA",          kind: "websocket", assetClasses: ["forex", "commodity"],      priority: 85, staleAfterMs: 5_000,  baseLatencyMs: 70,  reliability: 0.97 },
   { id: "fxcm",          label: "FXCM",           kind: "polling",   assetClasses: ["forex"],                   priority: 65, pollMs: 2_000, staleAfterMs: 6_000, baseLatencyMs: 140, reliability: 0.93 },
   { id: "twelvedata",    label: "TwelveData",     kind: "polling",   assetClasses: ["equity", "forex", "etf", "commodity"], priority: 55, pollMs: 5_000, staleAfterMs: 12_000, baseLatencyMs: 220, reliability: 0.92 },
+  { id: "commodityprice",label: "CommodityPriceAPI", kind: "polling", assetClasses: ["commodity"],              priority: 72, pollMs: 5_000, staleAfterMs: 60_000, baseLatencyMs: 180, reliability: 0.93 },
   { id: "lme",           label: "LME Feed",       kind: "polling",   assetClasses: ["commodity"],               priority: 70, pollMs: 4_000, staleAfterMs: 12_000, baseLatencyMs: 200, reliability: 0.93 },
 ];
 

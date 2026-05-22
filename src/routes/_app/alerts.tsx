@@ -277,7 +277,7 @@ function AlertsPage() {
                             </Button>
                           </TooltipTrigger><TooltipContent>إرسال تنبيه تجريبي</TooltipContent></Tooltip>
                           <Tooltip><TooltipTrigger asChild>
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => navigate({ to: "/market-intelligence" })}>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => navigate({ to: "/market-intelligence", search: {} })}>
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
                           </TooltipTrigger><TooltipContent>افتح الأصل في ذكاء السوق</TooltipContent></Tooltip>

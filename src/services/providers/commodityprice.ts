@@ -15,23 +15,23 @@
  * { success: false, error }. Synthetic prices are NEVER reported as "live".
  */
 
-const ENDPOINT = "https://api.commoditypriceapi.com/v2/latest";
+const ENDPOINT = "https://api.commoditypriceapi.com/v2/rates/latest";
 
-const SYMBOL_MAP: Record<string, { code: string; assetClass: "metal" | "commodity" }> = {
-  XAGUSD: { code: "XAG", assetClass: "metal" },
-  XAG: { code: "XAG", assetClass: "metal" },
-  SILVER: { code: "XAG", assetClass: "metal" },
-  XAUUSD: { code: "XAU", assetClass: "metal" },
-  XAU: { code: "XAU", assetClass: "metal" },
-  GOLD: { code: "XAU", assetClass: "metal" },
-  WTI: { code: "WTI", assetClass: "commodity" },
-  USOIL: { code: "WTI", assetClass: "commodity" },
-  CL: { code: "WTI", assetClass: "commodity" },
-  BRENT: { code: "BRENT", assetClass: "commodity" },
-  UKOIL: { code: "BRENT", assetClass: "commodity" },
-  NATGAS: { code: "NG", assetClass: "commodity" },
-  NG: { code: "NG", assetClass: "commodity" },
-  NATURAL_GAS: { code: "NG", assetClass: "commodity" },
+const SYMBOL_MAP: Record<string, { code: string; apiCode: string; assetClass: "metal" | "commodity" }> = {
+  XAGUSD: { code: "XAG", apiCode: "XAG", assetClass: "metal" },
+  XAG: { code: "XAG", apiCode: "XAG", assetClass: "metal" },
+  SILVER: { code: "XAG", apiCode: "XAG", assetClass: "metal" },
+  XAUUSD: { code: "XAU", apiCode: "XAU", assetClass: "metal" },
+  XAU: { code: "XAU", apiCode: "XAU", assetClass: "metal" },
+  GOLD: { code: "XAU", apiCode: "XAU", assetClass: "metal" },
+  WTI: { code: "WTI", apiCode: "WTIOIL-FUT", assetClass: "commodity" },
+  USOIL: { code: "WTI", apiCode: "WTIOIL-FUT", assetClass: "commodity" },
+  CL: { code: "WTI", apiCode: "WTIOIL-FUT", assetClass: "commodity" },
+  BRENT: { code: "BRENT", apiCode: "BRENTOIL-FUT", assetClass: "commodity" },
+  UKOIL: { code: "BRENT", apiCode: "BRENTOIL-FUT", assetClass: "commodity" },
+  NATGAS: { code: "NATGAS", apiCode: "NG-FUT", assetClass: "commodity" },
+  NG: { code: "NATGAS", apiCode: "NG-FUT", assetClass: "commodity" },
+  NATURAL_GAS: { code: "NATGAS", apiCode: "NG-FUT", assetClass: "commodity" },
 };
 
 export interface CommodityPriceQuote {
@@ -73,7 +73,7 @@ function getKey(): string | null {
   return k && k.trim() ? k.trim() : null;
 }
 
-export function toCommodityPriceSymbol(input: string): { code: string; assetClass: "metal" | "commodity" } | null {
+export function toCommodityPriceSymbol(input: string): { code: string; apiCode: string; assetClass: "metal" | "commodity" } | null {
   const s = (input ?? "").trim().toUpperCase();
   return SYMBOL_MAP[s] ?? null;
 }
@@ -87,7 +87,7 @@ function num(v: unknown): number | null {
   return null;
 }
 
-export async function getCommodityPriceQuote(
+export async function getCommodityQuote(
   symbol: string,
 ): Promise<CommodityPriceQuote | CommodityPriceError> {
   const key = getKey();
@@ -110,15 +110,16 @@ export async function getCommodityPriceQuote(
     };
   }
 
-  const url = `${ENDPOINT}?apiKey=${encodeURIComponent(key)}&symbols=${encodeURIComponent(
-    mapped.code,
-  )}&base=USD`;
+  const url = `${ENDPOINT}?symbols=${encodeURIComponent(mapped.apiCode)}`;
 
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 7000);
   const start = Date.now();
   try {
-    const res = await fetch(url, { signal: ctrl.signal, headers: { Accept: "application/json" } });
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      headers: { Accept: "application/json", "x-api-key": key },
+    });
     const latencyMs = Date.now() - start;
 
     if (res.status === 429) {
@@ -191,13 +192,13 @@ export async function getCommodityPriceQuote(
     let price: number | null = null;
     let change: number | null = null;
     let changePercent: number | null = null;
-    if (j.rates && typeof j.rates[mapped.code] === "number") {
-      price = j.rates[mapped.code];
+    if (j.rates && typeof j.rates[mapped.apiCode] === "number") {
+      price = j.rates[mapped.apiCode];
     }
-    if (j.data && j.data[mapped.code]) {
-      price = price ?? num(j.data[mapped.code].price);
-      change = num(j.data[mapped.code].change);
-      changePercent = num(j.data[mapped.code].change_percent);
+    if (j.data && j.data[mapped.apiCode]) {
+      price = price ?? num(j.data[mapped.apiCode].price);
+      change = num(j.data[mapped.apiCode].change);
+      changePercent = num(j.data[mapped.apiCode].change_percent);
     }
 
     if (price == null || !Number.isFinite(price) || price <= 0) {
@@ -241,4 +242,23 @@ export async function getCommodityPriceQuote(
   } finally {
     clearTimeout(t);
   }
+}
+
+export const getCommodityPriceQuote = getCommodityQuote;
+
+export function providerHealth() {
+  const configured = !!getKey();
+  return {
+    provider: "commodityprice" as const,
+    status: configured ? "healthy" as const : "down" as const,
+    errorRate: 0,
+    rateLimited: 0,
+    avgLatencyMs: null,
+    endpoints: [],
+    configured,
+    failoverScore: configured ? 0.75 : 0,
+    quoteConfidence: configured ? 0.7 : 0.1,
+    role: "commodity-metals" as const,
+    generatedAt: Date.now(),
+  };
 }

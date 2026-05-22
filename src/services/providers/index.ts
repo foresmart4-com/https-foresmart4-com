@@ -31,6 +31,10 @@ import {
   getFinancialFeed as naFinancialFeed,
   providerHealth as naHealth,
 } from "@/services/providers/newsapi";
+import {
+  getCommodityQuote,
+  providerHealth as cpHealth,
+} from "@/services/providers/commodityprice";
 
 export const providers = {
   quote: fhQuote,
@@ -48,6 +52,8 @@ export const providers = {
   macroEquity: avQuote,
   // News
   newsFinancial: naFinancialFeed,
+  // Commodities / metals
+  commodityQuote: getCommodityQuote,
 };
 
 /** Aggregated health for every wired provider — surfaced to /market-data-monitor. */
@@ -57,10 +63,11 @@ export function allProvidersHealth() {
     twelvedata: tdHealth(),
     alphavantage: avHealth(),
     newsapi: naHealth(),
+    commodityprice: cpHealth(),
   };
 }
 
-type ProviderId = "finnhub" | "twelvedata" | "alphavantage" | "newsapi";
+type ProviderId = "finnhub" | "twelvedata" | "alphavantage" | "newsapi" | "commodityprice";
 
 // Lightweight failover log — useful for debugging which adapter served the
 // request when production logs surface a rollup / runtime error tied to a
