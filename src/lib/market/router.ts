@@ -595,9 +595,12 @@ const PROVIDER_KEY: Record<ProviderId, ProviderKey> = {
   binance: "binance",
   coingecko: "coingecko",
   alpaca: "alpaca",
-
   tradingview: "tradingview",
   sahmk: "sahmk",
+  fmp: "fmp",
+  commoditypriceapi: "commoditypriceapi",
+  fred: "fred",
+
 };
 
 // ---------- Core router ----------
