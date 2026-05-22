@@ -278,7 +278,7 @@ const PROVIDERS: Record<ProviderId, undefined | ((s: string, r: Range, i: Interv
   tradingview: undefined,
   sahmk: undefined, // SAHMK historical not enabled on current plan
   fmp: undefined,
-  commoditypriceapi: undefined,
+  commodityprice: undefined,
   fred: undefined,
 };
 

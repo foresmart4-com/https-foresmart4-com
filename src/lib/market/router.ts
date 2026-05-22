@@ -22,7 +22,7 @@ import { getQuote as tdQuote } from "@/services/providers/twelvedata";
 import { getEquityQuote as avEquity, getFxRate as avFx } from "@/services/providers/alphavantage";
 import { getSahmkQuote } from "@/services/providers/sahmk";
 import { getFmpQuote } from "@/services/providers/fmp";
-import { getCommodityQuote } from "@/services/providers/commoditypriceapi";
+import { getCommodityPriceQuote } from "@/services/providers/commodityprice";
 import { getFredQuote } from "@/services/providers/fred";
 import { translateSymbol, type ProviderKey } from "@/lib/market/symbol-map";
 import { supports, unsupportedReason, isRealtime } from "@/lib/market/capabilities";
@@ -52,7 +52,7 @@ export type ProviderId =
   | "tradingview"
   | "sahmk"
   | "fmp"
-  | "commoditypriceapi"
+  | "commodityprice"
   | "fred";
 
 
@@ -101,6 +101,12 @@ export interface RouterQuote {
   resolverRule?: string;
   /** Diagnostics: true when the returned quote was served from the in-memory cache. */
   cacheHit?: boolean;
+  /**
+   * Diagnostics: per-provider configuration status (true when the provider's
+   * API key/credentials are present in the runtime environment). Lets the UI
+   * distinguish "provider failed at network" from "provider never wired".
+   */
+  providerConnected?: Partial<Record<ProviderId, boolean>>;
 }
 
 // ---------- Asset resolver ----------
@@ -282,9 +288,9 @@ const CHAINS: Record<AssetClass, ProviderId[]> = {
   saudi_stock: ["sahmk", "twelvedata", "fmp", "alphavantage"],
   crypto:      ["binance", "coingecko", "twelvedata", "fmp"],
   // Metals: TwelveData → CommodityPriceAPI → FMP → AlphaVantage → TradingView
-  metal:       ["twelvedata", "commoditypriceapi", "fmp", "alphavantage", "tradingview"],
+  metal:       ["twelvedata", "commodityprice", "fmp", "alphavantage", "tradingview"],
   // Commodities (oil/gas): CommodityPriceAPI → FMP → AlphaVantage → TwelveData → TradingView
-  commodity:   ["commoditypriceapi", "fmp", "alphavantage", "twelvedata", "tradingview"],
+  commodity:   ["commodityprice", "fmp", "alphavantage", "twelvedata", "tradingview"],
   etf:         ["finnhub", "twelvedata", "fmp", "alphavantage"],
   bond:        ["fred", "twelvedata", "alphavantage"],
   treasury:    ["fred"],
@@ -628,21 +634,20 @@ async function runFmp(_asset: ResolvedAsset, sym: string): Promise<UpstreamResul
   };
 }
 
-async function runCommodityPriceApi(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
-  const r = await getCommodityQuote(sym);
-  if ("ok" in r && r.ok === false) {
-    const err = new Error(`commoditypriceapi: ${r.reason} — ${r.message}`);
+async function runCommodityPrice(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  const r = await getCommodityPriceQuote(sym);
+  if (r.success === false) {
+    const err = new Error(`commodityprice: ${r.reason} — ${r.error}`);
     if (r.reason === "rate_limited") Object.assign(err, { rateLimited: true });
     throw err;
   }
-  const q = r as Exclude<typeof r, { ok: false }>;
   return {
-    price: q.price,
-    change: q.change,
-    changePercent: q.changePercent,
-    volume: q.volume,
-    timestamp: q.timestamp,
-    delayed: q.delayed,
+    price: r.price,
+    change: r.change,
+    changePercent: r.changePercent,
+    volume: r.volume,
+    timestamp: r.timestamp,
+    delayed: r.delayed,
   };
 }
 
@@ -674,7 +679,7 @@ const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<Ups
   tradingview: runTradingView,
   sahmk: runSahmk,
   fmp: runFmp,
-  commoditypriceapi: runCommodityPriceApi,
+  commodityprice: runCommodityPrice,
   fred: runFred,
 };
 
@@ -689,7 +694,7 @@ const PROVIDER_KEY: Record<ProviderId, ProviderKey> = {
   tradingview: "tradingview",
   sahmk: "sahmk",
   fmp: "fmp",
-  commoditypriceapi: "commoditypriceapi",
+  commodityprice: "commodityprice",
   fred: "fred",
 
 };
@@ -713,6 +718,19 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
   const cKey = buildCacheKey(asset);
   const iKey = buildInflightKey(asset);
   const providerPriority = [...(CHAINS[asset.assetClass] ?? CHAINS.unknown)];
+  const providerConnected: Partial<Record<ProviderId, boolean>> = {
+    finnhub:        !!process.env.FINNHUB_API_KEY,
+    twelvedata:     !!process.env.TWELVEDATA_API_KEY,
+    alphavantage:   !!process.env.ALPHAVANTAGE_API_KEY,
+    sahmk:          !!process.env.SAHMK_API_KEY,
+    fmp:            !!process.env.FMP_API_KEY,
+    fred:           !!process.env.FRED_API_KEY,
+    commodityprice: !!(process.env.COMMODITYPRICE_API_KEY ?? process.env.COMMODITYPRICEAPI_KEY),
+    binance:        true,
+    coingecko:      true,
+    tradingview:    true,
+    alpaca:         !!(process.env.ALPACA_KEY_ID && process.env.ALPACA_SECRET_KEY),
+  };
 
   const stamp = <T extends RouterQuote>(q: T, cacheHit = false): T => ({
     ...q,
@@ -726,6 +744,7 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
     resolverMatchedBy: asset.resolverMatchedBy,
     resolverRule: asset.resolverRule,
     cacheHit,
+    providerConnected,
   });
 
   // Strict asset-class guard: refuse any cache entry whose stored assetClass

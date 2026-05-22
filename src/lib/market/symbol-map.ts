@@ -26,7 +26,7 @@ export type ProviderKey =
   | "tradingview"
   | "sahmk"
   | "fmp"
-  | "commoditypriceapi"
+  | "commodityprice"
   | "fred";
 
 
@@ -37,19 +37,20 @@ interface SymbolEntry extends Partial<Record<ProviderKey, string>> {
 /** Canonical user input → provider-specific normalizations. */
 const STATIC_MAP: Record<string, SymbolEntry> = {
   // ---------- Metals ----------
-  XAUUSD: { canonical: "XAU/USD", twelvedata: "XAU/USD", finnhub: "OANDA:XAU_USD", alphavantage: "XAUUSD", tradingview: "OANDA:XAUUSD" },
-  XAGUSD: { canonical: "XAG/USD", twelvedata: "XAG/USD", finnhub: "OANDA:XAG_USD", alphavantage: "XAGUSD", tradingview: "OANDA:XAGUSD" },
-  XPTUSD: { canonical: "XPT/USD", twelvedata: "XPT/USD", alphavantage: "XPTUSD", tradingview: "TVC:PLATINUM" },
-  XPDUSD: { canonical: "XPD/USD", twelvedata: "XPD/USD", alphavantage: "XPDUSD", tradingview: "TVC:PALLADIUM" },
-  GOLD:   { canonical: "XAU/USD", twelvedata: "XAU/USD", finnhub: "OANDA:XAU_USD", alphavantage: "XAUUSD", tradingview: "OANDA:XAUUSD" },
-  SILVER: { canonical: "XAG/USD", twelvedata: "XAG/USD", finnhub: "OANDA:XAG_USD", alphavantage: "XAGUSD", tradingview: "OANDA:XAGUSD" },
+  XAUUSD: { canonical: "XAU/USD", twelvedata: "XAU/USD", finnhub: "OANDA:XAU_USD", alphavantage: "XAUUSD", tradingview: "OANDA:XAUUSD", commodityprice: "XAU" },
+  XAGUSD: { canonical: "XAG/USD", twelvedata: "XAG/USD", finnhub: "OANDA:XAG_USD", alphavantage: "XAGUSD", tradingview: "OANDA:XAGUSD", commodityprice: "XAG" },
+  XPTUSD: { canonical: "XPT/USD", twelvedata: "XPT/USD", alphavantage: "XPTUSD", tradingview: "TVC:PLATINUM", commodityprice: "XPT" },
+  XPDUSD: { canonical: "XPD/USD", twelvedata: "XPD/USD", alphavantage: "XPDUSD", tradingview: "TVC:PALLADIUM", commodityprice: "XPD" },
+  GOLD:   { canonical: "XAU/USD", twelvedata: "XAU/USD", finnhub: "OANDA:XAU_USD", alphavantage: "XAUUSD", tradingview: "OANDA:XAUUSD", commodityprice: "XAU" },
+  SILVER: { canonical: "XAG/USD", twelvedata: "XAG/USD", finnhub: "OANDA:XAG_USD", alphavantage: "XAGUSD", tradingview: "OANDA:XAGUSD", commodityprice: "XAG" },
 
   // ---------- Oil / commodities ----------
-  USOIL:  { canonical: "USOIL",   twelvedata: "CL=F",    finnhub: "OANDA:BCO_USD",   alphavantage: "WTI", tradingview: "TVC:USOIL" },
-  WTI:    { canonical: "USOIL",   twelvedata: "CL=F",    finnhub: "OANDA:WTICO_USD", alphavantage: "WTI", tradingview: "TVC:USOIL" },
-  BRENT:  { canonical: "BRENT",   twelvedata: "BZ=F",    finnhub: "OANDA:BCO_USD",   alphavantage: "BRENT", tradingview: "TVC:UKOIL" },
-  NATGAS: { canonical: "NATGAS",  twelvedata: "NG=F",    alphavantage: "NATURAL_GAS", tradingview: "NYMEX:NG1!" },
-  COPPER: { canonical: "COPPER",  twelvedata: "HG=F",    alphavantage: "COPPER", tradingview: "COMEX:HG1!" },
+  USOIL:  { canonical: "USOIL",   twelvedata: "CL=F",    finnhub: "OANDA:BCO_USD",   alphavantage: "WTI",         tradingview: "TVC:USOIL", commodityprice: "WTI" },
+  WTI:    { canonical: "USOIL",   twelvedata: "CL=F",    finnhub: "OANDA:WTICO_USD", alphavantage: "WTI",         tradingview: "TVC:USOIL", commodityprice: "WTI" },
+  BRENT:  { canonical: "BRENT",   twelvedata: "BZ=F",    finnhub: "OANDA:BCO_USD",   alphavantage: "BRENT",       tradingview: "TVC:UKOIL", commodityprice: "BRENT" },
+  UKOIL:  { canonical: "BRENT",   twelvedata: "BZ=F",    finnhub: "OANDA:BCO_USD",   alphavantage: "BRENT",       tradingview: "TVC:UKOIL", commodityprice: "BRENT" },
+  NATGAS: { canonical: "NATGAS",  twelvedata: "NG=F",    alphavantage: "NATURAL_GAS", tradingview: "NYMEX:NG1!",  commodityprice: "NG" },
+  COPPER: { canonical: "COPPER",  twelvedata: "HG=F",    alphavantage: "COPPER",      tradingview: "COMEX:HG1!" },
 
   // ---------- Crypto ----------
   BTC: { canonical: "BTCUSDT", binance: "BTCUSDT", coingecko: "bitcoin",     twelvedata: "BTC/USD", tradingview: "BINANCE:BTCUSDT" },
