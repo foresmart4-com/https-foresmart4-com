@@ -21,6 +21,9 @@ import { getQuote as fhQuote } from "@/services/providers/finnhub";
 import { getQuote as tdQuote } from "@/services/providers/twelvedata";
 import { getEquityQuote as avEquity, getFxRate as avFx } from "@/services/providers/alphavantage";
 import { getSahmkQuote } from "@/services/providers/sahmk";
+import { getFmpQuote } from "@/services/providers/fmp";
+import { getCommodityQuote } from "@/services/providers/commoditypriceapi";
+import { getFredQuote } from "@/services/providers/fred";
 import { translateSymbol, type ProviderKey } from "@/lib/market/symbol-map";
 import { supports, unsupportedReason, isRealtime } from "@/lib/market/capabilities";
 
@@ -35,6 +38,8 @@ export type AssetClass =
   | "commodity"
   | "etf"
   | "bond"
+  | "treasury"
+  | "index"
   | "unknown";
 
 export type ProviderId =
@@ -45,7 +50,11 @@ export type ProviderId =
   | "binance"
   | "coingecko"
   | "tradingview"
-  | "sahmk";
+  | "sahmk"
+  | "fmp"
+  | "commoditypriceapi"
+  | "fred";
+
 
 export type ProviderMode = "live" | "delayed" | "cached" | "stale" | "synthetic";
 
