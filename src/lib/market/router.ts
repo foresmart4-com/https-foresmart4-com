@@ -21,6 +21,9 @@ import { getQuote as fhQuote } from "@/services/providers/finnhub";
 import { getQuote as tdQuote } from "@/services/providers/twelvedata";
 import { getEquityQuote as avEquity, getFxRate as avFx } from "@/services/providers/alphavantage";
 import { getSahmkQuote } from "@/services/providers/sahmk";
+import { getFmpQuote } from "@/services/providers/fmp";
+import { getCommodityQuote } from "@/services/providers/commoditypriceapi";
+import { getFredQuote } from "@/services/providers/fred";
 import { translateSymbol, type ProviderKey } from "@/lib/market/symbol-map";
 import { supports, unsupportedReason, isRealtime } from "@/lib/market/capabilities";
 
@@ -35,6 +38,8 @@ export type AssetClass =
   | "commodity"
   | "etf"
   | "bond"
+  | "treasury"
+  | "index"
   | "unknown";
 
 export type ProviderId =
@@ -45,7 +50,11 @@ export type ProviderId =
   | "binance"
   | "coingecko"
   | "tradingview"
-  | "sahmk";
+  | "sahmk"
+  | "fmp"
+  | "commoditypriceapi"
+  | "fred";
+
 
 export type ProviderMode = "live" | "delayed" | "cached" | "stale" | "synthetic";
 
@@ -66,6 +75,11 @@ export interface RouterQuote {
   assetClass: AssetClass;
   /** When success=false: human-readable last error. */
   error?: string;
+  /** Alias of `error` for diagnostics consumers. */
+  lastError?: string;
+  /** Alias of `mode` — explicit naming for downstream UI. */
+  dataMode?: ProviderMode;
+
   /** Providers attempted in order, for observability. */
   attempted?: ProviderId[];
   /** Provider chain selected for this asset class before skips/failures. */
@@ -86,13 +100,23 @@ export interface RouterQuote {
 // ---------- Asset resolver ----------
 
 const METAL_SYMBOLS = new Set(["XAU", "XAG", "XPT", "XPD", "GOLD", "SILVER", "PLATINUM", "PALLADIUM"]);
-const COMMODITY_SYMBOLS = new Set(["WTI", "BRENT", "OIL", "NATGAS", "NG", "CL", "BZ", "COPPER", "HG"]);
+const COMMODITY_SYMBOLS = new Set(["WTI", "BRENT", "OIL", "USOIL", "UKOIL", "NATGAS", "NG", "CL", "BZ", "COPPER", "HG"]);
 const COMMON_ETFS = new Set([
   "SPY", "QQQ", "DIA", "IWM", "VTI", "VOO", "VEA", "VWO", "AGG", "BND",
   "GLD", "SLV", "USO", "TLT", "XLK", "XLF", "XLE", "XLY", "XLV", "XLI",
   "ARKK", "EEM", "EFA",
 ]);
-const BOND_PATTERNS = [/^US\d+Y$/i, /^DE\d+Y$/i, /^UK\d+Y$/i, /^TLT$/i, /^IEF$/i, /^SHY$/i];
+const BOND_PATTERNS = [/^DE\d+Y$/i, /^UK\d+Y$/i, /^TLT$/i, /^IEF$/i, /^SHY$/i];
+const TREASURY_SYMBOLS = new Set([
+  "US02Y", "US05Y", "US10Y", "US30Y",
+  "FEDFUNDS", "FED_FUNDS",
+  "CPI", "CPI_YOY", "CORE_CPI", "PCE", "CORE_PCE",
+  "UNEMPLOYMENT", "GDP", "M2",
+]);
+const INDEX_SYMBOLS = new Set([
+  "SPX", "S&P500", "SP500", "DJI", "DOW", "NDX", "NASDAQ", "IXIC", "VIX",
+  "^GSPC", "^DJI", "^IXIC", "^NDX", "^VIX", "^TASI",
+]);
 const FOREX_RE = /^([A-Z]{3})[\/-]?([A-Z]{3})$/;
 const CRYPTO_SUFFIX_RE = /^([A-Z0-9]{2,8})[-/](USDT?|BUSD|USDC|BTC|ETH)$/i;
 const CRYPTO_PLAIN = new Set(["BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "DOGE", "AVAX", "MATIC", "DOT", "LTC", "LINK", "ATOM", "TRX"]);
@@ -123,6 +147,16 @@ export function resolveAsset(rawSymbol: string): ResolvedAsset {
   // Saudi: .SR suffix or :TADAWUL — keep numeric tickers intact (e.g. "2222.SR")
   if (/\.SR$/.test(raw) || /:TADAWUL$/.test(raw)) {
     return make("saudi_stock", raw.replace(/:TADAWUL$/, ".SR"), "saudi:.SR");
+  }
+
+  // Treasuries / macro series (FRED-backed)
+  if (TREASURY_SYMBOLS.has(raw) || /^US\d+Y$/i.test(raw)) {
+    return make("treasury", raw, "treasury:set");
+  }
+
+  // Indices
+  if (INDEX_SYMBOLS.has(raw) || /^\^[A-Z0-9]+$/.test(raw)) {
+    return make("index", raw, "index:set");
   }
 
   // Metals (XAU, XAUUSD, GOLD, ...) — keep raw for branching but tag class
@@ -157,20 +191,24 @@ export function resolveAsset(rawSymbol: string): ResolvedAsset {
 // ---------- Provider priority chains ----------
 
 const CHAINS: Record<AssetClass, ProviderId[]> = {
-  us_stock:    ["finnhub", "alpaca", "twelvedata", "alphavantage"],
-  // Saudi: SAHMK (native) → TwelveData → AlphaVantage
-  saudi_stock: ["sahmk", "twelvedata", "alphavantage"],
-  crypto:      ["binance", "coingecko", "twelvedata"],
-  // Metals: TwelveData → Finnhub FX feed → AlphaVantage → TradingView
-  metal:       ["twelvedata", "finnhub", "alphavantage", "tradingview"],
-  // Commodities: TwelveData → AlphaVantage → TradingView (TVC feeds) → Finnhub
-  commodity:   ["twelvedata", "alphavantage", "tradingview", "finnhub"],
-  etf:         ["finnhub", "twelvedata", "alphavantage"],
-  bond:        ["twelvedata", "alphavantage"],
-  // Forex: TwelveData → Finnhub OANDA → AlphaVantage
-  forex:       ["twelvedata", "finnhub", "alphavantage"],
-  unknown:     ["finnhub", "twelvedata", "alphavantage"],
+  us_stock:    ["finnhub", "alpaca", "twelvedata", "fmp", "alphavantage"],
+  // Saudi: SAHMK (native) → TwelveData → FMP → AlphaVantage
+  saudi_stock: ["sahmk", "twelvedata", "fmp", "alphavantage"],
+  crypto:      ["binance", "coingecko", "twelvedata", "fmp"],
+  // Metals: TwelveData → CommodityPriceAPI → FMP → AlphaVantage → TradingView
+  metal:       ["twelvedata", "commoditypriceapi", "fmp", "alphavantage", "tradingview"],
+  // Commodities (oil/gas): CommodityPriceAPI → FMP → AlphaVantage → TwelveData → TradingView
+  commodity:   ["commoditypriceapi", "fmp", "alphavantage", "twelvedata", "tradingview"],
+  etf:         ["finnhub", "twelvedata", "fmp", "alphavantage"],
+  bond:        ["fred", "twelvedata", "alphavantage"],
+  treasury:    ["fred"],
+  index:       ["fmp", "twelvedata", "finnhub", "tradingview"],
+  // Forex: TwelveData → FMP → AlphaVantage → Finnhub OANDA
+  forex:       ["twelvedata", "fmp", "alphavantage", "finnhub"],
+  unknown:     ["finnhub", "twelvedata", "fmp", "alphavantage"],
 };
+
+
 
 // ---------- Cooldown memory ----------
 
@@ -262,8 +300,11 @@ const TTL_MS: Record<AssetClass, number> = {
   commodity: 5 * 60_000,
   forex: 5 * 60_000,
   bond: 5 * 60_000,
+  treasury: 30 * 60_000,
+  index: 30_000,
   unknown: 30_000,
 };
+
 
 /**
  * Composite cache key. Includes asset class, normalized symbol AND the original
@@ -483,6 +524,60 @@ async function runSahmk(_asset: ResolvedAsset, sym: string): Promise<UpstreamRes
   };
 }
 
+async function runFmp(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  const r = await getFmpQuote(sym);
+  if ("ok" in r && r.ok === false) {
+    const err = new Error(`fmp: ${r.reason} — ${r.message}`);
+    if (r.reason === "rate_limited") Object.assign(err, { rateLimited: true });
+    throw err;
+  }
+  const q = r as Exclude<typeof r, { ok: false }>;
+  return {
+    price: q.price,
+    change: q.change,
+    changePercent: q.changePercent,
+    volume: q.volume,
+    timestamp: q.timestamp,
+    delayed: q.delayed,
+  };
+}
+
+async function runCommodityPriceApi(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  const r = await getCommodityQuote(sym);
+  if ("ok" in r && r.ok === false) {
+    const err = new Error(`commoditypriceapi: ${r.reason} — ${r.message}`);
+    if (r.reason === "rate_limited") Object.assign(err, { rateLimited: true });
+    throw err;
+  }
+  const q = r as Exclude<typeof r, { ok: false }>;
+  return {
+    price: q.price,
+    change: q.change,
+    changePercent: q.changePercent,
+    volume: q.volume,
+    timestamp: q.timestamp,
+    delayed: q.delayed,
+  };
+}
+
+async function runFred(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  const r = await getFredQuote(sym);
+  if ("ok" in r && r.ok === false) {
+    const err = new Error(`fred: ${r.reason} — ${r.message}`);
+    if (r.reason === "rate_limited") Object.assign(err, { rateLimited: true });
+    throw err;
+  }
+  const q = r as Exclude<typeof r, { ok: false }>;
+  return {
+    price: q.price,
+    change: q.change,
+    changePercent: q.changePercent,
+    volume: null,
+    timestamp: q.timestamp,
+    delayed: q.delayed,
+  };
+}
+
 const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<UpstreamResult>> = {
   finnhub: runFinnhub,
   twelvedata: runTwelveData,
@@ -492,6 +587,9 @@ const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<Ups
   alpaca: runAlpaca,
   tradingview: runTradingView,
   sahmk: runSahmk,
+  fmp: runFmp,
+  commoditypriceapi: runCommodityPriceApi,
+  fred: runFred,
 };
 
 /** Map our internal ProviderId → the symbol-map ProviderKey. 1:1 today. */
@@ -504,6 +602,10 @@ const PROVIDER_KEY: Record<ProviderId, ProviderKey> = {
   alpaca: "alpaca",
   tradingview: "tradingview",
   sahmk: "sahmk",
+  fmp: "fmp",
+  commoditypriceapi: "commoditypriceapi",
+  fred: "fred",
+
 };
 
 // ---------- Core router ----------
@@ -533,7 +635,10 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
     inflightKey: iKey,
     resolverPath: asset.resolverPath,
     rawSymbol: asset.raw,
+    dataMode: q.mode,
+    lastError: q.error,
   });
+
 
   // Cache hit
   if (!opts.force) {

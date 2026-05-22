@@ -160,8 +160,9 @@ function computeFactors(input: IntelQuoteInput, extras: IntelExtras, saudi?: Sau
   // Momentum: scale changePercent to -100..+100 with class-specific sensitivity.
   const momentumScale: Record<AssetClass, number> = {
     crypto: 10, us_stock: 20, saudi_stock: 25, etf: 25, metal: 30,
-    commodity: 20, forex: 100, bond: 100, unknown: 20,
+    commodity: 20, forex: 100, bond: 100, treasury: 200, index: 25, unknown: 20,
   };
+
   const momentum = clamp((cp / momentumScale[input.assetClass]) * 100, -100, 100);
 
   // Volatility (absolute % move, class-relative).
