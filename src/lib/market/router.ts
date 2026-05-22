@@ -714,7 +714,7 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
   const iKey = buildInflightKey(asset);
   const providerPriority = [...(CHAINS[asset.assetClass] ?? CHAINS.unknown)];
 
-  const stamp = <T extends RouterQuote>(q: T): T => ({
+  const stamp = <T extends RouterQuote>(q: T, cacheHit = false): T => ({
     ...q,
     providerPriority,
     cacheKey: cKey,
@@ -723,13 +723,20 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
     rawSymbol: asset.raw,
     dataMode: q.mode,
     lastError: q.error,
+    resolverMatchedBy: asset.resolverMatchedBy,
+    resolverRule: asset.resolverRule,
+    cacheHit,
   });
 
+  // Strict asset-class guard: refuse any cache entry whose stored assetClass
+  // does not match the freshly-resolved class. Prevents cross-class
+  // contamination (e.g. an old SPX entry being served for XAGUSD).
+  const expectedClass = asset.assetClass;
 
   // Cache hit
   if (!opts.force) {
     const cached = fromCache(cKey);
-    if (cached) return stamp(cached);
+    if (cached && cached.assetClass === expectedClass) return stamp(cached, true);
   }
 
   // Dedup: piggyback on any in-flight request for the SAME symbol only
