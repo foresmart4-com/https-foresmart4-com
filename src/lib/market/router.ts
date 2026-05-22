@@ -98,28 +98,61 @@ export interface RouterQuote {
 }
 
 // ---------- Asset resolver ----------
+//
+// CRITICAL: rule order matters. The resolver walks an ordered list of rules
+// and returns the FIRST match. Metals MUST be matched before indices so a
+// symbol like XAGUSD can never accidentally fall through to SPX or any other
+// index. Each rule carries an explicit `matchedBy` tag for diagnostics.
 
-const METAL_SYMBOLS = new Set(["XAU", "XAG", "XPT", "XPD", "GOLD", "SILVER", "PLATINUM", "PALLADIUM"]);
-const COMMODITY_SYMBOLS = new Set(["WTI", "BRENT", "OIL", "USOIL", "UKOIL", "NATGAS", "NG", "CL", "BZ", "COPPER", "HG"]);
-const COMMON_ETFS = new Set([
-  "SPY", "QQQ", "DIA", "IWM", "VTI", "VOO", "VEA", "VWO", "AGG", "BND",
-  "GLD", "SLV", "USO", "TLT", "XLK", "XLF", "XLE", "XLY", "XLV", "XLI",
-  "ARKK", "EEM", "EFA",
+/** Exact-match metal table — highest priority. NEVER fall back from this set. */
+const METAL_EXACT = new Set([
+  "XAU", "XAG", "XPT", "XPD",
+  "XAUUSD", "XAGUSD", "XPTUSD", "XPDUSD",
+  "GOLD", "SILVER", "PLATINUM", "PALLADIUM",
 ]);
-const BOND_PATTERNS = [/^DE\d+Y$/i, /^UK\d+Y$/i, /^TLT$/i, /^IEF$/i, /^SHY$/i];
+const METAL_PREFIX_RE = /^(XAU|XAG|XPT|XPD)(USD|EUR|GBP|JPY)?$/;
+
+/** Exact-match commodity table. */
+const COMMODITY_SYMBOLS = new Set([
+  "WTI", "BRENT", "OIL", "USOIL", "UKOIL",
+  "NATGAS", "NG", "CL", "BZ", "COPPER", "HG",
+]);
+
+/**
+ * Strict index whitelist. SPX is ONLY resolvable from {SPX, SP500, ^GSPC}
+ * per spec — no other token may resolve to SPX. Other indices have their
+ * own explicit aliases below.
+ */
+const INDEX_EXACT = new Set([
+  // S&P 500 — strictly limited
+  "SPX", "SP500", "^GSPC",
+  // Dow Jones
+  "DJI", "DOW", "^DJI",
+  // Nasdaq
+  "NDX", "NASDAQ", "IXIC", "^IXIC", "^NDX",
+  // Volatility
+  "VIX", "^VIX",
+  // Saudi index
+  "^TASI",
+]);
+
 const TREASURY_SYMBOLS = new Set([
   "US02Y", "US05Y", "US10Y", "US30Y",
   "FEDFUNDS", "FED_FUNDS",
   "CPI", "CPI_YOY", "CORE_CPI", "PCE", "CORE_PCE",
   "UNEMPLOYMENT", "GDP", "M2",
 ]);
-const INDEX_SYMBOLS = new Set([
-  "SPX", "S&P500", "SP500", "DJI", "DOW", "NDX", "NASDAQ", "IXIC", "VIX",
-  "^GSPC", "^DJI", "^IXIC", "^NDX", "^VIX", "^TASI",
+
+const COMMON_ETFS = new Set([
+  "SPY", "QQQ", "DIA", "IWM", "VTI", "VOO", "VEA", "VWO", "AGG", "BND",
+  "GLD", "SLV", "USO", "TLT", "XLK", "XLF", "XLE", "XLY", "XLV", "XLI",
+  "ARKK", "EEM", "EFA",
 ]);
+const BOND_PATTERNS = [/^DE\d+Y$/i, /^UK\d+Y$/i, /^TLT$/i, /^IEF$/i, /^SHY$/i];
 const FOREX_RE = /^([A-Z]{3})[\/-]?([A-Z]{3})$/;
 const CRYPTO_SUFFIX_RE = /^([A-Z0-9]{2,8})[-/](USDT?|BUSD|USDC|BTC|ETH)$/i;
 const CRYPTO_PLAIN = new Set(["BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "DOGE", "AVAX", "MATIC", "DOT", "LTC", "LINK", "ATOM", "TRX"]);
+const FIATS = new Set(["USD", "EUR", "GBP", "JPY", "CHF", "AUD", "CAD", "NZD", "CNY", "SAR", "AED", "TRY"]);
 
 export interface ResolvedAsset {
   assetClass: AssetClass;
@@ -131,6 +164,10 @@ export interface ResolvedAsset {
   resolverPath: string;
   /** Original raw input, uppercased + trimmed. */
   raw: string;
+  /** Which rule classified the symbol (e.g. "metal_exact", "index_exact"). */
+  resolverMatchedBy: string;
+  /** Human-readable rule description for diagnostics UIs. */
+  resolverRule: string;
 }
 
 export function resolveAsset(rawSymbol: string): ResolvedAsset {
@@ -139,53 +176,96 @@ export function resolveAsset(rawSymbol: string): ResolvedAsset {
     assetClass: AssetClass,
     normalized: string,
     resolverPath: string,
+    matchedBy: string,
+    rule: string,
     extra: Partial<ResolvedAsset> = {},
-  ): ResolvedAsset => ({ assetClass, normalized, resolverPath, raw, ...extra });
+  ): ResolvedAsset => ({
+    assetClass, normalized, resolverPath, raw,
+    resolverMatchedBy: matchedBy, resolverRule: rule, ...extra,
+  });
 
-  if (!raw) return make("unknown", "", "empty");
+  if (!raw) return make("unknown", "", "empty", "empty", "input was empty");
 
-  // Saudi: .SR suffix or :TADAWUL — keep numeric tickers intact (e.g. "2222.SR")
+  // 1. METALS — highest priority. Must beat indices to prevent SPX contamination.
+  if (METAL_EXACT.has(raw)) {
+    return make("metal", raw, "metal:exact", "metal_exact",
+      `exact match in METAL_EXACT (${raw})`);
+  }
+  if (METAL_PREFIX_RE.test(raw)) {
+    return make("metal", raw, "metal:prefix", "metal_prefix",
+      "matches /^(XAU|XAG|XPT|XPD)(USD|EUR|GBP|JPY)?$/");
+  }
+
+  // 2. Saudi: .SR suffix or :TADAWUL
   if (/\.SR$/.test(raw) || /:TADAWUL$/.test(raw)) {
-    return make("saudi_stock", raw.replace(/:TADAWUL$/, ".SR"), "saudi:.SR");
+    return make("saudi_stock", raw.replace(/:TADAWUL$/, ".SR"),
+      "saudi:.SR", "saudi_suffix", ".SR or :TADAWUL suffix");
   }
 
-  // Treasuries / macro series (FRED-backed)
-  if (TREASURY_SYMBOLS.has(raw) || /^US\d+Y$/i.test(raw)) {
-    return make("treasury", raw, "treasury:set");
+  // 3. Treasuries / macro series (FRED-backed). US10Y goes here, NOT bonds.
+  if (TREASURY_SYMBOLS.has(raw) || /^US\d+Y$/.test(raw)) {
+    return make("treasury", raw, "treasury:set", "treasury_exact",
+      `treasury yield or macro series (${raw})`);
   }
 
-  // Indices
-  if (INDEX_SYMBOLS.has(raw) || /^\^[A-Z0-9]+$/.test(raw)) {
-    return make("index", raw, "index:set");
+  // 4. Indices — strict whitelist. SPX is ONLY here, never via fallback.
+  if (INDEX_EXACT.has(raw)) {
+    return make("index", raw, "index:exact", "index_exact",
+      `exact match in INDEX_EXACT (${raw})`);
+  }
+  if (/^\^[A-Z0-9]+$/.test(raw)) {
+    return make("index", raw, "index:caret", "index_caret_prefix",
+      "^TICKER pattern (Yahoo-style index)");
   }
 
-  // Metals (XAU, XAUUSD, GOLD, ...) — keep raw for branching but tag class
-  if (METAL_SYMBOLS.has(raw) || /^(XAU|XAG|XPT|XPD)/.test(raw)) {
-    return make("metal", raw, "metal:prefix");
+  // 5. Commodities (oil, gas, copper)
+  if (COMMODITY_SYMBOLS.has(raw)) {
+    return make("commodity", raw, "commodity:set", "commodity_exact",
+      `exact match in COMMODITY_SYMBOLS (${raw})`);
   }
 
-  if (COMMODITY_SYMBOLS.has(raw)) return make("commodity", raw, "commodity:set");
-  if (BOND_PATTERNS.some((re) => re.test(raw))) return make("bond", raw, "bond:pattern");
-  if (COMMON_ETFS.has(raw)) return make("etf", raw, "etf:set");
+  // 6. Bonds / ETFs
+  if (BOND_PATTERNS.some((re) => re.test(raw))) {
+    return make("bond", raw, "bond:pattern", "bond_pattern",
+      "bond pattern (e.g. DE10Y, TLT)");
+  }
+  if (COMMON_ETFS.has(raw)) {
+    return make("etf", raw, "etf:set", "etf_exact",
+      `exact match in COMMON_ETFS (${raw})`);
+  }
 
+  // 7. Crypto
   const cryptoMatch = raw.match(CRYPTO_SUFFIX_RE);
   if (cryptoMatch) {
     const [, base, quote] = cryptoMatch;
-    return make("crypto", `${base}${quote}`, "crypto:suffix");
+    return make("crypto", `${base}${quote}`,
+      "crypto:suffix", "crypto_pair_suffix", "BASE+stable suffix");
   }
-  if (CRYPTO_PLAIN.has(raw)) return make("crypto", `${raw}USDT`, "crypto:plain");
+  if (CRYPTO_PLAIN.has(raw)) {
+    return make("crypto", `${raw}USDT`,
+      "crypto:plain", "crypto_plain", `plain crypto ticker (${raw})`);
+  }
 
+  // 8. Forex (after metals/crypto so XAUUSD/BTCUSDT cannot land here)
   const fx = raw.match(FOREX_RE);
   if (fx) {
     const [, from, to] = fx;
-    const FIATS = new Set(["USD", "EUR", "GBP", "JPY", "CHF", "AUD", "CAD", "NZD", "CNY", "SAR", "AED", "TRY"]);
     if (FIATS.has(from) && FIATS.has(to)) {
-      return make("forex", `${from}${to}`, "forex:pair", { forex: { from, to } });
+      return make("forex", `${from}${to}`,
+        "forex:pair", "forex_pair", "two-fiat pair", { forex: { from, to } });
     }
   }
 
-  if (/^[A-Z]{1,5}$/.test(raw)) return make("us_stock", raw, "us:alpha");
-  return make("unknown", raw, "fallback");
+  // 9. US equity ticker (1-5 alpha)
+  if (/^[A-Z]{1,5}$/.test(raw)) {
+    return make("us_stock", raw, "us:alpha", "us_alpha",
+      "1-5 letter alpha ticker");
+  }
+
+  // 10. Unknown — DO NOT fall back to any specific asset class. This guarantees
+  //     an unrecognized metal-shaped symbol cannot leak into the index chain.
+  return make("unknown", raw, "fallback", "fallback",
+    "no rule matched — caller must handle");
 }
 
 // ---------- Provider priority chains ----------
