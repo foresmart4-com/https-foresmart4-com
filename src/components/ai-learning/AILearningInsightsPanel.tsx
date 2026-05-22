@@ -401,7 +401,7 @@ export function AILearningInsightsPanel({ sinceMs }: { sinceMs?: number }) {
                   </div>
                 </div>
                 <div className="mt-3 flex gap-2">
-                  <Link to="/market-intelligence">
+                  <Link to="/market-intelligence" search={{}}>
                     <Button size="sm" variant="outline" className="h-7 text-xs">
                       فتح في ذكاء السوق
                     </Button>

@@ -333,7 +333,7 @@ function HeatmapPage() {
                     </Tooltip>
                     <DropdownMenuContent align="start" className="w-56">
                       <DropdownMenuItem asChild>
-                        <Link to="/market-intelligence">
+                        <Link to="/market-intelligence" search={{}}>
                           <BarChart3 className="h-4 w-4 me-2" />
                           {lang === "ar" ? "فتح في ذكاء السوق" : "Open in Market Intelligence"}
                         </Link>
