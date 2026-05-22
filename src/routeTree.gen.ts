@@ -75,6 +75,7 @@ import { Route as ApiWebhooksLemonsqueezyRouteImport } from './routes/api/webhoo
 import { Route as ApiPublicRouterTestRouteImport } from './routes/api/public/router-test'
 import { Route as ApiPublicRouterRegressionRouteImport } from './routes/api/public/router-regression'
 import { Route as ApiPublicMoyasarWebhookRouteImport } from './routes/api/public/moyasar-webhook'
+import { Route as ApiPublicMarketIntelligenceRouteImport } from './routes/api/public/market-intelligence'
 import { Route as ApiPublicHistoryTestRouteImport } from './routes/api/public/history-test'
 import { Route as ApiPublicEmailConfigCheckRouteImport } from './routes/api/public/email-config-check'
 import { Route as ApiFinnhubStreamRouteImport } from './routes/api/finnhub/stream'
@@ -415,6 +416,12 @@ const ApiPublicMoyasarWebhookRoute = ApiPublicMoyasarWebhookRouteImport.update({
   path: '/api/public/moyasar-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicMarketIntelligenceRoute =
+  ApiPublicMarketIntelligenceRouteImport.update({
+    id: '/api/public/market-intelligence',
+    path: '/api/public/market-intelligence',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHistoryTestRoute = ApiPublicHistoryTestRouteImport.update({
   id: '/api/public/history-test',
   path: '/api/public/history-test',
@@ -528,6 +535,7 @@ export interface FileRoutesByFullPath {
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
+  '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
@@ -604,6 +612,7 @@ export interface FileRoutesByTo {
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
+  '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
@@ -682,6 +691,7 @@ export interface FileRoutesById {
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
+  '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
@@ -760,6 +770,7 @@ export interface FileRouteTypes {
     | '/api/finnhub/stream'
     | '/api/public/email-config-check'
     | '/api/public/history-test'
+    | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
     | '/api/public/router-regression'
     | '/api/public/router-test'
@@ -836,6 +847,7 @@ export interface FileRouteTypes {
     | '/api/finnhub/stream'
     | '/api/public/email-config-check'
     | '/api/public/history-test'
+    | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
     | '/api/public/router-regression'
     | '/api/public/router-test'
@@ -913,6 +925,7 @@ export interface FileRouteTypes {
     | '/api/finnhub/stream'
     | '/api/public/email-config-check'
     | '/api/public/history-test'
+    | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
     | '/api/public/router-regression'
     | '/api/public/router-test'
@@ -941,6 +954,7 @@ export interface RootRouteChildren {
   ApiFinnhubStreamRoute: typeof ApiFinnhubStreamRoute
   ApiPublicEmailConfigCheckRoute: typeof ApiPublicEmailConfigCheckRoute
   ApiPublicHistoryTestRoute: typeof ApiPublicHistoryTestRoute
+  ApiPublicMarketIntelligenceRoute: typeof ApiPublicMarketIntelligenceRoute
   ApiPublicMoyasarWebhookRoute: typeof ApiPublicMoyasarWebhookRoute
   ApiPublicRouterRegressionRoute: typeof ApiPublicRouterRegressionRoute
   ApiPublicRouterTestRoute: typeof ApiPublicRouterTestRoute
@@ -1419,6 +1433,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMoyasarWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/market-intelligence': {
+      id: '/api/public/market-intelligence'
+      path: '/api/public/market-intelligence'
+      fullPath: '/api/public/market-intelligence'
+      preLoaderRoute: typeof ApiPublicMarketIntelligenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/history-test': {
       id: '/api/public/history-test'
       path: '/api/public/history-test'
@@ -1607,6 +1628,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFinnhubStreamRoute: ApiFinnhubStreamRoute,
   ApiPublicEmailConfigCheckRoute: ApiPublicEmailConfigCheckRoute,
   ApiPublicHistoryTestRoute: ApiPublicHistoryTestRoute,
+  ApiPublicMarketIntelligenceRoute: ApiPublicMarketIntelligenceRoute,
   ApiPublicMoyasarWebhookRoute: ApiPublicMoyasarWebhookRoute,
   ApiPublicRouterRegressionRoute: ApiPublicRouterRegressionRoute,
   ApiPublicRouterTestRoute: ApiPublicRouterTestRoute,
