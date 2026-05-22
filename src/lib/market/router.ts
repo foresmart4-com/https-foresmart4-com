@@ -22,7 +22,7 @@ import { getQuote as tdQuote } from "@/services/providers/twelvedata";
 import { getEquityQuote as avEquity, getFxRate as avFx } from "@/services/providers/alphavantage";
 import { getSahmkQuote } from "@/services/providers/sahmk";
 import { getFmpQuote } from "@/services/providers/fmp";
-import { getCommodityQuote } from "@/services/providers/commodityprice";
+import { getCommodityPriceQuote } from "@/services/providers/commodityprice";
 import { getFredQuote } from "@/services/providers/fred";
 import { translateSymbol, type ProviderKey } from "@/lib/market/symbol-map";
 import { supports, unsupportedReason, isRealtime } from "@/lib/market/capabilities";
@@ -629,7 +629,7 @@ async function runFmp(_asset: ResolvedAsset, sym: string): Promise<UpstreamResul
 }
 
 async function runCommodityPriceApi(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
-  const r = await getCommodityQuote(sym);
+  const r = await getCommodityPriceQuote(sym);
   if ("ok" in r && r.ok === false) {
     const err = new Error(`commodityprice: ${r.reason} — ${r.message}`);
     if (r.reason === "rate_limited") Object.assign(err, { rateLimited: true });
