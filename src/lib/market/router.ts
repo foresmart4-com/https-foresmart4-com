@@ -628,21 +628,20 @@ async function runFmp(_asset: ResolvedAsset, sym: string): Promise<UpstreamResul
   };
 }
 
-async function runCommodityPriceApi(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+async function runCommodityPrice(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
   const r = await getCommodityPriceQuote(sym);
-  if ("ok" in r && r.ok === false) {
-    const err = new Error(`commodityprice: ${r.reason} — ${r.message}`);
+  if (r.success === false) {
+    const err = new Error(`commodityprice: ${r.reason} — ${r.error}`);
     if (r.reason === "rate_limited") Object.assign(err, { rateLimited: true });
     throw err;
   }
-  const q = r as Exclude<typeof r, { ok: false }>;
   return {
-    price: q.price,
-    change: q.change,
-    changePercent: q.changePercent,
-    volume: q.volume,
-    timestamp: q.timestamp,
-    delayed: q.delayed,
+    price: r.price,
+    change: r.change,
+    changePercent: r.changePercent,
+    volume: r.volume,
+    timestamp: r.timestamp,
+    delayed: r.delayed,
   };
 }
 
