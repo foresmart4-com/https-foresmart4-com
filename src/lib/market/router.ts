@@ -95,6 +95,12 @@ export interface RouterQuote {
   translations?: Partial<Record<ProviderId, string>>;
   /** Providers skipped before any network call (capability mismatch, cooldown). */
   skippedProviders?: Array<{ provider: ProviderId; reason: string }>;
+  /** Diagnostics: which resolver rule classified this symbol. */
+  resolverMatchedBy?: string;
+  /** Diagnostics: human-readable rule description. */
+  resolverRule?: string;
+  /** Diagnostics: true when the returned quote was served from the in-memory cache. */
+  cacheHit?: boolean;
 }
 
 // ---------- Asset resolver ----------
