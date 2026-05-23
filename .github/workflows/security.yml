@@ -40,12 +40,17 @@ jobs:
           go-version: stable
 
       - name: Gitleaks secret scan
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE_SHA: ${{ github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.sha }}
         run: |
           go install github.com/zricethezav/gitleaks/v8@latest
-          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
-            LOG_OPTS="${{ github.event.before }}..${{ github.sha }}"
-          elif [ "${{ github.event_name }}" = "pull_request" ]; then
-            LOG_OPTS="origin/${{ github.base_ref }}..HEAD"
+          if [ "$EVENT_NAME" = "push" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+            LOG_OPTS="$BEFORE_SHA..$HEAD_SHA"
+          elif [ "$EVENT_NAME" = "pull_request" ]; then
+            LOG_OPTS="origin/$BASE_REF..HEAD"
           else
             LOG_OPTS="--all"
           fi

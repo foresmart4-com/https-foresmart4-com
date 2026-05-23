@@ -27,7 +27,7 @@ export interface EncryptedPayload {
 
 export function encryptSecret(plaintext: string): EncryptedPayload {
   const iv = randomBytes(12);
-  const cipher = createCipheriv(ALGO, getKey(), iv);
+  const cipher = createCipheriv(ALGO, getKey(), iv, { authTagLength: 16 });
   const enc = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
   return {
     ciphertext: enc.toString("base64"),
@@ -37,7 +37,7 @@ export function encryptSecret(plaintext: string): EncryptedPayload {
 }
 
 export function decryptSecret(p: EncryptedPayload): string {
-  const decipher = createDecipheriv(ALGO, getKey(), Buffer.from(p.iv, "base64"));
+  const decipher = createDecipheriv(ALGO, getKey(), Buffer.from(p.iv, "base64"), { authTagLength: 16 });
   decipher.setAuthTag(Buffer.from(p.authTag, "base64"));
   const dec = Buffer.concat([decipher.update(Buffer.from(p.ciphertext, "base64")), decipher.final()]);
   return dec.toString("utf8");
