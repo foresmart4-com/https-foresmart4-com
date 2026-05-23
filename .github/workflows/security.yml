@@ -35,10 +35,14 @@ jobs:
           }
 
       # 2. Secret scan — Gitleaks
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
       - name: Gitleaks secret scan
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          go install github.com/gitleaks/gitleaks/v8@latest
+          "$(go env GOPATH)/bin/gitleaks" detect --source . --redact --verbose
 
       # 3. Static analysis — Semgrep with security ruleset
       - name: Semgrep (OWASP + security-audit)
