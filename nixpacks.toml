@@ -1,0 +1,10 @@
+providers = ["node"]
+
+[phases.setup]
+nixPkgs = ["nodejs_22", "bun"]
+
+[phases.build]
+cmds = ["bun install --frozen-lockfile && bun run build"]
+
+[start]
+cmd = "node scripts/railway-start.mjs"
