@@ -97,20 +97,20 @@ function HeatmapPage() {
         getUniversalQuoteBatch({ data: { items: extras } }).catch(() => [] as any[]),
       ]);
       const arr: Cell[] = [];
-      m.assets.forEach((a) => arr.push({
+      (Array.isArray(m?.assets) ? m.assets : []).forEach((a) => arr.push({
         symbol: a.symbol, name: a.name,
         group: (a.category === "metals" ? "metals" : a.category === "currencies" ? "currencies" : "crypto") as Group,
         price: a.price, changePct: a.changePct,
         weight: Math.max(1, Math.log(a.volume || 1)),
         source: "Live", mode: "live", updatedAt: Date.now(),
       }));
-      s.stocks.forEach((a) => arr.push({
+      (Array.isArray(s?.stocks) ? s.stocks : []).forEach((a) => arr.push({
         symbol: a.symbol, name: a.name,
         group: (a.region === "saudi" ? "stocks-saudi" : "stocks-us") as Group,
         price: a.price, changePct: a.changePct, weight: 1,
         source: "Yahoo", mode: "live", updatedAt: Date.now(),
       }));
-      (batch as Array<{ symbol: string; name: string; category: string; price: number; changePct: number; source: string; mode: "live" | "delayed" | "manual" | "mock"; fetchedAt: number }>).forEach((q) => {
+      (Array.isArray(batch) ? batch as Array<{ symbol: string; name: string; category: string; price: number; changePct: number; source: string; mode: "live" | "delayed" | "manual" | "mock"; fetchedAt: number }> : []).forEach((q) => {
         if (!q.price) return;
         arr.push({
           symbol: q.symbol, name: q.name,

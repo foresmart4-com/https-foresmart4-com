@@ -70,10 +70,12 @@ import { Route as AppAlertCenterRouteImport } from './routes/_app/alert-center'
 import { Route as AppAiValidationRouteImport } from './routes/_app/ai-validation'
 import { Route as AppAiLearningRouteImport } from './routes/_app/ai-learning'
 import { Route as AppAiDashboardRouteImport } from './routes/_app/ai-dashboard'
+import { Route as AppAiRouteImport } from './routes/_app/ai'
 import { Route as AppAdvisorRouteImport } from './routes/_app/advisor'
 import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
 import { Route as ApiWebhooksPaddleRouteImport } from './routes/api/webhooks/paddle'
 import { Route as ApiWebhooksLemonsqueezyRouteImport } from './routes/api/webhooks/lemonsqueezy'
+import { Route as ApiPublicUiHealthRouteImport } from './routes/api/public/ui-health'
 import { Route as ApiPublicRouterTestRouteImport } from './routes/api/public/router-test'
 import { Route as ApiPublicRouterRegressionRouteImport } from './routes/api/public/router-regression'
 import { Route as ApiPublicMoyasarWebhookRouteImport } from './routes/api/public/moyasar-webhook'
@@ -420,6 +422,11 @@ const AppAiDashboardRoute = AppAiDashboardRouteImport.update({
   path: '/ai-dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAiRoute = AppAiRouteImport.update({
+  id: '/ai',
+  path: '/ai',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdvisorRoute = AppAdvisorRouteImport.update({
   id: '/advisor',
   path: '/advisor',
@@ -438,6 +445,11 @@ const ApiWebhooksPaddleRoute = ApiWebhooksPaddleRouteImport.update({
 const ApiWebhooksLemonsqueezyRoute = ApiWebhooksLemonsqueezyRouteImport.update({
   id: '/api/webhooks/lemonsqueezy',
   path: '/api/webhooks/lemonsqueezy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicUiHealthRoute = ApiPublicUiHealthRouteImport.update({
+  id: '/api/public/ui-health',
+  path: '/api/public/ui-health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicRouterTestRoute = ApiPublicRouterTestRouteImport.update({
@@ -686,6 +698,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/advisor': typeof AppAdvisorRoute
+  '/ai': typeof AppAiRoute
   '/ai-dashboard': typeof AppAiDashboardRoute
   '/ai-learning': typeof AppAiLearningRoute
   '/ai-validation': typeof AppAiValidationRoute
@@ -745,6 +758,7 @@ export interface FileRoutesByFullPath {
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
+  '/api/public/ui-health': typeof ApiPublicUiHealthRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
@@ -793,6 +807,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/advisor': typeof AppAdvisorRoute
+  '/ai': typeof AppAiRoute
   '/ai-dashboard': typeof AppAiDashboardRoute
   '/ai-learning': typeof AppAiLearningRoute
   '/ai-validation': typeof AppAiValidationRoute
@@ -852,6 +867,7 @@ export interface FileRoutesByTo {
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
+  '/api/public/ui-health': typeof ApiPublicUiHealthRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
@@ -902,6 +918,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/_app/advisor': typeof AppAdvisorRoute
+  '/_app/ai': typeof AppAiRoute
   '/_app/ai-dashboard': typeof AppAiDashboardRoute
   '/_app/ai-learning': typeof AppAiLearningRoute
   '/_app/ai-validation': typeof AppAiValidationRoute
@@ -961,6 +978,7 @@ export interface FileRoutesById {
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
+  '/api/public/ui-health': typeof ApiPublicUiHealthRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
@@ -1011,6 +1029,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/advisor'
+    | '/ai'
     | '/ai-dashboard'
     | '/ai-learning'
     | '/ai-validation'
@@ -1070,6 +1089,7 @@ export interface FileRouteTypes {
     | '/api/public/moyasar-webhook'
     | '/api/public/router-regression'
     | '/api/public/router-test'
+    | '/api/public/ui-health'
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
@@ -1118,6 +1138,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/advisor'
+    | '/ai'
     | '/ai-dashboard'
     | '/ai-learning'
     | '/ai-validation'
@@ -1177,6 +1198,7 @@ export interface FileRouteTypes {
     | '/api/public/moyasar-webhook'
     | '/api/public/router-regression'
     | '/api/public/router-test'
+    | '/api/public/ui-health'
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
@@ -1226,6 +1248,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/_app/advisor'
+    | '/_app/ai'
     | '/_app/ai-dashboard'
     | '/_app/ai-learning'
     | '/_app/ai-validation'
@@ -1285,6 +1308,7 @@ export interface FileRouteTypes {
     | '/api/public/moyasar-webhook'
     | '/api/public/router-regression'
     | '/api/public/router-test'
+    | '/api/public/ui-health'
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
@@ -1343,6 +1367,7 @@ export interface RootRouteChildren {
   ApiPublicMoyasarWebhookRoute: typeof ApiPublicMoyasarWebhookRoute
   ApiPublicRouterRegressionRoute: typeof ApiPublicRouterRegressionRoute
   ApiPublicRouterTestRoute: typeof ApiPublicRouterTestRoute
+  ApiPublicUiHealthRoute: typeof ApiPublicUiHealthRoute
   ApiWebhooksLemonsqueezyRoute: typeof ApiWebhooksLemonsqueezyRoute
   ApiWebhooksPaddleRoute: typeof ApiWebhooksPaddleRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
@@ -1808,6 +1833,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAiDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/ai': {
+      id: '/_app/ai'
+      path: '/ai'
+      fullPath: '/ai'
+      preLoaderRoute: typeof AppAiRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/advisor': {
       id: '/_app/advisor'
       path: '/advisor'
@@ -1834,6 +1866,13 @@ declare module '@tanstack/react-router' {
       path: '/api/webhooks/lemonsqueezy'
       fullPath: '/api/webhooks/lemonsqueezy'
       preLoaderRoute: typeof ApiWebhooksLemonsqueezyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/ui-health': {
+      id: '/api/public/ui-health'
+      path: '/api/public/ui-health'
+      fullPath: '/api/public/ui-health'
+      preLoaderRoute: typeof ApiPublicUiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/router-test': {
@@ -2128,6 +2167,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAdvisorRoute: typeof AppAdvisorRoute
+  AppAiRoute: typeof AppAiRoute
   AppAiDashboardRoute: typeof AppAiDashboardRoute
   AppAiLearningRoute: typeof AppAiLearningRoute
   AppAiValidationRoute: typeof AppAiValidationRoute
@@ -2182,6 +2222,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdvisorRoute: AppAdvisorRoute,
+  AppAiRoute: AppAiRoute,
   AppAiDashboardRoute: AppAiDashboardRoute,
   AppAiLearningRoute: AppAiLearningRoute,
   AppAiValidationRoute: AppAiValidationRoute,
@@ -2274,6 +2315,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMoyasarWebhookRoute: ApiPublicMoyasarWebhookRoute,
   ApiPublicRouterRegressionRoute: ApiPublicRouterRegressionRoute,
   ApiPublicRouterTestRoute: ApiPublicRouterTestRoute,
+  ApiPublicUiHealthRoute: ApiPublicUiHealthRoute,
   ApiWebhooksLemonsqueezyRoute: ApiWebhooksLemonsqueezyRoute,
   ApiWebhooksPaddleRoute: ApiWebhooksPaddleRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,

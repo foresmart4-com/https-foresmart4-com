@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -84,7 +85,7 @@ function InfoTip({ text }: { text: string }) {
 }
 
 export const Route = createFileRoute("/_app/market-intelligence")({
-  component: MarketIntelligencePage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل ذكاء السوق"><MarketIntelligencePage /></ErrorBoundary>,
   validateSearch: (s: Record<string, unknown>) => ({
     category: typeof s.category === "string" ? (s.category as IntelCategory) : undefined,
     symbol: typeof s.symbol === "string" ? s.symbol : undefined,

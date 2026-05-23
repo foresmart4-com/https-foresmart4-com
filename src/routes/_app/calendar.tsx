@@ -143,7 +143,7 @@ function CalendarPage() {
     setError(null);
     try {
       const data = await getEconomicEvents();
-      setEvents(data.events as EvtItem[]);
+      setEvents(Array.isArray(data?.events) ? data.events as EvtItem[] : []);
       setSource(data.source || "");
       setMode((data.mode as "live" | "delayed" | "mock") || "mock");
       setLastUpdated(Date.now());

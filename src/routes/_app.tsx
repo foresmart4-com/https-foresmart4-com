@@ -83,7 +83,6 @@ function AppLayout() {
     { to: "/growth-plan", icon: Sprout, label: t("nav.growthPlan"), hint: hint("خطة نمو رأس المال", "Capital growth plan") },
     { to: "/alerts", icon: Bell, label: t("nav.alerts"), hint: hint("التنبيهات", "Alerts") },
     { to: "/alert-center", icon: Bell, label: t("nav.alertCenter"), hint: hint("مركز التنبيهات", "Alert center") },
-    { to: "/portfolio-ai", icon: Briefcase, label: t("nav.portfolioAI"), hint: hint("محفظة مدعومة بالذكاء", "AI-driven portfolio") },
     { to: "/genesis-100", icon: Brain, label: "ForeSmart Genesis 100", hint: hint("محفظة عالمية مدارة بالذكاء الاصطناعي - تداول تجريبي فقط", "AI-managed global portfolio - paper trading only") },
     { to: "/ai-learning", icon: Brain, label: t("nav.aiLearning"), hint: hint("تعلم الذكاء الاصطناعي", "AI learning lab") },
     { to: "/market-intelligence", icon: Brain, label: hint("ذكاء السوق", "Market Intelligence"), hint: hint("ذكاء السوق المتقدم", "Advanced market intelligence") },

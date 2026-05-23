@@ -107,8 +107,8 @@ function SubscriptionPage() {
           <ShieldAlert className="h-4 w-4" />
           <AlertDescription>
             {lang === "ar"
-              ? "لا توجد بوابة دفع مفعّلة حالياً. لا يمكن إتمام الاشتراك حتى يتم إعداد Stripe أو PayPal أو Moyasar."
-              : "No payment provider is configured. Subscriptions are disabled until Stripe, PayPal, or Moyasar is enabled."}
+              ? "لا توجد بوابة دفع مفعّلة حالياً. لا يمكن تفعيل الوصول حتى يتم إعداد Stripe أو PayPal أو Moyasar."
+              : "No payment provider is configured. Access management disabled until Stripe, PayPal, or Moyasar is enabled."}
           </AlertDescription>
         </Alert>
       )}
@@ -206,8 +206,8 @@ function SubscriptionPage() {
           </div>
           <p className="mb-4 text-sm text-muted-foreground">
             {lang === "ar"
-              ? "اختر طريقة الدفع. لن يتم خصم أي مبلغ خلال فترة التجربة عبر البطاقة."
-              : "Choose a payment method. Card subscriptions include a 14-day free trial."}
+              ? "اختر طريقة تفعيل الوصول الداخلي."
+              : "Choose a payment method. Card-based access activation."}
           </p>
           <StripeSubscriptionCheckout priceId={selectedPrice} returnUrl={`${window.location.origin}/subscription?checkout=success`} />
           <div className="my-4 flex items-center gap-3 text-xs uppercase text-muted-foreground">
@@ -326,7 +326,7 @@ function PlanGrid({ plans, accent, priceMap, lang, onPick, disabled }: {
             <Button className="mt-6 w-full" variant={isHighlight ? "default" : "outline"}
               disabled={!priceId || disabled} onClick={() => priceId && onPick(priceId)}>
               {disabled
-                ? (lang === "ar" ? "مشترك حالياً" : "Already subscribed")
+                ? (lang === "ar" ? "الوصول مفعل" : "Access active")
                 : (lang === "ar" ? "تفعيل الباقة الداخلية" : "Activate internal plan")}
             </Button>
           </Card>

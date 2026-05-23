@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
@@ -14,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/signals")({
-  component: SignalsPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الإشارات"><SignalsPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Trading Signals — ForeSmart" },

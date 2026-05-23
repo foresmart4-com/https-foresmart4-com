@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,7 +31,7 @@ import {
 import { AILearningInsightsPanel } from "@/components/ai-learning/AILearningInsightsPanel";
 
 export const Route = createFileRoute("/_app/ai-learning")({
-  component: AILearningPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل مختبر التعلم"><AILearningPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "AI Learning — ForeSmart" },
