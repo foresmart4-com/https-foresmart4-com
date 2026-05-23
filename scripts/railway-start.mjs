@@ -112,6 +112,22 @@ const ctx = {
 createServer(async (req, res) => {
   try {
     const url = new URL(requestUrl(req));
+    console.log("[railway-request]", req.method, req.url);
+
+    if (url.pathname === "/api/ping") {
+      res.statusCode = 200;
+      res.setHeader("content-type", "application/json");
+      res.setHeader("cache-control", "no-store");
+      res.end(JSON.stringify({
+        ok: true,
+        source: "railway-start-direct",
+        apiRouting: true,
+        commit: process.env.RAILWAY_GIT_COMMIT_SHA ?? "unknown",
+        timestamp: new Date().toISOString(),
+      }));
+      return;
+    }
+
     const asset = staticResponse(url.pathname, req.method ?? "GET");
     const response = asset ?? await worker.fetch(toFetchRequest(req), process.env, ctx);
     await writeNodeResponse(res, response);
