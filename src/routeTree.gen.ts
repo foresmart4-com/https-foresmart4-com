@@ -44,6 +44,7 @@ import { Route as AppHelpRouteImport } from './routes/_app/help'
 import { Route as AppHeatmapRouteImport } from './routes/_app/heatmap'
 import { Route as AppGrowthPlanRouteImport } from './routes/_app/growth-plan'
 import { Route as AppGlobalIntelRouteImport } from './routes/_app/global-intel'
+import { Route as AppGenesis100RouteImport } from './routes/_app/genesis-100'
 import { Route as AppExternalAccountsRouteImport } from './routes/_app/external-accounts'
 import { Route as AppErrorLogsRouteImport } from './routes/_app/error-logs'
 import { Route as AppEmailMonitorRouteImport } from './routes/_app/email-monitor'
@@ -84,6 +85,13 @@ import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/em
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicPaymentsPaypalWebhookRouteImport } from './routes/api/public/payments/paypal-webhook'
+import { Route as ApiPublicGenesis100UniverseRouteImport } from './routes/api/public/genesis100/universe'
+import { Route as ApiPublicGenesis100StatusRouteImport } from './routes/api/public/genesis100/status'
+import { Route as ApiPublicGenesis100RunCycleRouteImport } from './routes/api/public/genesis100/run-cycle'
+import { Route as ApiPublicGenesis100ReportRouteImport } from './routes/api/public/genesis100/report'
+import { Route as ApiPublicGenesis100DecisionsRouteImport } from './routes/api/public/genesis100/decisions'
+import { Route as ApiPublicGenesis100AnalyzeRouteImport } from './routes/api/public/genesis100/analyze'
+import { Route as ApiPublicGenesis100AllocationsRouteImport } from './routes/api/public/genesis100/allocations'
 import { Route as ApiPublicAlertsEvaluateRouteImport } from './routes/api/public/alerts/evaluate'
 
 const TermsRoute = TermsRouteImport.update({
@@ -258,6 +266,11 @@ const AppGrowthPlanRoute = AppGrowthPlanRouteImport.update({
 const AppGlobalIntelRoute = AppGlobalIntelRouteImport.update({
   id: '/global-intel',
   path: '/global-intel',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGenesis100Route = AppGenesis100RouteImport.update({
+  id: '/genesis-100',
+  path: '/genesis-100',
   getParentRoute: () => AppRoute,
 } as any)
 const AppExternalAccountsRoute = AppExternalAccountsRouteImport.update({
@@ -466,6 +479,48 @@ const ApiPublicPaymentsPaypalWebhookRoute =
     path: '/api/public/payments/paypal-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicGenesis100UniverseRoute =
+  ApiPublicGenesis100UniverseRouteImport.update({
+    id: '/api/public/genesis100/universe',
+    path: '/api/public/genesis100/universe',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100StatusRoute =
+  ApiPublicGenesis100StatusRouteImport.update({
+    id: '/api/public/genesis100/status',
+    path: '/api/public/genesis100/status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100RunCycleRoute =
+  ApiPublicGenesis100RunCycleRouteImport.update({
+    id: '/api/public/genesis100/run-cycle',
+    path: '/api/public/genesis100/run-cycle',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100ReportRoute =
+  ApiPublicGenesis100ReportRouteImport.update({
+    id: '/api/public/genesis100/report',
+    path: '/api/public/genesis100/report',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100DecisionsRoute =
+  ApiPublicGenesis100DecisionsRouteImport.update({
+    id: '/api/public/genesis100/decisions',
+    path: '/api/public/genesis100/decisions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100AnalyzeRoute =
+  ApiPublicGenesis100AnalyzeRouteImport.update({
+    id: '/api/public/genesis100/analyze',
+    path: '/api/public/genesis100/analyze',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100AllocationsRoute =
+  ApiPublicGenesis100AllocationsRouteImport.update({
+    id: '/api/public/genesis100/allocations',
+    path: '/api/public/genesis100/allocations',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicAlertsEvaluateRoute = ApiPublicAlertsEvaluateRouteImport.update({
   id: '/api/public/alerts/evaluate',
   path: '/api/public/alerts/evaluate',
@@ -507,6 +562,7 @@ export interface FileRoutesByFullPath {
   '/email-monitor': typeof AppEmailMonitorRoute
   '/error-logs': typeof AppErrorLogsRoute
   '/external-accounts': typeof AppExternalAccountsRoute
+  '/genesis-100': typeof AppGenesis100Route
   '/global-intel': typeof AppGlobalIntelRoute
   '/growth-plan': typeof AppGrowthPlanRoute
   '/heatmap': typeof AppHeatmapRoute
@@ -543,6 +599,13 @@ export interface FileRoutesByFullPath {
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
+  '/api/public/genesis100/allocations': typeof ApiPublicGenesis100AllocationsRoute
+  '/api/public/genesis100/analyze': typeof ApiPublicGenesis100AnalyzeRoute
+  '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
+  '/api/public/genesis100/report': typeof ApiPublicGenesis100ReportRoute
+  '/api/public/genesis100/run-cycle': typeof ApiPublicGenesis100RunCycleRoute
+  '/api/public/genesis100/status': typeof ApiPublicGenesis100StatusRoute
+  '/api/public/genesis100/universe': typeof ApiPublicGenesis100UniverseRoute
   '/api/public/payments/paypal-webhook': typeof ApiPublicPaymentsPaypalWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -584,6 +647,7 @@ export interface FileRoutesByTo {
   '/email-monitor': typeof AppEmailMonitorRoute
   '/error-logs': typeof AppErrorLogsRoute
   '/external-accounts': typeof AppExternalAccountsRoute
+  '/genesis-100': typeof AppGenesis100Route
   '/global-intel': typeof AppGlobalIntelRoute
   '/growth-plan': typeof AppGrowthPlanRoute
   '/heatmap': typeof AppHeatmapRoute
@@ -620,6 +684,13 @@ export interface FileRoutesByTo {
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
+  '/api/public/genesis100/allocations': typeof ApiPublicGenesis100AllocationsRoute
+  '/api/public/genesis100/analyze': typeof ApiPublicGenesis100AnalyzeRoute
+  '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
+  '/api/public/genesis100/report': typeof ApiPublicGenesis100ReportRoute
+  '/api/public/genesis100/run-cycle': typeof ApiPublicGenesis100RunCycleRoute
+  '/api/public/genesis100/status': typeof ApiPublicGenesis100StatusRoute
+  '/api/public/genesis100/universe': typeof ApiPublicGenesis100UniverseRoute
   '/api/public/payments/paypal-webhook': typeof ApiPublicPaymentsPaypalWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -663,6 +734,7 @@ export interface FileRoutesById {
   '/_app/email-monitor': typeof AppEmailMonitorRoute
   '/_app/error-logs': typeof AppErrorLogsRoute
   '/_app/external-accounts': typeof AppExternalAccountsRoute
+  '/_app/genesis-100': typeof AppGenesis100Route
   '/_app/global-intel': typeof AppGlobalIntelRoute
   '/_app/growth-plan': typeof AppGrowthPlanRoute
   '/_app/heatmap': typeof AppHeatmapRoute
@@ -699,6 +771,13 @@ export interface FileRoutesById {
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
+  '/api/public/genesis100/allocations': typeof ApiPublicGenesis100AllocationsRoute
+  '/api/public/genesis100/analyze': typeof ApiPublicGenesis100AnalyzeRoute
+  '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
+  '/api/public/genesis100/report': typeof ApiPublicGenesis100ReportRoute
+  '/api/public/genesis100/run-cycle': typeof ApiPublicGenesis100RunCycleRoute
+  '/api/public/genesis100/status': typeof ApiPublicGenesis100StatusRoute
+  '/api/public/genesis100/universe': typeof ApiPublicGenesis100UniverseRoute
   '/api/public/payments/paypal-webhook': typeof ApiPublicPaymentsPaypalWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -742,6 +821,7 @@ export interface FileRouteTypes {
     | '/email-monitor'
     | '/error-logs'
     | '/external-accounts'
+    | '/genesis-100'
     | '/global-intel'
     | '/growth-plan'
     | '/heatmap'
@@ -778,6 +858,13 @@ export interface FileRouteTypes {
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
     | '/api/public/alerts/evaluate'
+    | '/api/public/genesis100/allocations'
+    | '/api/public/genesis100/analyze'
+    | '/api/public/genesis100/decisions'
+    | '/api/public/genesis100/report'
+    | '/api/public/genesis100/run-cycle'
+    | '/api/public/genesis100/status'
+    | '/api/public/genesis100/universe'
     | '/api/public/payments/paypal-webhook'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
@@ -819,6 +906,7 @@ export interface FileRouteTypes {
     | '/email-monitor'
     | '/error-logs'
     | '/external-accounts'
+    | '/genesis-100'
     | '/global-intel'
     | '/growth-plan'
     | '/heatmap'
@@ -855,6 +943,13 @@ export interface FileRouteTypes {
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
     | '/api/public/alerts/evaluate'
+    | '/api/public/genesis100/allocations'
+    | '/api/public/genesis100/analyze'
+    | '/api/public/genesis100/decisions'
+    | '/api/public/genesis100/report'
+    | '/api/public/genesis100/run-cycle'
+    | '/api/public/genesis100/status'
+    | '/api/public/genesis100/universe'
     | '/api/public/payments/paypal-webhook'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
@@ -897,6 +992,7 @@ export interface FileRouteTypes {
     | '/_app/email-monitor'
     | '/_app/error-logs'
     | '/_app/external-accounts'
+    | '/_app/genesis-100'
     | '/_app/global-intel'
     | '/_app/growth-plan'
     | '/_app/heatmap'
@@ -933,6 +1029,13 @@ export interface FileRouteTypes {
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
     | '/api/public/alerts/evaluate'
+    | '/api/public/genesis100/allocations'
+    | '/api/public/genesis100/analyze'
+    | '/api/public/genesis100/decisions'
+    | '/api/public/genesis100/report'
+    | '/api/public/genesis100/run-cycle'
+    | '/api/public/genesis100/status'
+    | '/api/public/genesis100/universe'
     | '/api/public/payments/paypal-webhook'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
@@ -962,6 +1065,13 @@ export interface RootRouteChildren {
   ApiWebhooksPaddleRoute: typeof ApiWebhooksPaddleRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
   ApiPublicAlertsEvaluateRoute: typeof ApiPublicAlertsEvaluateRoute
+  ApiPublicGenesis100AllocationsRoute: typeof ApiPublicGenesis100AllocationsRoute
+  ApiPublicGenesis100AnalyzeRoute: typeof ApiPublicGenesis100AnalyzeRoute
+  ApiPublicGenesis100DecisionsRoute: typeof ApiPublicGenesis100DecisionsRoute
+  ApiPublicGenesis100ReportRoute: typeof ApiPublicGenesis100ReportRoute
+  ApiPublicGenesis100RunCycleRoute: typeof ApiPublicGenesis100RunCycleRoute
+  ApiPublicGenesis100StatusRoute: typeof ApiPublicGenesis100StatusRoute
+  ApiPublicGenesis100UniverseRoute: typeof ApiPublicGenesis100UniverseRoute
   ApiPublicPaymentsPaypalWebhookRoute: typeof ApiPublicPaymentsPaypalWebhookRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -1214,6 +1324,13 @@ declare module '@tanstack/react-router' {
       path: '/global-intel'
       fullPath: '/global-intel'
       preLoaderRoute: typeof AppGlobalIntelRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/genesis-100': {
+      id: '/_app/genesis-100'
+      path: '/genesis-100'
+      fullPath: '/genesis-100'
+      preLoaderRoute: typeof AppGenesis100RouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/external-accounts': {
@@ -1496,6 +1613,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsPaypalWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/genesis100/universe': {
+      id: '/api/public/genesis100/universe'
+      path: '/api/public/genesis100/universe'
+      fullPath: '/api/public/genesis100/universe'
+      preLoaderRoute: typeof ApiPublicGenesis100UniverseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/status': {
+      id: '/api/public/genesis100/status'
+      path: '/api/public/genesis100/status'
+      fullPath: '/api/public/genesis100/status'
+      preLoaderRoute: typeof ApiPublicGenesis100StatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/run-cycle': {
+      id: '/api/public/genesis100/run-cycle'
+      path: '/api/public/genesis100/run-cycle'
+      fullPath: '/api/public/genesis100/run-cycle'
+      preLoaderRoute: typeof ApiPublicGenesis100RunCycleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/report': {
+      id: '/api/public/genesis100/report'
+      path: '/api/public/genesis100/report'
+      fullPath: '/api/public/genesis100/report'
+      preLoaderRoute: typeof ApiPublicGenesis100ReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/decisions': {
+      id: '/api/public/genesis100/decisions'
+      path: '/api/public/genesis100/decisions'
+      fullPath: '/api/public/genesis100/decisions'
+      preLoaderRoute: typeof ApiPublicGenesis100DecisionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/analyze': {
+      id: '/api/public/genesis100/analyze'
+      path: '/api/public/genesis100/analyze'
+      fullPath: '/api/public/genesis100/analyze'
+      preLoaderRoute: typeof ApiPublicGenesis100AnalyzeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/allocations': {
+      id: '/api/public/genesis100/allocations'
+      path: '/api/public/genesis100/allocations'
+      fullPath: '/api/public/genesis100/allocations'
+      preLoaderRoute: typeof ApiPublicGenesis100AllocationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/alerts/evaluate': {
       id: '/api/public/alerts/evaluate'
       path: '/api/public/alerts/evaluate'
@@ -1532,6 +1698,7 @@ interface AppRouteChildren {
   AppEmailMonitorRoute: typeof AppEmailMonitorRoute
   AppErrorLogsRoute: typeof AppErrorLogsRoute
   AppExternalAccountsRoute: typeof AppExternalAccountsRoute
+  AppGenesis100Route: typeof AppGenesis100Route
   AppGlobalIntelRoute: typeof AppGlobalIntelRoute
   AppGrowthPlanRoute: typeof AppGrowthPlanRoute
   AppHeatmapRoute: typeof AppHeatmapRoute
@@ -1585,6 +1752,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppEmailMonitorRoute: AppEmailMonitorRoute,
   AppErrorLogsRoute: AppErrorLogsRoute,
   AppExternalAccountsRoute: AppExternalAccountsRoute,
+  AppGenesis100Route: AppGenesis100Route,
   AppGlobalIntelRoute: AppGlobalIntelRoute,
   AppGrowthPlanRoute: AppGrowthPlanRoute,
   AppHeatmapRoute: AppHeatmapRoute,
@@ -1636,6 +1804,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWebhooksPaddleRoute: ApiWebhooksPaddleRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
   ApiPublicAlertsEvaluateRoute: ApiPublicAlertsEvaluateRoute,
+  ApiPublicGenesis100AllocationsRoute: ApiPublicGenesis100AllocationsRoute,
+  ApiPublicGenesis100AnalyzeRoute: ApiPublicGenesis100AnalyzeRoute,
+  ApiPublicGenesis100DecisionsRoute: ApiPublicGenesis100DecisionsRoute,
+  ApiPublicGenesis100ReportRoute: ApiPublicGenesis100ReportRoute,
+  ApiPublicGenesis100RunCycleRoute: ApiPublicGenesis100RunCycleRoute,
+  ApiPublicGenesis100StatusRoute: ApiPublicGenesis100StatusRoute,
+  ApiPublicGenesis100UniverseRoute: ApiPublicGenesis100UniverseRoute,
   ApiPublicPaymentsPaypalWebhookRoute: ApiPublicPaymentsPaypalWebhookRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
@@ -1645,3 +1820,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
