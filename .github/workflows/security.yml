@@ -42,7 +42,14 @@ jobs:
       - name: Gitleaks secret scan
         run: |
           go install github.com/zricethezav/gitleaks/v8@latest
-          "$(go env GOPATH)/bin/gitleaks" detect --source . --redact --verbose
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            LOG_OPTS="${{ github.event.before }}..${{ github.sha }}"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            LOG_OPTS="origin/${{ github.base_ref }}..HEAD"
+          else
+            LOG_OPTS="--all"
+          fi
+          "$(go env GOPATH)/bin/gitleaks" detect --source . --log-opts="$LOG_OPTS" --redact --verbose
 
       # 3. Static analysis — Semgrep with security ruleset
       - name: Semgrep (OWASP + security-audit)
