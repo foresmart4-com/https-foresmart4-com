@@ -2,7 +2,7 @@ import { routeQuote, resolveAsset, type AssetClass, type RouterQuote } from "@/l
 
 export type GenesisStatus = "draft" | "active_analysis" | "paper_trading" | "execution_ready" | "paused";
 export type GenesisRiskProfile = "conservative" | "balanced" | "growth";
-export type GenesisRecommendation = "include" | "hold" | "reduce" | "remove" | "watch";
+export type GenesisRecommendation = "strong_buy" | "buy" | "accumulate" | "hold" | "reduce" | "exit" | "watch" | "blocked";
 export type GenesisExecutionMode = "analysis_only" | "paper" | "live_blocked" | "live";
 export type GenesisReportPeriod = "hourly" | "daily" | "weekly" | "monthly" | "quarterly" | "semiannual" | "annual";
 export type GenesisAIMode = "off" | "semi_ai" | "full_ai";
@@ -96,7 +96,38 @@ export interface GenesisScore {
   newsSentimentScore: number;
   confidenceScore: number;
   finalGenesisScore: number;
+  priceMomentumScore: number;
+  trendStrengthScore: number;
+  volatilityScore: number;
+  macroSensitivityScore: number;
+  riskAdjustedReturnScore: number;
+  drawdownRiskScore: number;
+  correlationRiskScore: number;
+  newsImpactScore: number;
+  sentimentScore: number;
+  fundamentalsScore: number;
+  sectorStrengthScore: number;
+  technicalStructureScore: number;
+  capitalEfficiencyScore: number;
+  stopLossScore: number;
+  takeProfitScore: number;
+  timingScore: number;
+  finalDecisionScore: number;
+  decisionConfidencePercent: number;
+  decisionStrengthPercent: number;
+  expectedUpsidePercent: number | null;
+  expectedDownsidePercent: number | null;
+  riskPercent: number;
+  allocationConfidencePercent: number;
   recommendation: GenesisRecommendation;
+  primaryReason: string;
+  supportingReasons: string[];
+  riskWarnings: string[];
+  dataQuality: "high" | "medium" | "low";
+  dataFreshness: "live" | "delayed" | "stale";
+  providerReliability: number;
+  aiDecisionSummaryAr: string;
+  aiDecisionSummaryEn: string;
   quoteSnapshot: Partial<RouterQuote>;
   dataSources: string[];
   riskNotes: string[];
@@ -110,6 +141,11 @@ export interface GenesisAllocation {
   targetWeight: number;
   targetValue: number;
   finalGenesisScore: number;
+  allocationConfidencePercent: number;
+  decisionConfidencePercent: number;
+  riskPercent: number;
+  action: GenesisRecommendation | "increase" | "decrease";
+  reason: string;
   recommendation: GenesisRecommendation;
 }
 
@@ -139,7 +175,48 @@ export interface GenesisDecision {
   executionMode: GenesisExecutionMode;
 }
 
+export interface GenesisPortfolioDecision {
+  marketRegime: "risk_on" | "risk_off" | "mixed" | "defensive";
+  portfolioRiskLevel: "low" | "medium" | "high";
+  recommendedCashReserve: number;
+  topOpportunities: string[];
+  topRisks: string[];
+  assetsToIncrease: string[];
+  assetsToReduce: string[];
+  assetsToRemove: string[];
+  assetsToWatch: string[];
+  rebalanceUrgency: "low" | "medium" | "high" | "emergency";
+  nextReviewAt: string;
+  aiPortfolioSummaryAr: string;
+  aiPortfolioSummaryEn: string;
+}
+
+export interface GenesisArchivedDecision {
+  id: string;
+  timestamp: string;
+  cycleId: string;
+  symbol: string;
+  assetName: string;
+  assetClass: AssetClass;
+  previousRecommendation: GenesisRecommendation | null;
+  newRecommendation: GenesisRecommendation;
+  decisionConfidencePercent: number;
+  finalDecisionScore: number;
+  targetWeight: number;
+  previousWeight: number;
+  action: GenesisRecommendation | "increase" | "decrease";
+  reasonAr: string;
+  reasonEn: string;
+  dataSources: string[];
+  quoteSnapshot: Partial<RouterQuote>;
+  riskWarnings: string[];
+  aiMode: GenesisAIMode;
+  executionMode: GenesisExecutionMode;
+  createdBy: "genesis100-ai";
+}
+
 export interface GenesisCycleResult {
+  cycleId: string;
   timestamp: string;
   wallet: GenesisWallet;
   liveExecutionEnabled: false;
@@ -156,6 +233,9 @@ export interface GenesisCycleResult {
   paperOrders: GenesisOrder[];
   realOrders: GenesisOrder[];
   decisions: GenesisDecision[];
+  portfolioDecision: GenesisPortfolioDecision;
+  decisionArchiveCount: number;
+  topDecisions: GenesisArchivedDecision[];
   riskWarnings: string[];
   rebalancePolicy: {
     lightReview: "daily";
@@ -236,9 +316,12 @@ const STATE: {
   controls: GenesisControls;
   notifications: GenesisNotificationPreferences;
   currentWeights: Record<string, number>;
+  previousRecommendations: Record<string, GenesisRecommendation>;
   lastScores: GenesisScore[];
   lastAllocations: GenesisAllocation[];
   decisions: GenesisDecision[];
+  decisionArchive: GenesisArchivedDecision[];
+  lastPortfolioDecision: GenesisPortfolioDecision | null;
   lastCycle: GenesisCycleResult | null;
 } = {
   wallet: {
@@ -275,9 +358,12 @@ const STATE: {
       : "SMS provider is not configured",
   },
   currentWeights: {},
+  previousRecommendations: {},
   lastScores: [],
   lastAllocations: [],
   decisions: [],
+  decisionArchive: [],
+  lastPortfolioDecision: null,
   lastCycle: null,
 };
 
@@ -451,6 +537,28 @@ function bucketFor(symbol: string, assetClass: AssetClass): GenesisUniverseAsset
   return "us_stock";
 }
 
+function recommendationFor(score: number, riskPercent: number, quoteSuccess: boolean): GenesisRecommendation {
+  if (!quoteSuccess) return "watch";
+  if (riskPercent >= 78) return "blocked";
+  if (score >= 82) return "strong_buy";
+  if (score >= 72) return "buy";
+  if (score >= 63) return "accumulate";
+  if (score >= 50) return "hold";
+  if (score >= 40) return "reduce";
+  return "exit";
+}
+
+function actionFor(recommendation: GenesisRecommendation, oldWeight: number, newWeight: number): GenesisAllocation["action"] {
+  if (newWeight > oldWeight + 0.002) return "increase";
+  if (newWeight < oldWeight - 0.002) return "decrease";
+  return recommendation;
+}
+
+function nextReviewDate(urgency: GenesisPortfolioDecision["rebalanceUrgency"]): string {
+  const hours = urgency === "emergency" ? 1 : urgency === "high" ? 6 : urgency === "medium" ? 24 : 72;
+  return new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+}
+
 function genesisQuoteTimeoutMs(symbol: string): number {
   return ["EURUSD", "XAUUSD", "XAGUSD", "DXY"].includes(symbol.toUpperCase()) ? 2800 : 5500;
 }
@@ -488,15 +596,29 @@ function scoreAsset(asset: GenesisUniverseAsset, quote: RouterQuote): GenesisSco
   const changePercent = typeof quote.changePercent === "number" ? quote.changePercent : 0;
   const absChange = Math.abs(changePercent);
 
-  const momentumScore = clamp(50 + changePercent * 6);
-  const trendScore = clamp(50 + changePercent * 4 + (quote.success ? 8 : -12));
+  const priceMomentumScore = clamp(50 + changePercent * 6);
+  const trendStrengthScore = clamp(50 + changePercent * 4 + (quote.success ? 8 : -12));
   const bucketRisk = bucket === "crypto" ? 30 : bucket === "commodity" ? 22 : bucket === "forex" ? 14 : bucket === "saudi_stock" ? 18 : 12;
   const volatilityRisk = clamp(bucketRisk + absChange * 3);
+  const volatilityScore = clamp(100 - volatilityRisk);
   const liquidityScore = quote.volume && quote.volume > 0
     ? clamp(55 + Math.log10(Number(quote.volume) + 1) * 6)
     : quote.success ? 58 : 25;
   const macroScore = bucket === "macro" ? 62 : bucket === "etf" ? 64 : bucket === "forex" ? 55 : 58;
-  const newsSentimentScore = 50;
+  const macroSensitivityScore = clamp(bucket === "macro" ? 82 : bucket === "commodity" || bucket === "forex" ? 68 : bucket === "crypto" ? 61 : 54);
+  const newsImpactScore = clamp(bucket === "us_stock" || bucket === "saudi_stock" ? 58 : 50);
+  const sentimentScore = clamp(50 + changePercent * 2);
+  const newsSentimentScore = sentimentScore;
+  const fundamentalsScore = clamp(bucket === "crypto" || bucket === "forex" ? 50 : bucket === "etf" ? 68 : quote.success ? 62 : 40);
+  const sectorStrengthScore = clamp(bucket === "etf" ? 66 : bucket === "commodity" ? 60 : bucket === "crypto" ? 58 : 57 + changePercent);
+  const technicalStructureScore = clamp((priceMomentumScore + trendStrengthScore + volatilityScore) / 3);
+  const capitalEfficiencyScore = clamp((liquidityScore + fundamentalsScore + technicalStructureScore) / 3);
+  const riskAdjustedReturnScore = clamp((priceMomentumScore * 0.45) + (trendStrengthScore * 0.25) + (volatilityScore * 0.30));
+  const drawdownRiskScore = clamp(100 - volatilityRisk - Math.max(0, -changePercent) * 4);
+  const correlationRiskScore = clamp(bucket === "crypto" ? 58 : bucket === "commodity" ? 64 : bucket === "forex" ? 68 : bucket === "etf" ? 72 : 70);
+  const stopLossScore = clamp(drawdownRiskScore * 0.7 + volatilityScore * 0.3);
+  const takeProfitScore = clamp(priceMomentumScore * 0.5 + trendStrengthScore * 0.3 + sentimentScore * 0.2);
+  const timingScore = clamp(priceMomentumScore * 0.35 + trendStrengthScore * 0.35 + volatilityScore * 0.15 + liquidityScore * 0.15);
   const confidenceScore = clamp(
     (quote.success ? 68 : 25) +
     (quote.provider ? 12 : 0) +
@@ -504,22 +626,33 @@ function scoreAsset(asset: GenesisUniverseAsset, quote: RouterQuote): GenesisSco
     (quote.fallbackUsed ? 5 : 0),
   );
 
-  const finalGenesisScore = clamp(
-    momentumScore * 0.20 +
-    trendScore * 0.20 +
-    (100 - volatilityRisk) * 0.15 +
-    liquidityScore * 0.15 +
-    macroScore * 0.10 +
-    newsSentimentScore * 0.05 +
-    confidenceScore * 0.15,
+  const finalDecisionScore = clamp(
+    priceMomentumScore * 0.10 +
+    trendStrengthScore * 0.10 +
+    volatilityScore * 0.08 +
+    liquidityScore * 0.08 +
+    macroSensitivityScore * 0.06 +
+    riskAdjustedReturnScore * 0.12 +
+    drawdownRiskScore * 0.07 +
+    correlationRiskScore * 0.05 +
+    newsImpactScore * 0.04 +
+    sentimentScore * 0.05 +
+    fundamentalsScore * 0.06 +
+    sectorStrengthScore * 0.04 +
+    technicalStructureScore * 0.06 +
+    capitalEfficiencyScore * 0.04 +
+    stopLossScore * 0.03 +
+    takeProfitScore * 0.03 +
+    timingScore * 0.05 +
+    confidenceScore * 0.04,
   );
-
-  const recommendation: GenesisRecommendation =
-    !quote.success ? "watch" :
-    finalGenesisScore >= 72 ? "include" :
-    finalGenesisScore >= 58 ? "hold" :
-    finalGenesisScore >= 45 ? "reduce" :
-    "remove";
+  const riskPercent = clamp(100 - ((volatilityScore * 0.35) + (drawdownRiskScore * 0.35) + (correlationRiskScore * 0.30)));
+  const decisionConfidencePercent = round(confidenceScore, 2);
+  const decisionStrengthPercent = round(clamp(Math.abs(finalDecisionScore - 50) * 2), 2);
+  const expectedUpsidePercent = quote.success ? round(Math.max(1, (takeProfitScore - 50) / 2.5), 2) : null;
+  const expectedDownsidePercent = quote.success ? round(Math.max(1, riskPercent / 3), 2) : null;
+  const allocationConfidencePercent = round(clamp((finalDecisionScore * 0.55) + (confidenceScore * 0.35) + (liquidityScore * 0.10)), 2);
+  const recommendation = recommendationFor(finalDecisionScore, riskPercent, quote.success);
 
   const riskNotes = [
     ...(!quote.success ? [`Quote unavailable: ${quote.error ?? "unknown provider failure"}`] : []),
@@ -527,6 +660,19 @@ function scoreAsset(asset: GenesisUniverseAsset, quote: RouterQuote): GenesisSco
     ...(bucket === "crypto" ? ["Crypto exposure capped at 15%"] : []),
     ...(bucket === "commodity" ? ["Commodity exposure capped at 20%"] : []),
   ];
+  const dataQuality: GenesisScore["dataQuality"] = quote.success && confidenceScore >= 75 ? "high" : quote.success ? "medium" : "low";
+  const dataFreshness: GenesisScore["dataFreshness"] = quote.mode === "live" ? "live" : quote.mode === "delayed" ? "delayed" : "stale";
+  const providerReliability = round(clamp((quote.provider ? 70 : 25) + (quote.success ? 15 : -10) - (quote.fallbackUsed ? 8 : 0)), 2);
+  const primaryReason = quote.success
+    ? `${recommendation} because final decision score is ${round(finalDecisionScore, 1)} with ${decisionConfidencePercent}% confidence.`
+    : `watch because live quote quality is low: ${quote.error ?? "provider unavailable"}.`;
+  const supportingReasons = [
+    `Momentum ${round(priceMomentumScore, 1)}/100 and trend ${round(trendStrengthScore, 1)}/100.`,
+    `Risk-adjusted return ${round(riskAdjustedReturnScore, 1)}/100 with drawdown control ${round(drawdownRiskScore, 1)}/100.`,
+    `Liquidity ${round(liquidityScore, 1)}/100 and provider reliability ${providerReliability}/100.`,
+  ];
+  const aiDecisionSummaryEn = `${asset.symbol}: ${recommendation} at ${round(finalDecisionScore, 1)}/100; risk ${round(riskPercent, 1)}%; execution remains analysis/paper only.`;
+  const aiDecisionSummaryAr = `${asset.symbol}: قرار ${recommendation} بدرجة ${round(finalDecisionScore, 1)} من 100 ومخاطر ${round(riskPercent, 1)}%. التنفيذ الحقيقي معطل.`;
 
   return {
     symbol: asset.symbol,
@@ -538,15 +684,46 @@ function scoreAsset(asset: GenesisUniverseAsset, quote: RouterQuote): GenesisSco
     provider: quote.provider,
     quoteSuccess: quote.success,
     dataMode: quote.mode,
-    momentumScore: round(momentumScore, 2),
-    trendScore: round(trendScore, 2),
+    momentumScore: round(priceMomentumScore, 2),
+    trendScore: round(trendStrengthScore, 2),
     volatilityRisk: round(volatilityRisk, 2),
     liquidityScore: round(liquidityScore, 2),
     macroScore: round(macroScore, 2),
-    newsSentimentScore,
-    confidenceScore: round(confidenceScore, 2),
-    finalGenesisScore: round(finalGenesisScore, 2),
+    newsSentimentScore: round(newsSentimentScore, 2),
+    confidenceScore: decisionConfidencePercent,
+    finalGenesisScore: round(finalDecisionScore, 2),
+    priceMomentumScore: round(priceMomentumScore, 2),
+    trendStrengthScore: round(trendStrengthScore, 2),
+    volatilityScore: round(volatilityScore, 2),
+    macroSensitivityScore: round(macroSensitivityScore, 2),
+    riskAdjustedReturnScore: round(riskAdjustedReturnScore, 2),
+    drawdownRiskScore: round(drawdownRiskScore, 2),
+    correlationRiskScore: round(correlationRiskScore, 2),
+    newsImpactScore: round(newsImpactScore, 2),
+    sentimentScore: round(sentimentScore, 2),
+    fundamentalsScore: round(fundamentalsScore, 2),
+    sectorStrengthScore: round(sectorStrengthScore, 2),
+    technicalStructureScore: round(technicalStructureScore, 2),
+    capitalEfficiencyScore: round(capitalEfficiencyScore, 2),
+    stopLossScore: round(stopLossScore, 2),
+    takeProfitScore: round(takeProfitScore, 2),
+    timingScore: round(timingScore, 2),
+    finalDecisionScore: round(finalDecisionScore, 2),
+    decisionConfidencePercent,
+    decisionStrengthPercent,
+    expectedUpsidePercent,
+    expectedDownsidePercent,
+    riskPercent: round(riskPercent, 2),
+    allocationConfidencePercent,
     recommendation,
+    primaryReason,
+    supportingReasons,
+    riskWarnings: riskNotes,
+    dataQuality,
+    dataFreshness,
+    providerReliability,
+    aiDecisionSummaryAr,
+    aiDecisionSummaryEn,
     quoteSnapshot: {
       success: quote.success,
       provider: quote.provider,
@@ -669,12 +846,13 @@ function applyGroupCaps(allocations: GenesisAllocation[]): GenesisAllocation[] {
     ...a,
     targetWeight: round(a.targetWeight, 4),
     targetValue: round(a.targetWeight * capital, 2),
+    action: actionFor(a.recommendation, STATE.currentWeights[a.symbol] ?? 0, a.targetWeight),
   }));
 }
 
 export function allocateGenesis100(scores = STATE.lastScores): GenesisAllocation[] {
   const selected = scores
-    .filter((s) => s.quoteSuccess && s.recommendation !== "remove")
+    .filter((s) => s.quoteSuccess && s.recommendation !== "exit" && s.recommendation !== "blocked")
     .slice(0, 100);
 
   if (selected.length === 0) {
@@ -692,6 +870,11 @@ export function allocateGenesis100(scores = STATE.lastScores): GenesisAllocation
     targetWeight: (Math.max(1, s.finalGenesisScore) / totalScore) * investableWeight,
     targetValue: 0,
     finalGenesisScore: s.finalGenesisScore,
+    allocationConfidencePercent: s.allocationConfidencePercent,
+    decisionConfidencePercent: s.decisionConfidencePercent,
+    riskPercent: s.riskPercent,
+    action: actionFor(s.recommendation, STATE.currentWeights[s.symbol] ?? 0, 0),
+    reason: s.primaryReason,
     recommendation: s.recommendation,
   }));
 
@@ -770,10 +953,91 @@ function riskWarnings(scores: GenesisScore[], allocations: GenesisAllocation[]):
   return [...warnings].slice(0, 20);
 }
 
+function buildPortfolioDecision(scores: GenesisScore[], allocations: GenesisAllocation[]): GenesisPortfolioDecision {
+  const avgScore = scores.length ? scores.reduce((sum, s) => sum + s.finalDecisionScore, 0) / scores.length : 50;
+  const avgRisk = scores.length ? scores.reduce((sum, s) => sum + s.riskPercent, 0) / scores.length : 50;
+  const failures = scores.filter((s) => !s.quoteSuccess).length;
+  const marketRegime: GenesisPortfolioDecision["marketRegime"] =
+    avgRisk > 62 || failures > 8 ? "risk_off" :
+    avgScore > 66 && avgRisk < 45 ? "risk_on" :
+    avgRisk > 52 ? "defensive" :
+    "mixed";
+  const portfolioRiskLevel: GenesisPortfolioDecision["portfolioRiskLevel"] =
+    avgRisk > 65 ? "high" : avgRisk > 42 ? "medium" : "low";
+  const rebalanceUrgency: GenesisPortfolioDecision["rebalanceUrgency"] =
+    failures > 10 || avgRisk > 75 ? "emergency" :
+    avgRisk > 60 ? "high" :
+    avgScore > 62 ? "medium" :
+    "low";
+  const topOpportunities = scores.filter((s) => ["strong_buy", "buy", "accumulate"].includes(s.recommendation)).slice(0, 8).map((s) => s.symbol);
+  const topRisks = [...scores].sort((a, b) => b.riskPercent - a.riskPercent).slice(0, 8).map((s) => `${s.symbol}: ${s.riskPercent}% risk`);
+
+  return {
+    marketRegime,
+    portfolioRiskLevel,
+    recommendedCashReserve: round(Math.max(MIN_CASH_RESERVE, avgRisk > 60 ? 0.18 : avgRisk > 45 ? 0.10 : 0.05), 4),
+    topOpportunities,
+    topRisks,
+    assetsToIncrease: allocations.filter((a) => a.action === "increase").slice(0, 10).map((a) => a.symbol),
+    assetsToReduce: allocations.filter((a) => a.action === "decrease").slice(0, 10).map((a) => a.symbol),
+    assetsToRemove: scores.filter((s) => s.recommendation === "exit" || s.recommendation === "blocked").map((s) => s.symbol),
+    assetsToWatch: scores.filter((s) => s.recommendation === "watch").slice(0, 15).map((s) => s.symbol),
+    rebalanceUrgency,
+    nextReviewAt: nextReviewDate(rebalanceUrgency),
+    aiPortfolioSummaryAr: `نظام السوق ${marketRegime} ومخاطر المحفظة ${portfolioRiskLevel}. التنفيذ الحقيقي معطل والتحويلات الخارجية ممنوعة.`,
+    aiPortfolioSummaryEn: `Market regime is ${marketRegime} with ${portfolioRiskLevel} portfolio risk. Live execution is disabled and external transfers are forbidden.`,
+  };
+}
+
+function archiveDecisions(cycleId: string, scores: GenesisScore[], allocations: GenesisAllocation[]): GenesisArchivedDecision[] {
+  const at = new Date().toISOString();
+  const allocationBySymbol = new Map(allocations.map((a) => [a.symbol, a]));
+  const archived = scores.slice(0, 100).map((score) => {
+    const allocation = allocationBySymbol.get(score.symbol);
+    const previousWeight = STATE.currentWeights[score.symbol] ?? 0;
+    const targetWeight = allocation?.targetWeight ?? 0;
+    const action = allocation?.action ?? actionFor(score.recommendation, previousWeight, targetWeight);
+    const previousRecommendation = STATE.previousRecommendations[score.symbol] ?? null;
+
+    return {
+      id: `${cycleId}-${score.symbol}`,
+      timestamp: at,
+      cycleId,
+      symbol: score.symbol,
+      assetName: score.name,
+      assetClass: score.assetClass,
+      previousRecommendation,
+      newRecommendation: score.recommendation,
+      decisionConfidencePercent: score.decisionConfidencePercent,
+      finalDecisionScore: score.finalDecisionScore,
+      targetWeight: round(targetWeight, 4),
+      previousWeight: round(previousWeight, 4),
+      action,
+      reasonAr: score.aiDecisionSummaryAr,
+      reasonEn: score.aiDecisionSummaryEn,
+      dataSources: score.dataSources,
+      quoteSnapshot: score.quoteSnapshot,
+      riskWarnings: score.riskWarnings,
+      aiMode: STATE.controls.aiMode,
+      executionMode: targetWeight > 0 && STATE.controls.aiMode === "full_ai" ? "paper" : "analysis_only",
+      createdBy: "genesis100-ai" as const,
+    };
+  });
+
+  for (const item of archived) {
+    STATE.previousRecommendations[item.symbol] = item.newRecommendation;
+  }
+  STATE.decisionArchive = [...archived, ...STATE.decisionArchive].slice(0, 1000);
+  return archived;
+}
+
 export async function runGenesisCycle(input?: Request | URLSearchParams | null): Promise<GenesisCycleResult> {
   const entitlement = getGenesisEntitlement(input ?? null);
+  const cycleId = `genesis-${Date.now()}`;
   if (!entitlement.allowed || STATE.controls.aiMode === "off") {
+    const portfolioDecision = buildPortfolioDecision(STATE.lastScores, STATE.lastAllocations);
     const cycle: GenesisCycleResult = {
+      cycleId,
       timestamp: new Date().toISOString(),
       wallet: STATE.wallet,
       liveExecutionEnabled: false,
@@ -790,6 +1054,9 @@ export async function runGenesisCycle(input?: Request | URLSearchParams | null):
       paperOrders: [],
       realOrders: [],
       decisions: [],
+      portfolioDecision,
+      decisionArchiveCount: STATE.decisionArchive.length,
+      topDecisions: STATE.decisionArchive.slice(0, 10),
       riskWarnings: [entitlement.reason ?? "AI mode is off; no trading decisions generated."],
       rebalancePolicy: {
         lightReview: "daily",
@@ -808,6 +1075,8 @@ export async function runGenesisCycle(input?: Request | URLSearchParams | null):
   const paperOrders = STATE.controls.aiMode === "full_ai" ? buildOrders(allocations) : [];
   const decisions = buildDecisions(scores, allocations);
   const warnings = riskWarnings(scores, allocations);
+  const portfolioDecision = buildPortfolioDecision(scores, allocations);
+  const archived = archiveDecisions(cycleId, scores, allocations);
 
   for (const allocation of allocations) {
     STATE.currentWeights[allocation.symbol] = allocation.targetWeight;
@@ -820,6 +1089,7 @@ export async function runGenesisCycle(input?: Request | URLSearchParams | null):
   STATE.decisions = [...decisions, ...STATE.decisions].slice(0, 500);
 
   const cycle: GenesisCycleResult = {
+    cycleId,
     timestamp: new Date().toISOString(),
     wallet: STATE.wallet,
     liveExecutionEnabled: false,
@@ -836,6 +1106,11 @@ export async function runGenesisCycle(input?: Request | URLSearchParams | null):
     paperOrders,
     realOrders: [],
     decisions,
+    portfolioDecision,
+    decisionArchiveCount: STATE.decisionArchive.length,
+    topDecisions: archived
+      .sort((a, b) => b.decisionConfidencePercent - a.decisionConfidencePercent)
+      .slice(0, 10),
     riskWarnings: warnings,
     rebalancePolicy: {
       lightReview: "daily",
@@ -851,6 +1126,7 @@ export async function runGenesisCycle(input?: Request | URLSearchParams | null):
   };
 
   STATE.lastCycle = cycle;
+  STATE.lastPortfolioDecision = portfolioDecision;
   return cycle;
 }
 
@@ -887,6 +1163,56 @@ export function getGenesisDecisions(input?: Request | URLSearchParams | null) {
   };
 }
 
+export function getGenesisArchive(input?: Request | URLSearchParams | null) {
+  const params = input instanceof Request
+    ? new URL(input.url).searchParams
+    : input instanceof URLSearchParams ? input : new URLSearchParams();
+  const symbol = params.get("symbol")?.trim().toUpperCase();
+  const archive = symbol
+    ? STATE.decisionArchive.filter((d) => d.symbol.toUpperCase() === symbol)
+    : STATE.decisionArchive;
+
+  return {
+    product: "ForeSmart Genesis 100",
+    count: archive.length,
+    symbol: symbol ?? null,
+    archive,
+    liveExecutionEnabled: false,
+    safety: SAFETY_PROFILE,
+  };
+}
+
+export function getLatestGenesisArchiveDecision() {
+  return {
+    product: "ForeSmart Genesis 100",
+    decision: STATE.decisionArchive[0] ?? null,
+    count: STATE.decisionArchive.length,
+    liveExecutionEnabled: false,
+    safety: SAFETY_PROFILE,
+  };
+}
+
+export function getGenesisArchiveSummary() {
+  const byRecommendation = STATE.decisionArchive.reduce<Record<string, number>>((acc, d) => {
+    acc[d.newRecommendation] = (acc[d.newRecommendation] ?? 0) + 1;
+    return acc;
+  }, {});
+  const avgConfidence = STATE.decisionArchive.length
+    ? STATE.decisionArchive.reduce((sum, d) => sum + d.decisionConfidencePercent, 0) / STATE.decisionArchive.length
+    : 0;
+
+  return {
+    product: "ForeSmart Genesis 100",
+    count: STATE.decisionArchive.length,
+    latestCycleId: STATE.decisionArchive[0]?.cycleId ?? null,
+    averageDecisionConfidencePercent: round(avgConfidence, 2),
+    byRecommendation,
+    lastPortfolioDecision: STATE.lastPortfolioDecision,
+    liveExecutionEnabled: false,
+    safety: SAFETY_PROFILE,
+  };
+}
+
 export function buildGenesisReport(period: GenesisReportPeriod = "daily", input?: Request | URLSearchParams | null): GenesisReport {
   const entitlement = getGenesisEntitlement(input ?? null);
   const scores = STATE.lastScores;
@@ -898,7 +1224,7 @@ export function buildGenesisReport(period: GenesisReportPeriod = "daily", input?
   const pnl = round(STATE.wallet.capital * weightedChange, 2);
   const topWinners = [...scores].filter((s) => s.changePercent != null).sort((a, b) => (b.changePercent ?? 0) - (a.changePercent ?? 0)).slice(0, 5);
   const topLosers = [...scores].filter((s) => s.changePercent != null).sort((a, b) => (a.changePercent ?? 0) - (b.changePercent ?? 0)).slice(0, 5);
-  const removedAssets = scores.filter((s) => s.recommendation === "remove").map((s) => s.symbol);
+  const removedAssets = scores.filter((s) => s.recommendation === "exit" || s.recommendation === "blocked").map((s) => s.symbol);
   const addedAssets = allocations.filter((a) => (STATE.currentWeights[a.symbol] ?? 0) > 0).map((a) => a.symbol).slice(0, 20);
   const warnings = STATE.lastCycle?.riskWarnings ?? riskWarnings(scores, allocations);
 

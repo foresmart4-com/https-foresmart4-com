@@ -68,8 +68,18 @@ interface ScoreApi {
   assetClass: string;
   bucket: string;
   finalGenesisScore: number;
+  finalDecisionScore?: number;
   confidenceScore: number;
+  decisionConfidencePercent?: number;
+  decisionStrengthPercent?: number;
+  expectedUpsidePercent?: number | null;
+  expectedDownsidePercent?: number | null;
+  riskPercent?: number;
   recommendation: string;
+  primaryReason?: string;
+  supportingReasons?: string[];
+  riskWarnings?: string[];
+  aiDecisionSummaryEn?: string;
   provider: string | null;
   price: number | null;
 }
@@ -81,6 +91,11 @@ interface AllocationApi {
   targetWeight: number;
   targetValue: number;
   finalGenesisScore: number;
+  allocationConfidencePercent?: number;
+  decisionConfidencePercent?: number;
+  riskPercent?: number;
+  action?: string;
+  reason?: string;
 }
 
 interface DecisionApi {
@@ -98,10 +113,45 @@ interface CycleApi {
   scores: ScoreApi[];
   allocations: AllocationApi[];
   decisions: DecisionApi[];
+  portfolioDecision?: PortfolioDecisionApi;
+  topDecisions?: ArchiveDecisionApi[];
+  decisionArchiveCount?: number;
   riskWarnings: string[];
   proposedOrders: unknown[];
   paperOrders: unknown[];
   realOrders: unknown[];
+}
+
+interface PortfolioDecisionApi {
+  marketRegime: string;
+  portfolioRiskLevel: string;
+  recommendedCashReserve: number;
+  topOpportunities: string[];
+  topRisks: string[];
+  assetsToIncrease: string[];
+  assetsToReduce: string[];
+  assetsToRemove: string[];
+  assetsToWatch: string[];
+  rebalanceUrgency: string;
+  nextReviewAt: string;
+  aiPortfolioSummaryAr: string;
+  aiPortfolioSummaryEn: string;
+}
+
+interface ArchiveDecisionApi {
+  id: string;
+  timestamp: string;
+  cycleId: string;
+  symbol: string;
+  assetName: string;
+  newRecommendation: string;
+  decisionConfidencePercent: number;
+  finalDecisionScore: number;
+  targetWeight: number;
+  previousWeight: number;
+  action: string;
+  reasonEn: string;
+  riskWarnings: string[];
 }
 
 const periods = ["hourly", "daily", "weekly", "monthly", "quarterly", "semiannual", "annual"];
@@ -130,6 +180,8 @@ function Genesis100Page() {
   const [decisions, setDecisions] = useState<DecisionApi[]>([]);
   const [controls, setControls] = useState<ControlsApi | null>(null);
   const [notifications, setNotifications] = useState<NotificationsApi | null>(null);
+  const [portfolioDecision, setPortfolioDecision] = useState<PortfolioDecisionApi | null>(null);
+  const [archive, setArchive] = useState<ArchiveDecisionApi[]>([]);
   const [riskWarnings, setRiskWarnings] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
@@ -140,18 +192,20 @@ function Genesis100Page() {
 
   const load = async () => {
     setError(null);
-    const [s, a, d, c, n] = await Promise.all([
+    const [s, a, d, c, n, ar] = await Promise.all([
       getJson<StatusApi>("/api/public/genesis100/status"),
       getJson<{ allocations: AllocationApi[] }>("/api/public/genesis100/allocations"),
       getJson<{ decisions: DecisionApi[] }>("/api/public/genesis100/decisions"),
       getJson<ControlsApi>("/api/public/genesis100/controls"),
       getJson<NotificationsApi>("/api/public/genesis100/notifications"),
+      getJson<{ archive: ArchiveDecisionApi[] }>("/api/public/genesis100/archive"),
     ]);
     setStatus(s);
     setAllocations(a.allocations ?? []);
     setDecisions(d.decisions ?? []);
     setControls(c);
     setNotifications(n);
+    setArchive(ar.archive ?? []);
   };
 
   useEffect(() => {
@@ -168,6 +222,8 @@ function Genesis100Page() {
       setScores(cycle.scores ?? []);
       setAllocations(cycle.allocations ?? []);
       setDecisions(cycle.decisions ?? []);
+      setPortfolioDecision(cycle.portfolioDecision ?? null);
+      setArchive(cycle.topDecisions ?? []);
       setRiskWarnings(cycle.riskWarnings ?? []);
       await load();
     } catch (e) {
@@ -319,24 +375,46 @@ function Genesis100Page() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>{t("أعلى الأصول تقييماً", "Top Ranked Assets")}</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("ملخص ذكاء AI", "AI Intelligence Summary")}</CardTitle></CardHeader>
+        <CardContent className="grid gap-3 text-sm md:grid-cols-3">
+          <div className="rounded-md border p-3">
+            <div className="font-medium">{t("نظام السوق", "Market Regime")}</div>
+            <div className="text-muted-foreground">{portfolioDecision?.marketRegime ?? "pending"}</div>
+          </div>
+          <div className="rounded-md border p-3">
+            <div className="font-medium">{t("مخاطر المحفظة", "Portfolio Risk")}</div>
+            <div className="text-muted-foreground">{portfolioDecision?.portfolioRiskLevel ?? "pending"}</div>
+          </div>
+          <div className="rounded-md border p-3">
+            <div className="font-medium">{t("احتياطي نقد مقترح", "Recommended Cash Reserve")}</div>
+            <div className="text-muted-foreground">{pct(portfolioDecision?.recommendedCashReserve ?? 0.05)}</div>
+          </div>
+          <div className="rounded-md bg-muted p-3 md:col-span-3">
+            {ar ? portfolioDecision?.aiPortfolioSummaryAr : portfolioDecision?.aiPortfolioSummaryEn ?? t("شغّل دورة AI لإنشاء ملخص الذكاء.", "Run an AI cycle to generate the intelligence summary.")}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>{t("تفاصيل قرارات الأصول", "Asset Decision Details")}</CardTitle></CardHeader>
         <CardContent className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-muted-foreground">
-              <tr><th className="p-2">Symbol</th><th className="p-2">Bucket</th><th className="p-2">Score</th><th className="p-2">Confidence</th><th className="p-2">Provider</th><th className="p-2">Recommendation</th></tr>
+              <tr><th className="p-2">Symbol</th><th className="p-2">Bucket</th><th className="p-2">Decision</th><th className="p-2">Confidence %</th><th className="p-2">Risk %</th><th className="p-2">Reason</th><th className="p-2">Recommendation</th></tr>
             </thead>
             <tbody>
               {topScores.map((s) => (
                 <tr key={s.symbol} className="border-t">
                   <td className="p-2 font-medium">{s.symbol}</td>
                   <td className="p-2">{s.bucket}</td>
-                  <td className="p-2">{s.finalGenesisScore.toFixed(1)}</td>
-                  <td className="p-2">{s.confidenceScore.toFixed(1)}</td>
-                  <td className="p-2">{s.provider ?? "-"}</td>
+                  <td className="p-2">{(s.finalDecisionScore ?? s.finalGenesisScore).toFixed(1)}</td>
+                  <td className="p-2">{(s.decisionConfidencePercent ?? s.confidenceScore).toFixed(1)}%</td>
+                  <td className="p-2">{(s.riskPercent ?? 0).toFixed(1)}%</td>
+                  <td className="p-2 max-w-xs text-muted-foreground">{s.primaryReason ?? s.provider ?? "-"}</td>
                   <td className="p-2"><Badge variant="outline">{s.recommendation}</Badge></td>
                 </tr>
               ))}
-              {!topScores.length && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">{t("شغّل دورة AI لعرض التصنيف.", "Run an AI cycle to populate rankings.")}</td></tr>}
+              {!topScores.length && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">{t("شغّل دورة AI لعرض التصنيف.", "Run an AI cycle to populate rankings.")}</td></tr>}
             </tbody>
           </table>
         </CardContent>
@@ -348,8 +426,9 @@ function Genesis100Page() {
           <CardContent className="space-y-2">
             {topAllocations.map((a) => (
               <div key={a.symbol} className="space-y-1">
-                <div className="flex justify-between text-sm"><span>{a.symbol}</span><span>{pct(a.targetWeight)} / {money(a.targetValue)}</span></div>
+                <div className="flex justify-between text-sm"><span>{a.symbol} · {a.action ?? "hold"}</span><span>{pct(a.targetWeight)} / {money(a.targetValue)}</span></div>
                 <Progress value={a.targetWeight * 100} />
+                <div className="text-xs text-muted-foreground">confidence {a.allocationConfidencePercent?.toFixed(1) ?? "-"}% · risk {a.riskPercent?.toFixed(1) ?? "-"}%</div>
               </div>
             ))}
             {!topAllocations.length && <p className="text-sm text-muted-foreground">{t("لا يوجد تخصيص بعد.", "No allocation yet.")}</p>}
@@ -366,6 +445,38 @@ function Genesis100Page() {
               </div>
             ))}
             {!decisions.length && <p className="text-sm text-muted-foreground">{t("لا توجد قرارات بعد.", "No decisions yet.")}</p>}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader><CardTitle>{t("أهم قرارات AI", "Top AI Decisions")}</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {archive.slice(0, 6).map((d) => (
+              <div key={d.id} className="rounded-md border p-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{d.symbol} · {d.newRecommendation}</span>
+                  <Badge variant="outline">{d.decisionConfidencePercent.toFixed(1)}%</Badge>
+                </div>
+                <p className="mt-1 text-muted-foreground">{d.reasonEn}</p>
+              </div>
+            ))}
+            {!archive.length && <p className="text-sm text-muted-foreground">{t("لا يوجد أرشيف قرارات بعد.", "No decision archive yet.")}</p>}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>{t("أرشيف القرارات", "Decision Archive")}</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" asChild><a href="/api/public/genesis100/archive" target="_blank" rel="noreferrer">Archive</a></Button>
+              <Button variant="outline" size="sm" asChild><a href="/api/public/genesis100/archive/latest" target="_blank" rel="noreferrer">Latest</a></Button>
+              <Button variant="outline" size="sm" asChild><a href="/api/public/genesis100/archive/summary" target="_blank" rel="noreferrer">Summary</a></Button>
+            </div>
+            <div className="rounded-md bg-muted p-3">
+              {t("كل قرار يحتوي على النسبة المئوية للثقة، السبب، المخاطر، ولقطة السعر.", "Each decision stores confidence %, reason, risks, and quote snapshot.")}
+            </div>
           </CardContent>
         </Card>
       </div>

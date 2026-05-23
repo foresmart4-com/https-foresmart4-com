@@ -93,9 +93,12 @@ import { Route as ApiPublicGenesis100ReportRouteImport } from './routes/api/publ
 import { Route as ApiPublicGenesis100NotificationsRouteImport } from './routes/api/public/genesis100/notifications'
 import { Route as ApiPublicGenesis100DecisionsRouteImport } from './routes/api/public/genesis100/decisions'
 import { Route as ApiPublicGenesis100ControlsRouteImport } from './routes/api/public/genesis100/controls'
+import { Route as ApiPublicGenesis100ArchiveRouteImport } from './routes/api/public/genesis100/archive'
 import { Route as ApiPublicGenesis100AnalyzeRouteImport } from './routes/api/public/genesis100/analyze'
 import { Route as ApiPublicGenesis100AllocationsRouteImport } from './routes/api/public/genesis100/allocations'
 import { Route as ApiPublicAlertsEvaluateRouteImport } from './routes/api/public/alerts/evaluate'
+import { Route as ApiPublicGenesis100ArchiveSummaryRouteImport } from './routes/api/public/genesis100/archive/summary'
+import { Route as ApiPublicGenesis100ArchiveLatestRouteImport } from './routes/api/public/genesis100/archive/latest'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -530,6 +533,12 @@ const ApiPublicGenesis100ControlsRoute =
     path: '/api/public/genesis100/controls',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicGenesis100ArchiveRoute =
+  ApiPublicGenesis100ArchiveRouteImport.update({
+    id: '/api/public/genesis100/archive',
+    path: '/api/public/genesis100/archive',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicGenesis100AnalyzeRoute =
   ApiPublicGenesis100AnalyzeRouteImport.update({
     id: '/api/public/genesis100/analyze',
@@ -547,6 +556,18 @@ const ApiPublicAlertsEvaluateRoute = ApiPublicAlertsEvaluateRouteImport.update({
   path: '/api/public/alerts/evaluate',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicGenesis100ArchiveSummaryRoute =
+  ApiPublicGenesis100ArchiveSummaryRouteImport.update({
+    id: '/summary',
+    path: '/summary',
+    getParentRoute: () => ApiPublicGenesis100ArchiveRoute,
+  } as any)
+const ApiPublicGenesis100ArchiveLatestRoute =
+  ApiPublicGenesis100ArchiveLatestRouteImport.update({
+    id: '/latest',
+    path: '/latest',
+    getParentRoute: () => ApiPublicGenesis100ArchiveRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -622,6 +643,7 @@ export interface FileRoutesByFullPath {
   '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
   '/api/public/genesis100/allocations': typeof ApiPublicGenesis100AllocationsRoute
   '/api/public/genesis100/analyze': typeof ApiPublicGenesis100AnalyzeRoute
+  '/api/public/genesis100/archive': typeof ApiPublicGenesis100ArchiveRouteWithChildren
   '/api/public/genesis100/controls': typeof ApiPublicGenesis100ControlsRoute
   '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
   '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
@@ -635,6 +657,8 @@ export interface FileRoutesByFullPath {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/api/public/genesis100/archive/latest': typeof ApiPublicGenesis100ArchiveLatestRoute
+  '/api/public/genesis100/archive/summary': typeof ApiPublicGenesis100ArchiveSummaryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -710,6 +734,7 @@ export interface FileRoutesByTo {
   '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
   '/api/public/genesis100/allocations': typeof ApiPublicGenesis100AllocationsRoute
   '/api/public/genesis100/analyze': typeof ApiPublicGenesis100AnalyzeRoute
+  '/api/public/genesis100/archive': typeof ApiPublicGenesis100ArchiveRouteWithChildren
   '/api/public/genesis100/controls': typeof ApiPublicGenesis100ControlsRoute
   '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
   '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
@@ -723,6 +748,8 @@ export interface FileRoutesByTo {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/api/public/genesis100/archive/latest': typeof ApiPublicGenesis100ArchiveLatestRoute
+  '/api/public/genesis100/archive/summary': typeof ApiPublicGenesis100ArchiveSummaryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -800,6 +827,7 @@ export interface FileRoutesById {
   '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
   '/api/public/genesis100/allocations': typeof ApiPublicGenesis100AllocationsRoute
   '/api/public/genesis100/analyze': typeof ApiPublicGenesis100AnalyzeRoute
+  '/api/public/genesis100/archive': typeof ApiPublicGenesis100ArchiveRouteWithChildren
   '/api/public/genesis100/controls': typeof ApiPublicGenesis100ControlsRoute
   '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
   '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
@@ -813,6 +841,8 @@ export interface FileRoutesById {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/api/public/genesis100/archive/latest': typeof ApiPublicGenesis100ArchiveLatestRoute
+  '/api/public/genesis100/archive/summary': typeof ApiPublicGenesis100ArchiveSummaryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -890,6 +920,7 @@ export interface FileRouteTypes {
     | '/api/public/alerts/evaluate'
     | '/api/public/genesis100/allocations'
     | '/api/public/genesis100/analyze'
+    | '/api/public/genesis100/archive'
     | '/api/public/genesis100/controls'
     | '/api/public/genesis100/decisions'
     | '/api/public/genesis100/notifications'
@@ -903,6 +934,8 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/api/public/genesis100/archive/latest'
+    | '/api/public/genesis100/archive/summary'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -978,6 +1011,7 @@ export interface FileRouteTypes {
     | '/api/public/alerts/evaluate'
     | '/api/public/genesis100/allocations'
     | '/api/public/genesis100/analyze'
+    | '/api/public/genesis100/archive'
     | '/api/public/genesis100/controls'
     | '/api/public/genesis100/decisions'
     | '/api/public/genesis100/notifications'
@@ -991,6 +1025,8 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/api/public/genesis100/archive/latest'
+    | '/api/public/genesis100/archive/summary'
   id:
     | '__root__'
     | '/'
@@ -1067,6 +1103,7 @@ export interface FileRouteTypes {
     | '/api/public/alerts/evaluate'
     | '/api/public/genesis100/allocations'
     | '/api/public/genesis100/analyze'
+    | '/api/public/genesis100/archive'
     | '/api/public/genesis100/controls'
     | '/api/public/genesis100/decisions'
     | '/api/public/genesis100/notifications'
@@ -1080,6 +1117,8 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/api/public/genesis100/archive/latest'
+    | '/api/public/genesis100/archive/summary'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1106,6 +1145,7 @@ export interface RootRouteChildren {
   ApiPublicAlertsEvaluateRoute: typeof ApiPublicAlertsEvaluateRoute
   ApiPublicGenesis100AllocationsRoute: typeof ApiPublicGenesis100AllocationsRoute
   ApiPublicGenesis100AnalyzeRoute: typeof ApiPublicGenesis100AnalyzeRoute
+  ApiPublicGenesis100ArchiveRoute: typeof ApiPublicGenesis100ArchiveRouteWithChildren
   ApiPublicGenesis100ControlsRoute: typeof ApiPublicGenesis100ControlsRoute
   ApiPublicGenesis100DecisionsRoute: typeof ApiPublicGenesis100DecisionsRoute
   ApiPublicGenesis100NotificationsRoute: typeof ApiPublicGenesis100NotificationsRoute
@@ -1711,6 +1751,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicGenesis100ControlsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/genesis100/archive': {
+      id: '/api/public/genesis100/archive'
+      path: '/api/public/genesis100/archive'
+      fullPath: '/api/public/genesis100/archive'
+      preLoaderRoute: typeof ApiPublicGenesis100ArchiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/genesis100/analyze': {
       id: '/api/public/genesis100/analyze'
       path: '/api/public/genesis100/analyze'
@@ -1731,6 +1778,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/alerts/evaluate'
       preLoaderRoute: typeof ApiPublicAlertsEvaluateRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/archive/summary': {
+      id: '/api/public/genesis100/archive/summary'
+      path: '/summary'
+      fullPath: '/api/public/genesis100/archive/summary'
+      preLoaderRoute: typeof ApiPublicGenesis100ArchiveSummaryRouteImport
+      parentRoute: typeof ApiPublicGenesis100ArchiveRoute
+    }
+    '/api/public/genesis100/archive/latest': {
+      id: '/api/public/genesis100/archive/latest'
+      path: '/latest'
+      fullPath: '/api/public/genesis100/archive/latest'
+      preLoaderRoute: typeof ApiPublicGenesis100ArchiveLatestRouteImport
+      parentRoute: typeof ApiPublicGenesis100ArchiveRoute
     }
   }
 }
@@ -1845,6 +1906,24 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface ApiPublicGenesis100ArchiveRouteChildren {
+  ApiPublicGenesis100ArchiveLatestRoute: typeof ApiPublicGenesis100ArchiveLatestRoute
+  ApiPublicGenesis100ArchiveSummaryRoute: typeof ApiPublicGenesis100ArchiveSummaryRoute
+}
+
+const ApiPublicGenesis100ArchiveRouteChildren: ApiPublicGenesis100ArchiveRouteChildren =
+  {
+    ApiPublicGenesis100ArchiveLatestRoute:
+      ApiPublicGenesis100ArchiveLatestRoute,
+    ApiPublicGenesis100ArchiveSummaryRoute:
+      ApiPublicGenesis100ArchiveSummaryRoute,
+  }
+
+const ApiPublicGenesis100ArchiveRouteWithChildren =
+  ApiPublicGenesis100ArchiveRoute._addFileChildren(
+    ApiPublicGenesis100ArchiveRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
@@ -1869,6 +1948,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAlertsEvaluateRoute: ApiPublicAlertsEvaluateRoute,
   ApiPublicGenesis100AllocationsRoute: ApiPublicGenesis100AllocationsRoute,
   ApiPublicGenesis100AnalyzeRoute: ApiPublicGenesis100AnalyzeRoute,
+  ApiPublicGenesis100ArchiveRoute: ApiPublicGenesis100ArchiveRouteWithChildren,
   ApiPublicGenesis100ControlsRoute: ApiPublicGenesis100ControlsRoute,
   ApiPublicGenesis100DecisionsRoute: ApiPublicGenesis100DecisionsRoute,
   ApiPublicGenesis100NotificationsRoute: ApiPublicGenesis100NotificationsRoute,
