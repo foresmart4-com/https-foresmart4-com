@@ -188,6 +188,50 @@ interface IntelligenceApi {
   }>;
 }
 
+
+interface TreasuryApi {
+  treasuryName: string;
+  treasuryBalance: number;
+  reserveBalance: number;
+  allocatedBalance: number;
+  currency: string;
+  fundingCount: number;
+  lastFundingAt: string | null;
+}
+
+interface BrokerStatusApi {
+  paperConnected: boolean;
+  liveEnabled: boolean;
+  brokerHealthy: boolean;
+  executionReady: boolean;
+  paperTradingStatus: string;
+}
+
+interface ExecutionStatusApi {
+  totalOrders: number;
+  byStatus: Record<string, number>;
+  recentOrders: Array<{
+    id: string;
+    symbol: string;
+    side: string;
+    status: string;
+    notional: number;
+    createdAt: string;
+    fillPrice: number | null;
+  }>;
+}
+
+interface CompanyProfileApi {
+  company: {
+    nameAr: string;
+    nameEn: string;
+    entityType: string;
+    cr: string;
+    currency: string;
+    treasuryName: string;
+  };
+}
+
 const periods = ["hourly", "daily", "weekly", "monthly", "quarterly", "semiannual", "annual"];
 
 async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -279,6 +323,10 @@ function Genesis100Page() {
   const [archive, setArchive] = useState<ArchiveDecisionApi[]>([]);
   const [riskWarnings, setRiskWarnings] = useState<string[]>([]);
   const [intelligence, setIntelligence] = useState<IntelligenceApi | null>(null);
+  const [treasury, setTreasury] = useState<TreasuryApi | null>(null);
+  const [brokerStatus, setBrokerStatus] = useState<BrokerStatusApi | null>(null);
+  const [executionStatus, setExecutionStatus] = useState<ExecutionStatusApi | null>(null);
+  const [companyProfile, setCompanyProfile] = useState<CompanyProfileApi | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -318,6 +366,19 @@ function Genesis100Page() {
       const intel = await getJson<IntelligenceApi>("/api/public/genesis100/intelligence");
       setIntelligence(intel);
     } catch { /* intelligence endpoint may not exist yet */ }
+
+    try {
+      const [tres, brk, exe, comp] = await Promise.all([
+        getJson<TreasuryApi>("/api/public/treasury/status"),
+        getJson<BrokerStatusApi>("/api/public/broker/status"),
+        getJson<ExecutionStatusApi>("/api/public/genesis100/execution/"),
+        getJson<CompanyProfileApi>("/api/public/company/profile"),
+      ]);
+      setTreasury(tres);
+      setBrokerStatus(brk);
+      setExecutionStatus(exe);
+      setCompanyProfile(comp);
+    } catch { /* endpoints may not exist yet */ }
   };
 
   useEffect(() => {
@@ -754,7 +815,131 @@ function Genesis100Page() {
         </CardContent>
       </Card>
 
-            {/* Reports */}
+      {/* Company Identity */}
+      {companyProfile && (
+        <Card className="border-amber-500/10 bg-zinc-900/60">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-amber-400"><Building className="h-4 w-4" />{t("هوية الشركة", "Company Identity")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
+                <p className="text-xs text-zinc-500">{t("الاسم", "Name")}</p>
+                <p className="font-medium text-zinc-200">{ar ? companyProfile.company.nameAr : companyProfile.company.nameEn}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
+                <p className="text-xs text-zinc-500">{t("النوع", "Type")}</p>
+                <p className="font-medium text-zinc-200">{companyProfile.company.entityType}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
+                <p className="text-xs text-zinc-500">{t("السجل التجاري", "CR")}</p>
+                <p className="font-medium text-zinc-200">{companyProfile.company.cr}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
+                <p className="text-xs text-zinc-500">{t("العملة", "Currency")}</p>
+                <p className="font-medium text-zinc-200">{companyProfile.company.currency}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
+                <p className="text-xs text-zinc-500">{t("الخزينة", "Treasury")}</p>
+                <p className="font-medium text-zinc-200">{companyProfile.company.treasuryName}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Raneem Capital Treasury */}
+      {treasury && (
+        <Card className="border-amber-500/10 bg-zinc-900/60">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-amber-400"><Wallet className="h-4 w-4" />{t("خزينة رنيم الرأسمالية", "Raneem Capital Treasury")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 text-center">
+                <p className="text-xs text-zinc-500">{t("رصيد الخزينة", "Treasury Balance")}</p>
+                <p className="text-xl font-bold text-emerald-400">{money(treasury.treasuryBalance)}</p>
+              </div>
+              <div className="rounded-lg border border-sky-500/20 bg-sky-500/5 p-3 text-center">
+                <p className="text-xs text-zinc-500">{t("الاحتياطي", "Reserve")}</p>
+                <p className="text-xl font-bold text-sky-400">{money(treasury.reserveBalance)}</p>
+              </div>
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-center">
+                <p className="text-xs text-zinc-500">{t("المخصص", "Allocated")}</p>
+                <p className="text-xl font-bold text-amber-400">{money(treasury.allocatedBalance)}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-700 bg-zinc-950/50 p-3 text-center">
+                <p className="text-xs text-zinc-500">{t("عمليات التمويل", "Funding Ops")}</p>
+                <p className="text-xl font-bold text-zinc-300">{treasury.fundingCount}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Broker Status */}
+      {brokerStatus && (
+        <Card className="border-amber-500/10 bg-zinc-900/60">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-amber-400"><Activity className="h-4 w-4" />{t("حالة الوسيط", "Broker Status")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
+                <p className="text-xs text-zinc-500">{t("التداول التجريبي", "Paper Trading")}</p>
+                <p className="font-medium text-emerald-400">{t("نشط", "Active")}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
+                <p className="text-xs text-zinc-500">{t("التنفيذ الحي", "Live Execution")}</p>
+                <p className="font-medium text-rose-400">{t("معطل", "Disabled")}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
+                <p className="text-xs text-zinc-500">{t("صحة الوسيط", "Broker Health")}</p>
+                <p className="font-medium text-zinc-400">{brokerStatus.brokerHealthy ? t("سليم", "Healthy") : t("غير متصل", "Not connected")}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
+                <p className="text-xs text-zinc-500">{t("جاهزية التنفيذ", "Execution Ready")}</p>
+                <p className="font-medium text-amber-400">{t("تجريبي فقط", "Paper only")}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Execution Logs */}
+      {executionStatus && executionStatus.totalOrders > 0 && (
+        <Card className="border-amber-500/10 bg-zinc-900/60">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-amber-400"><BarChart3 className="h-4 w-4" />{t("سجل التنفيذ", "Execution Logs")}</CardTitle>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <table className="w-full text-sm" dir={ar ? "rtl" : "ltr"}>
+              <thead>
+                <tr className="border-b border-zinc-800 text-zinc-500">
+                  <th className="p-2 text-start">{t("الرمز", "Symbol")}</th>
+                  <th className="p-2 text-start">{t("الاتجاه", "Side")}</th>
+                  <th className="p-2 text-start">{t("الحالة", "Status")}</th>
+                  <th className="p-2 text-start">{t("المبلغ", "Notional")}</th>
+                  <th className="p-2 text-start">{t("سعر التنفيذ", "Fill Price")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {executionStatus.recentOrders.slice(0, 8).map((o) => (
+                  <tr key={o.id} className="border-b border-zinc-800/50">
+                    <td className="p-2 font-medium text-zinc-200">{o.symbol}</td>
+                    <td className="p-2 text-zinc-400">{o.side}</td>
+                    <td className="p-2"><Badge variant="outline" className={o.status === "simulated_fill" ? "border-emerald-500/40 text-emerald-400" : "border-zinc-600 text-zinc-400"}>{o.status}</Badge></td>
+                    <td className="p-2 text-zinc-300">{money(o.notional)}</td>
+                    <td className="p-2 text-zinc-400">{o.fillPrice ? `$${o.fillPrice}` : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+
+                  {/* Reports */}
       <Card className="border-amber-500/10 bg-zinc-900/60">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-amber-400"><Download className="h-4 w-4" />{t("تقارير Genesis 100", "Genesis 100 Reports")}</CardTitle>

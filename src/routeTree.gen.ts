@@ -83,6 +83,9 @@ import { Route as ApiFinnhubStreamRouteImport } from './routes/api/finnhub/strea
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicTreasuryStatusRouteImport } from './routes/api/public/treasury/status'
+import { Route as ApiPublicTreasuryHistoryRouteImport } from './routes/api/public/treasury/history'
+import { Route as ApiPublicTreasuryFundRouteImport } from './routes/api/public/treasury/fund'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicPaymentsPaypalWebhookRouteImport } from './routes/api/public/payments/paypal-webhook'
 import { Route as ApiPublicGenesis100UniverseRouteImport } from './routes/api/public/genesis100/universe'
@@ -101,7 +104,11 @@ import { Route as ApiPublicGenesis100ControlsRouteImport } from './routes/api/pu
 import { Route as ApiPublicGenesis100ArchiveRouteImport } from './routes/api/public/genesis100/archive'
 import { Route as ApiPublicGenesis100AnalyzeRouteImport } from './routes/api/public/genesis100/analyze'
 import { Route as ApiPublicGenesis100AllocationsRouteImport } from './routes/api/public/genesis100/allocations'
+import { Route as ApiPublicCompanyProfileRouteImport } from './routes/api/public/company/profile'
+import { Route as ApiPublicBrokerStatusRouteImport } from './routes/api/public/broker/status'
 import { Route as ApiPublicAlertsEvaluateRouteImport } from './routes/api/public/alerts/evaluate'
+import { Route as ApiPublicGenesis100ExecutionIndexRouteImport } from './routes/api/public/genesis100/execution/index'
+import { Route as ApiPublicGenesis100ExecutionHistoryRouteImport } from './routes/api/public/genesis100/execution/history'
 import { Route as ApiPublicGenesis100ArchiveSummaryRouteImport } from './routes/api/public/genesis100/archive/summary'
 import { Route as ApiPublicGenesis100ArchiveLatestRouteImport } from './routes/api/public/genesis100/archive/latest'
 
@@ -478,6 +485,22 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTreasuryStatusRoute = ApiPublicTreasuryStatusRouteImport.update({
+  id: '/api/public/treasury/status',
+  path: '/api/public/treasury/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTreasuryHistoryRoute =
+  ApiPublicTreasuryHistoryRouteImport.update({
+    id: '/api/public/treasury/history',
+    path: '/api/public/treasury/history',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicTreasuryFundRoute = ApiPublicTreasuryFundRouteImport.update({
+  id: '/api/public/treasury/fund',
+  path: '/api/public/treasury/fund',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -586,11 +609,33 @@ const ApiPublicGenesis100AllocationsRoute =
     path: '/api/public/genesis100/allocations',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCompanyProfileRoute = ApiPublicCompanyProfileRouteImport.update({
+  id: '/api/public/company/profile',
+  path: '/api/public/company/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBrokerStatusRoute = ApiPublicBrokerStatusRouteImport.update({
+  id: '/api/public/broker/status',
+  path: '/api/public/broker/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicAlertsEvaluateRoute = ApiPublicAlertsEvaluateRouteImport.update({
   id: '/api/public/alerts/evaluate',
   path: '/api/public/alerts/evaluate',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicGenesis100ExecutionIndexRoute =
+  ApiPublicGenesis100ExecutionIndexRouteImport.update({
+    id: '/api/public/genesis100/execution/',
+    path: '/api/public/genesis100/execution/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100ExecutionHistoryRoute =
+  ApiPublicGenesis100ExecutionHistoryRouteImport.update({
+    id: '/api/public/genesis100/execution/history',
+    path: '/api/public/genesis100/execution/history',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicGenesis100ArchiveSummaryRoute =
   ApiPublicGenesis100ArchiveSummaryRouteImport.update({
     id: '/summary',
@@ -676,6 +721,8 @@ export interface FileRoutesByFullPath {
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
+  '/api/public/broker/status': typeof ApiPublicBrokerStatusRoute
+  '/api/public/company/profile': typeof ApiPublicCompanyProfileRoute
   '/api/public/genesis100/allocations': typeof ApiPublicGenesis100AllocationsRoute
   '/api/public/genesis100/analyze': typeof ApiPublicGenesis100AnalyzeRoute
   '/api/public/genesis100/archive': typeof ApiPublicGenesis100ArchiveRouteWithChildren
@@ -694,11 +741,16 @@ export interface FileRoutesByFullPath {
   '/api/public/genesis100/universe': typeof ApiPublicGenesis100UniverseRoute
   '/api/public/payments/paypal-webhook': typeof ApiPublicPaymentsPaypalWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/api/public/treasury/fund': typeof ApiPublicTreasuryFundRoute
+  '/api/public/treasury/history': typeof ApiPublicTreasuryHistoryRoute
+  '/api/public/treasury/status': typeof ApiPublicTreasuryStatusRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/api/public/genesis100/archive/latest': typeof ApiPublicGenesis100ArchiveLatestRoute
   '/api/public/genesis100/archive/summary': typeof ApiPublicGenesis100ArchiveSummaryRoute
+  '/api/public/genesis100/execution/history': typeof ApiPublicGenesis100ExecutionHistoryRoute
+  '/api/public/genesis100/execution/': typeof ApiPublicGenesis100ExecutionIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -772,6 +824,8 @@ export interface FileRoutesByTo {
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
+  '/api/public/broker/status': typeof ApiPublicBrokerStatusRoute
+  '/api/public/company/profile': typeof ApiPublicCompanyProfileRoute
   '/api/public/genesis100/allocations': typeof ApiPublicGenesis100AllocationsRoute
   '/api/public/genesis100/analyze': typeof ApiPublicGenesis100AnalyzeRoute
   '/api/public/genesis100/archive': typeof ApiPublicGenesis100ArchiveRouteWithChildren
@@ -790,11 +844,16 @@ export interface FileRoutesByTo {
   '/api/public/genesis100/universe': typeof ApiPublicGenesis100UniverseRoute
   '/api/public/payments/paypal-webhook': typeof ApiPublicPaymentsPaypalWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/api/public/treasury/fund': typeof ApiPublicTreasuryFundRoute
+  '/api/public/treasury/history': typeof ApiPublicTreasuryHistoryRoute
+  '/api/public/treasury/status': typeof ApiPublicTreasuryStatusRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/api/public/genesis100/archive/latest': typeof ApiPublicGenesis100ArchiveLatestRoute
   '/api/public/genesis100/archive/summary': typeof ApiPublicGenesis100ArchiveSummaryRoute
+  '/api/public/genesis100/execution/history': typeof ApiPublicGenesis100ExecutionHistoryRoute
+  '/api/public/genesis100/execution': typeof ApiPublicGenesis100ExecutionIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -870,6 +929,8 @@ export interface FileRoutesById {
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
+  '/api/public/broker/status': typeof ApiPublicBrokerStatusRoute
+  '/api/public/company/profile': typeof ApiPublicCompanyProfileRoute
   '/api/public/genesis100/allocations': typeof ApiPublicGenesis100AllocationsRoute
   '/api/public/genesis100/analyze': typeof ApiPublicGenesis100AnalyzeRoute
   '/api/public/genesis100/archive': typeof ApiPublicGenesis100ArchiveRouteWithChildren
@@ -888,11 +949,16 @@ export interface FileRoutesById {
   '/api/public/genesis100/universe': typeof ApiPublicGenesis100UniverseRoute
   '/api/public/payments/paypal-webhook': typeof ApiPublicPaymentsPaypalWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/api/public/treasury/fund': typeof ApiPublicTreasuryFundRoute
+  '/api/public/treasury/history': typeof ApiPublicTreasuryHistoryRoute
+  '/api/public/treasury/status': typeof ApiPublicTreasuryStatusRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/api/public/genesis100/archive/latest': typeof ApiPublicGenesis100ArchiveLatestRoute
   '/api/public/genesis100/archive/summary': typeof ApiPublicGenesis100ArchiveSummaryRoute
+  '/api/public/genesis100/execution/history': typeof ApiPublicGenesis100ExecutionHistoryRoute
+  '/api/public/genesis100/execution/': typeof ApiPublicGenesis100ExecutionIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -968,6 +1034,8 @@ export interface FileRouteTypes {
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
     | '/api/public/alerts/evaluate'
+    | '/api/public/broker/status'
+    | '/api/public/company/profile'
     | '/api/public/genesis100/allocations'
     | '/api/public/genesis100/analyze'
     | '/api/public/genesis100/archive'
@@ -986,11 +1054,16 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/universe'
     | '/api/public/payments/paypal-webhook'
     | '/api/public/payments/webhook'
+    | '/api/public/treasury/fund'
+    | '/api/public/treasury/history'
+    | '/api/public/treasury/status'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
     | '/api/public/genesis100/archive/latest'
     | '/api/public/genesis100/archive/summary'
+    | '/api/public/genesis100/execution/history'
+    | '/api/public/genesis100/execution/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1064,6 +1137,8 @@ export interface FileRouteTypes {
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
     | '/api/public/alerts/evaluate'
+    | '/api/public/broker/status'
+    | '/api/public/company/profile'
     | '/api/public/genesis100/allocations'
     | '/api/public/genesis100/analyze'
     | '/api/public/genesis100/archive'
@@ -1082,11 +1157,16 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/universe'
     | '/api/public/payments/paypal-webhook'
     | '/api/public/payments/webhook'
+    | '/api/public/treasury/fund'
+    | '/api/public/treasury/history'
+    | '/api/public/treasury/status'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
     | '/api/public/genesis100/archive/latest'
     | '/api/public/genesis100/archive/summary'
+    | '/api/public/genesis100/execution/history'
+    | '/api/public/genesis100/execution'
   id:
     | '__root__'
     | '/'
@@ -1161,6 +1241,8 @@ export interface FileRouteTypes {
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
     | '/api/public/alerts/evaluate'
+    | '/api/public/broker/status'
+    | '/api/public/company/profile'
     | '/api/public/genesis100/allocations'
     | '/api/public/genesis100/analyze'
     | '/api/public/genesis100/archive'
@@ -1179,11 +1261,16 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/universe'
     | '/api/public/payments/paypal-webhook'
     | '/api/public/payments/webhook'
+    | '/api/public/treasury/fund'
+    | '/api/public/treasury/history'
+    | '/api/public/treasury/status'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
     | '/api/public/genesis100/archive/latest'
     | '/api/public/genesis100/archive/summary'
+    | '/api/public/genesis100/execution/history'
+    | '/api/public/genesis100/execution/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1208,6 +1295,8 @@ export interface RootRouteChildren {
   ApiWebhooksPaddleRoute: typeof ApiWebhooksPaddleRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
   ApiPublicAlertsEvaluateRoute: typeof ApiPublicAlertsEvaluateRoute
+  ApiPublicBrokerStatusRoute: typeof ApiPublicBrokerStatusRoute
+  ApiPublicCompanyProfileRoute: typeof ApiPublicCompanyProfileRoute
   ApiPublicGenesis100AllocationsRoute: typeof ApiPublicGenesis100AllocationsRoute
   ApiPublicGenesis100AnalyzeRoute: typeof ApiPublicGenesis100AnalyzeRoute
   ApiPublicGenesis100ArchiveRoute: typeof ApiPublicGenesis100ArchiveRouteWithChildren
@@ -1226,9 +1315,14 @@ export interface RootRouteChildren {
   ApiPublicGenesis100UniverseRoute: typeof ApiPublicGenesis100UniverseRoute
   ApiPublicPaymentsPaypalWebhookRoute: typeof ApiPublicPaymentsPaypalWebhookRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
+  ApiPublicTreasuryFundRoute: typeof ApiPublicTreasuryFundRoute
+  ApiPublicTreasuryHistoryRoute: typeof ApiPublicTreasuryHistoryRoute
+  ApiPublicTreasuryStatusRoute: typeof ApiPublicTreasuryStatusRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
+  ApiPublicGenesis100ExecutionHistoryRoute: typeof ApiPublicGenesis100ExecutionHistoryRoute
+  ApiPublicGenesis100ExecutionIndexRoute: typeof ApiPublicGenesis100ExecutionIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1751,6 +1845,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/treasury/status': {
+      id: '/api/public/treasury/status'
+      path: '/api/public/treasury/status'
+      fullPath: '/api/public/treasury/status'
+      preLoaderRoute: typeof ApiPublicTreasuryStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/treasury/history': {
+      id: '/api/public/treasury/history'
+      path: '/api/public/treasury/history'
+      fullPath: '/api/public/treasury/history'
+      preLoaderRoute: typeof ApiPublicTreasuryHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/treasury/fund': {
+      id: '/api/public/treasury/fund'
+      path: '/api/public/treasury/fund'
+      fullPath: '/api/public/treasury/fund'
+      preLoaderRoute: typeof ApiPublicTreasuryFundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -1877,11 +1992,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicGenesis100AllocationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/company/profile': {
+      id: '/api/public/company/profile'
+      path: '/api/public/company/profile'
+      fullPath: '/api/public/company/profile'
+      preLoaderRoute: typeof ApiPublicCompanyProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/broker/status': {
+      id: '/api/public/broker/status'
+      path: '/api/public/broker/status'
+      fullPath: '/api/public/broker/status'
+      preLoaderRoute: typeof ApiPublicBrokerStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/alerts/evaluate': {
       id: '/api/public/alerts/evaluate'
       path: '/api/public/alerts/evaluate'
       fullPath: '/api/public/alerts/evaluate'
       preLoaderRoute: typeof ApiPublicAlertsEvaluateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/execution/': {
+      id: '/api/public/genesis100/execution/'
+      path: '/api/public/genesis100/execution'
+      fullPath: '/api/public/genesis100/execution/'
+      preLoaderRoute: typeof ApiPublicGenesis100ExecutionIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/execution/history': {
+      id: '/api/public/genesis100/execution/history'
+      path: '/api/public/genesis100/execution/history'
+      fullPath: '/api/public/genesis100/execution/history'
+      preLoaderRoute: typeof ApiPublicGenesis100ExecutionHistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/genesis100/archive/summary': {
@@ -2051,6 +2194,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWebhooksPaddleRoute: ApiWebhooksPaddleRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
   ApiPublicAlertsEvaluateRoute: ApiPublicAlertsEvaluateRoute,
+  ApiPublicBrokerStatusRoute: ApiPublicBrokerStatusRoute,
+  ApiPublicCompanyProfileRoute: ApiPublicCompanyProfileRoute,
   ApiPublicGenesis100AllocationsRoute: ApiPublicGenesis100AllocationsRoute,
   ApiPublicGenesis100AnalyzeRoute: ApiPublicGenesis100AnalyzeRoute,
   ApiPublicGenesis100ArchiveRoute: ApiPublicGenesis100ArchiveRouteWithChildren,
@@ -2071,9 +2216,16 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicGenesis100UniverseRoute: ApiPublicGenesis100UniverseRoute,
   ApiPublicPaymentsPaypalWebhookRoute: ApiPublicPaymentsPaypalWebhookRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
+  ApiPublicTreasuryFundRoute: ApiPublicTreasuryFundRoute,
+  ApiPublicTreasuryHistoryRoute: ApiPublicTreasuryHistoryRoute,
+  ApiPublicTreasuryStatusRoute: ApiPublicTreasuryStatusRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
+  ApiPublicGenesis100ExecutionHistoryRoute:
+    ApiPublicGenesis100ExecutionHistoryRoute,
+  ApiPublicGenesis100ExecutionIndexRoute:
+    ApiPublicGenesis100ExecutionIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

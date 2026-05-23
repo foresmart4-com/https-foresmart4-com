@@ -22,11 +22,21 @@ export interface CorporateGovernanceConfig {
     "public_investment_onboarding",
     "public_subscription_checkout",
   ];
+  financialSafetyLock: true;
+  treasuryAdminOnly: true;
+  adminFundingOnly: true;
+  forbidden_financial_actions: readonly [
+    "withdrawal",
+    "external_transfer",
+    "send_funds_outside_platform",
+    "ai_bank_transfer",
+    "ai_wire_transfer",
+  ];
 }
 
 export interface CorporateTreasuryArchitecture {
   company_treasury: {
-    name: "ForeSmart Company Treasury";
+    name: "Raneem Capital Treasury";
     type: "corporate_treasury";
     personal_account_linkage: false;
     personal_banking_references: false;
@@ -58,6 +68,8 @@ export interface CorporateAdminPermissions {
   ai_execution_mode_control: boolean;
   broker_connection_control: boolean;
   internal_billing_control: boolean;
+  recharge_approval: boolean;
+  treasury_audit: boolean;
 }
 
 export const CORPORATE_GOVERNANCE: CorporateGovernanceConfig = {
@@ -84,11 +96,21 @@ export const CORPORATE_GOVERNANCE: CorporateGovernanceConfig = {
     "public_investment_onboarding",
     "public_subscription_checkout",
   ],
+  financialSafetyLock: true,
+  treasuryAdminOnly: true,
+  adminFundingOnly: true,
+  forbidden_financial_actions: [
+    "withdrawal",
+    "external_transfer",
+    "send_funds_outside_platform",
+    "ai_bank_transfer",
+    "ai_wire_transfer",
+  ],
 };
 
 export const CORPORATE_TREASURY: CorporateTreasuryArchitecture = {
   company_treasury: {
-    name: "ForeSmart Company Treasury",
+    name: "Raneem Capital Treasury",
     type: "corporate_treasury",
     personal_account_linkage: false,
     personal_banking_references: false,
@@ -120,6 +142,8 @@ export const DEFAULT_ADMIN_PERMISSIONS: CorporateAdminPermissions = {
   ai_execution_mode_control: true,
   broker_connection_control: true,
   internal_billing_control: true,
+  recharge_approval: true,
+  treasury_audit: true,
 };
 
 export function getCorporateGovernance() {
