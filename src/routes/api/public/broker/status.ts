@@ -7,13 +7,13 @@ export const Route = createFileRoute("/api/public/broker/status")({
       GET: async () => {
         const status = getBrokerAdapterStatus();
         const alpacaPaper = status.adapters.alpaca_paper;
+        const ibkr = status.adapters.ibkr;
         return new Response(JSON.stringify({
           product: "ForeSmart Genesis 100",
-          broker: {
-            alpaca_paper: alpacaPaper,
-            alpaca_live: status.adapters.alpaca_live,
-            ibkr: status.adapters.ibkr,
-          },
+          broker: status.adapters,
+          failover: status.failover,
+          capabilityMatrix: status.capabilityMatrix,
+          marketExpansion: status.marketExpansion,
           paperConnected: alpacaPaper.apiConfigured,
           liveEnabled: false,
           brokerHealthy: alpacaPaper.apiConfigured,
@@ -23,12 +23,12 @@ export const Route = createFileRoute("/api/public/broker/status")({
           brokerHealth: {
             alpaca_paper: alpacaPaper.apiConfigured ? "healthy" : "not_configured",
             alpaca_live: "not_configured",
-            ibkr: "not_configured",
+            ibkr: ibkr.apiConfigured ? "healthy" : "not_configured",
           },
           brokerConnectionStatus: {
             alpaca_paper: alpacaPaper.apiConfigured ? "connected" : "disconnected",
             alpaca_live: "disconnected",
-            ibkr: "disconnected",
+            ibkr: ibkr.apiConfigured ? "connected" : "disconnected",
           },
           paperTradingStatus: "active",
           executionReadiness: {

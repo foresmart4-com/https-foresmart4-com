@@ -205,6 +205,24 @@ interface BrokerStatusApi {
   brokerHealthy: boolean;
   executionReady: boolean;
   paperTradingStatus: string;
+  failover?: {
+    primaryBroker: string;
+    backupBroker: string;
+    autoFailover: boolean;
+  };
+  capabilityMatrix?: Array<{
+    provider: string;
+    equities: boolean;
+    etfs: boolean;
+    forex: boolean;
+    crypto: boolean;
+    commodities: boolean;
+    regionalMarkets: string[];
+  }>;
+  marketExpansion?: Array<{
+    region: string;
+    exchanges: Array<{ code: string; name: string; country: string; currency: string; status: string }>;
+  }>;
 }
 
 interface ExecutionStatusApi {
