@@ -41,7 +41,7 @@ jobs:
 
       - name: Gitleaks secret scan
         run: |
-          go install github.com/gitleaks/gitleaks/v8@latest
+          go install github.com/zricethezav/gitleaks/v8@latest
           "$(go env GOPATH)/bin/gitleaks" detect --source . --redact --verbose
 
       # 3. Static analysis — Semgrep with security ruleset
