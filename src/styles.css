@@ -51,9 +51,9 @@
   --radius: 1rem;
   /* Royal midnight + gold luxury palette */
   --background: oklch(0.16 0.025 265);
-  --foreground: oklch(0.97 0.008 90);
+  --foreground: oklch(0.96 0.008 85);
   --card: oklch(0.21 0.03 265);
-  --card-foreground: oklch(0.97 0.008 90);
+  --card-foreground: oklch(0.98 0.006 90);
   --popover: oklch(0.2 0.03 265);
   --popover-foreground: oklch(0.97 0.008 90);
   /* Royal gold primary */

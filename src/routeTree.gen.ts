@@ -78,8 +78,10 @@ import { Route as ApiWebhooksLemonsqueezyRouteImport } from './routes/api/webhoo
 import { Route as ApiPublicUiHealthRouteImport } from './routes/api/public/ui-health'
 import { Route as ApiPublicRouterTestRouteImport } from './routes/api/public/router-test'
 import { Route as ApiPublicRouterRegressionRouteImport } from './routes/api/public/router-regression'
+import { Route as ApiPublicProviderHealthFullRouteImport } from './routes/api/public/provider-health-full'
 import { Route as ApiPublicMoyasarWebhookRouteImport } from './routes/api/public/moyasar-webhook'
 import { Route as ApiPublicMarketIntelligenceRouteImport } from './routes/api/public/market-intelligence'
+import { Route as ApiPublicIntelligenceHealthRouteImport } from './routes/api/public/intelligence-health'
 import { Route as ApiPublicHistoryTestRouteImport } from './routes/api/public/history-test'
 import { Route as ApiPublicFullSiteHealthRouteImport } from './routes/api/public/full-site-health'
 import { Route as ApiPublicEmailConfigCheckRouteImport } from './routes/api/public/email-config-check'
@@ -464,6 +466,12 @@ const ApiPublicRouterRegressionRoute =
     path: '/api/public/router-regression',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicProviderHealthFullRoute =
+  ApiPublicProviderHealthFullRouteImport.update({
+    id: '/api/public/provider-health-full',
+    path: '/api/public/provider-health-full',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicMoyasarWebhookRoute = ApiPublicMoyasarWebhookRouteImport.update({
   id: '/api/public/moyasar-webhook',
   path: '/api/public/moyasar-webhook',
@@ -473,6 +481,12 @@ const ApiPublicMarketIntelligenceRoute =
   ApiPublicMarketIntelligenceRouteImport.update({
     id: '/api/public/market-intelligence',
     path: '/api/public/market-intelligence',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicIntelligenceHealthRoute =
+  ApiPublicIntelligenceHealthRouteImport.update({
+    id: '/api/public/intelligence-health',
+    path: '/api/public/intelligence-health',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHistoryTestRoute = ApiPublicHistoryTestRouteImport.update({
@@ -761,8 +775,10 @@ export interface FileRoutesByFullPath {
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/full-site-health': typeof ApiPublicFullSiteHealthRoute
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
+  '/api/public/intelligence-health': typeof ApiPublicIntelligenceHealthRoute
   '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
+  '/api/public/provider-health-full': typeof ApiPublicProviderHealthFullRoute
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
   '/api/public/ui-health': typeof ApiPublicUiHealthRoute
@@ -871,8 +887,10 @@ export interface FileRoutesByTo {
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/full-site-health': typeof ApiPublicFullSiteHealthRoute
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
+  '/api/public/intelligence-health': typeof ApiPublicIntelligenceHealthRoute
   '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
+  '/api/public/provider-health-full': typeof ApiPublicProviderHealthFullRoute
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
   '/api/public/ui-health': typeof ApiPublicUiHealthRoute
@@ -983,8 +1001,10 @@ export interface FileRoutesById {
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/full-site-health': typeof ApiPublicFullSiteHealthRoute
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
+  '/api/public/intelligence-health': typeof ApiPublicIntelligenceHealthRoute
   '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
+  '/api/public/provider-health-full': typeof ApiPublicProviderHealthFullRoute
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
   '/api/public/ui-health': typeof ApiPublicUiHealthRoute
@@ -1095,8 +1115,10 @@ export interface FileRouteTypes {
     | '/api/public/email-config-check'
     | '/api/public/full-site-health'
     | '/api/public/history-test'
+    | '/api/public/intelligence-health'
     | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
+    | '/api/public/provider-health-full'
     | '/api/public/router-regression'
     | '/api/public/router-test'
     | '/api/public/ui-health'
@@ -1205,8 +1227,10 @@ export interface FileRouteTypes {
     | '/api/public/email-config-check'
     | '/api/public/full-site-health'
     | '/api/public/history-test'
+    | '/api/public/intelligence-health'
     | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
+    | '/api/public/provider-health-full'
     | '/api/public/router-regression'
     | '/api/public/router-test'
     | '/api/public/ui-health'
@@ -1316,8 +1340,10 @@ export interface FileRouteTypes {
     | '/api/public/email-config-check'
     | '/api/public/full-site-health'
     | '/api/public/history-test'
+    | '/api/public/intelligence-health'
     | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
+    | '/api/public/provider-health-full'
     | '/api/public/router-regression'
     | '/api/public/router-test'
     | '/api/public/ui-health'
@@ -1376,8 +1402,10 @@ export interface RootRouteChildren {
   ApiPublicEmailConfigCheckRoute: typeof ApiPublicEmailConfigCheckRoute
   ApiPublicFullSiteHealthRoute: typeof ApiPublicFullSiteHealthRoute
   ApiPublicHistoryTestRoute: typeof ApiPublicHistoryTestRoute
+  ApiPublicIntelligenceHealthRoute: typeof ApiPublicIntelligenceHealthRoute
   ApiPublicMarketIntelligenceRoute: typeof ApiPublicMarketIntelligenceRoute
   ApiPublicMoyasarWebhookRoute: typeof ApiPublicMoyasarWebhookRoute
+  ApiPublicProviderHealthFullRoute: typeof ApiPublicProviderHealthFullRoute
   ApiPublicRouterRegressionRoute: typeof ApiPublicRouterRegressionRoute
   ApiPublicRouterTestRoute: typeof ApiPublicRouterTestRoute
   ApiPublicUiHealthRoute: typeof ApiPublicUiHealthRoute
@@ -1902,6 +1930,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicRouterRegressionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/provider-health-full': {
+      id: '/api/public/provider-health-full'
+      path: '/api/public/provider-health-full'
+      fullPath: '/api/public/provider-health-full'
+      preLoaderRoute: typeof ApiPublicProviderHealthFullRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/moyasar-webhook': {
       id: '/api/public/moyasar-webhook'
       path: '/api/public/moyasar-webhook'
@@ -1914,6 +1949,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/market-intelligence'
       fullPath: '/api/public/market-intelligence'
       preLoaderRoute: typeof ApiPublicMarketIntelligenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/intelligence-health': {
+      id: '/api/public/intelligence-health'
+      path: '/api/public/intelligence-health'
+      fullPath: '/api/public/intelligence-health'
+      preLoaderRoute: typeof ApiPublicIntelligenceHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/history-test': {
@@ -2332,8 +2374,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicEmailConfigCheckRoute: ApiPublicEmailConfigCheckRoute,
   ApiPublicFullSiteHealthRoute: ApiPublicFullSiteHealthRoute,
   ApiPublicHistoryTestRoute: ApiPublicHistoryTestRoute,
+  ApiPublicIntelligenceHealthRoute: ApiPublicIntelligenceHealthRoute,
   ApiPublicMarketIntelligenceRoute: ApiPublicMarketIntelligenceRoute,
   ApiPublicMoyasarWebhookRoute: ApiPublicMoyasarWebhookRoute,
+  ApiPublicProviderHealthFullRoute: ApiPublicProviderHealthFullRoute,
   ApiPublicRouterRegressionRoute: ApiPublicRouterRegressionRoute,
   ApiPublicRouterTestRoute: ApiPublicRouterTestRoute,
   ApiPublicUiHealthRoute: ApiPublicUiHealthRoute,
