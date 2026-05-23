@@ -19,6 +19,7 @@ import { Route as DisclaimerRouteImport } from './routes/disclaimer'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiPingRouteImport } from './routes/api/ping'
 import { Route as AppWatchlistsRouteImport } from './routes/_app/watchlists'
 import { Route as AppWatchlistRouteImport } from './routes/_app/watchlist'
 import { Route as AppWalletRouteImport } from './routes/_app/wallet'
@@ -162,6 +163,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPingRoute = ApiPingRouteImport.update({
+  id: '/api/ping',
+  path: '/api/ping',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppWatchlistsRoute = AppWatchlistsRouteImport.update({
@@ -730,6 +736,7 @@ export interface FileRoutesByFullPath {
   '/wallet': typeof AppWalletRoute
   '/watchlist': typeof AppWatchlistRoute
   '/watchlists': typeof AppWatchlistsRoute
+  '/api/ping': typeof ApiPingRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
@@ -836,6 +843,7 @@ export interface FileRoutesByTo {
   '/wallet': typeof AppWalletRoute
   '/watchlist': typeof AppWatchlistRoute
   '/watchlists': typeof AppWatchlistsRoute
+  '/api/ping': typeof ApiPingRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
@@ -944,6 +952,7 @@ export interface FileRoutesById {
   '/_app/wallet': typeof AppWalletRoute
   '/_app/watchlist': typeof AppWatchlistRoute
   '/_app/watchlists': typeof AppWatchlistsRoute
+  '/api/ping': typeof ApiPingRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
@@ -1052,6 +1061,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/watchlist'
     | '/watchlists'
+    | '/api/ping'
     | '/api/finnhub/stream'
     | '/api/public/deploy-check'
     | '/api/public/email-config-check'
@@ -1158,6 +1168,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/watchlist'
     | '/watchlists'
+    | '/api/ping'
     | '/api/finnhub/stream'
     | '/api/public/deploy-check'
     | '/api/public/email-config-check'
@@ -1265,6 +1276,7 @@ export interface FileRouteTypes {
     | '/_app/wallet'
     | '/_app/watchlist'
     | '/_app/watchlists'
+    | '/api/ping'
     | '/api/finnhub/stream'
     | '/api/public/deploy-check'
     | '/api/public/email-config-check'
@@ -1322,6 +1334,7 @@ export interface RootRouteChildren {
   ServicesRoute: typeof ServicesRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  ApiPingRoute: typeof ApiPingRoute
   ApiFinnhubStreamRoute: typeof ApiFinnhubStreamRoute
   ApiPublicDeployCheckRoute: typeof ApiPublicDeployCheckRoute
   ApiPublicEmailConfigCheckRoute: typeof ApiPublicEmailConfigCheckRoute
@@ -1436,6 +1449,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ping': {
+      id: '/api/ping'
+      path: '/api/ping'
+      fullPath: '/api/ping'
+      preLoaderRoute: typeof ApiPingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/watchlists': {
@@ -2245,6 +2265,7 @@ const rootRouteChildren: RootRouteChildren = {
   ServicesRoute: ServicesRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  ApiPingRoute: ApiPingRoute,
   ApiFinnhubStreamRoute: ApiFinnhubStreamRoute,
   ApiPublicDeployCheckRoute: ApiPublicDeployCheckRoute,
   ApiPublicEmailConfigCheckRoute: ApiPublicEmailConfigCheckRoute,
