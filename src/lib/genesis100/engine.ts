@@ -10,6 +10,10 @@ export type GenesisAIMode = "off" | "semi_ai" | "full_ai";
 export type GenesisRiskMode = "blocked" | "very_cautious" | "cautious" | "balanced" | "confident" | "high_confidence" | "maximum_confidence";
 export type GenesisCredibilityTier = "below_51" | "51_60" | "61_65" | "66_75" | "76_85" | "86_95" | "96_100";
 export type GenesisStopLossUrgency = "low" | "medium" | "high" | "critical";
+export type GenesisSourceStatus = "connected" | "partial" | "framework_ready_provider_missing";
+
+export const GENESIS_INTELLIGENCE_VERSION = "genesis-intelligence-v2";
+export const MINIMUM_DECISION_CREDIBILITY_PERCENT = 51;
 
 export interface GenesisWallet {
   id: string;
@@ -131,6 +135,12 @@ export interface GenesisScore {
   timingScore: number;
   finalDecisionScore: number;
   decisionConfidencePercent: number;
+  sourceCredibilityPercent: number;
+  dataCredibilityPercent: number;
+  marketConfirmationPercent: number;
+  riskApprovalPercent: number;
+  finalApprovalPercent: number;
+  minimumDecisionCredibilityPercent: 51;
   decisionStrengthPercent: number;
   expectedUpsidePercent: number | null;
   expectedDownsidePercent: number | null;
@@ -146,6 +156,8 @@ export interface GenesisScore {
   positionSizingReasonEn: string;
   stopLossUrgency: GenesisStopLossUrgency;
   actionAllowed: boolean;
+  action: GenesisPositionAction;
+  blockedReason: string | null;
   positionSizing: GenesisPositionSizing;
   recommendation: GenesisRecommendation;
   primaryReason: string;
@@ -171,9 +183,21 @@ export interface GenesisAllocation {
   finalGenesisScore: number;
   allocationConfidencePercent: number;
   decisionConfidencePercent: number;
+  decisionCredibilityPercent: number;
+  sourceCredibilityPercent: number;
+  dataCredibilityPercent: number;
+  marketConfirmationPercent: number;
+  riskApprovalPercent: number;
+  finalApprovalPercent: number;
+  blockedReason: string | null;
   riskPercent: number;
   action: GenesisPositionAction;
   decisionCredibilityPercent: number;
+  sourceCredibilityPercent: number;
+  dataCredibilityPercent: number;
+  marketConfirmationPercent: number;
+  riskApprovalPercent: number;
+  finalApprovalPercent: number;
   credibilityTier: GenesisCredibilityTier;
   allocationMultiplier: number;
   riskMode: GenesisRiskMode;
@@ -183,6 +207,7 @@ export interface GenesisAllocation {
   positionSizingReasonEn: string;
   stopLossUrgency: GenesisStopLossUrgency;
   actionAllowed: boolean;
+  blockedReason: string | null;
   reason: string;
   recommendation: GenesisRecommendation;
 }
@@ -244,6 +269,8 @@ export interface GenesisArchivedDecision {
   previousWeight: number;
   action: GenesisPositionAction;
   decisionCredibilityPercent: number;
+  sourceCredibilityPercent: number;
+  finalApprovalPercent: number;
   credibilityTier: GenesisCredibilityTier;
   allocationMultiplier: number;
   riskMode: GenesisRiskMode;
@@ -253,6 +280,7 @@ export interface GenesisArchivedDecision {
   positionSizingReasonEn: string;
   stopLossUrgency: GenesisStopLossUrgency;
   actionAllowed: boolean;
+  blockedReason: string | null;
   reasonAr: string;
   reasonEn: string;
   dataSources: string[];
@@ -260,7 +288,26 @@ export interface GenesisArchivedDecision {
   riskWarnings: string[];
   aiMode: GenesisAIMode;
   executionMode: GenesisExecutionMode;
+  intelligenceVersion: typeof GENESIS_INTELLIGENCE_VERSION;
   createdBy: "genesis100-ai";
+}
+
+export interface GenesisIntelligenceV2 {
+  intelligenceVersion: typeof GENESIS_INTELLIGENCE_VERSION;
+  marketRegime: GenesisPortfolioDecision["marketRegime"];
+  overallMarketSentiment: number;
+  equitySentiment: number;
+  cryptoSentiment: number;
+  oilSentiment: number;
+  metalsSentiment: number;
+  forexSentiment: number;
+  saudiMarketSentiment: number;
+  riskOnRiskOff: "risk_on" | "risk_off" | "neutral";
+  confidencePercent: number;
+  sourceStatus: GenesisSourceStatus;
+  enabledSourceCategories: string[];
+  aiPortfolioSummaryAr: string;
+  aiPortfolioSummaryEn: string;
 }
 
 export interface GenesisPositionSizingSummary {
@@ -293,6 +340,10 @@ export interface GenesisCycleResult {
   decisions: GenesisDecision[];
   portfolioDecision: GenesisPortfolioDecision;
   decisionArchiveCount: number;
+  approvedDecisionCount: number;
+  blockedDecisionCount: number;
+  topApprovedDecisions: GenesisArchivedDecision[];
+  topBlockedDecisions: GenesisArchivedDecision[];
   topDecisions: GenesisArchivedDecision[];
   positionSizingSummary: GenesisPositionSizingSummary;
   capitalByCredibilityTier: Record<GenesisCredibilityTier, number>;
@@ -348,6 +399,19 @@ const CREDIBILITY_TIERS: Array<{
   { min: 76, max: 85, credibilityTier: "76_85", allocationMultiplier: 0.80, riskMode: "confident", maxSingleDecisionCapitalPercent: 6 },
   { min: 86, max: 95, credibilityTier: "86_95", allocationMultiplier: 1.00, riskMode: "high_confidence", maxSingleDecisionCapitalPercent: 8 },
   { min: 96, max: 100, credibilityTier: "96_100", allocationMultiplier: 1.15, riskMode: "maximum_confidence", maxSingleDecisionCapitalPercent: 8 },
+];
+const SOURCE_CATEGORIES = [
+  "official_economic_sources",
+  "central_banks",
+  "financial_news_channels",
+  "market_news",
+  "company_news",
+  "commodity_news",
+  "oil_news",
+  "metals_news",
+  "crypto_news",
+  "economic_influencers",
+  "analyst_commentary",
 ];
 const SAFETY_PROFILE: GenesisSafetyProfile = {
   externalTransfersAllowed: false,
@@ -785,12 +849,31 @@ function scoreAsset(asset: GenesisUniverseAsset, quote: RouterQuote): GenesisSco
   );
   const riskPercent = clamp(100 - ((volatilityScore * 0.35) + (drawdownRiskScore * 0.35) + (correlationRiskScore * 0.30)));
   const decisionConfidencePercent = round(confidenceScore, 2);
+  const dataQuality: GenesisScore["dataQuality"] = quote.success && confidenceScore >= 75 ? "high" : quote.success ? "medium" : "low";
+  const dataFreshness: GenesisScore["dataFreshness"] = quote.mode === "live" ? "live" : quote.mode === "delayed" ? "delayed" : "stale";
+  const providerReliability = round(clamp((quote.provider ? 70 : 25) + (quote.success ? 15 : -10) - (quote.fallbackUsed ? 8 : 0)), 2);
+  const sourceCredibilityPercent = round(providerReliability, 2);
+  const dataCredibilityPercent = round(clamp((dataQuality === "high" ? 86 : dataQuality === "medium" ? 66 : 38) + (dataFreshness === "live" ? 8 : dataFreshness === "delayed" ? 2 : -10)), 2);
+  const marketConfirmationPercent = round(clamp((trendStrengthScore * 0.35) + (sentimentScore * 0.25) + (macroSensitivityScore * 0.20) + (technicalStructureScore * 0.20)), 2);
+  const riskApprovalPercent = round(clamp(100 - riskPercent), 2);
+  const finalApprovalPercent = round(clamp(
+    decisionConfidencePercent * 0.25 +
+    sourceCredibilityPercent * 0.20 +
+    dataCredibilityPercent * 0.20 +
+    marketConfirmationPercent * 0.20 +
+    riskApprovalPercent * 0.15,
+  ), 2);
   const decisionStrengthPercent = round(clamp(Math.abs(finalDecisionScore - 50) * 2), 2);
   const expectedUpsidePercent = quote.success ? round(Math.max(1, (takeProfitScore - 50) / 2.5), 2) : null;
   const expectedDownsidePercent = quote.success ? round(Math.max(1, riskPercent / 3), 2) : null;
   const allocationConfidencePercent = round(clamp((finalDecisionScore * 0.55) + (confidenceScore * 0.35) + (liquidityScore * 0.10)), 2);
-  const positionSizing = positionSizingFor(allocationConfidencePercent, riskPercent);
-  const recommendation = recommendationFor(finalDecisionScore, riskPercent, quote.success);
+  const positionSizing = positionSizingFor(finalApprovalPercent, riskPercent);
+  const lowCredibilityBlocked = finalApprovalPercent < MINIMUM_DECISION_CREDIBILITY_PERCENT;
+  const blockedReason = lowCredibilityBlocked
+    ? `Decision credibility ${finalApprovalPercent}% is below minimum ${MINIMUM_DECISION_CREDIBILITY_PERCENT}%.`
+    : null;
+  const recommendation = lowCredibilityBlocked ? "watch" : recommendationFor(finalDecisionScore, riskPercent, quote.success);
+  const actionAllowed = !lowCredibilityBlocked && positionSizing.actionAllowed;
 
   const riskNotes = [
     ...(!quote.success ? [`Quote unavailable: ${quote.error ?? "unknown provider failure"}`] : []),
@@ -798,9 +881,6 @@ function scoreAsset(asset: GenesisUniverseAsset, quote: RouterQuote): GenesisSco
     ...(bucket === "crypto" ? ["Crypto exposure capped at 15%"] : []),
     ...(bucket === "commodity" ? ["Commodity exposure capped at 20%"] : []),
   ];
-  const dataQuality: GenesisScore["dataQuality"] = quote.success && confidenceScore >= 75 ? "high" : quote.success ? "medium" : "low";
-  const dataFreshness: GenesisScore["dataFreshness"] = quote.mode === "live" ? "live" : quote.mode === "delayed" ? "delayed" : "stale";
-  const providerReliability = round(clamp((quote.provider ? 70 : 25) + (quote.success ? 15 : -10) - (quote.fallbackUsed ? 8 : 0)), 2);
   const primaryReason = quote.success
     ? `${recommendation} because final decision score is ${round(finalDecisionScore, 1)} with ${decisionConfidencePercent}% confidence.`
     : `watch because live quote quality is low: ${quote.error ?? "provider unavailable"}.`;
@@ -848,6 +928,12 @@ function scoreAsset(asset: GenesisUniverseAsset, quote: RouterQuote): GenesisSco
     timingScore: round(timingScore, 2),
     finalDecisionScore: round(finalDecisionScore, 2),
     decisionConfidencePercent,
+    sourceCredibilityPercent,
+    dataCredibilityPercent,
+    marketConfirmationPercent,
+    riskApprovalPercent,
+    finalApprovalPercent,
+    minimumDecisionCredibilityPercent: MINIMUM_DECISION_CREDIBILITY_PERCENT,
     decisionStrengthPercent,
     expectedUpsidePercent,
     expectedDownsidePercent,
@@ -862,8 +948,10 @@ function scoreAsset(asset: GenesisUniverseAsset, quote: RouterQuote): GenesisSco
     positionSizingReasonAr: positionSizing.positionSizingReasonAr,
     positionSizingReasonEn: positionSizing.positionSizingReasonEn,
     stopLossUrgency: positionSizing.stopLossUrgency,
-    actionAllowed: positionSizing.actionAllowed,
-    positionSizing,
+    actionAllowed,
+    action: actionAllowed ? recommendation : "blocked_low_credibility",
+    blockedReason,
+    positionSizing: { ...positionSizing, actionAllowed },
     recommendation,
     primaryReason,
     supportingReasons,
@@ -1083,6 +1171,7 @@ function buildDecisions(scores: GenesisScore[], allocations: GenesisAllocation[]
     const oldWeight = STATE.currentWeights[score.symbol] ?? 0;
     const newWeight = allocation?.targetWeight ?? 0;
     const action: GenesisDecision["action"] =
+      !score.actionAllowed ? "blocked_low_credibility" :
       newWeight > oldWeight + 0.002 ? "increase" :
       newWeight < oldWeight - 0.002 ? "decrease" :
       score.recommendation;
@@ -1094,7 +1183,7 @@ function buildDecisions(scores: GenesisScore[], allocations: GenesisAllocation[]
       action,
       oldWeight: round(oldWeight, 4),
       newWeight: round(newWeight, 4),
-      reason: `${score.recommendation} with Genesis score ${score.finalGenesisScore}; confidence ${score.confidenceScore}.`,
+      reason: score.blockedReason ?? `${score.recommendation} with Genesis score ${score.finalGenesisScore}; confidence ${score.confidenceScore}.`,
       confidence: score.confidenceScore,
       dataSources: score.dataSources,
       quoteSnapshot: score.quoteSnapshot,
@@ -1158,7 +1247,7 @@ function archiveDecisions(cycleId: string, scores: GenesisScore[], allocations: 
     const allocation = allocationBySymbol.get(score.symbol);
     const previousWeight = STATE.currentWeights[score.symbol] ?? 0;
     const targetWeight = allocation?.targetWeight ?? 0;
-    const action = allocation?.action ?? actionFor(score.recommendation, previousWeight, targetWeight);
+    const action = !score.actionAllowed ? "blocked_low_credibility" : allocation?.action ?? actionFor(score.recommendation, previousWeight, targetWeight);
     const previousRecommendation = STATE.previousRecommendations[score.symbol] ?? null;
 
     return {
@@ -1173,6 +1262,8 @@ function archiveDecisions(cycleId: string, scores: GenesisScore[], allocations: 
       decisionConfidencePercent: score.decisionConfidencePercent,
       decisionCredibilityPercent: score.decisionCredibilityPercent,
       credibilityTier: score.credibilityTier,
+      sourceCredibilityPercent: score.sourceCredibilityPercent,
+      finalApprovalPercent: score.finalApprovalPercent,
       allocationMultiplier: score.allocationMultiplier,
       riskMode: score.riskMode,
       maxSingleDecisionCapitalPercent: score.maxSingleDecisionCapitalPercent,
@@ -1181,6 +1272,7 @@ function archiveDecisions(cycleId: string, scores: GenesisScore[], allocations: 
       positionSizingReasonEn: score.positionSizingReasonEn,
       stopLossUrgency: score.stopLossUrgency,
       actionAllowed: score.actionAllowed,
+      blockedReason: score.blockedReason,
       finalDecisionScore: score.finalDecisionScore,
       targetWeight: round(targetWeight, 4),
       previousWeight: round(previousWeight, 4),
@@ -1192,6 +1284,7 @@ function archiveDecisions(cycleId: string, scores: GenesisScore[], allocations: 
       riskWarnings: score.riskWarnings,
       aiMode: STATE.controls.aiMode,
       executionMode: targetWeight > 0 && STATE.controls.aiMode === "full_ai" ? "paper" : "analysis_only",
+      intelligenceVersion: GENESIS_INTELLIGENCE_VERSION,
       createdBy: "genesis100-ai" as const,
     };
   });
@@ -1254,6 +1347,10 @@ export async function runGenesisCycle(input?: Request | URLSearchParams | null):
       decisions: [],
       portfolioDecision,
       decisionArchiveCount: STATE.decisionArchive.length,
+      approvedDecisionCount: STATE.decisionArchive.filter((d) => d.actionAllowed).length,
+      blockedDecisionCount: STATE.decisionArchive.filter((d) => !d.actionAllowed).length,
+      topApprovedDecisions: STATE.decisionArchive.filter((d) => d.actionAllowed).slice(0, 10),
+      topBlockedDecisions: STATE.decisionArchive.filter((d) => !d.actionAllowed).slice(0, 10),
       topDecisions: STATE.decisionArchive.slice(0, 10),
       positionSizingSummary,
       capitalByCredibilityTier: positionSizingSummary.capitalByCredibilityTier,
@@ -1312,6 +1409,16 @@ export async function runGenesisCycle(input?: Request | URLSearchParams | null):
     decisions,
     portfolioDecision,
     decisionArchiveCount: STATE.decisionArchive.length,
+    approvedDecisionCount: archived.filter((d) => d.actionAllowed).length,
+    blockedDecisionCount: archived.filter((d) => !d.actionAllowed).length,
+    topApprovedDecisions: archived
+      .filter((d) => d.actionAllowed)
+      .sort((a, b) => b.decisionCredibilityPercent - a.decisionCredibilityPercent)
+      .slice(0, 10),
+    topBlockedDecisions: archived
+      .filter((d) => !d.actionAllowed)
+      .sort((a, b) => a.decisionCredibilityPercent - b.decisionCredibilityPercent)
+      .slice(0, 10),
     topDecisions: archived
       .sort((a, b) => b.decisionConfidencePercent - a.decisionConfidencePercent)
       .slice(0, 10),
@@ -1456,6 +1563,130 @@ export function getGenesisPositionSizing(input?: Request | URLSearchParams | nul
     })),
     allocations,
     summary: buildPositionSizingSummary(STATE.lastScores, STATE.lastAllocations),
+    liveExecutionEnabled: false,
+    safety: SAFETY_PROFILE,
+  };
+}
+
+export function getGenesisSourceRegistry() {
+  return {
+    product: "ForeSmart Genesis 100",
+    intelligenceVersion: GENESIS_INTELLIGENCE_VERSION,
+    sourceStatus: "framework_ready_provider_missing" as GenesisSourceStatus,
+    enabledSourceCategories: SOURCE_CATEGORIES,
+    categories: SOURCE_CATEGORIES.map((category) => ({
+      category,
+      enabled: true,
+      liveProviderConnected: false,
+      sourceStatus: "framework_ready_provider_missing" as GenesisSourceStatus,
+    })),
+    note: "Source framework is ready; dedicated live news/sentiment providers are not wired for Genesis 100 yet.",
+    liveExecutionEnabled: false,
+    safety: SAFETY_PROFILE,
+  };
+}
+
+export function getGenesisMarketSentiment(scores = STATE.lastScores) {
+  const avg = (bucket: GenesisUniverseAsset["bucket"]) => {
+    const items = scores.filter((s) => s.bucket === bucket);
+    return round(items.length ? items.reduce((sum, s) => sum + s.sentimentScore, 0) / items.length : 50, 2);
+  };
+  const overall = round(scores.length ? scores.reduce((sum, s) => sum + s.sentimentScore, 0) / scores.length : 50, 2);
+  return {
+    overallMarketSentiment: overall,
+    equitySentiment: avg("us_stock"),
+    cryptoSentiment: avg("crypto"),
+    oilSentiment: round(scores.filter((s) => ["WTI", "BRENT"].includes(s.symbol)).reduce((sum, s, _, arr) => sum + s.sentimentScore / Math.max(1, arr.length), 0) || 50, 2),
+    metalsSentiment: round(scores.filter((s) => ["XAUUSD", "XAGUSD"].includes(s.symbol)).reduce((sum, s, _, arr) => sum + s.sentimentScore / Math.max(1, arr.length), 0) || 50, 2),
+    forexSentiment: avg("forex"),
+    saudiMarketSentiment: avg("saudi_stock"),
+    riskOnRiskOff: overall >= 58 ? "risk_on" : overall <= 43 ? "risk_off" : "neutral",
+  };
+}
+
+export function getGenesisIntelligence(input?: Request | URLSearchParams | null): GenesisIntelligenceV2 {
+  const scores = STATE.lastScores;
+  const portfolioDecision = STATE.lastPortfolioDecision ?? buildPortfolioDecision(scores, STATE.lastAllocations);
+  const sentiment = getGenesisMarketSentiment(scores);
+  const sourceRegistry = getGenesisSourceRegistry();
+  const confidencePercent = round(scores.length ? scores.reduce((sum, s) => sum + s.finalApprovalPercent, 0) / scores.length : 50, 2);
+  return {
+    intelligenceVersion: GENESIS_INTELLIGENCE_VERSION,
+    marketRegime: portfolioDecision.marketRegime,
+    overallMarketSentiment: sentiment.overallMarketSentiment,
+    equitySentiment: sentiment.equitySentiment,
+    cryptoSentiment: sentiment.cryptoSentiment,
+    oilSentiment: sentiment.oilSentiment,
+    metalsSentiment: sentiment.metalsSentiment,
+    forexSentiment: sentiment.forexSentiment,
+    saudiMarketSentiment: sentiment.saudiMarketSentiment,
+    riskOnRiskOff: sentiment.riskOnRiskOff,
+    confidencePercent,
+    sourceStatus: sourceRegistry.sourceStatus,
+    enabledSourceCategories: sourceRegistry.enabledSourceCategories,
+    aiPortfolioSummaryAr: portfolioDecision.aiPortfolioSummaryAr,
+    aiPortfolioSummaryEn: portfolioDecision.aiPortfolioSummaryEn,
+  };
+}
+
+export function getGenesisDecisionFirewall(input?: Request | URLSearchParams | null) {
+  const scores = STATE.lastScores;
+  const blocked = scores.filter((s) => !s.actionAllowed);
+  const approved = scores.filter((s) => s.actionAllowed);
+  return {
+    product: "ForeSmart Genesis 100",
+    intelligenceVersion: GENESIS_INTELLIGENCE_VERSION,
+    minimumDecisionCredibilityPercent: MINIMUM_DECISION_CREDIBILITY_PERCENT,
+    approvedDecisionCount: approved.length,
+    blockedDecisionCount: blocked.length,
+    blockedDecisions: blocked.map((s) => ({
+      symbol: s.symbol,
+      action: "blocked_low_credibility",
+      recommendation: "watch",
+      decisionCredibilityPercent: s.decisionCredibilityPercent,
+      blockedReason: s.blockedReason,
+    })),
+    rules: [
+      "If decisionCredibilityPercent < 51, actionAllowed=false.",
+      "Blocked decisions create no proposed buy/sell orders.",
+      "Real broker execution remains disabled.",
+      "External transfers are permanently forbidden.",
+    ],
+    liveExecutionEnabled: false,
+    safety: SAFETY_PROFILE,
+  };
+}
+
+export function getGenesisCredibility(input?: Request | URLSearchParams | null) {
+  const params = input instanceof Request
+    ? new URL(input.url).searchParams
+    : input instanceof URLSearchParams ? input : new URLSearchParams();
+  const symbol = params.get("symbol")?.trim().toUpperCase();
+  const scores = symbol
+    ? STATE.lastScores.filter((s) => s.symbol.toUpperCase() === symbol)
+    : STATE.lastScores;
+  return {
+    product: "ForeSmart Genesis 100",
+    intelligenceVersion: GENESIS_INTELLIGENCE_VERSION,
+    symbol: symbol ?? null,
+    minimumDecisionCredibilityPercent: MINIMUM_DECISION_CREDIBILITY_PERCENT,
+    count: scores.length,
+    credibility: scores.map((s) => ({
+      symbol: s.symbol,
+      recommendation: s.recommendation,
+      action: s.actionAllowed ? s.recommendation : "blocked_low_credibility",
+      actionAllowed: s.actionAllowed,
+      blockedReason: s.blockedReason,
+      decisionCredibilityPercent: s.decisionCredibilityPercent,
+      sourceCredibilityPercent: s.sourceCredibilityPercent,
+      dataCredibilityPercent: s.dataCredibilityPercent,
+      marketConfirmationPercent: s.marketConfirmationPercent,
+      riskApprovalPercent: s.riskApprovalPercent,
+      finalApprovalPercent: s.finalApprovalPercent,
+      credibilityTier: s.credibilityTier,
+      riskMode: s.riskMode,
+      allocationMultiplier: s.allocationMultiplier,
+    })),
     liveExecutionEnabled: false,
     safety: SAFETY_PROFILE,
   };

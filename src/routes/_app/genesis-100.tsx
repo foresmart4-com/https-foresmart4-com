@@ -178,6 +178,30 @@ interface ArchiveDecisionApi {
   riskWarnings: string[];
 }
 
+interface IntelligenceApi {
+  intelligenceVersion: string;
+  marketRegime: string;
+  overallMarketSentiment: number;
+  riskOnRiskOff: string;
+  confidencePercent: number;
+  sourceStatus: string;
+  enabledSourceCategories: string[];
+  aiPortfolioSummaryAr: string;
+  aiPortfolioSummaryEn: string;
+}
+
+interface FirewallApi {
+  minimumDecisionCredibilityPercent: number;
+  approvedDecisionCount: number;
+  blockedDecisionCount: number;
+  blockedDecisions: Array<{ symbol: string; decisionCredibilityPercent: number; blockedReason: string | null }>;
+}
+
+interface SourceRegistryApi {
+  sourceStatus: string;
+  enabledSourceCategories: string[];
+}
+
 const periods = ["hourly", "daily", "weekly", "monthly", "quarterly", "semiannual", "annual"];
 
 async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -207,6 +231,9 @@ function Genesis100Page() {
   const [portfolioDecision, setPortfolioDecision] = useState<PortfolioDecisionApi | null>(null);
   const [positionSizingSummary, setPositionSizingSummary] = useState<PositionSizingSummaryApi | null>(null);
   const [archive, setArchive] = useState<ArchiveDecisionApi[]>([]);
+  const [intelligence, setIntelligence] = useState<IntelligenceApi | null>(null);
+  const [firewall, setFirewall] = useState<FirewallApi | null>(null);
+  const [sourceRegistry, setSourceRegistry] = useState<SourceRegistryApi | null>(null);
   const [riskWarnings, setRiskWarnings] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
@@ -217,13 +244,16 @@ function Genesis100Page() {
 
   const load = async () => {
     setError(null);
-    const [s, a, d, c, n, ar] = await Promise.all([
+    const [s, a, d, c, n, ar, intel, fw, sr] = await Promise.all([
       getJson<StatusApi>("/api/public/genesis100/status"),
       getJson<{ allocations: AllocationApi[] }>("/api/public/genesis100/allocations"),
       getJson<{ decisions: DecisionApi[] }>("/api/public/genesis100/decisions"),
       getJson<ControlsApi>("/api/public/genesis100/controls"),
       getJson<NotificationsApi>("/api/public/genesis100/notifications"),
       getJson<{ archive: ArchiveDecisionApi[] }>("/api/public/genesis100/archive"),
+      getJson<IntelligenceApi>("/api/public/genesis100/intelligence"),
+      getJson<FirewallApi>("/api/public/genesis100/decision-firewall"),
+      getJson<SourceRegistryApi>("/api/public/genesis100/source-registry"),
     ]);
     setStatus(s);
     setAllocations(a.allocations ?? []);
@@ -231,6 +261,9 @@ function Genesis100Page() {
     setControls(c);
     setNotifications(n);
     setArchive(ar.archive ?? []);
+    setIntelligence(intel);
+    setFirewall(fw);
+    setSourceRegistry(sr);
   };
 
   useEffect(() => {
@@ -405,21 +438,51 @@ function Genesis100Page() {
         <CardContent className="grid gap-3 text-sm md:grid-cols-3">
           <div className="rounded-md border p-3">
             <div className="font-medium">{t("نظام السوق", "Market Regime")}</div>
-            <div className="text-muted-foreground">{portfolioDecision?.marketRegime ?? "pending"}</div>
+            <div className="text-muted-foreground">{intelligence?.marketRegime ?? portfolioDecision?.marketRegime ?? "pending"}</div>
           </div>
           <div className="rounded-md border p-3">
-            <div className="font-medium">{t("مخاطر المحفظة", "Portfolio Risk")}</div>
-            <div className="text-muted-foreground">{portfolioDecision?.portfolioRiskLevel ?? "pending"}</div>
+            <div className="font-medium">{t("معنويات السوق", "Market Sentiment")}</div>
+            <div className="text-muted-foreground">{intelligence?.overallMarketSentiment?.toFixed(1) ?? "-"} / {intelligence?.riskOnRiskOff ?? "neutral"}</div>
           </div>
           <div className="rounded-md border p-3">
-            <div className="font-medium">{t("احتياطي نقد مقترح", "Recommended Cash Reserve")}</div>
-            <div className="text-muted-foreground">{pct(portfolioDecision?.recommendedCashReserve ?? 0.05)}</div>
+            <div className="font-medium">{t("ثقة الذكاء", "AI Confidence")}</div>
+            <div className="text-muted-foreground">{intelligence?.confidencePercent?.toFixed(1) ?? "-"}%</div>
           </div>
           <div className="rounded-md bg-muted p-3 md:col-span-3">
-            {ar ? portfolioDecision?.aiPortfolioSummaryAr : portfolioDecision?.aiPortfolioSummaryEn ?? t("شغّل دورة AI لإنشاء ملخص الذكاء.", "Run an AI cycle to generate the intelligence summary.")}
+            {ar ? intelligence?.aiPortfolioSummaryAr ?? portfolioDecision?.aiPortfolioSummaryAr : intelligence?.aiPortfolioSummaryEn ?? portfolioDecision?.aiPortfolioSummaryEn ?? t("شغّل دورة AI لإنشاء ملخص الذكاء.", "Run an AI cycle to generate the intelligence summary.")}
           </div>
         </CardContent>
       </Card>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader><CardTitle>{t("جدار قرارات AI", "Decision Firewall")}</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="grid gap-2 md:grid-cols-3">
+              <div className="rounded-md border p-2">Min: {firewall?.minimumDecisionCredibilityPercent ?? 51}%</div>
+              <div className="rounded-md border p-2">Approved: {firewall?.approvedDecisionCount ?? 0}</div>
+              <div className="rounded-md border p-2">Blocked: {firewall?.blockedDecisionCount ?? 0}</div>
+            </div>
+            {(firewall?.blockedDecisions ?? []).slice(0, 4).map((b) => (
+              <div key={b.symbol} className="rounded-md bg-muted p-2 text-muted-foreground">
+                {b.symbol}: {b.decisionCredibilityPercent}% - {b.blockedReason}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>{t("سجل مصادر البيانات", "Source Registry")}</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <Badge variant="outline">{sourceRegistry?.sourceStatus ?? "framework_ready_provider_missing"}</Badge>
+            <div className="flex flex-wrap gap-2">
+              {(sourceRegistry?.enabledSourceCategories ?? []).slice(0, 8).map((c) => (
+                <Badge key={c} variant="outline">{c}</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader><CardTitle>{t("حجم المراكز حسب الثقة", "Position Sizing by Confidence")}</CardTitle></CardHeader>
