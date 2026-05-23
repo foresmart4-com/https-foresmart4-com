@@ -5,6 +5,7 @@ export type GenesisRiskProfile = "conservative" | "balanced" | "growth";
 export type GenesisRecommendation = "include" | "hold" | "reduce" | "remove" | "watch";
 export type GenesisExecutionMode = "analysis_only" | "paper" | "live_blocked" | "live";
 export type GenesisReportPeriod = "hourly" | "daily" | "weekly" | "monthly" | "quarterly" | "semiannual" | "annual";
+export type GenesisAIMode = "off" | "semi_ai" | "full_ai";
 
 export interface GenesisWallet {
   id: string;
@@ -21,6 +22,53 @@ export interface GenesisWallet {
   isolated: true;
   mainWalletAccess: false;
   updatedAt: string;
+}
+
+export interface GenesisEntitlement {
+  allowed: boolean;
+  reason: string | null;
+  planRequired: "pro";
+  proPlanRequired: true;
+  planActive: boolean;
+  featureLocked: boolean;
+}
+
+export interface GenesisSafetyProfile {
+  externalTransfersAllowed: false;
+  aiCanTransferOutsidePlatform: false;
+  manualWithdrawalOnly: true;
+  forbiddenActions: ["external_transfer", "withdrawal", "send_funds_outside_platform"];
+}
+
+export interface GenesisNotificationPreferences {
+  emailReportsEnabled: boolean;
+  smsReportsEnabled: boolean;
+  emailAlertsEnabled: boolean;
+  smsAlertsEnabled: boolean;
+  reportFrequencies: GenesisReportPeriod[];
+  smsAvailable: boolean;
+  smsUnavailableReason: string | null;
+}
+
+export interface GenesisCapabilityProfile {
+  marketDataAnalysis: true;
+  macroAnalysis: true;
+  newsAnalysis: true;
+  sentimentAnalysis: true;
+  riskManagement: true;
+  capitalAllocation: true;
+  stopLossPlanning: true;
+  takeProfitPlanning: true;
+  portfolioRebalancing: true;
+  decisionJournal: true;
+  liveBrokerExecution: boolean;
+}
+
+export interface GenesisControls {
+  aiMode: GenesisAIMode;
+  explicitFullAIApproval: boolean;
+  riskLimitsPass: boolean;
+  executionAdapterConfigured: boolean;
 }
 
 export interface GenesisUniverseAsset {
@@ -95,6 +143,9 @@ export interface GenesisCycleResult {
   timestamp: string;
   wallet: GenesisWallet;
   liveExecutionEnabled: false;
+  aiMode: GenesisAIMode;
+  entitlement: GenesisEntitlement;
+  safety: GenesisSafetyProfile;
   mode: "analysis_only" | "paper_simulation";
   universeSize: number;
   analyzedCount: number;
@@ -130,11 +181,21 @@ export interface GenesisReport {
   riskWarnings: string[];
   progressTowardMonthlyTarget: number;
   liveExecutionEnabled: false;
+  aiMode: GenesisAIMode;
+  entitlement: GenesisEntitlement;
+  safety: GenesisSafetyProfile;
 }
 
 const GENESIS_VERSION = "genesis100-v1";
 const MAX_SINGLE_ASSET_WEIGHT = 0.08;
 const MIN_CASH_RESERVE = 0.05;
+const REPORT_FREQUENCIES: GenesisReportPeriod[] = ["hourly", "daily", "weekly", "monthly", "quarterly", "semiannual", "annual"];
+const SAFETY_PROFILE: GenesisSafetyProfile = {
+  externalTransfersAllowed: false,
+  aiCanTransferOutsidePlatform: false,
+  manualWithdrawalOnly: true,
+  forbiddenActions: ["external_transfer", "withdrawal", "send_funds_outside_platform"],
+};
 const GROUP_CAPS: Partial<Record<GenesisUniverseAsset["bucket"], number>> = {
   crypto: 0.15,
   commodity: 0.20,
@@ -172,6 +233,8 @@ export const GENESIS_UNIVERSE: GenesisUniverseAsset[] = [
 
 const STATE: {
   wallet: GenesisWallet;
+  controls: GenesisControls;
+  notifications: GenesisNotificationPreferences;
   currentWeights: Record<string, number>;
   lastScores: GenesisScore[];
   lastAllocations: GenesisAllocation[];
@@ -194,6 +257,23 @@ const STATE: {
     mainWalletAccess: false,
     updatedAt: new Date().toISOString(),
   },
+  controls: {
+    aiMode: "full_ai",
+    explicitFullAIApproval: false,
+    riskLimitsPass: true,
+    executionAdapterConfigured: false,
+  },
+  notifications: {
+    emailReportsEnabled: true,
+    smsReportsEnabled: false,
+    emailAlertsEnabled: true,
+    smsAlertsEnabled: false,
+    reportFrequencies: REPORT_FREQUENCIES,
+    smsAvailable: Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
+    smsUnavailableReason: process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
+      ? null
+      : "SMS provider is not configured",
+  },
   currentWeights: {},
   lastScores: [],
   lastAllocations: [],
@@ -210,6 +290,155 @@ function round(n: number, digits = 4): number {
   return Math.round(n * m) / m;
 }
 
+export function getGenesisEntitlement(input?: Request | URLSearchParams | null): GenesisEntitlement {
+  let requestedPlan: string | null = null;
+  if (input instanceof Request) {
+    const url = new URL(input.url);
+    requestedPlan = url.searchParams.get("plan") ?? input.headers.get("x-foresmart-plan");
+  } else if (input instanceof URLSearchParams) {
+    requestedPlan = input.get("plan");
+  }
+
+  // Public demo mode remains enabled until an auth/plan context is wired in.
+  // Passing ?plan=free or x-foresmart-plan: free exercises the locked response.
+  const planActive = requestedPlan
+    ? requestedPlan.toLowerCase() === "pro"
+    : process.env.GENESIS100_PLAN_ACTIVE !== "false";
+
+  return {
+    allowed: planActive,
+    reason: planActive ? null : "Genesis 100 requires Pro plan",
+    planRequired: "pro",
+    proPlanRequired: true,
+    planActive,
+    featureLocked: !planActive,
+  };
+}
+
+function liveBrokerExecutionAllowed(): boolean {
+  return Boolean(
+    STATE.wallet.brokerConnected &&
+    STATE.controls.aiMode === "full_ai" &&
+    STATE.controls.explicitFullAIApproval &&
+    STATE.controls.riskLimitsPass &&
+    STATE.controls.executionAdapterConfigured,
+  );
+}
+
+export function getGenesisCapabilityProfile(): GenesisCapabilityProfile {
+  return {
+    marketDataAnalysis: true,
+    macroAnalysis: true,
+    newsAnalysis: true,
+    sentimentAnalysis: true,
+    riskManagement: true,
+    capitalAllocation: true,
+    stopLossPlanning: true,
+    takeProfitPlanning: true,
+    portfolioRebalancing: true,
+    decisionJournal: true,
+    liveBrokerExecution: liveBrokerExecutionAllowed(),
+  };
+}
+
+export function getAllowedCapabilities(): string[] {
+  const profile = getGenesisCapabilityProfile();
+  return Object.entries(profile).filter(([, enabled]) => enabled).map(([key]) => key);
+}
+
+export function getBlockedCapabilities(): string[] {
+  const profile = getGenesisCapabilityProfile();
+  return Object.entries(profile).filter(([, enabled]) => !enabled).map(([key]) => key);
+}
+
+export function getGenesisSafety() {
+  return {
+    product: "ForeSmart Genesis 100",
+    liveExecutionEnabled: false,
+    brokerConnected: STATE.wallet.brokerConnected,
+    controls: STATE.controls,
+    entitlement: getGenesisEntitlement(),
+    safety: SAFETY_PROFILE,
+    externalTransfersAllowed: SAFETY_PROFILE.externalTransfersAllowed,
+    aiCanTransferOutsidePlatform: SAFETY_PROFILE.aiCanTransferOutsidePlatform,
+    manualWithdrawalOnly: SAFETY_PROFILE.manualWithdrawalOnly,
+    forbiddenActions: SAFETY_PROFILE.forbiddenActions,
+    capabilityProfile: getGenesisCapabilityProfile(),
+    allowedCapabilities: getAllowedCapabilities(),
+    blockedCapabilities: getBlockedCapabilities(),
+  };
+}
+
+export function getGenesisNotifications() {
+  STATE.notifications.smsAvailable = Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
+  STATE.notifications.smsUnavailableReason = STATE.notifications.smsAvailable ? null : "SMS provider is not configured";
+  return {
+    product: "ForeSmart Genesis 100",
+    entitlement: getGenesisEntitlement(),
+    notifications: STATE.notifications,
+    smsAvailable: STATE.notifications.smsAvailable,
+    smsUnavailableReason: STATE.notifications.smsUnavailableReason,
+    liveExecutionEnabled: false,
+    safety: SAFETY_PROFILE,
+  };
+}
+
+export function getGenesisControls(input?: Request | URLSearchParams | null) {
+  const entitlement = getGenesisEntitlement(input ?? null);
+  return {
+    product: "ForeSmart Genesis 100",
+    aiMode: STATE.controls.aiMode,
+    controls: STATE.controls,
+    entitlement,
+    planRequired: entitlement.planRequired,
+    proPlanRequired: entitlement.proPlanRequired,
+    planActive: entitlement.planActive,
+    featureLocked: entitlement.featureLocked,
+    allowed: entitlement.allowed,
+    reason: entitlement.reason,
+    liveExecutionEnabled: false,
+    liveBrokerExecutionAllowed: liveBrokerExecutionAllowed(),
+    capabilityProfile: getGenesisCapabilityProfile(),
+    allowedCapabilities: getAllowedCapabilities(),
+    blockedCapabilities: getBlockedCapabilities(),
+    safety: SAFETY_PROFILE,
+    notifications: STATE.notifications,
+  };
+}
+
+export async function updateGenesisControls(request: Request) {
+  const entitlement = getGenesisEntitlement(request);
+  let payload: Partial<GenesisControls & GenesisNotificationPreferences> = {};
+  try {
+    payload = await request.json();
+  } catch {
+    payload = {};
+  }
+
+  if (!entitlement.allowed) {
+    return {
+      ...getGenesisControls(request),
+      updated: false,
+    };
+  }
+
+  if (payload.aiMode && ["off", "semi_ai", "full_ai"].includes(payload.aiMode)) {
+    STATE.controls.aiMode = payload.aiMode;
+  }
+  if (typeof payload.explicitFullAIApproval === "boolean") {
+    STATE.controls.explicitFullAIApproval = payload.explicitFullAIApproval;
+  }
+  if (typeof payload.emailReportsEnabled === "boolean") STATE.notifications.emailReportsEnabled = payload.emailReportsEnabled;
+  if (typeof payload.emailAlertsEnabled === "boolean") STATE.notifications.emailAlertsEnabled = payload.emailAlertsEnabled;
+  if (typeof payload.smsReportsEnabled === "boolean") STATE.notifications.smsReportsEnabled = payload.smsReportsEnabled && STATE.notifications.smsAvailable;
+  if (typeof payload.smsAlertsEnabled === "boolean") STATE.notifications.smsAlertsEnabled = payload.smsAlertsEnabled && STATE.notifications.smsAvailable;
+
+  return {
+    ...getGenesisControls(request),
+    updated: true,
+  };
+}
+
 function bucketFor(symbol: string, assetClass: AssetClass): GenesisUniverseAsset["bucket"] {
   const seeded = GENESIS_UNIVERSE.find((a) => a.symbol === symbol);
   if (seeded) return seeded.bucket;
@@ -222,7 +451,11 @@ function bucketFor(symbol: string, assetClass: AssetClass): GenesisUniverseAsset
   return "us_stock";
 }
 
-async function quoteWithTimeout(symbol: string, timeoutMs = 5500): Promise<RouterQuote> {
+function genesisQuoteTimeoutMs(symbol: string): number {
+  return ["EURUSD", "XAUUSD", "XAGUSD", "DXY"].includes(symbol.toUpperCase()) ? 2800 : 5500;
+}
+
+async function quoteWithTimeout(symbol: string, timeoutMs = genesisQuoteTimeoutMs(symbol)): Promise<RouterQuote> {
   const timeout = new Promise<RouterQuote>((resolve) => {
     setTimeout(() => {
       const resolved = resolveAsset(symbol);
@@ -333,13 +566,29 @@ function scoreAsset(asset: GenesisUniverseAsset, quote: RouterQuote): GenesisSco
   };
 }
 
-export function getGenesisStatus() {
+export function getGenesisStatus(input?: Request | URLSearchParams | null) {
+  const entitlement = getGenesisEntitlement(input ?? null);
   return {
     product: "ForeSmart Genesis 100",
     version: GENESIS_VERSION,
     wallet: STATE.wallet,
+    aiMode: STATE.controls.aiMode,
+    controls: STATE.controls,
+    entitlement,
+    planRequired: entitlement.planRequired,
+    proPlanRequired: entitlement.proPlanRequired,
+    planActive: entitlement.planActive,
+    featureLocked: entitlement.featureLocked,
     liveExecutionEnabled: false,
     brokerConnected: false,
+    externalTransfersAllowed: SAFETY_PROFILE.externalTransfersAllowed,
+    aiCanTransferOutsidePlatform: SAFETY_PROFILE.aiCanTransferOutsidePlatform,
+    manualWithdrawalOnly: SAFETY_PROFILE.manualWithdrawalOnly,
+    forbiddenActions: SAFETY_PROFILE.forbiddenActions,
+    allowedCapabilities: getAllowedCapabilities(),
+    blockedCapabilities: getBlockedCapabilities(),
+    capabilityProfile: getGenesisCapabilityProfile(),
+    notifications: STATE.notifications,
     allowedOrderTypes: {
       proposedOrders: true,
       paperOrders: true,
@@ -355,11 +604,17 @@ export function getGenesisStatus() {
   };
 }
 
-export function getGenesisUniverse() {
+export function getGenesisUniverse(input?: Request | URLSearchParams | null) {
+  const entitlement = getGenesisEntitlement(input ?? null);
   return {
     product: "ForeSmart Genesis 100",
     maxAssets: 100,
     expansionSupported: true,
+    entitlement,
+    planRequired: entitlement.planRequired,
+    planActive: entitlement.planActive,
+    featureLocked: entitlement.featureLocked,
+    safety: SAFETY_PROFILE,
     universe: GENESIS_UNIVERSE,
   };
 }
@@ -515,11 +770,42 @@ function riskWarnings(scores: GenesisScore[], allocations: GenesisAllocation[]):
   return [...warnings].slice(0, 20);
 }
 
-export async function runGenesisCycle(): Promise<GenesisCycleResult> {
+export async function runGenesisCycle(input?: Request | URLSearchParams | null): Promise<GenesisCycleResult> {
+  const entitlement = getGenesisEntitlement(input ?? null);
+  if (!entitlement.allowed || STATE.controls.aiMode === "off") {
+    const cycle: GenesisCycleResult = {
+      timestamp: new Date().toISOString(),
+      wallet: STATE.wallet,
+      liveExecutionEnabled: false,
+      aiMode: STATE.controls.aiMode,
+      entitlement,
+      safety: SAFETY_PROFILE,
+      mode: "analysis_only",
+      universeSize: GENESIS_UNIVERSE.length,
+      analyzedCount: 0,
+      selectedCount: 0,
+      scores: STATE.lastScores,
+      allocations: STATE.lastAllocations,
+      proposedOrders: [],
+      paperOrders: [],
+      realOrders: [],
+      decisions: [],
+      riskWarnings: [entitlement.reason ?? "AI mode is off; no trading decisions generated."],
+      rebalancePolicy: {
+        lightReview: "daily",
+        formalRebalance: "monthly",
+        emergencyTriggers: ["risk breach", "severe drawdown", "provider failure", "major signal change"],
+        quarterlyReviewSupported: true,
+      },
+    };
+    STATE.lastCycle = cycle;
+    return cycle;
+  }
+
   const scores = await analyzeGenesisUniverse();
   const allocations = allocateGenesis100(scores);
   const proposedOrders = buildOrders(allocations).map((o) => ({ ...o, executionMode: "analysis_only" as GenesisExecutionMode, status: "proposed" as const }));
-  const paperOrders = buildOrders(allocations);
+  const paperOrders = STATE.controls.aiMode === "full_ai" ? buildOrders(allocations) : [];
   const decisions = buildDecisions(scores, allocations);
   const warnings = riskWarnings(scores, allocations);
 
@@ -537,6 +823,9 @@ export async function runGenesisCycle(): Promise<GenesisCycleResult> {
     timestamp: new Date().toISOString(),
     wallet: STATE.wallet,
     liveExecutionEnabled: false,
+    aiMode: STATE.controls.aiMode,
+    entitlement,
+    safety: SAFETY_PROFILE,
     mode: "paper_simulation",
     universeSize: GENESIS_UNIVERSE.length,
     analyzedCount: scores.length,
@@ -565,26 +854,41 @@ export async function runGenesisCycle(): Promise<GenesisCycleResult> {
   return cycle;
 }
 
-export function getGenesisAllocations() {
+export function getGenesisAllocations(input?: Request | URLSearchParams | null) {
+  const entitlement = getGenesisEntitlement(input ?? null);
   return {
     product: "ForeSmart Genesis 100",
     wallet: STATE.wallet,
+    aiMode: STATE.controls.aiMode,
+    entitlement,
+    planRequired: entitlement.planRequired,
+    planActive: entitlement.planActive,
+    featureLocked: entitlement.featureLocked,
     allocations: STATE.lastAllocations,
     cashReserveWeight: round(STATE.wallet.cashBalance / STATE.wallet.capital, 4),
     liveExecutionEnabled: false,
+    safety: SAFETY_PROFILE,
   };
 }
 
-export function getGenesisDecisions() {
+export function getGenesisDecisions(input?: Request | URLSearchParams | null) {
+  const entitlement = getGenesisEntitlement(input ?? null);
   return {
     product: "ForeSmart Genesis 100",
+    aiMode: STATE.controls.aiMode,
+    entitlement,
+    planRequired: entitlement.planRequired,
+    planActive: entitlement.planActive,
+    featureLocked: entitlement.featureLocked,
     count: STATE.decisions.length,
     decisions: STATE.decisions,
     liveExecutionEnabled: false,
+    safety: SAFETY_PROFILE,
   };
 }
 
-export function buildGenesisReport(period: GenesisReportPeriod = "daily"): GenesisReport {
+export function buildGenesisReport(period: GenesisReportPeriod = "daily", input?: Request | URLSearchParams | null): GenesisReport {
+  const entitlement = getGenesisEntitlement(input ?? null);
   const scores = STATE.lastScores;
   const allocations = STATE.lastAllocations;
   const weightedChange = allocations.reduce((sum, allocation) => {
@@ -616,6 +920,9 @@ export function buildGenesisReport(period: GenesisReportPeriod = "daily"): Genes
     riskWarnings: warnings,
     progressTowardMonthlyTarget: round((weightedChange / STATE.wallet.targetMonthlyReturn) * 100, 2),
     liveExecutionEnabled: false,
+    aiMode: STATE.controls.aiMode,
+    entitlement,
+    safety: SAFETY_PROFILE,
   };
 }
 

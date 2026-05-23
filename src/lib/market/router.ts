@@ -278,7 +278,11 @@ export function resolveAsset(rawSymbol: string): ResolvedAsset {
     }
   }
 
-  // 9. US equity ticker (1-5 alpha)
+  // 9. US equity ticker (including class shares like BRK.B)
+  if (/^[A-Z]{1,5}\.[A-Z]$/.test(raw)) {
+    return make("us_stock", raw, "us:class-share", "us_class_share",
+      "US class-share ticker (e.g. BRK.B)");
+  }
   if (/^[A-Z]{1,5}$/.test(raw)) {
     return make("us_stock", raw, "us:alpha", "us_alpha",
       "1-5 letter alpha ticker");

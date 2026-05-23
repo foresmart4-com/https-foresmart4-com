@@ -7,7 +7,7 @@ export const Route = createFileRoute("/api/public/genesis100/report")({
       GET: async ({ request }) => {
         const url = new URL(request.url);
         const period = parseGenesisPeriod(url.searchParams.get("period"));
-        const report = buildGenesisReport(period);
+        const report = buildGenesisReport(period, request);
         return new Response(JSON.stringify(report, null, 2), {
           headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
         });

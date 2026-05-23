@@ -28,8 +28,38 @@ interface StatusApi {
     status: string;
   };
   currentAIMode: string;
+  aiMode: "off" | "semi_ai" | "full_ai";
   liveExecutionEnabled: boolean;
+  planActive: boolean;
+  featureLocked: boolean;
+  proPlanRequired: boolean;
+  externalTransfersAllowed: false;
+  aiCanTransferOutsidePlatform: false;
+  manualWithdrawalOnly: true;
+  blockedCapabilities: string[];
+  allowedCapabilities: string[];
   safeguards: string[];
+}
+
+interface ControlsApi {
+  aiMode: "off" | "semi_ai" | "full_ai";
+  planActive: boolean;
+  featureLocked: boolean;
+  reason: string | null;
+  liveExecutionEnabled: boolean;
+  liveBrokerExecutionAllowed: boolean;
+}
+
+interface NotificationsApi {
+  notifications: {
+    emailReportsEnabled: boolean;
+    smsReportsEnabled: boolean;
+    emailAlertsEnabled: boolean;
+    smsAlertsEnabled: boolean;
+    reportFrequencies: string[];
+    smsAvailable: boolean;
+    smsUnavailableReason: string | null;
+  };
 }
 
 interface ScoreApi {
@@ -98,6 +128,8 @@ function Genesis100Page() {
   const [scores, setScores] = useState<ScoreApi[]>([]);
   const [allocations, setAllocations] = useState<AllocationApi[]>([]);
   const [decisions, setDecisions] = useState<DecisionApi[]>([]);
+  const [controls, setControls] = useState<ControlsApi | null>(null);
+  const [notifications, setNotifications] = useState<NotificationsApi | null>(null);
   const [riskWarnings, setRiskWarnings] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
@@ -108,14 +140,18 @@ function Genesis100Page() {
 
   const load = async () => {
     setError(null);
-    const [s, a, d] = await Promise.all([
+    const [s, a, d, c, n] = await Promise.all([
       getJson<StatusApi>("/api/public/genesis100/status"),
       getJson<{ allocations: AllocationApi[] }>("/api/public/genesis100/allocations"),
       getJson<{ decisions: DecisionApi[] }>("/api/public/genesis100/decisions"),
+      getJson<ControlsApi>("/api/public/genesis100/controls"),
+      getJson<NotificationsApi>("/api/public/genesis100/notifications"),
     ]);
     setStatus(s);
     setAllocations(a.allocations ?? []);
     setDecisions(d.decisions ?? []);
+    setControls(c);
+    setNotifications(n);
   };
 
   useEffect(() => {
@@ -141,6 +177,20 @@ function Genesis100Page() {
     }
   };
 
+  const setAIMode = async (aiMode: ControlsApi["aiMode"]) => {
+    setError(null);
+    try {
+      const next = await getJson<ControlsApi>("/api/public/genesis100/controls", {
+        method: "POST",
+        body: JSON.stringify({ aiMode }),
+      });
+      setControls(next);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update AI mode");
+    }
+  };
+
   if (loading) {
     return <div className="grid min-h-[50vh] place-items-center text-muted-foreground">{t("جاري تحميل Genesis 100...", "Loading Genesis 100...")}</div>;
   }
@@ -153,6 +203,9 @@ function Genesis100Page() {
             <Brain className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-bold">ForeSmart Genesis 100</h1>
             <Badge variant="outline">{status?.wallet.status ?? "active_analysis"}</Badge>
+            <Badge variant="outline" className="border-primary/40">{t("يتطلب Pro", "Pro required")}</Badge>
+            <Badge variant="outline" className="border-amber-500/40 text-amber-700">{t("التنفيذ الحقيقي محظور", "Live execution blocked")}</Badge>
+            <Badge variant="outline" className="border-rose-500/40 text-rose-700">{t("التحويلات الخارجية ممنوعة", "External transfers forbidden")}</Badge>
           </div>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
             {t(
@@ -176,7 +229,7 @@ function Genesis100Page() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm">{t("النمط", "AI Mode")}</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-bold">{status?.currentAIMode ?? "analysis_only"}</CardContent>
+          <CardContent className="text-2xl font-bold">{controls?.aiMode ?? status?.aiMode ?? "semi_ai"}</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm">{t("رأس المال", "Capital")}</CardTitle></CardHeader>
@@ -191,6 +244,54 @@ function Genesis100Page() {
           <CardContent><Badge variant="outline" className="border-amber-500/40 text-amber-700">{String(status?.liveExecutionEnabled ?? false)}</Badge></CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader><CardTitle>{t("تحكم Genesis 100", "Genesis 100 Controls")}</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {(["off", "semi_ai", "full_ai"] as const).map((mode) => (
+              <Button
+                key={mode}
+                variant={(controls?.aiMode ?? status?.aiMode) === mode ? "default" : "outline"}
+                onClick={() => setAIMode(mode)}
+              >
+                {mode === "off" ? "AI Off" : mode === "semi_ai" ? "Semi AI" : "Full AI"}
+              </Button>
+            ))}
+          </div>
+          <div className="grid gap-2 text-sm md:grid-cols-3">
+            <div className="rounded-md bg-muted p-3">
+              <div className="font-medium">{t("حالة الخطة", "Plan Status")}</div>
+              <div className="text-muted-foreground">
+                {(controls?.planActive ?? status?.planActive) ? t("Pro مفعل", "Pro active") : controls?.reason ?? "Genesis 100 requires Pro plan"}
+              </div>
+            </div>
+            <div className="rounded-md bg-muted p-3">
+              <div className="font-medium">{t("التحويلات الخارجية", "External Transfers")}</div>
+              <div className="text-muted-foreground">{String(status?.externalTransfersAllowed ?? false)} / {t("السحب يدوي فقط", "manual withdrawal only")}</div>
+            </div>
+            <div className="rounded-md bg-muted p-3">
+              <div className="font-medium">{t("التنفيذ الحي", "Live Execution")}</div>
+              <div className="text-muted-foreground">{String(controls?.liveBrokerExecutionAllowed ?? false)}</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>{t("تفضيلات الإشعارات", "Notification Preferences")}</CardTitle></CardHeader>
+        <CardContent className="grid gap-3 text-sm md:grid-cols-2">
+          <div className="rounded-md border p-3">{t("تقارير البريد", "Email reports")}: {String(notifications?.notifications.emailReportsEnabled ?? false)}</div>
+          <div className="rounded-md border p-3">{t("تنبيهات البريد", "Email alerts")}: {String(notifications?.notifications.emailAlertsEnabled ?? false)}</div>
+          <div className="rounded-md border p-3">{t("تقارير SMS", "SMS reports")}: {String(notifications?.notifications.smsReportsEnabled ?? false)}</div>
+          <div className="rounded-md border p-3">
+            SMS: {notifications?.notifications.smsAvailable ? "available" : notifications?.notifications.smsUnavailableReason ?? "SMS provider is not configured"}
+          </div>
+          <div className="rounded-md border p-3 md:col-span-2">
+            {t("تكرار التقارير", "Report frequencies")}: {(notifications?.notifications.reportFrequencies ?? periods).join(", ")}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

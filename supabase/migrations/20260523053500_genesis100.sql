@@ -12,9 +12,15 @@ CREATE TABLE IF NOT EXISTS public.genesis100_wallets (
   max_drawdown numeric NOT NULL DEFAULT 0.12,
   risk_profile text NOT NULL DEFAULT 'balanced'
     CHECK (risk_profile IN ('conservative','balanced','growth')),
+  ai_mode text NOT NULL DEFAULT 'semi_ai'
+    CHECK (ai_mode IN ('off','semi_ai','full_ai')),
   status text NOT NULL DEFAULT 'draft'
     CHECK (status IN ('draft','active_analysis','paper_trading','execution_ready','paused')),
   live_execution_enabled boolean NOT NULL DEFAULT false,
+  external_transfers_allowed boolean NOT NULL DEFAULT false,
+  ai_can_transfer_outside_platform boolean NOT NULL DEFAULT false,
+  manual_withdrawal_only boolean NOT NULL DEFAULT true,
+  notification_preferences jsonb NOT NULL DEFAULT '{}'::jsonb,
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
