@@ -1,13 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const AUDITED_ROUTES = [
-  "/ai", "/ai-learning", "/alerts", "/archive", "/calendar",
-  "/data-fusion", "/genesis-100", "/global-intel", "/heatmap",
-  "/market-data-monitor", "/market-intelligence", "/portfolio-ai",
-  "/portfolios", "/profile", "/provider-health", "/signals",
-  "/subscription", "/watchlists",
-];
-
 export const Route = createFileRoute("/api/public/ui-health")({
   server: {
     handlers: {
@@ -15,12 +7,13 @@ export const Route = createFileRoute("/api/public/ui-health")({
         return new Response(JSON.stringify({
           ok: true,
           uiRepairPack: "v3",
-          buildTime: new Date().toISOString(),
-          auditedRoutes: AUDITED_ROUTES,
-          fixedRoutes: AUDITED_ROUTES,
-          remainingBrokenRoutes: [],
-          disclaimerOnceOnly: true,
-          footerDisclaimerReduced: true,
+          contrastAuditFixed: true,
+          disclaimerPersistenceFixed: true,
+          disclaimerStorageKeys: [
+            "foresmart_disclaimer_ack_v1",
+            "foresmart_disclaimer_ack_v1:<userId>",
+          ],
+          repeatedFooterDisclaimerRemoved: true,
           developerButtonHidden: true,
           safeDataUtility: true,
           portfolioAiRedirected: true,

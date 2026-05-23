@@ -63,7 +63,7 @@
   --secondary: oklch(0.27 0.035 265);
   --secondary-foreground: oklch(0.97 0.008 90);
   --muted: oklch(0.24 0.025 265);
-  --muted-foreground: oklch(0.72 0.015 90);
+  --muted-foreground: oklch(0.78 0.015 90);
   /* Emerald accent for prosperity */
   --accent: oklch(0.7 0.15 165);
   --accent-foreground: oklch(0.16 0.025 265);
@@ -75,16 +75,16 @@
   --warning-foreground: oklch(0.16 0.025 265);
   --destructive: oklch(0.66 0.22 25);
   --destructive-foreground: oklch(0.97 0.008 90);
-  --border: oklch(0.32 0.025 265 / 0.6);
-  --input: oklch(0.27 0.025 265);
+  --border: oklch(0.35 0.025 265 / 0.8);
+  --input: oklch(0.24 0.02 265);
   --ring: oklch(0.79 0.13 85);
   --sidebar: oklch(0.13 0.025 265);
-  --sidebar-foreground: oklch(0.92 0.01 90);
+  --sidebar-foreground: oklch(0.94 0.01 90);
   --sidebar-primary: oklch(0.79 0.13 85);
   --sidebar-primary-foreground: oklch(0.16 0.025 265);
   --sidebar-accent: oklch(0.22 0.035 265);
   --sidebar-accent-foreground: oklch(0.97 0.008 90);
-  --sidebar-border: oklch(0.28 0.025 265 / 0.5);
+  --sidebar-border: oklch(0.32 0.025 265 / 0.7);
   --sidebar-ring: oklch(0.79 0.13 85);
 
   /* Luxury gradients */
@@ -214,3 +214,10 @@
     box-shadow: var(--shadow-elegant);
   }
 }
+
+/* UX Contrast Fixes v1 */
+.text-muted-foreground { opacity: 1 !important; }
+table th { color: var(--muted-foreground); font-weight: 600; }
+table td { color: var(--foreground); }
+input::placeholder, textarea::placeholder { color: oklch(0.58 0.015 90); }
+.badge, [class*="Badge"] { font-weight: 500; }

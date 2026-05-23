@@ -1,3 +1,4 @@
+import { isDisclaimerAcknowledged, acknowledgeDisclaimer } from "@/lib/ui/disclaimerState";
 import { createFileRoute, Outlet, Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { LoginRequired } from "@/components/LoginRequired";
 import { useState, useEffect } from "react";
@@ -23,26 +24,17 @@ export const Route = createFileRoute("/_app")({
 
 
 function DisclaimerBanner({ t, userId }: { t: (key: string) => string; userId?: string }) {
-  const [ack, setAck] = useState(() => {
-    try {
-      if (localStorage.getItem("foresmart_disclaimer_ack") === "true") return true;
-      if (userId && localStorage.getItem(`foresmart_disclaimer_ack:${userId}`) === "true") return true;
-      return false;
-    } catch { return false; }
-  });
+  const [ack, setAck] = useState(() => isDisclaimerAcknowledged(userId));
+  useEffect(() => {
+    if (!ack && userId && isDisclaimerAcknowledged(userId)) setAck(true);
+  }, [userId, ack]);
   if (ack) return null;
-  const accept = () => {
-    setAck(true);
-    try {
-      localStorage.setItem("foresmart_disclaimer_ack", "true");
-      if (userId) localStorage.setItem(`foresmart_disclaimer_ack:${userId}`, "true");
-    } catch {}
-  };
+  const accept = () => { setAck(true); acknowledgeDisclaimer(userId); };
   return (
-    <div className="mx-4 sm:mx-6 my-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-center text-sm text-muted-foreground space-y-2">
-      <p>⚠ {t("disclaimerTitle")}</p>
-      <p className="text-xs">{t("disclaimerBody")}</p>
-      <button onClick={accept} className="rounded-md border border-border bg-background px-4 py-1.5 text-xs font-medium hover:bg-muted/60">موافق</button>
+    <div className="mx-4 sm:mx-6 my-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-center text-sm space-y-2">
+      <p className="font-medium text-foreground">⚠ {t("disclaimerTitle")}</p>
+      <p className="text-xs text-muted-foreground leading-relaxed">{t("disclaimerBody")}</p>
+      <button onClick={accept} className="rounded-md bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90">موافق</button>
     </div>
   );
 }
