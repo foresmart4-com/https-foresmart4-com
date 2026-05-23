@@ -452,6 +452,8 @@ export function getGenesisSafety() {
     capabilityProfile: getGenesisCapabilityProfile(),
     allowedCapabilities: getAllowedCapabilities(),
     blockedCapabilities: getBlockedCapabilities(),
+    governance: CORPORATE_GOVERNANCE,
+    treasury: CORPORATE_TREASURY,
   };
 }
 
@@ -773,10 +775,18 @@ export function getGenesisStatus(input?: Request | URLSearchParams | null) {
     },
     currentAIMode: STATE.wallet.status === "paper_trading" ? "paper_simulation" : "analysis_only",
     lastCycleAt: STATE.lastCycle?.timestamp ?? null,
+    governance: CORPORATE_GOVERNANCE,
+    treasury: CORPORATE_TREASURY,
+    adminPermissions: DEFAULT_ADMIN_PERMISSIONS,
     safeguards: [
+      "Corporate internal mode — company capital only.",
       "Genesis 100 wallet is isolated from the main wallet.",
+      "No public user registration for investment services.",
+      "No customer money handling, no third-party pooled funds, no client asset custody.",
       "Real broker execution is blocked until brokerConnected, explicit confirmation, risk limits, and an execution adapter are present.",
       "Current module only produces analysis, target allocations, proposed orders, and paper orders.",
+      "External transfers forbidden. Manual withdrawal only.",
+      "AI cannot transfer funds outside platform.",
     ],
   };
 }

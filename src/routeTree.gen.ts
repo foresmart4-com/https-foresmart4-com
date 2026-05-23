@@ -94,6 +94,7 @@ import { Route as ApiPublicGenesis100ReportRouteImport } from './routes/api/publ
 import { Route as ApiPublicGenesis100NotificationsRouteImport } from './routes/api/public/genesis100/notifications'
 import { Route as ApiPublicGenesis100MarketSentimentRouteImport } from './routes/api/public/genesis100/market-sentiment'
 import { Route as ApiPublicGenesis100IntelligenceRouteImport } from './routes/api/public/genesis100/intelligence'
+import { Route as ApiPublicGenesis100GovernanceRouteImport } from './routes/api/public/genesis100/governance'
 import { Route as ApiPublicGenesis100DecisionsRouteImport } from './routes/api/public/genesis100/decisions'
 import { Route as ApiPublicGenesis100CredibilityRouteImport } from './routes/api/public/genesis100/credibility'
 import { Route as ApiPublicGenesis100ControlsRouteImport } from './routes/api/public/genesis100/controls'
@@ -543,6 +544,12 @@ const ApiPublicGenesis100IntelligenceRoute =
     path: '/api/public/genesis100/intelligence',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicGenesis100GovernanceRoute =
+  ApiPublicGenesis100GovernanceRouteImport.update({
+    id: '/api/public/genesis100/governance',
+    path: '/api/public/genesis100/governance',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicGenesis100DecisionsRoute =
   ApiPublicGenesis100DecisionsRouteImport.update({
     id: '/api/public/genesis100/decisions',
@@ -675,6 +682,7 @@ export interface FileRoutesByFullPath {
   '/api/public/genesis100/controls': typeof ApiPublicGenesis100ControlsRoute
   '/api/public/genesis100/credibility': typeof ApiPublicGenesis100CredibilityRoute
   '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
+  '/api/public/genesis100/governance': typeof ApiPublicGenesis100GovernanceRoute
   '/api/public/genesis100/intelligence': typeof ApiPublicGenesis100IntelligenceRoute
   '/api/public/genesis100/market-sentiment': typeof ApiPublicGenesis100MarketSentimentRoute
   '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
@@ -770,6 +778,7 @@ export interface FileRoutesByTo {
   '/api/public/genesis100/controls': typeof ApiPublicGenesis100ControlsRoute
   '/api/public/genesis100/credibility': typeof ApiPublicGenesis100CredibilityRoute
   '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
+  '/api/public/genesis100/governance': typeof ApiPublicGenesis100GovernanceRoute
   '/api/public/genesis100/intelligence': typeof ApiPublicGenesis100IntelligenceRoute
   '/api/public/genesis100/market-sentiment': typeof ApiPublicGenesis100MarketSentimentRoute
   '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
@@ -867,6 +876,7 @@ export interface FileRoutesById {
   '/api/public/genesis100/controls': typeof ApiPublicGenesis100ControlsRoute
   '/api/public/genesis100/credibility': typeof ApiPublicGenesis100CredibilityRoute
   '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
+  '/api/public/genesis100/governance': typeof ApiPublicGenesis100GovernanceRoute
   '/api/public/genesis100/intelligence': typeof ApiPublicGenesis100IntelligenceRoute
   '/api/public/genesis100/market-sentiment': typeof ApiPublicGenesis100MarketSentimentRoute
   '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
@@ -964,6 +974,7 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/controls'
     | '/api/public/genesis100/credibility'
     | '/api/public/genesis100/decisions'
+    | '/api/public/genesis100/governance'
     | '/api/public/genesis100/intelligence'
     | '/api/public/genesis100/market-sentiment'
     | '/api/public/genesis100/notifications'
@@ -1059,6 +1070,7 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/controls'
     | '/api/public/genesis100/credibility'
     | '/api/public/genesis100/decisions'
+    | '/api/public/genesis100/governance'
     | '/api/public/genesis100/intelligence'
     | '/api/public/genesis100/market-sentiment'
     | '/api/public/genesis100/notifications'
@@ -1155,6 +1167,7 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/controls'
     | '/api/public/genesis100/credibility'
     | '/api/public/genesis100/decisions'
+    | '/api/public/genesis100/governance'
     | '/api/public/genesis100/intelligence'
     | '/api/public/genesis100/market-sentiment'
     | '/api/public/genesis100/notifications'
@@ -1201,6 +1214,7 @@ export interface RootRouteChildren {
   ApiPublicGenesis100ControlsRoute: typeof ApiPublicGenesis100ControlsRoute
   ApiPublicGenesis100CredibilityRoute: typeof ApiPublicGenesis100CredibilityRoute
   ApiPublicGenesis100DecisionsRoute: typeof ApiPublicGenesis100DecisionsRoute
+  ApiPublicGenesis100GovernanceRoute: typeof ApiPublicGenesis100GovernanceRoute
   ApiPublicGenesis100IntelligenceRoute: typeof ApiPublicGenesis100IntelligenceRoute
   ApiPublicGenesis100MarketSentimentRoute: typeof ApiPublicGenesis100MarketSentimentRoute
   ApiPublicGenesis100NotificationsRoute: typeof ApiPublicGenesis100NotificationsRoute
@@ -1814,6 +1828,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicGenesis100IntelligenceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/genesis100/governance': {
+      id: '/api/public/genesis100/governance'
+      path: '/api/public/genesis100/governance'
+      fullPath: '/api/public/genesis100/governance'
+      preLoaderRoute: typeof ApiPublicGenesis100GovernanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/genesis100/decisions': {
       id: '/api/public/genesis100/decisions'
       path: '/api/public/genesis100/decisions'
@@ -2036,6 +2057,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicGenesis100ControlsRoute: ApiPublicGenesis100ControlsRoute,
   ApiPublicGenesis100CredibilityRoute: ApiPublicGenesis100CredibilityRoute,
   ApiPublicGenesis100DecisionsRoute: ApiPublicGenesis100DecisionsRoute,
+  ApiPublicGenesis100GovernanceRoute: ApiPublicGenesis100GovernanceRoute,
   ApiPublicGenesis100IntelligenceRoute: ApiPublicGenesis100IntelligenceRoute,
   ApiPublicGenesis100MarketSentimentRoute:
     ApiPublicGenesis100MarketSentimentRoute,

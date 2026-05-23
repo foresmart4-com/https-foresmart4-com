@@ -14,6 +14,7 @@ import {
   Archive,
   Activity,
   Eye,
+  Building,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -387,12 +388,13 @@ function Genesis100Page() {
             <h1 className="text-2xl font-bold text-zinc-100">ForeSmart Genesis 100</h1>
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
+            <Badge variant="outline" className="border-sky-500/30 text-sky-400">{t("منصة استثمار داخلية", "Corporate Internal")}</Badge>
+            <Badge variant="outline" className="border-amber-500/30 text-amber-400">{t("رأس مال الشركة فقط", "Company capital only")}</Badge>
             <Badge variant="outline" className="border-amber-500/30 text-amber-400">{t("تداول تجريبي فقط", "Paper trading only")}</Badge>
             <Badge variant="outline" className="border-rose-500/30 text-rose-400">{t("التحويلات الخارجية ممنوعة", "External transfers forbidden")}</Badge>
-            <Badge variant="outline" className="border-zinc-600 text-zinc-400">{t("يتطلب اشتراك Pro", "Pro plan required")}</Badge>
           </div>
           <p className="mt-2 max-w-2xl text-sm text-zinc-500">
-            {t("محفظة عالمية مدارة بالذكاء الاصطناعي للتحليل والتخصيص والتداول التجريبي. التنفيذ الحقيقي معطل والسحب يدوي فقط.", "AI-managed global multi-asset portfolio for analysis, allocation, and paper trading. Live execution is disabled, manual withdrawal only.")}
+            {t("منصة استثمار داخلية للشركة — رأس مال الشركة فقط. لا يُقبل مال العملاء أو المستثمرين الخارجيين. التنفيذ الحقيقي معطل والسحب يدوي فقط.", "Corporate internal investment platform — company capital only. No customer money, no outside investors. Live execution is disabled, manual withdrawal only.")}
           </p>
         </div>
         <Button onClick={runCycle} disabled={running} className="bg-gradient-to-l from-amber-600 to-amber-500 text-zinc-950 hover:from-amber-500 hover:to-amber-400">
@@ -415,7 +417,7 @@ function Genesis100Page() {
       {/* Top Stats */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={Brain} label={t("وضع الذكاء", "AI Mode")} value={ar ? (AI_MODE_AR[aiMode] ?? aiMode) : aiMode} sub={t("التنفيذ الحقيقي محظور", "Live execution blocked")} />
-        <StatCard icon={Wallet} label={t("رأس المال", "Capital")} value={money(capital)} sub={t("محفظة معزولة", "Isolated wallet")} />
+        <StatCard icon={Wallet} label={t("رأس المال", "Capital")} value={money(capital)} sub={t("رأس مال الشركة — محفظة معزولة", "Company capital — isolated wallet")} />
         <StatCard icon={TrendingUp} label={t("الهدف الشهري", "Monthly Target")} value={pct(status?.wallet.targetMonthlyReturn ?? 0)} />
         <StatCard icon={ShieldCheck} label={t("ملف المخاطر", "Risk Profile")} value={ar ? (RISK_AR[status?.wallet.riskProfile ?? "balanced"] ?? "متوازن") : (status?.wallet.riskProfile ?? "balanced")} sub={t(`الحد الأقصى للسحب: ${pct(status?.wallet.maxDrawdown ?? 0.12)}`, `Max drawdown: ${pct(status?.wallet.maxDrawdown ?? 0.12)}`)} />
       </div>
@@ -714,7 +716,45 @@ function Genesis100Page() {
         </Card>
       )}
 
-      {/* Reports */}
+      {/* Corporate Governance */}
+      <Card className="border-amber-500/10 bg-zinc-900/60">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-amber-400"><Building className="h-4 w-4" />{t("الحوكمة المؤسسية", "Corporate Governance")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-lg border border-sky-500/20 bg-sky-500/5 p-3">
+              <p className="text-xs text-zinc-500">{t("نوع المنصة", "Platform Type")}</p>
+              <p className="font-medium text-sky-400">{t("استثمار داخلي للشركة", "Corporate Internal")}</p>
+            </div>
+            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
+              <p className="text-xs text-zinc-500">{t("مصدر رأس المال", "Capital Source")}</p>
+              <p className="font-medium text-emerald-400">{t("رأس مال الشركة فقط", "Company capital only")}</p>
+            </div>
+            <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-3">
+              <p className="text-xs text-zinc-500">{t("أموال العملاء", "Client Funds")}</p>
+              <p className="font-medium text-rose-400">{t("غير مقبولة", "Not accepted")}</p>
+            </div>
+            <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-3">
+              <p className="text-xs text-zinc-500">{t("مستثمرون خارجيون", "Outside Investors")}</p>
+              <p className="font-medium text-rose-400">{t("غير مسموح", "Not allowed")}</p>
+            </div>
+            <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-3">
+              <p className="text-xs text-zinc-500">{t("حفظ أصول العملاء", "Client Custody")}</p>
+              <p className="font-medium text-rose-400">{t("غير متاح", "Not provided")}</p>
+            </div>
+            <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+              <p className="text-xs text-zinc-500">{t("الاشتراك العام", "Public Subscription")}</p>
+              <p className="font-medium text-amber-400">{t("معطل", "Disabled")}</p>
+            </div>
+          </div>
+          <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-3 text-zinc-500">
+            {t("هذه منصة استثمار داخلي\u0629 \u0644\u0644\u0634\u0631\u0643\u0629. \u0627\u0644\u0648\u0635\u0648\u0644 \u0645\u0642\u064a\u062f \u0628\u0627\u0644\u0645\u0633\u0624\u0648\u0644\u064a\u0646 \u0648\u0627\u0644\u0645\u0648\u0638\u0641\u064a\u0646 \u0627\u0644\u0645\u0639\u062a\u0645\u062f\u064a\u0646 \u0641\u0642\u0637.", "This is a private internal corporate investment platform. Access is restricted to company admin and authorized employees only.")}
+          </div>
+        </CardContent>
+      </Card>
+
+            {/* Reports */}
       <Card className="border-amber-500/10 bg-zinc-900/60">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-amber-400"><Download className="h-4 w-4" />{t("تقارير Genesis 100", "Genesis 100 Reports")}</CardTitle>
