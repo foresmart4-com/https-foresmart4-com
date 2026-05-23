@@ -66,8 +66,28 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   return brandedErrorResponse();
 }
 
+function wwwRedirect(request: Request): Response | null {
+  try {
+    const url = new URL(request.url);
+    if (url.hostname.startsWith("www.")) {
+      const target = new URL(request.url);
+      target.hostname = url.hostname.slice(4);
+      return new Response(null, {
+        status: 301,
+        headers: { Location: target.toString() },
+      });
+    }
+  } catch {
+    /* malformed URL — fall through */
+  }
+  return null;
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    const redirect = wwwRedirect(request);
+    if (redirect) return redirect;
+
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
