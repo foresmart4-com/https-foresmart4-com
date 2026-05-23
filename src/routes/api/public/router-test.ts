@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { routeQuote, getRouterDiagnostics, resolveAsset } from "@/lib/market/router";
+import { routeQuote, getProviderConnected, getRouterDiagnostics, resolveAsset } from "@/lib/market/router";
 
 const ROUTER_VERSION = "market-router-commodityprice-v1";
 const ROUTER_TEST_STARTED_AT = new Date().toISOString();
@@ -17,6 +17,7 @@ function runtimeDiagnostic() {
       process.env.BUILD_TIME ??
       ROUTER_TEST_STARTED_AT,
     routerVersion: ROUTER_VERSION,
+    providerConnected: getProviderConnected(),
   };
 }
 

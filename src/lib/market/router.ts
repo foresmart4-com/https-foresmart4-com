@@ -713,12 +713,8 @@ export interface RouterOptions {
   force?: boolean;
 }
 
-export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): Promise<RouterQuote> {
-  const asset = resolveAsset(rawSymbol);
-  const cKey = buildCacheKey(asset);
-  const iKey = buildInflightKey(asset);
-  const providerPriority = [...(CHAINS[asset.assetClass] ?? CHAINS.unknown)];
-  const providerConnected: Partial<Record<ProviderId, boolean>> = {
+export function getProviderConnected(): Partial<Record<ProviderId, boolean>> {
+  return {
     finnhub:        !!process.env.FINNHUB_API_KEY,
     twelvedata:     !!process.env.TWELVEDATA_API_KEY,
     alphavantage:   !!process.env.ALPHAVANTAGE_API_KEY,
@@ -731,6 +727,14 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
     tradingview:    true,
     alpaca:         !!(process.env.ALPACA_KEY_ID && process.env.ALPACA_SECRET_KEY),
   };
+}
+
+export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): Promise<RouterQuote> {
+  const asset = resolveAsset(rawSymbol);
+  const cKey = buildCacheKey(asset);
+  const iKey = buildInflightKey(asset);
+  const providerPriority = [...(CHAINS[asset.assetClass] ?? CHAINS.unknown)];
+  const providerConnected = getProviderConnected();
 
   const stamp = <T extends RouterQuote>(q: T, cacheHit = false): T => ({
     ...q,
@@ -896,6 +900,7 @@ export function getRouterDiagnostics() {
     cacheSize: CACHE.size,
     inflight: INFLIGHT.size,
     liveTradingEnabled: process.env.LIVE_TRADING_ENABLED === "true",
+    providerConnected: getProviderConnected(),
   };
 }
 
