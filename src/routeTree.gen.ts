@@ -90,6 +90,7 @@ import { Route as ApiPublicGenesis100StatusRouteImport } from './routes/api/publ
 import { Route as ApiPublicGenesis100SafetyRouteImport } from './routes/api/public/genesis100/safety'
 import { Route as ApiPublicGenesis100RunCycleRouteImport } from './routes/api/public/genesis100/run-cycle'
 import { Route as ApiPublicGenesis100ReportRouteImport } from './routes/api/public/genesis100/report'
+import { Route as ApiPublicGenesis100PositionSizingRouteImport } from './routes/api/public/genesis100/position-sizing'
 import { Route as ApiPublicGenesis100NotificationsRouteImport } from './routes/api/public/genesis100/notifications'
 import { Route as ApiPublicGenesis100DecisionsRouteImport } from './routes/api/public/genesis100/decisions'
 import { Route as ApiPublicGenesis100ControlsRouteImport } from './routes/api/public/genesis100/controls'
@@ -515,6 +516,12 @@ const ApiPublicGenesis100ReportRoute =
     path: '/api/public/genesis100/report',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicGenesis100PositionSizingRoute =
+  ApiPublicGenesis100PositionSizingRouteImport.update({
+    id: '/api/public/genesis100/position-sizing',
+    path: '/api/public/genesis100/position-sizing',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicGenesis100NotificationsRoute =
   ApiPublicGenesis100NotificationsRouteImport.update({
     id: '/api/public/genesis100/notifications',
@@ -647,6 +654,7 @@ export interface FileRoutesByFullPath {
   '/api/public/genesis100/controls': typeof ApiPublicGenesis100ControlsRoute
   '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
   '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
+  '/api/public/genesis100/position-sizing': typeof ApiPublicGenesis100PositionSizingRoute
   '/api/public/genesis100/report': typeof ApiPublicGenesis100ReportRoute
   '/api/public/genesis100/run-cycle': typeof ApiPublicGenesis100RunCycleRoute
   '/api/public/genesis100/safety': typeof ApiPublicGenesis100SafetyRoute
@@ -738,6 +746,7 @@ export interface FileRoutesByTo {
   '/api/public/genesis100/controls': typeof ApiPublicGenesis100ControlsRoute
   '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
   '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
+  '/api/public/genesis100/position-sizing': typeof ApiPublicGenesis100PositionSizingRoute
   '/api/public/genesis100/report': typeof ApiPublicGenesis100ReportRoute
   '/api/public/genesis100/run-cycle': typeof ApiPublicGenesis100RunCycleRoute
   '/api/public/genesis100/safety': typeof ApiPublicGenesis100SafetyRoute
@@ -831,6 +840,7 @@ export interface FileRoutesById {
   '/api/public/genesis100/controls': typeof ApiPublicGenesis100ControlsRoute
   '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
   '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
+  '/api/public/genesis100/position-sizing': typeof ApiPublicGenesis100PositionSizingRoute
   '/api/public/genesis100/report': typeof ApiPublicGenesis100ReportRoute
   '/api/public/genesis100/run-cycle': typeof ApiPublicGenesis100RunCycleRoute
   '/api/public/genesis100/safety': typeof ApiPublicGenesis100SafetyRoute
@@ -924,6 +934,7 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/controls'
     | '/api/public/genesis100/decisions'
     | '/api/public/genesis100/notifications'
+    | '/api/public/genesis100/position-sizing'
     | '/api/public/genesis100/report'
     | '/api/public/genesis100/run-cycle'
     | '/api/public/genesis100/safety'
@@ -1015,6 +1026,7 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/controls'
     | '/api/public/genesis100/decisions'
     | '/api/public/genesis100/notifications'
+    | '/api/public/genesis100/position-sizing'
     | '/api/public/genesis100/report'
     | '/api/public/genesis100/run-cycle'
     | '/api/public/genesis100/safety'
@@ -1107,6 +1119,7 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/controls'
     | '/api/public/genesis100/decisions'
     | '/api/public/genesis100/notifications'
+    | '/api/public/genesis100/position-sizing'
     | '/api/public/genesis100/report'
     | '/api/public/genesis100/run-cycle'
     | '/api/public/genesis100/safety'
@@ -1149,6 +1162,7 @@ export interface RootRouteChildren {
   ApiPublicGenesis100ControlsRoute: typeof ApiPublicGenesis100ControlsRoute
   ApiPublicGenesis100DecisionsRoute: typeof ApiPublicGenesis100DecisionsRoute
   ApiPublicGenesis100NotificationsRoute: typeof ApiPublicGenesis100NotificationsRoute
+  ApiPublicGenesis100PositionSizingRoute: typeof ApiPublicGenesis100PositionSizingRoute
   ApiPublicGenesis100ReportRoute: typeof ApiPublicGenesis100ReportRoute
   ApiPublicGenesis100RunCycleRoute: typeof ApiPublicGenesis100RunCycleRoute
   ApiPublicGenesis100SafetyRoute: typeof ApiPublicGenesis100SafetyRoute
@@ -1730,6 +1744,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicGenesis100ReportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/genesis100/position-sizing': {
+      id: '/api/public/genesis100/position-sizing'
+      path: '/api/public/genesis100/position-sizing'
+      fullPath: '/api/public/genesis100/position-sizing'
+      preLoaderRoute: typeof ApiPublicGenesis100PositionSizingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/genesis100/notifications': {
       id: '/api/public/genesis100/notifications'
       path: '/api/public/genesis100/notifications'
@@ -1952,6 +1973,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicGenesis100ControlsRoute: ApiPublicGenesis100ControlsRoute,
   ApiPublicGenesis100DecisionsRoute: ApiPublicGenesis100DecisionsRoute,
   ApiPublicGenesis100NotificationsRoute: ApiPublicGenesis100NotificationsRoute,
+  ApiPublicGenesis100PositionSizingRoute:
+    ApiPublicGenesis100PositionSizingRoute,
   ApiPublicGenesis100ReportRoute: ApiPublicGenesis100ReportRoute,
   ApiPublicGenesis100RunCycleRoute: ApiPublicGenesis100RunCycleRoute,
   ApiPublicGenesis100SafetyRoute: ApiPublicGenesis100SafetyRoute,

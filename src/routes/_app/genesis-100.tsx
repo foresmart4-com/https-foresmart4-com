@@ -75,6 +75,8 @@ interface ScoreApi {
   expectedUpsidePercent?: number | null;
   expectedDownsidePercent?: number | null;
   riskPercent?: number;
+  decisionCredibilityPercent?: number;
+  stopLossUrgency?: string;
   recommendation: string;
   primaryReason?: string;
   supportingReasons?: string[];
@@ -96,6 +98,14 @@ interface AllocationApi {
   riskPercent?: number;
   action?: string;
   reason?: string;
+  decisionCredibilityPercent?: number;
+  credibilityTier?: string;
+  allocationMultiplier?: number;
+  riskMode?: string;
+  maxSingleDecisionCapitalPercent?: number;
+  allowedCapitalForDecision?: number;
+  stopLossUrgency?: string;
+  actionAllowed?: boolean;
 }
 
 interface DecisionApi {
@@ -116,10 +126,24 @@ interface CycleApi {
   portfolioDecision?: PortfolioDecisionApi;
   topDecisions?: ArchiveDecisionApi[];
   decisionArchiveCount?: number;
+  positionSizingSummary?: PositionSizingSummaryApi;
+  capitalByCredibilityTier?: Record<string, number>;
+  blockedLowCredibilityCapital?: number;
+  topHighConfidenceAllocations?: AllocationApi[];
+  topLowConfidenceWatchlist?: ScoreApi[];
   riskWarnings: string[];
   proposedOrders: unknown[];
   paperOrders: unknown[];
   realOrders: unknown[];
+}
+
+interface PositionSizingSummaryApi {
+  totalAllowedCapital: number;
+  blockedLowCredibilityCapital: number;
+  capitalByCredibilityTier: Record<string, number>;
+  averageDecisionCredibilityPercent: number;
+  highConfidenceCount: number;
+  blockedCount: number;
 }
 
 interface PortfolioDecisionApi {
@@ -181,6 +205,7 @@ function Genesis100Page() {
   const [controls, setControls] = useState<ControlsApi | null>(null);
   const [notifications, setNotifications] = useState<NotificationsApi | null>(null);
   const [portfolioDecision, setPortfolioDecision] = useState<PortfolioDecisionApi | null>(null);
+  const [positionSizingSummary, setPositionSizingSummary] = useState<PositionSizingSummaryApi | null>(null);
   const [archive, setArchive] = useState<ArchiveDecisionApi[]>([]);
   const [riskWarnings, setRiskWarnings] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -223,6 +248,7 @@ function Genesis100Page() {
       setAllocations(cycle.allocations ?? []);
       setDecisions(cycle.decisions ?? []);
       setPortfolioDecision(cycle.portfolioDecision ?? null);
+      setPositionSizingSummary(cycle.positionSizingSummary ?? null);
       setArchive(cycle.topDecisions ?? []);
       setRiskWarnings(cycle.riskWarnings ?? []);
       await load();
@@ -396,11 +422,47 @@ function Genesis100Page() {
       </Card>
 
       <Card>
+        <CardHeader><CardTitle>{t("حجم المراكز حسب الثقة", "Position Sizing by Confidence")}</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 text-sm md:grid-cols-4">
+            <div className="rounded-md border p-3">
+              <div className="font-medium">{t("متوسط المصداقية", "Average Credibility")}</div>
+              <div className="text-muted-foreground">{positionSizingSummary?.averageDecisionCredibilityPercent?.toFixed(1) ?? "-"}%</div>
+            </div>
+            <div className="rounded-md border p-3">
+              <div className="font-medium">{t("عالي الثقة", "High Confidence")}</div>
+              <div className="text-muted-foreground">{positionSizingSummary?.highConfidenceCount ?? 0}</div>
+            </div>
+            <div className="rounded-md border p-3">
+              <div className="font-medium">{t("محظور لقلة المصداقية", "Blocked Low Credibility")}</div>
+              <div className="text-muted-foreground">{positionSizingSummary?.blockedCount ?? 0}</div>
+            </div>
+            <div className="rounded-md border p-3">
+              <div className="font-medium">{t("رأس مال محظور", "Blocked Capital")}</div>
+              <div className="text-muted-foreground">{money(positionSizingSummary?.blockedLowCredibilityCapital ?? 0)}</div>
+            </div>
+          </div>
+          <div>
+            <div className="mb-2 text-sm font-medium">{t("رأس المال حسب طبقة المصداقية", "Capital by Credibility Tier")}</div>
+            <div className="grid gap-2 text-xs md:grid-cols-4">
+              {Object.entries(positionSizingSummary?.capitalByCredibilityTier ?? {}).map(([tier, value]) => (
+                <div key={tier} className="rounded-md bg-muted p-2">
+                  <div className="font-medium">{tier}</div>
+                  <div className="text-muted-foreground">{money(Number(value))}</div>
+                </div>
+              ))}
+              {!positionSizingSummary && <div className="text-muted-foreground">{t("شغّل دورة AI لعرض حجم المراكز.", "Run an AI cycle to populate position sizing.")}</div>}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader><CardTitle>{t("تفاصيل قرارات الأصول", "Asset Decision Details")}</CardTitle></CardHeader>
         <CardContent className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-muted-foreground">
-              <tr><th className="p-2">Symbol</th><th className="p-2">Bucket</th><th className="p-2">Decision</th><th className="p-2">Confidence %</th><th className="p-2">Risk %</th><th className="p-2">Reason</th><th className="p-2">Recommendation</th></tr>
+              <tr><th className="p-2">Symbol</th><th className="p-2">Bucket</th><th className="p-2">Decision</th><th className="p-2">Credibility %</th><th className="p-2">Risk %</th><th className="p-2">Stop Loss</th><th className="p-2">Reason</th><th className="p-2">Recommendation</th></tr>
             </thead>
             <tbody>
               {topScores.map((s) => (
@@ -408,13 +470,14 @@ function Genesis100Page() {
                   <td className="p-2 font-medium">{s.symbol}</td>
                   <td className="p-2">{s.bucket}</td>
                   <td className="p-2">{(s.finalDecisionScore ?? s.finalGenesisScore).toFixed(1)}</td>
-                  <td className="p-2">{(s.decisionConfidencePercent ?? s.confidenceScore).toFixed(1)}%</td>
+                  <td className="p-2">{(s.decisionCredibilityPercent ?? s.decisionConfidencePercent ?? s.confidenceScore).toFixed(1)}%</td>
                   <td className="p-2">{(s.riskPercent ?? 0).toFixed(1)}%</td>
+                  <td className="p-2">{s.stopLossUrgency ?? "-"}</td>
                   <td className="p-2 max-w-xs text-muted-foreground">{s.primaryReason ?? s.provider ?? "-"}</td>
                   <td className="p-2"><Badge variant="outline">{s.recommendation}</Badge></td>
                 </tr>
               ))}
-              {!topScores.length && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">{t("شغّل دورة AI لعرض التصنيف.", "Run an AI cycle to populate rankings.")}</td></tr>}
+              {!topScores.length && <tr><td colSpan={8} className="p-4 text-center text-muted-foreground">{t("شغّل دورة AI لعرض التصنيف.", "Run an AI cycle to populate rankings.")}</td></tr>}
             </tbody>
           </table>
         </CardContent>
@@ -428,7 +491,9 @@ function Genesis100Page() {
               <div key={a.symbol} className="space-y-1">
                 <div className="flex justify-between text-sm"><span>{a.symbol} · {a.action ?? "hold"}</span><span>{pct(a.targetWeight)} / {money(a.targetValue)}</span></div>
                 <Progress value={a.targetWeight * 100} />
-                <div className="text-xs text-muted-foreground">confidence {a.allocationConfidencePercent?.toFixed(1) ?? "-"}% · risk {a.riskPercent?.toFixed(1) ?? "-"}%</div>
+                <div className="text-xs text-muted-foreground">
+                  credibility {a.decisionCredibilityPercent?.toFixed(1) ?? "-"}% · tier {a.credibilityTier ?? "-"} · allowed {money(a.allowedCapitalForDecision ?? 0)} · stop-loss {a.stopLossUrgency ?? "-"}
+                </div>
               </div>
             ))}
             {!topAllocations.length && <p className="text-sm text-muted-foreground">{t("لا يوجد تخصيص بعد.", "No allocation yet.")}</p>}
