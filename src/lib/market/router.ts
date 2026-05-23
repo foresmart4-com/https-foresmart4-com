@@ -164,6 +164,7 @@ const BOND_PATTERNS = [/^DE\d+Y$/i, /^UK\d+Y$/i, /^TLT$/i, /^IEF$/i, /^SHY$/i];
 const FOREX_RE = /^([A-Z]{3})[\/-]?([A-Z]{3})$/;
 const CRYPTO_SUFFIX_RE = /^([A-Z0-9]{2,8})[-/](USDT?|BUSD|USDC|BTC|ETH)$/i;
 const CRYPTO_PLAIN = new Set(["BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "DOGE", "AVAX", "MATIC", "DOT", "LTC", "LINK", "ATOM", "TRX"]);
+const CRYPTO_QUOTES = ["USDT", "USDC", "BUSD", "USD", "BTC", "ETH"];
 const FIATS = new Set(["USD", "EUR", "GBP", "JPY", "CHF", "AUD", "CAD", "NZD", "CNY", "SAR", "AED", "TRY"]);
 
 export interface ResolvedAsset {
@@ -252,6 +253,15 @@ export function resolveAsset(rawSymbol: string): ResolvedAsset {
     const [, base, quote] = cryptoMatch;
     return make("crypto", `${base}${quote}`,
       "crypto:suffix", "crypto_pair_suffix", "BASE+stable suffix");
+  }
+  for (const quote of CRYPTO_QUOTES) {
+    if (raw.endsWith(quote) && raw.length > quote.length) {
+      const base = raw.slice(0, -quote.length);
+      if (CRYPTO_PLAIN.has(base)) {
+        return make("crypto", `${base}${quote}`,
+          "crypto:compact", "crypto_pair_compact", "known crypto BASE+QUOTE pair");
+      }
+    }
   }
   if (CRYPTO_PLAIN.has(raw)) {
     return make("crypto", `${raw}USDT`,
