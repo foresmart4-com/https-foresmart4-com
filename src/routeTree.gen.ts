@@ -81,6 +81,7 @@ import { Route as ApiPublicRouterRegressionRouteImport } from './routes/api/publ
 import { Route as ApiPublicMoyasarWebhookRouteImport } from './routes/api/public/moyasar-webhook'
 import { Route as ApiPublicMarketIntelligenceRouteImport } from './routes/api/public/market-intelligence'
 import { Route as ApiPublicHistoryTestRouteImport } from './routes/api/public/history-test'
+import { Route as ApiPublicFullSiteHealthRouteImport } from './routes/api/public/full-site-health'
 import { Route as ApiPublicEmailConfigCheckRouteImport } from './routes/api/public/email-config-check'
 import { Route as ApiPublicDeployCheckRouteImport } from './routes/api/public/deploy-check'
 import { Route as ApiFinnhubStreamRouteImport } from './routes/api/finnhub/stream'
@@ -479,6 +480,11 @@ const ApiPublicHistoryTestRoute = ApiPublicHistoryTestRouteImport.update({
   path: '/api/public/history-test',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicFullSiteHealthRoute = ApiPublicFullSiteHealthRouteImport.update({
+  id: '/api/public/full-site-health',
+  path: '/api/public/full-site-health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicEmailConfigCheckRoute =
   ApiPublicEmailConfigCheckRouteImport.update({
     id: '/api/public/email-config-check',
@@ -753,6 +759,7 @@ export interface FileRoutesByFullPath {
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
+  '/api/public/full-site-health': typeof ApiPublicFullSiteHealthRoute
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
   '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
@@ -862,6 +869,7 @@ export interface FileRoutesByTo {
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
+  '/api/public/full-site-health': typeof ApiPublicFullSiteHealthRoute
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
   '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
@@ -973,6 +981,7 @@ export interface FileRoutesById {
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
+  '/api/public/full-site-health': typeof ApiPublicFullSiteHealthRoute
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
   '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
@@ -1084,6 +1093,7 @@ export interface FileRouteTypes {
     | '/api/finnhub/stream'
     | '/api/public/deploy-check'
     | '/api/public/email-config-check'
+    | '/api/public/full-site-health'
     | '/api/public/history-test'
     | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
@@ -1193,6 +1203,7 @@ export interface FileRouteTypes {
     | '/api/finnhub/stream'
     | '/api/public/deploy-check'
     | '/api/public/email-config-check'
+    | '/api/public/full-site-health'
     | '/api/public/history-test'
     | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
@@ -1303,6 +1314,7 @@ export interface FileRouteTypes {
     | '/api/finnhub/stream'
     | '/api/public/deploy-check'
     | '/api/public/email-config-check'
+    | '/api/public/full-site-health'
     | '/api/public/history-test'
     | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
@@ -1362,6 +1374,7 @@ export interface RootRouteChildren {
   ApiFinnhubStreamRoute: typeof ApiFinnhubStreamRoute
   ApiPublicDeployCheckRoute: typeof ApiPublicDeployCheckRoute
   ApiPublicEmailConfigCheckRoute: typeof ApiPublicEmailConfigCheckRoute
+  ApiPublicFullSiteHealthRoute: typeof ApiPublicFullSiteHealthRoute
   ApiPublicHistoryTestRoute: typeof ApiPublicHistoryTestRoute
   ApiPublicMarketIntelligenceRoute: typeof ApiPublicMarketIntelligenceRoute
   ApiPublicMoyasarWebhookRoute: typeof ApiPublicMoyasarWebhookRoute
@@ -1910,6 +1923,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHistoryTestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/full-site-health': {
+      id: '/api/public/full-site-health'
+      path: '/api/public/full-site-health'
+      fullPath: '/api/public/full-site-health'
+      preLoaderRoute: typeof ApiPublicFullSiteHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/email-config-check': {
       id: '/api/public/email-config-check'
       path: '/api/public/email-config-check'
@@ -2310,6 +2330,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFinnhubStreamRoute: ApiFinnhubStreamRoute,
   ApiPublicDeployCheckRoute: ApiPublicDeployCheckRoute,
   ApiPublicEmailConfigCheckRoute: ApiPublicEmailConfigCheckRoute,
+  ApiPublicFullSiteHealthRoute: ApiPublicFullSiteHealthRoute,
   ApiPublicHistoryTestRoute: ApiPublicHistoryTestRoute,
   ApiPublicMarketIntelligenceRoute: ApiPublicMarketIntelligenceRoute,
   ApiPublicMoyasarWebhookRoute: ApiPublicMoyasarWebhookRoute,
