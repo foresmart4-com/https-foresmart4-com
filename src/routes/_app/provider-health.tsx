@@ -90,14 +90,14 @@ function ProviderHealthPage() {
     const out: Record<ProviderCategory, ProviderStatusRow[]> = {
       market_data: [], news: [], macro: [], broker: [], payments: [], kyc: [],
     };
-    if (data) for (const p of data.providers) out[p.category].push(p);
+    if (data) for (const p of (data.providers ?? [])) out[p.category].push(p);
     return out;
   }, [data]);
 
   const totals = useMemo(() => {
     if (!data) return { connected: 0, missing: 0, error: 0, total: 0 };
     let connected = 0, missing = 0, error = 0;
-    for (const p of data.providers) {
+    for (const p of (data.providers ?? [])) {
       if (p.connState === "connected") connected++;
       else if (p.connState === "missing_key" || p.connState === "not_implemented") missing++;
       else if (p.connState === "error" || p.connState === "rate_limited") error++;

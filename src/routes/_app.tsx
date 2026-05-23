@@ -21,6 +21,25 @@ export const Route = createFileRoute("/_app")({
   component: AppLayout,
 });
 
+
+function DisclaimerBanner({ t }: { t: (key: string) => string }) {
+  const [ack, setAck] = useState(() => {
+    try { return localStorage.getItem("foresmart_disclaimer_ack") === "true"; } catch { return false; }
+  });
+  if (ack) return null;
+  return (
+    <div className="px-4 sm:px-6 py-2 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
+      <span>⚠ {t("disclaimerTitle")} — {t("disclaimerBody").slice(0, 140)}…</span>
+      <button
+        onClick={() => { setAck(true); try { localStorage.setItem("foresmart_disclaimer_ack", "true"); } catch {} }}
+        className="rounded border border-border px-2 py-0.5 text-[10px] hover:bg-muted/40"
+      >
+        فهمت
+      </button>
+    </div>
+  );
+}
+
 function AppLayout() {
   const { user, loading, signOut } = useAuth();
   const { t, lang, setLang, dir } = useI18n();
@@ -119,7 +138,7 @@ function AppLayout() {
 
   const SidebarFooter = () => (
     <div className="space-y-1 border-t border-sidebar-border p-2">
-      <a
+      {import.meta.env.DEV && <a
         href={editorUrl}
         target="_blank"
         rel="noreferrer"
@@ -128,7 +147,7 @@ function AppLayout() {
       >
         <Rocket className="h-4 w-4 shrink-0" />
         {!collapsed && <span>{hint("نشر التحديث", "Publish update")}</span>}
-      </a>
+      </a>}
       <button
         onClick={() => setLang(lang === "ar" ? "en" : "ar")}
         className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/60 min-h-11"
@@ -202,7 +221,7 @@ function AppLayout() {
             <span className="font-display text-sm font-bold truncate">{t("appName")}</span>
           </Link>
 
-          <a
+          {import.meta.env.DEV && <a
             href={editorUrl}
             target="_blank"
             rel="noreferrer"
@@ -212,7 +231,7 @@ function AppLayout() {
           >
             <Rocket className="h-4 w-4" />
             <span>{hint("نشر", "Publish")}</span>
-          </a>
+          </a>}
 
           <Button
             variant="ghost"
@@ -230,9 +249,7 @@ function AppLayout() {
           <AccessGate>
             <Outlet />
           </AccessGate>
-          <div className="px-4 sm:px-6 py-2 text-center text-[11px] text-muted-foreground">
-            ⚠ {t("disclaimerTitle")} — {t("disclaimerBody").slice(0, 140)}…
-          </div>
+          <DisclaimerBanner t={t} />
           <LegalFooter />
         </main>
       </div>

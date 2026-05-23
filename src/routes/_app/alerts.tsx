@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -27,7 +28,7 @@ import {
 import { CreateAlertDialog } from "@/components/pickers/CreateAlertDialog";
 
 export const Route = createFileRoute("/_app/alerts")({
-  component: AlertsPage,
+  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><AlertsPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "التنبيهات الذكية — ForeSmart" },

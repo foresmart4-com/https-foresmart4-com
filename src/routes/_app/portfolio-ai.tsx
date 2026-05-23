@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -14,7 +15,7 @@ import { Brain, Shield, Target, AlertTriangle, Sparkles, Gauge, Info, PlusCircle
 import { DataModeBadge } from "@/components/assets/DataModeBadge";
 
 export const Route = createFileRoute("/_app/portfolio-ai")({
-  component: PortfolioAIPage,
+  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><PortfolioAIPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "محرك الذكاء للمحفظة — ForeSmart" },

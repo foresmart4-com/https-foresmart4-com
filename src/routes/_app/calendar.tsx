@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
@@ -16,7 +17,7 @@ import { useBooleanPref } from "@/lib/investor-prefs";
 import type { IntelCategory } from "@/lib/asset-picker";
 
 export const Route = createFileRoute("/_app/calendar")({
-  component: CalendarPage,
+  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><CalendarPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Economic Calendar — ForeSmart" },

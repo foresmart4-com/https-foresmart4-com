@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
@@ -42,7 +43,7 @@ import {
 } from "recharts";
 
 export const Route = createFileRoute("/_app/archive")({
-  component: ArchivePage,
+  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0623\u0631\u0634\u064a\u0641"><ArchivePage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Archive & Top Gainers — ForeSmart" },
@@ -246,7 +247,7 @@ function TopGainersView() {
                 ? "تعذّر تحميل عملات الارتفاع. حاول مجددًا."
                 : "Could not load top gainers. Try again."
               : lang === "ar"
-                ? "لا توجد بيانات حاليًا."
+                ? "لا توجد بيانات مؤرشفة بعد. سيتم حفظ البيانات الجديدة من الآن."
                 : "No data available right now."}
           </div>
           {isError && <div className="text-xs">{error?.message}</div>}
@@ -394,7 +395,7 @@ function TopStockGainersView() {
                 ? "تعذّر تحميل الأسهم. حاول مجددًا."
                 : "Could not load stocks. Try again."
               : lang === "ar"
-                ? "لا توجد بيانات حاليًا."
+                ? "لا توجد بيانات مؤرشفة بعد. سيتم حفظ البيانات الجديدة من الآن."
                 : "No data available right now."}
           </div>
           {isError && <div className="text-xs">{error?.message}</div>}
