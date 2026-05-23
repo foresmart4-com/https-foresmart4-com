@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -10,7 +11,7 @@ import { toast } from "sonner";
 import { setUserRoleFn } from "@/lib/members.functions";
 
 export const Route = createFileRoute("/_app/members")({
-  component: MembersPage,
+  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><MembersPage /></ErrorBoundary>,
 });
 
 interface Row { user_id: string; role: AppRole; display_name: string | null; created_at: string }

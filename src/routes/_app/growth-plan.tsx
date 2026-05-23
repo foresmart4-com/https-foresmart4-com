@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -12,7 +13,7 @@ import { Sprout, Target, Calendar, ShieldAlert, CheckCircle2, AlertTriangle, Tre
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/growth-plan")({
-  component: GrowthPlanPage,
+  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><GrowthPlanPage /></ErrorBoundary>,
 });
 
 const FOCUS_OPTS: { id: "crypto" | "stocks" | "metals" | "fx" | "savings"; ar: string; en: string }[] = [

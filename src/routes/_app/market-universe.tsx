@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/_app/market-universe")({
       { name: "description", content: "Search S&P 500 and Nasdaq 100 stocks with real quotes from Finnhub / Alpaca." },
     ],
   }),
-  component: MarketUniversePage,
+  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><MarketUniversePage /></ErrorBoundary>,
 });
 
 function MarketUniversePage() {

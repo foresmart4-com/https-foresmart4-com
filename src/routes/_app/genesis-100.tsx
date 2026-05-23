@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Brain, Download, Loader2, Play, ShieldCheck, Wallet } from "lucide-react";
@@ -8,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_app/genesis-100")({
-  component: Genesis100Page,
+  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><Genesis100Page /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "ForeSmart Genesis 100" },

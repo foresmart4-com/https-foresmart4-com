@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { useMarketIntel } from "@/hooks/useMarketIntel";
@@ -5,7 +6,7 @@ import { useDecisionEngine } from "@/hooks/useDecisionEngine";
 import { DecisionEnginePanel } from "@/components/dashboard/DecisionEnginePanel";
 
 export const Route = createFileRoute("/_app/decision-engine")({
-  component: DecisionEnginePage,
+  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><DecisionEnginePage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Decision Engine — ForeSmart" },

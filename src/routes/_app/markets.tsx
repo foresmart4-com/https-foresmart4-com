@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -30,7 +31,7 @@ interface SelectedAsset {
 }
 
 export const Route = createFileRoute("/_app/markets")({
-  component: MarketsPage,
+  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><MarketsPage /></ErrorBoundary>,
 });
 
 const REGION_ORDER: StockRegion[] = ["us", "eu", "uk", "japan", "china", "uae", "saudi", "qatar"];

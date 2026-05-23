@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
@@ -13,7 +14,7 @@ import { getStocksData } from "@/lib/stocks-data";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_app/scanner")({ component: ScannerPage });
+export const Route = createFileRoute("/_app/scanner")({ component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><ScannerPage /></ErrorBoundary> });
 
 interface Row {
   symbol: string; name: string; category: string;

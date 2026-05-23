@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { useAccess } from "@/lib/use-access";
@@ -6,7 +7,7 @@ import { Globe, ExternalLink, Copy, ShieldAlert, ArrowLeft } from "lucide-react"
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/domain")({
-  component: DomainPage,
+  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><DomainPage /></ErrorBoundary>,
 });
 
 function Row({ label, value }: { label: string; value: string }) {

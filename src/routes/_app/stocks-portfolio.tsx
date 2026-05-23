@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -38,7 +39,7 @@ export const Route = createFileRoute("/_app/stocks-portfolio")({
       { name: "description", content: "Alpaca paper portfolio, positions, open orders, and stock order previews." },
     ],
   }),
-  component: StocksPortfolioPage,
+  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><StocksPortfolioPage /></ErrorBoundary>,
 });
 
 function StocksPortfolioPage() {

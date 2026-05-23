@@ -215,9 +215,35 @@
   }
 }
 
-/* UX Contrast Fixes v1 */
+/* UX Contrast Fixes v2 — Global Dark Theme Readability */
 .text-muted-foreground { opacity: 1 !important; }
-table th { color: var(--muted-foreground); font-weight: 600; }
+table th { color: var(--muted-foreground); font-weight: 600; letter-spacing: 0.02em; }
 table td { color: var(--foreground); }
-input::placeholder, textarea::placeholder { color: oklch(0.58 0.015 90); }
+input::placeholder, textarea::placeholder { color: oklch(0.55 0.012 90); }
 .badge, [class*="Badge"] { font-weight: 500; }
+
+/* Card values and numbers */
+.tabular-nums, [class*="font-bold"], [class*="font-semibold"] { color: var(--foreground); }
+.text-2xl, .text-3xl, .text-4xl { color: var(--foreground); }
+
+/* Recharts / chart labels */
+.recharts-cartesian-axis-tick-value { fill: oklch(0.75 0.015 90) !important; }
+.recharts-legend-item-text { color: oklch(0.80 0.015 90) !important; }
+.recharts-tooltip-wrapper { color: var(--foreground) !important; }
+
+/* Buttons readability */
+button:not(:disabled) { min-contrast: AA; }
+[class*="variant-outline"]:not(:disabled) { border-color: oklch(0.40 0.025 265); }
+
+/* Card surfaces */
+.gradient-card { background: var(--gradient-card); }
+
+/* Disabled state — visible but dimmed */
+:disabled, [disabled], .opacity-50 { opacity: 0.55 !important; }
+
+/* Empty state text */
+.text-center.text-muted-foreground { color: oklch(0.68 0.015 90); }
+
+/* Select / dropdown items */
+[role="option"] { color: var(--foreground); }
+[role="option"]:hover { background: var(--muted); }

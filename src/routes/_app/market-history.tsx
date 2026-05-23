@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 /**
  * /market-history — Historical Market Archive UI (Phase 11).
  *
@@ -27,7 +28,7 @@ import {
 import { ASSET_PICKER, type PickerAsset } from "@/lib/asset-picker";
 
 export const Route = createFileRoute("/_app/market-history")({
-  component: MarketHistoryPage,
+  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><MarketHistoryPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "أرشيف السوق التاريخي — ForeSmart" },

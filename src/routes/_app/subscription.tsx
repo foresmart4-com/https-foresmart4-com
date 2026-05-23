@@ -94,7 +94,7 @@ function SubscriptionPage() {
         <Button
           className="gap-2 shrink-0"
           disabled={!!(isActive && hasStripeCustomer)}
-          onClick={() => toast.success(lang === "ar" ? "تم تفعيل التجربة المجانية لمدة 14 يوم" : "14-day free trial activated")}
+          onClick={() => toast.success(lang === "ar" ? "تم تفعيل الوصول الداخلي" : "Internal access activated")}
         >
           <Sparkles className="h-4 w-4" />
           {lang === "ar" ? "تفعيل الوصول" : "Activate access"}
@@ -178,7 +178,7 @@ function SubscriptionPage() {
             <div>
               <div className="font-semibold">
                 {sub.status === "trialing"
-                  ? (lang === "ar" ? "أنت في فترة التجربة المجانية" : "You're on free trial")
+                  ? (lang === "ar" ? "الوصول الداخلي مفعل" : "Internal access active")
                   : sub.status === "past_due"
                   ? (lang === "ar" ? "تأخر في الدفع — يحاول النظام التجديد" : "Payment past due — retrying")
                   : (lang === "ar" ? "الوصول الداخلي نشط" : "Internal access active")}
@@ -226,7 +226,7 @@ function SubscriptionPage() {
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
             {lang === "ar"
               ? "الدفع عبر PayPal يفعّل الاشتراك فوراً (بدون فترة تجربة)."
-              : "PayPal payments activate the subscription immediately (no free trial)."}
+              : "PayPal activates access immediately."}
           </p>
         </Card>
       ) : (
