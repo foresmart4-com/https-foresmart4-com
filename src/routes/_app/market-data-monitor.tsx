@@ -266,7 +266,7 @@ function MarketDataMonitorPage() {
             <p className="text-sm text-muted-foreground">{ar ? "جارٍ التحميل…" : "Loading…"}</p>
           ) : !data.configured ? (
             <p className="text-sm text-destructive">
-              {ar ? "FINNHUB_API_KEY غير مهيّأ." : "FINNHUB_API_KEY is not configured."}
+              {ar ? "FINNHUB_API_KEY غير مهيأ في بيئة الإنتاج." : "FINNHUB_API_KEY غير مهيأ في بيئة الإنتاج."}
             </p>
           ) : (
             <>

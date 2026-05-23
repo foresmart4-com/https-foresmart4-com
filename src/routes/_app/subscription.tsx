@@ -145,7 +145,7 @@ function SubscriptionPage() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="font-display text-lg font-bold">
-              {lang === "ar" ? "خطة مجانية" : "Free Plan"}
+              {lang === "ar" ? "الوصول الأساسي" : "Basic Access"}
             </div>
             <div className="text-xs text-muted-foreground">
               {lang === "ar"
@@ -154,7 +154,7 @@ function SubscriptionPage() {
             </div>
           </div>
           <Link to="/dashboard">
-            <Button variant="outline" className="gap-2"><Check className="h-4 w-4" />{lang === "ar" ? "متابعة بالخطة المجانية" : "Continue on Free"}</Button>
+            <Button variant="outline" className="gap-2"><Check className="h-4 w-4" />{lang === "ar" ? "متابعة بالوصول الأساسي" : "Continue with basic access"}</Button>
           </Link>
         </div>
       </Card>
@@ -166,7 +166,7 @@ function SubscriptionPage() {
         </div>
       )}
       {plansQ.error && (
-        <Alert variant="destructive"><AlertDescription>{lang === "ar" ? "تعذر تحميل الخطط حالياً" : "Failed to load plans"}</AlertDescription></Alert>
+        <Alert variant="destructive"><AlertDescription>{lang === "ar" ? "تعذر تحميل باقات الوصول" : "Failed to load access plans"}</AlertDescription></Alert>
       )}
 
 
@@ -251,7 +251,7 @@ function SubscriptionPage() {
           {/* Comparison */}
           <Card className="overflow-hidden">
             <header className="border-b border-border bg-muted/30 px-5 py-3 font-semibold">
-              {lang === "ar" ? "مقارنة المميزات" : "Feature Comparison"}
+              {lang === "ar" ? "مقارنة الصلاحيات" : "Access Comparison"}
             </header>
             <table className="w-full text-sm">
               <thead className="bg-muted/20 text-xs uppercase text-muted-foreground">

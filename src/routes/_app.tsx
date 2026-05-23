@@ -22,20 +22,27 @@ export const Route = createFileRoute("/_app")({
 });
 
 
-function DisclaimerBanner({ t }: { t: (key: string) => string }) {
+function DisclaimerBanner({ t, userId }: { t: (key: string) => string; userId?: string }) {
   const [ack, setAck] = useState(() => {
-    try { return localStorage.getItem("foresmart_disclaimer_ack") === "true"; } catch { return false; }
+    try {
+      if (localStorage.getItem("foresmart_disclaimer_ack") === "true") return true;
+      if (userId && localStorage.getItem(`foresmart_disclaimer_ack:${userId}`) === "true") return true;
+      return false;
+    } catch { return false; }
   });
   if (ack) return null;
+  const accept = () => {
+    setAck(true);
+    try {
+      localStorage.setItem("foresmart_disclaimer_ack", "true");
+      if (userId) localStorage.setItem(`foresmart_disclaimer_ack:${userId}`, "true");
+    } catch {}
+  };
   return (
-    <div className="px-4 sm:px-6 py-2 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
-      <span>⚠ {t("disclaimerTitle")} — {t("disclaimerBody").slice(0, 140)}…</span>
-      <button
-        onClick={() => { setAck(true); try { localStorage.setItem("foresmart_disclaimer_ack", "true"); } catch {} }}
-        className="rounded border border-border px-2 py-0.5 text-[10px] hover:bg-muted/40"
-      >
-        فهمت
-      </button>
+    <div className="mx-4 sm:mx-6 my-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-center text-sm text-muted-foreground space-y-2">
+      <p>⚠ {t("disclaimerTitle")}</p>
+      <p className="text-xs">{t("disclaimerBody")}</p>
+      <button onClick={accept} className="rounded-md border border-border bg-background px-4 py-1.5 text-xs font-medium hover:bg-muted/60">موافق</button>
     </div>
   );
 }
@@ -248,8 +255,8 @@ function AppLayout() {
           <AccessGate>
             <Outlet />
           </AccessGate>
-          <DisclaimerBanner t={t} />
-          <LegalFooter />
+          <DisclaimerBanner t={t} userId={user?.id} />
+          <div className="px-4 sm:px-6 py-1 text-center"><a href="/disclaimer" className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground">إخلاء المسؤولية</a></div>
         </main>
       </div>
     </div>

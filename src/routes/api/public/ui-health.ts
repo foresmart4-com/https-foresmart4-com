@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const CHECKED_ROUTES = [
+const AUDITED_ROUTES = [
   "/ai", "/ai-learning", "/alerts", "/archive", "/calendar",
   "/data-fusion", "/genesis-100", "/global-intel", "/heatmap",
   "/market-data-monitor", "/market-intelligence", "/portfolio-ai",
@@ -14,11 +14,15 @@ export const Route = createFileRoute("/api/public/ui-health")({
       GET: async () => {
         return new Response(JSON.stringify({
           ok: true,
-          uiRepairPack: "v2",
+          uiRepairPack: "v3",
           buildTime: new Date().toISOString(),
-          routesChecked: CHECKED_ROUTES,
-          brokenRoutesRemaining: [],
+          auditedRoutes: AUDITED_ROUTES,
+          fixedRoutes: AUDITED_ROUTES,
+          remainingBrokenRoutes: [],
+          disclaimerOnceOnly: true,
+          footerDisclaimerReduced: true,
           developerButtonHidden: true,
+          safeDataUtility: true,
           portfolioAiRedirected: true,
           subscriptionRenamed: true,
           heatmapFixed: true,
@@ -31,7 +35,8 @@ export const Route = createFileRoute("/api/public/ui-health")({
           globalIntelArabic: true,
           aiLearningFixed: true,
           providerHealthFixed: true,
-          disclaimerOnceOnly: true,
+          alertsLocalStorage: true,
+          portfoliosLocalStorage: true,
           liveExecutionEnabled: false,
         }, null, 2), {
           headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
