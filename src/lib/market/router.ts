@@ -25,6 +25,8 @@ import { getFmpQuote } from "@/services/providers/fmp";
 import { getCommodityQuote } from "@/services/providers/commodityprice";
 import { getFredQuote } from "@/services/providers/fred";
 import { getYahooQuote } from "@/services/providers/yahoo";
+import { getEodhdQuote } from "@/lib/market/providers/eodhd";
+import { getMarketstackQuote } from "@/lib/market/providers/marketstack";
 import { translateSymbol, type ProviderKey } from "@/lib/market/symbol-map";
 import { supports, unsupportedReason, isRealtime } from "@/lib/market/capabilities";
 
@@ -62,7 +64,9 @@ export type ProviderId =
   | "fmp"
   | "commodityprice"
   | "fred"
-  | "yahoo";
+  | "yahoo"
+  | "eodhd"
+  | "marketstack";
 
 
 export type ProviderMode = "live" | "delayed" | "cached" | "stale" | "synthetic";
@@ -364,25 +368,25 @@ export function resolveAsset(rawSymbol: string): ResolvedAsset {
 // ---------- Provider priority chains ----------
 
 const CHAINS: Record<AssetClass, ProviderId[]> = {
-  us_stock:    ["finnhub", "alpaca", "twelvedata", "fmp", "alphavantage"],
+  us_stock: ["finnhub", "eodhd", "marketstack", "fmp", "alpaca", "twelvedata", "alphavantage"],
   // Saudi: SAHMK (native) → TwelveData → FMP → AlphaVantage
-  saudi_stock: ["sahmk", "twelvedata", "fmp", "alphavantage"],
-  crypto:      ["binance", "coingecko", "twelvedata", "fmp"],
+  saudi_stock: ["sahmk", "eodhd", "marketstack", "twelvedata", "fmp", "alphavantage"],
+  crypto: ["binance", "coingecko", "twelvedata", "eodhd", "fmp"],
   // Metals: TwelveData → CommodityPriceAPI → FMP → AlphaVantage → TradingView
-  metal:       ["twelvedata", "commodityprice", "fmp", "alphavantage", "tradingview"],
+  metal: ["twelvedata", "eodhd", "commodityprice", "fmp", "alphavantage", "tradingview"],
   // Commodities (oil/gas): CommodityPriceAPI → FMP → AlphaVantage → TwelveData → TradingView
-  commodity:   ["commodityprice", "fmp", "alphavantage", "twelvedata", "tradingview"],
+  commodity: ["eodhd", "commodityprice", "fmp", "alphavantage", "twelvedata", "tradingview"],
   etf:         ["finnhub", "twelvedata", "fmp", "alphavantage"],
   bond:        ["fred", "twelvedata", "alphavantage"],
   treasury:    ["fred"],
   index:       ["fmp", "twelvedata", "finnhub", "tradingview"],
   // Forex: TwelveData → FMP → AlphaVantage → Finnhub OANDA
-  forex:       ["twelvedata", "fmp", "alphavantage", "finnhub"],
-  gcc_stock:       ["fmp", "twelvedata", "alphavantage"],
-  uk_stock:        ["fmp", "twelvedata", "alphavantage"],
-  european_stock:  ["fmp", "twelvedata", "alphavantage"],
-  china_stock:     ["fmp", "twelvedata", "alphavantage"],
-  hongkong_stock:  ["fmp", "twelvedata", "alphavantage", "yahoo"],
+  forex: ["twelvedata", "eodhd", "fmp", "alphavantage", "marketstack", "finnhub"],
+  gcc_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
+  uk_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
+  european_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
+  china_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
+  hongkong_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage", "yahoo"],
   macro:           ["fred", "fmp", "alphavantage"],
   news:            ["fmp", "finnhub"],
   unknown:         ["fmp", "twelvedata", "finnhub", "alphavantage"],
@@ -758,6 +762,26 @@ async function runFred(_asset: ResolvedAsset, sym: string): Promise<UpstreamResu
 }
 
 
+
+async function runEodhd(asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  const r = await getEodhdQuote(sym, asset.assetClass);
+  if (!r.success) {
+    const err = new Error(`eodhd: ${r.reason} — ${r.error}`);
+    if (r.reason === "rate_limited") Object.assign(err, { rateLimited: true });
+    throw err;
+  }
+  return { price: r.price, change: r.change, changePercent: r.changePercent, volume: r.volume, timestamp: r.timestamp, delayed: r.delayed };
+}
+
+async function runMarketstack(asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  const r = await getMarketstackQuote(sym, asset.assetClass);
+  if (!r.success) {
+    const err = new Error(`marketstack: ${r.reason} — ${r.error}`);
+    if (r.reason === "rate_limited") Object.assign(err, { rateLimited: true });
+    throw err;
+  }
+  return { price: r.price, change: r.change, changePercent: r.changePercent, volume: r.volume, timestamp: r.timestamp, delayed: r.delayed };
+}
 async function runYahoo(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
   const r = await getYahooQuote(sym);
   if ("ok" in r && r.ok === false) {
@@ -787,6 +811,8 @@ const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<Ups
   commodityprice: runCommodityPrice,
   fred: runFred,
   yahoo: runYahoo,
+  eodhd: runEodhd,
+  marketstack: runMarketstack,
 };
 
 /** Map our internal ProviderId → the symbol-map ProviderKey. 1:1 today. */
@@ -803,6 +829,8 @@ const PROVIDER_KEY: Record<ProviderId, ProviderKey> = {
   commodityprice: "commodityprice",
   fred: "fred",
   yahoo: "fmp",
+  eodhd: "fmp",
+  marketstack: "fmp",
 };
 
 // ---------- Core router ----------
@@ -827,6 +855,8 @@ export function getProviderConnected(): Partial<Record<ProviderId, boolean>> {
     sahmk:          !!process.env.SAHMK_API_KEY,
     fmp:            !!process.env.FMP_API_KEY,
     yahoo:          true,
+    eodhd:          !!process.env.EODHD_API_KEY,
+    marketstack:    !!process.env.MARKETSTACK_API_KEY,
     fred:           !!process.env.FRED_API_KEY,
     commodityprice: !!(process.env.COMMODITYPRICE_API_KEY ?? process.env.COMMODITYPRICEAPI_KEY),
     binance:        true,

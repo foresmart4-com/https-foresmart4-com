@@ -123,7 +123,11 @@ import { Route as ApiPublicGenesis100AllocationsRouteImport } from './routes/api
 import { Route as ApiPublicCompanyProfileRouteImport } from './routes/api/public/company/profile'
 import { Route as ApiPublicBrokerStatusRouteImport } from './routes/api/public/broker/status'
 import { Route as ApiPublicAlertsEvaluateRouteImport } from './routes/api/public/alerts/evaluate'
+import { Route as ApiPublicMarketSnapshotIndexRouteImport } from './routes/api/public/market/snapshot/index'
 import { Route as ApiPublicGenesis100ExecutionIndexRouteImport } from './routes/api/public/genesis100/execution/index'
+import { Route as ApiPublicProvidersEodhdExchangesRouteImport } from './routes/api/public/providers/eodhd/exchanges'
+import { Route as ApiPublicMarketSnapshotRunRouteImport } from './routes/api/public/market/snapshot/run'
+import { Route as ApiPublicMarketSnapshotHistoryRouteImport } from './routes/api/public/market/snapshot/history'
 import { Route as ApiPublicGenesis100ExecutionHistoryRouteImport } from './routes/api/public/genesis100/execution/history'
 import { Route as ApiPublicGenesis100ArchiveSummaryRouteImport } from './routes/api/public/genesis100/archive/summary'
 import { Route as ApiPublicGenesis100ArchiveLatestRouteImport } from './routes/api/public/genesis100/archive/latest'
@@ -725,10 +729,34 @@ const ApiPublicAlertsEvaluateRoute = ApiPublicAlertsEvaluateRouteImport.update({
   path: '/api/public/alerts/evaluate',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicMarketSnapshotIndexRoute =
+  ApiPublicMarketSnapshotIndexRouteImport.update({
+    id: '/api/public/market/snapshot/',
+    path: '/api/public/market/snapshot/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicGenesis100ExecutionIndexRoute =
   ApiPublicGenesis100ExecutionIndexRouteImport.update({
     id: '/api/public/genesis100/execution/',
     path: '/api/public/genesis100/execution/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicProvidersEodhdExchangesRoute =
+  ApiPublicProvidersEodhdExchangesRouteImport.update({
+    id: '/api/public/providers/eodhd/exchanges',
+    path: '/api/public/providers/eodhd/exchanges',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicMarketSnapshotRunRoute =
+  ApiPublicMarketSnapshotRunRouteImport.update({
+    id: '/api/public/market/snapshot/run',
+    path: '/api/public/market/snapshot/run',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicMarketSnapshotHistoryRoute =
+  ApiPublicMarketSnapshotHistoryRouteImport.update({
+    id: '/api/public/market/snapshot/history',
+    path: '/api/public/market/snapshot/history',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicGenesis100ExecutionHistoryRoute =
@@ -867,7 +895,11 @@ export interface FileRoutesByFullPath {
   '/api/public/genesis100/archive/latest': typeof ApiPublicGenesis100ArchiveLatestRoute
   '/api/public/genesis100/archive/summary': typeof ApiPublicGenesis100ArchiveSummaryRoute
   '/api/public/genesis100/execution/history': typeof ApiPublicGenesis100ExecutionHistoryRoute
+  '/api/public/market/snapshot/history': typeof ApiPublicMarketSnapshotHistoryRoute
+  '/api/public/market/snapshot/run': typeof ApiPublicMarketSnapshotRunRoute
+  '/api/public/providers/eodhd/exchanges': typeof ApiPublicProvidersEodhdExchangesRoute
   '/api/public/genesis100/execution/': typeof ApiPublicGenesis100ExecutionIndexRoute
+  '/api/public/market/snapshot/': typeof ApiPublicMarketSnapshotIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -986,7 +1018,11 @@ export interface FileRoutesByTo {
   '/api/public/genesis100/archive/latest': typeof ApiPublicGenesis100ArchiveLatestRoute
   '/api/public/genesis100/archive/summary': typeof ApiPublicGenesis100ArchiveSummaryRoute
   '/api/public/genesis100/execution/history': typeof ApiPublicGenesis100ExecutionHistoryRoute
+  '/api/public/market/snapshot/history': typeof ApiPublicMarketSnapshotHistoryRoute
+  '/api/public/market/snapshot/run': typeof ApiPublicMarketSnapshotRunRoute
+  '/api/public/providers/eodhd/exchanges': typeof ApiPublicProvidersEodhdExchangesRoute
   '/api/public/genesis100/execution': typeof ApiPublicGenesis100ExecutionIndexRoute
+  '/api/public/market/snapshot': typeof ApiPublicMarketSnapshotIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1107,7 +1143,11 @@ export interface FileRoutesById {
   '/api/public/genesis100/archive/latest': typeof ApiPublicGenesis100ArchiveLatestRoute
   '/api/public/genesis100/archive/summary': typeof ApiPublicGenesis100ArchiveSummaryRoute
   '/api/public/genesis100/execution/history': typeof ApiPublicGenesis100ExecutionHistoryRoute
+  '/api/public/market/snapshot/history': typeof ApiPublicMarketSnapshotHistoryRoute
+  '/api/public/market/snapshot/run': typeof ApiPublicMarketSnapshotRunRoute
+  '/api/public/providers/eodhd/exchanges': typeof ApiPublicProvidersEodhdExchangesRoute
   '/api/public/genesis100/execution/': typeof ApiPublicGenesis100ExecutionIndexRoute
+  '/api/public/market/snapshot/': typeof ApiPublicMarketSnapshotIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1228,7 +1268,11 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/archive/latest'
     | '/api/public/genesis100/archive/summary'
     | '/api/public/genesis100/execution/history'
+    | '/api/public/market/snapshot/history'
+    | '/api/public/market/snapshot/run'
+    | '/api/public/providers/eodhd/exchanges'
     | '/api/public/genesis100/execution/'
+    | '/api/public/market/snapshot/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1347,7 +1391,11 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/archive/latest'
     | '/api/public/genesis100/archive/summary'
     | '/api/public/genesis100/execution/history'
+    | '/api/public/market/snapshot/history'
+    | '/api/public/market/snapshot/run'
+    | '/api/public/providers/eodhd/exchanges'
     | '/api/public/genesis100/execution'
+    | '/api/public/market/snapshot'
   id:
     | '__root__'
     | '/'
@@ -1467,7 +1515,11 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/archive/latest'
     | '/api/public/genesis100/archive/summary'
     | '/api/public/genesis100/execution/history'
+    | '/api/public/market/snapshot/history'
+    | '/api/public/market/snapshot/run'
+    | '/api/public/providers/eodhd/exchanges'
     | '/api/public/genesis100/execution/'
+    | '/api/public/market/snapshot/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1533,7 +1585,11 @@ export interface RootRouteChildren {
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
   ApiPublicGenesis100ExecutionHistoryRoute: typeof ApiPublicGenesis100ExecutionHistoryRoute
+  ApiPublicMarketSnapshotHistoryRoute: typeof ApiPublicMarketSnapshotHistoryRoute
+  ApiPublicMarketSnapshotRunRoute: typeof ApiPublicMarketSnapshotRunRoute
+  ApiPublicProvidersEodhdExchangesRoute: typeof ApiPublicProvidersEodhdExchangesRoute
   ApiPublicGenesis100ExecutionIndexRoute: typeof ApiPublicGenesis100ExecutionIndexRoute
+  ApiPublicMarketSnapshotIndexRoute: typeof ApiPublicMarketSnapshotIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2336,11 +2392,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAlertsEvaluateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/market/snapshot/': {
+      id: '/api/public/market/snapshot/'
+      path: '/api/public/market/snapshot'
+      fullPath: '/api/public/market/snapshot/'
+      preLoaderRoute: typeof ApiPublicMarketSnapshotIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/genesis100/execution/': {
       id: '/api/public/genesis100/execution/'
       path: '/api/public/genesis100/execution'
       fullPath: '/api/public/genesis100/execution/'
       preLoaderRoute: typeof ApiPublicGenesis100ExecutionIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/providers/eodhd/exchanges': {
+      id: '/api/public/providers/eodhd/exchanges'
+      path: '/api/public/providers/eodhd/exchanges'
+      fullPath: '/api/public/providers/eodhd/exchanges'
+      preLoaderRoute: typeof ApiPublicProvidersEodhdExchangesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/market/snapshot/run': {
+      id: '/api/public/market/snapshot/run'
+      path: '/api/public/market/snapshot/run'
+      fullPath: '/api/public/market/snapshot/run'
+      preLoaderRoute: typeof ApiPublicMarketSnapshotRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/market/snapshot/history': {
+      id: '/api/public/market/snapshot/history'
+      path: '/api/public/market/snapshot/history'
+      fullPath: '/api/public/market/snapshot/history'
+      preLoaderRoute: typeof ApiPublicMarketSnapshotHistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/genesis100/execution/history': {
@@ -2567,8 +2651,12 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
   ApiPublicGenesis100ExecutionHistoryRoute:
     ApiPublicGenesis100ExecutionHistoryRoute,
+  ApiPublicMarketSnapshotHistoryRoute: ApiPublicMarketSnapshotHistoryRoute,
+  ApiPublicMarketSnapshotRunRoute: ApiPublicMarketSnapshotRunRoute,
+  ApiPublicProvidersEodhdExchangesRoute: ApiPublicProvidersEodhdExchangesRoute,
   ApiPublicGenesis100ExecutionIndexRoute:
     ApiPublicGenesis100ExecutionIndexRoute,
+  ApiPublicMarketSnapshotIndexRoute: ApiPublicMarketSnapshotIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
