@@ -127,6 +127,10 @@ import { Route as ApiPublicAlertsEvaluateRouteImport } from './routes/api/public
 import { Route as ApiPaymentsMyfatoorahWebhookRouteImport } from './routes/api/payments/myfatoorah/webhook'
 import { Route as ApiPaymentsMyfatoorahStatusRouteImport } from './routes/api/payments/myfatoorah/status'
 import { Route as ApiPaymentsMyfatoorahCreateRouteImport } from './routes/api/payments/myfatoorah/create'
+import { Route as ApiAiIntelligenceMarketRouteImport } from './routes/api/ai/intelligence/market'
+import { Route as ApiAiIntelligenceMacroRouteImport } from './routes/api/ai/intelligence/macro'
+import { Route as ApiAiIntelligenceLearningRouteImport } from './routes/api/ai/intelligence/learning'
+import { Route as ApiAiIntelligenceGenesisRouteImport } from './routes/api/ai/intelligence/genesis'
 import { Route as ApiPublicMarketSnapshotIndexRouteImport } from './routes/api/public/market/snapshot/index'
 import { Route as ApiPublicGenesis100ExecutionIndexRouteImport } from './routes/api/public/genesis100/execution/index'
 import { Route as ApiPublicProvidersEodhdExchangesRouteImport } from './routes/api/public/providers/eodhd/exchanges'
@@ -756,6 +760,28 @@ const ApiPaymentsMyfatoorahCreateRoute =
     path: '/api/payments/myfatoorah/create',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAiIntelligenceMarketRoute = ApiAiIntelligenceMarketRouteImport.update({
+  id: '/api/ai/intelligence/market',
+  path: '/api/ai/intelligence/market',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiIntelligenceMacroRoute = ApiAiIntelligenceMacroRouteImport.update({
+  id: '/api/ai/intelligence/macro',
+  path: '/api/ai/intelligence/macro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiIntelligenceLearningRoute =
+  ApiAiIntelligenceLearningRouteImport.update({
+    id: '/api/ai/intelligence/learning',
+    path: '/api/ai/intelligence/learning',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiIntelligenceGenesisRoute =
+  ApiAiIntelligenceGenesisRouteImport.update({
+    id: '/api/ai/intelligence/genesis',
+    path: '/api/ai/intelligence/genesis',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicMarketSnapshotIndexRoute =
   ApiPublicMarketSnapshotIndexRouteImport.update({
     id: '/api/public/market/snapshot/',
@@ -891,6 +917,10 @@ export interface FileRoutesByFullPath {
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
+  '/api/ai/intelligence/genesis': typeof ApiAiIntelligenceGenesisRoute
+  '/api/ai/intelligence/learning': typeof ApiAiIntelligenceLearningRoute
+  '/api/ai/intelligence/macro': typeof ApiAiIntelligenceMacroRoute
+  '/api/ai/intelligence/market': typeof ApiAiIntelligenceMarketRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
   '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
   '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -1018,6 +1048,10 @@ export interface FileRoutesByTo {
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
+  '/api/ai/intelligence/genesis': typeof ApiAiIntelligenceGenesisRoute
+  '/api/ai/intelligence/learning': typeof ApiAiIntelligenceLearningRoute
+  '/api/ai/intelligence/macro': typeof ApiAiIntelligenceMacroRoute
+  '/api/ai/intelligence/market': typeof ApiAiIntelligenceMarketRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
   '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
   '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -1147,6 +1181,10 @@ export interface FileRoutesById {
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
+  '/api/ai/intelligence/genesis': typeof ApiAiIntelligenceGenesisRoute
+  '/api/ai/intelligence/learning': typeof ApiAiIntelligenceLearningRoute
+  '/api/ai/intelligence/macro': typeof ApiAiIntelligenceMacroRoute
+  '/api/ai/intelligence/market': typeof ApiAiIntelligenceMarketRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
   '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
   '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -1276,6 +1314,10 @@ export interface FileRouteTypes {
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
+    | '/api/ai/intelligence/genesis'
+    | '/api/ai/intelligence/learning'
+    | '/api/ai/intelligence/macro'
+    | '/api/ai/intelligence/market'
     | '/api/payments/myfatoorah/create'
     | '/api/payments/myfatoorah/status'
     | '/api/payments/myfatoorah/webhook'
@@ -1403,6 +1445,10 @@ export interface FileRouteTypes {
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
+    | '/api/ai/intelligence/genesis'
+    | '/api/ai/intelligence/learning'
+    | '/api/ai/intelligence/macro'
+    | '/api/ai/intelligence/market'
     | '/api/payments/myfatoorah/create'
     | '/api/payments/myfatoorah/status'
     | '/api/payments/myfatoorah/webhook'
@@ -1531,6 +1577,10 @@ export interface FileRouteTypes {
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
+    | '/api/ai/intelligence/genesis'
+    | '/api/ai/intelligence/learning'
+    | '/api/ai/intelligence/macro'
+    | '/api/ai/intelligence/market'
     | '/api/payments/myfatoorah/create'
     | '/api/payments/myfatoorah/status'
     | '/api/payments/myfatoorah/webhook'
@@ -1607,6 +1657,10 @@ export interface RootRouteChildren {
   ApiWebhooksLemonsqueezyRoute: typeof ApiWebhooksLemonsqueezyRoute
   ApiWebhooksPaddleRoute: typeof ApiWebhooksPaddleRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
+  ApiAiIntelligenceGenesisRoute: typeof ApiAiIntelligenceGenesisRoute
+  ApiAiIntelligenceLearningRoute: typeof ApiAiIntelligenceLearningRoute
+  ApiAiIntelligenceMacroRoute: typeof ApiAiIntelligenceMacroRoute
+  ApiAiIntelligenceMarketRoute: typeof ApiAiIntelligenceMarketRoute
   ApiPaymentsMyfatoorahCreateRoute: typeof ApiPaymentsMyfatoorahCreateRoute
   ApiPaymentsMyfatoorahStatusRoute: typeof ApiPaymentsMyfatoorahStatusRoute
   ApiPaymentsMyfatoorahWebhookRoute: typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -2475,6 +2529,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPaymentsMyfatoorahCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/intelligence/market': {
+      id: '/api/ai/intelligence/market'
+      path: '/api/ai/intelligence/market'
+      fullPath: '/api/ai/intelligence/market'
+      preLoaderRoute: typeof ApiAiIntelligenceMarketRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/intelligence/macro': {
+      id: '/api/ai/intelligence/macro'
+      path: '/api/ai/intelligence/macro'
+      fullPath: '/api/ai/intelligence/macro'
+      preLoaderRoute: typeof ApiAiIntelligenceMacroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/intelligence/learning': {
+      id: '/api/ai/intelligence/learning'
+      path: '/api/ai/intelligence/learning'
+      fullPath: '/api/ai/intelligence/learning'
+      preLoaderRoute: typeof ApiAiIntelligenceLearningRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/intelligence/genesis': {
+      id: '/api/ai/intelligence/genesis'
+      path: '/api/ai/intelligence/genesis'
+      fullPath: '/api/ai/intelligence/genesis'
+      preLoaderRoute: typeof ApiAiIntelligenceGenesisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/market/snapshot/': {
       id: '/api/public/market/snapshot/'
       path: '/api/public/market/snapshot'
@@ -2700,6 +2782,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWebhooksLemonsqueezyRoute: ApiWebhooksLemonsqueezyRoute,
   ApiWebhooksPaddleRoute: ApiWebhooksPaddleRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
+  ApiAiIntelligenceGenesisRoute: ApiAiIntelligenceGenesisRoute,
+  ApiAiIntelligenceLearningRoute: ApiAiIntelligenceLearningRoute,
+  ApiAiIntelligenceMacroRoute: ApiAiIntelligenceMacroRoute,
+  ApiAiIntelligenceMarketRoute: ApiAiIntelligenceMarketRoute,
   ApiPaymentsMyfatoorahCreateRoute: ApiPaymentsMyfatoorahCreateRoute,
   ApiPaymentsMyfatoorahStatusRoute: ApiPaymentsMyfatoorahStatusRoute,
   ApiPaymentsMyfatoorahWebhookRoute: ApiPaymentsMyfatoorahWebhookRoute,

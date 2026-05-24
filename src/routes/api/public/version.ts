@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { AI_CORE_VERSION } from "@/lib/ai/core/safety";
 
 const BUILD_TIME = new Date().toISOString();
 const BUILD_COMMIT = typeof process !== "undefined"
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/api/public/version")({
           branch: process.env.RAILWAY_GIT_BRANCH ?? "main",
           product: "ForeSmart",
           repairPack: "root-fix-v4",
+          aiCoreVersion: AI_CORE_VERSION,
         }, null, 2), {
           headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
         });
