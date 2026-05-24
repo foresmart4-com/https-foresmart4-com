@@ -11,7 +11,8 @@
     "start": "node scripts/railway-start.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "smoke:routes": "node scripts/smoke-production-routes.mjs"
+    "smoke:routes": "node scripts/smoke-production-routes.mjs",
+    "smoke:auth": "node scripts/smoke-authenticated-routes.mjs"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",

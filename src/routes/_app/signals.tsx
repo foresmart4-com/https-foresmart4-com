@@ -42,9 +42,10 @@ function SignalsPage() {
   const mut = useMutation({
     mutationFn: () => fn(),
     onSuccess: (d) => {
-      setSignals(Array.isArray(d?.signals) ? d.signals : []);
+      const sigs = Array.isArray(d?.signals) ? d.signals : [];
+      setSignals(sigs);
       setGeneratedAt(d?.generatedAt ?? Date.now());
-      toast.success(lang === "ar" ? `تم توليد ${d.signals.length} إشارة` : `Generated ${d.signals.length} signals`);
+      toast.success(lang === "ar" ? `تم توليد ${sigs.length} إشارة` : `Generated ${sigs.length} signals`);
     },
     onError: () => toast.error(lang === "ar" ? "فشل توليد الإشارات" : "Failed to generate"),
   });

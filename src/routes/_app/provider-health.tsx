@@ -140,23 +140,23 @@ function ProviderHealthPage() {
           <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
             <div className="flex items-center justify-between rounded border border-border/60 p-2">
               <span className="text-muted-foreground">{ar ? "أسعار السوق" : "Market quotes"}</span>
-              <Badge variant="secondary" className="capitalize">{data.routing.market}</Badge>
+              <Badge variant="secondary" className="capitalize">{data?.routing?.market ?? "unknown"}</Badge>
             </div>
             <div className="flex items-center justify-between rounded border border-border/60 p-2">
               <span className="text-muted-foreground">{ar ? "البيانات الاقتصادية" : "Macro data"}</span>
-              <Badge variant="secondary" className="capitalize">{data.routing.macro}</Badge>
+              <Badge variant="secondary" className="capitalize">{data?.routing?.macro ?? "unknown"}</Badge>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {data?.routingPlan && data.routingPlan.length > 0 && (
+      {data?.routingPlan && (data?.routingPlan?.length ?? 0) > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">{ar ? "خطة التوجيه حسب فئة الأصل" : "Failover plan by asset class"}</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-2 text-xs sm:grid-cols-2 xl:grid-cols-3">
-            {data.routingPlan.map((row) => (
+            {(data?.routingPlan ?? []).map((row) => (
               <div key={row.assetClass} className="rounded border border-border/60 p-2 space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="font-mono uppercase">{row.assetClass}</span>

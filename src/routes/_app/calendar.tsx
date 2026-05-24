@@ -144,8 +144,8 @@ function CalendarPage() {
     try {
       const data = await getEconomicEvents();
       setEvents(Array.isArray(data?.events) ? data.events as EvtItem[] : []);
-      setSource(data.source || "");
-      setMode((data.mode as "live" | "delayed" | "mock") || "mock");
+      setSource(data?.source || "");
+      setMode((data?.mode as "live" | "delayed" | "mock") || "mock");
       setLastUpdated(Date.now());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load events");

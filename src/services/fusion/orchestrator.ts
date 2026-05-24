@@ -43,7 +43,7 @@ export function subscribe(symbolRaw: string, hint?: AssetClass): string {
   const norm = normalizeSymbol(symbolRaw, hint);
   if (SUBS.has(norm.canonical)) return norm.canonical;
   const spec = selectProvider(norm.assetClass);
-  if (!spec) throw new Error(`No provider available for ${norm.assetClass}`);
+  if (!spec) { console.warn(`[fusion] No provider available for ${norm.assetClass} — skipping`); return norm.canonical; }
   const sub: Subscription = {
     symbolRaw, canonical: norm.canonical, assetClass: norm.assetClass, provider: spec.id,
   };
