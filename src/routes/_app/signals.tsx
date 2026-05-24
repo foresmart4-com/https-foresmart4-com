@@ -47,7 +47,18 @@ function SignalsPage() {
       setGeneratedAt(d?.generatedAt ?? Date.now());
       toast.success(lang === "ar" ? `تم توليد ${sigs.length} إشارة` : `Generated ${sigs.length} signals`);
     },
-    onError: () => toast.error(lang === "ar" ? "فشل توليد الإشارات" : "Failed to generate"),
+    onError: () => {
+      const fallback: TradeSignal[] = [
+        { symbol: "AAPL", name: "Apple", action: "buy", confidence: 76, risk: "medium", horizon: "medium", score: 72, entry: 185.25, stop: 178, target: 198, reasoning: lang === "ar" ? "زخم إيجابي مع تأكيد جزئي من المؤشرات الفنية." : "Positive momentum with partial technical confirmation.", factors: [], timestamp: Date.now(), regime: "risk_on", dataMode: "mock" },
+        { symbol: "2222.SR", name: "أرامكو", action: "hold", confidence: 61, risk: "low", horizon: "long", score: 58, entry: 27.9, stop: 26.5, target: 30, reasoning: lang === "ar" ? "الحركة مستقرة والسيولة جيدة مع غياب إشارة دخول قوية." : "Stable movement with good liquidity.", factors: [], timestamp: Date.now(), regime: "mixed", dataMode: "mock" },
+        { symbol: "BTCUSDT", name: "بتكوين", action: "watch", confidence: 58, risk: "high", horizon: "short", score: 55, entry: null as any, stop: null as any, target: null as any, reasoning: lang === "ar" ? "تقلب مرتفع ويحتاج تأكيد قبل الدخول." : "High volatility, needs confirmation.", factors: [], timestamp: Date.now(), regime: "risk_off", dataMode: "mock" },
+        { symbol: "XAU", name: "ذهب", action: "buy", confidence: 71, risk: "medium", horizon: "medium", score: 68, entry: 2340, stop: 2280, target: 2420, reasoning: lang === "ar" ? "طلب مرتفع كملاذ آمن مع ضعف الدولار." : "Safe haven demand with dollar weakness.", factors: [], timestamp: Date.now(), regime: "defensive", dataMode: "mock" },
+        { symbol: "MSFT", name: "Microsoft", action: "hold", confidence: 65, risk: "low", horizon: "long", score: 63, entry: 420, stop: 400, target: 450, reasoning: lang === "ar" ? "أساسيات قوية لكن السعر قريب من المقاومة." : "Strong fundamentals but near resistance.", factors: [], timestamp: Date.now(), regime: "risk_on", dataMode: "mock" },
+      ];
+      setSignals(fallback);
+      setGeneratedAt(Date.now());
+      toast(lang === "ar" ? "تم عرض إشارات تجريبية — المزود غير متاح حالياً" : "Showing sample signals — provider unavailable", { icon: "⚠️" });
+    },
   });
 
   const filtered = useMemo(() => {

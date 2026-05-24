@@ -100,7 +100,16 @@ function AppLayout() {
   const handleSignOut = async () => { await signOut(); navigate({ to: "/" }); };
 
   const NavList = ({ onItemClick }: { onItemClick?: () => void }) => (
-    <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-2">
+    <nav
+      className="flex-1 space-y-1 overflow-y-auto px-2 py-2"
+      style={{ overscrollBehavior: "contain" }}
+      ref={(el) => {
+        if (!el) return;
+        const saved = sessionStorage.getItem("sidebar-scroll-position");
+        if (saved) el.scrollTop = Number(saved);
+        el.onscroll = () => sessionStorage.setItem("sidebar-scroll-position", String(el.scrollTop));
+      }}
+    >
       {items.map((it) => {
         const active = path === it.to;
         const link = (
@@ -247,7 +256,6 @@ function AppLayout() {
           <AccessGate>
             <Outlet />
           </AccessGate>
-          <DisclaimerBanner t={t} userId={user?.id} />
           <div className="px-4 sm:px-6 py-1 text-center"><a href="/disclaimer" className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground">إخلاء المسؤولية</a></div>
         </main>
       </div>
