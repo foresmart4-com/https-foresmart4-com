@@ -130,14 +130,14 @@ function AIDashboardPage() {
     [data],
   );
 
-  const sentimentLabel = data?.summary.sentiment === "bullish"
+  const sentimentLabel = data?.summary?.sentiment === "bullish"
     ? (ar ? "متفائل" : "Bullish")
-    : data?.summary.sentiment === "bearish"
+    : data?.summary?.sentiment === "bearish"
     ? (ar ? "متشائم" : "Bearish")
     : (ar ? "محايد" : "Neutral");
   const sentimentTone =
-    data?.summary.sentiment === "bullish" ? "text-success" :
-    data?.summary.sentiment === "bearish" ? "text-danger" : "text-warning";
+    data?.summary?.sentiment === "bullish" ? "text-success" :
+    data?.summary?.sentiment === "bearish" ? "text-danger" : "text-warning";
 
   const riskMap: Record<string, { label: string; tone: string }> = {
     low: { label: ar ? "منخفض" : "Low", tone: "text-success" },
@@ -206,7 +206,7 @@ function AIDashboardPage() {
         {data && (
           <div className="grid gap-4 lg:grid-cols-3">
             <GlassCard className="p-5">
-              <FearGreedGauge sentiment={data.sentiment} ar={ar} />
+              <FearGreedGauge sentiment={data?.sentiment ?? data?.summary?.sentiment ?? "neutral"} ar={ar} />
             </GlassCard>
             <GlassCard className="p-5 lg:col-span-2">
               <div className="mb-2 flex items-center gap-2">
@@ -215,7 +215,7 @@ function AIDashboardPage() {
                 </span>
                 <div className="flex-1">
                   <h3 className="font-display text-base font-bold">
-                    {analyst ? (ar ? "نظرة المحلل المؤسسي" : "Institutional Market Outlook") : data.insight.title}
+                    {analyst ? (ar ? "نظرة المحلل المؤسسي" : "Institutional Market Outlook") : (data?.insight?.title ?? "")}
                   </h3>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
                     {analyst ? "Lovable AI · GPT-class reasoning" : aiAnalyst.isFetching ? (ar ? "يفكر..." : "Thinking...") : (ar ? "تحليل محلي" : "On-device heuristic")}
@@ -228,7 +228,7 @@ function AIDashboardPage() {
                 )}
               </div>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                {analyst?.outlook ?? data.insight.body}
+                {analyst?.outlook ?? (data?.insight?.body ?? "")}
               </p>
               {analyst && (
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">

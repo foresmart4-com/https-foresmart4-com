@@ -63,7 +63,7 @@ export function EmailDeliveryPanel() {
 
   if (forbidden) return null;
 
-  const tone = STATUS_TONE[health?.status ?? "unconfigured"];
+  const tone = STATUS_TONE[health?.status ?? "unconfigured"] ?? STATUS_TONE["unconfigured"];
   const Icon = tone.Icon;
 
   return (
