@@ -89,6 +89,7 @@ import { Route as ApiPublicIntelligenceHealthRouteImport } from './routes/api/pu
 import { Route as ApiPublicHistoryTestRouteImport } from './routes/api/public/history-test'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicFullSiteHealthRouteImport } from './routes/api/public/full-site-health'
+import { Route as ApiPublicEnvCheckRouteImport } from './routes/api/public/env-check'
 import { Route as ApiPublicEmailConfigCheckRouteImport } from './routes/api/public/email-config-check'
 import { Route as ApiPublicDeployCheckRouteImport } from './routes/api/public/deploy-check'
 import { Route as ApiPublicAgentHealthRouteImport } from './routes/api/public/agent-health'
@@ -531,6 +532,11 @@ const ApiPublicFullSiteHealthRoute = ApiPublicFullSiteHealthRouteImport.update({
   path: '/api/public/full-site-health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicEnvCheckRoute = ApiPublicEnvCheckRouteImport.update({
+  id: '/api/public/env-check',
+  path: '/api/public/env-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicEmailConfigCheckRoute =
   ApiPublicEmailConfigCheckRouteImport.update({
     id: '/api/public/email-config-check',
@@ -812,6 +818,7 @@ export interface FileRoutesByFullPath {
   '/api/public/agent-health': typeof ApiPublicAgentHealthRoute
   '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
+  '/api/public/env-check': typeof ApiPublicEnvCheckRoute
   '/api/public/full-site-health': typeof ApiPublicFullSiteHealthRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
@@ -930,6 +937,7 @@ export interface FileRoutesByTo {
   '/api/public/agent-health': typeof ApiPublicAgentHealthRoute
   '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
+  '/api/public/env-check': typeof ApiPublicEnvCheckRoute
   '/api/public/full-site-health': typeof ApiPublicFullSiteHealthRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
@@ -1050,6 +1058,7 @@ export interface FileRoutesById {
   '/api/public/agent-health': typeof ApiPublicAgentHealthRoute
   '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
+  '/api/public/env-check': typeof ApiPublicEnvCheckRoute
   '/api/public/full-site-health': typeof ApiPublicFullSiteHealthRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
@@ -1170,6 +1179,7 @@ export interface FileRouteTypes {
     | '/api/public/agent-health'
     | '/api/public/deploy-check'
     | '/api/public/email-config-check'
+    | '/api/public/env-check'
     | '/api/public/full-site-health'
     | '/api/public/health'
     | '/api/public/history-test'
@@ -1288,6 +1298,7 @@ export interface FileRouteTypes {
     | '/api/public/agent-health'
     | '/api/public/deploy-check'
     | '/api/public/email-config-check'
+    | '/api/public/env-check'
     | '/api/public/full-site-health'
     | '/api/public/health'
     | '/api/public/history-test'
@@ -1407,6 +1418,7 @@ export interface FileRouteTypes {
     | '/api/public/agent-health'
     | '/api/public/deploy-check'
     | '/api/public/email-config-check'
+    | '/api/public/env-check'
     | '/api/public/full-site-health'
     | '/api/public/health'
     | '/api/public/history-test'
@@ -1474,6 +1486,7 @@ export interface RootRouteChildren {
   ApiPublicAgentHealthRoute: typeof ApiPublicAgentHealthRoute
   ApiPublicDeployCheckRoute: typeof ApiPublicDeployCheckRoute
   ApiPublicEmailConfigCheckRoute: typeof ApiPublicEmailConfigCheckRoute
+  ApiPublicEnvCheckRoute: typeof ApiPublicEnvCheckRoute
   ApiPublicFullSiteHealthRoute: typeof ApiPublicFullSiteHealthRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicHistoryTestRoute: typeof ApiPublicHistoryTestRoute
@@ -2085,6 +2098,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicFullSiteHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/env-check': {
+      id: '/api/public/env-check'
+      path: '/api/public/env-check'
+      fullPath: '/api/public/env-check'
+      preLoaderRoute: typeof ApiPublicEnvCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/email-config-check': {
       id: '/api/public/email-config-check'
       path: '/api/public/email-config-check'
@@ -2495,6 +2515,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAgentHealthRoute: ApiPublicAgentHealthRoute,
   ApiPublicDeployCheckRoute: ApiPublicDeployCheckRoute,
   ApiPublicEmailConfigCheckRoute: ApiPublicEmailConfigCheckRoute,
+  ApiPublicEnvCheckRoute: ApiPublicEnvCheckRoute,
   ApiPublicFullSiteHealthRoute: ApiPublicFullSiteHealthRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicHistoryTestRoute: ApiPublicHistoryTestRoute,
