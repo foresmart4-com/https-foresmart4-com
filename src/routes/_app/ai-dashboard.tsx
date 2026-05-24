@@ -287,7 +287,7 @@ function AIDashboardPage() {
           ))}
           {overviewQuotes.map((q) => {
             const up = q.changePct >= 0;
-            const Icon = ASSET_ICONS[q.key] ?? LineIcon;
+            const Icon = ASSET_ICONS[q.key as AssetKey] ?? LineIcon ?? Activity;
             const conf = Math.min(96, 50 + Math.round(Math.abs(q.momentum) * 20 + (50 - Math.abs(50 - q.volatility)) * 0.3));
             const chartData = q.history.map((v) => ({ v }));
             return (
@@ -566,7 +566,7 @@ function AIDashboardPage() {
                 { k: "news", labelAr: "تنبيهات الأخبار", labelEn: "News Alerts", icon: Newspaper },
                 { k: "highRisk", labelAr: "مخاطر عالية فقط", labelEn: "High-Risk Only", icon: ShieldAlert },
               ].map((row) => {
-                const Icon = row.icon;
+                const Icon = row.icon ?? Activity;
                 const v = alerts[row.k as keyof typeof alerts];
                 return (
                   <div key={row.k} className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/10 p-3">

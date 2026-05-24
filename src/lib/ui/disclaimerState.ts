@@ -1,5 +1,5 @@
-const STORAGE_KEY = "foresmart_disclaimer_ack_v3";
-const VERSION = "v3";
+const STORAGE_KEY = "foresmart_disclaimer_ack_v4";
+const VERSION = "v4";
 
 interface DisclaimerAck {
   acknowledged: true;

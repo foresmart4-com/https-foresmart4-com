@@ -95,14 +95,14 @@ function ProviderHealthPage() {
   }, [data]);
 
   const totals = useMemo(() => {
-    if (!data) return { connected: 0, missing: 0, error: 0, total: 0 };
+    if (!data || !Array.isArray(data?.providers)) return { connected: 0, missing: 0, error: 0, total: 0 };
     let connected = 0, missing = 0, error = 0;
     for (const p of (Array.isArray(data?.providers) ? data.providers : [])) {
       if (p.connState === "connected") connected++;
       else if (p.connState === "missing_key" || p.connState === "not_implemented") missing++;
       else if (p.connState === "error" || p.connState === "rate_limited") error++;
     }
-    return { connected, missing, error, total: data.providers.length };
+    return { connected, missing, error, total: (Array.isArray(data?.providers) ? data.providers : []).length };
   }, [data]);
 
   return (
