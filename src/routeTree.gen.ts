@@ -71,6 +71,7 @@ import { Route as AppAiValidationRouteImport } from './routes/_app/ai-validation
 import { Route as AppAiLearningRouteImport } from './routes/_app/ai-learning'
 import { Route as AppAiDashboardRouteImport } from './routes/_app/ai-dashboard'
 import { Route as AppAiRouteImport } from './routes/_app/ai'
+import { Route as AppAgentConsoleRouteImport } from './routes/_app/agent-console'
 import { Route as AppAdvisorRouteImport } from './routes/_app/advisor'
 import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
 import { Route as ApiWebhooksPaddleRouteImport } from './routes/api/webhooks/paddle'
@@ -86,6 +87,7 @@ import { Route as ApiPublicHistoryTestRouteImport } from './routes/api/public/hi
 import { Route as ApiPublicFullSiteHealthRouteImport } from './routes/api/public/full-site-health'
 import { Route as ApiPublicEmailConfigCheckRouteImport } from './routes/api/public/email-config-check'
 import { Route as ApiPublicDeployCheckRouteImport } from './routes/api/public/deploy-check'
+import { Route as ApiPublicAgentHealthRouteImport } from './routes/api/public/agent-health'
 import { Route as ApiFinnhubStreamRouteImport } from './routes/api/finnhub/stream'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
@@ -430,6 +432,11 @@ const AppAiRoute = AppAiRouteImport.update({
   path: '/ai',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAgentConsoleRoute = AppAgentConsoleRouteImport.update({
+  id: '/agent-console',
+  path: '/agent-console',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdvisorRoute = AppAdvisorRouteImport.update({
   id: '/advisor',
   path: '/advisor',
@@ -508,6 +515,11 @@ const ApiPublicEmailConfigCheckRoute =
 const ApiPublicDeployCheckRoute = ApiPublicDeployCheckRouteImport.update({
   id: '/api/public/deploy-check',
   path: '/api/public/deploy-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicAgentHealthRoute = ApiPublicAgentHealthRouteImport.update({
+  id: '/api/public/agent-health',
+  path: '/api/public/agent-health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiFinnhubStreamRoute = ApiFinnhubStreamRouteImport.update({
@@ -718,6 +730,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/advisor': typeof AppAdvisorRoute
+  '/agent-console': typeof AppAgentConsoleRoute
   '/ai': typeof AppAiRoute
   '/ai-dashboard': typeof AppAiDashboardRoute
   '/ai-learning': typeof AppAiLearningRoute
@@ -771,6 +784,7 @@ export interface FileRoutesByFullPath {
   '/watchlists': typeof AppWatchlistsRoute
   '/api/ping': typeof ApiPingRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
+  '/api/public/agent-health': typeof ApiPublicAgentHealthRoute
   '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/full-site-health': typeof ApiPublicFullSiteHealthRoute
@@ -830,6 +844,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/advisor': typeof AppAdvisorRoute
+  '/agent-console': typeof AppAgentConsoleRoute
   '/ai': typeof AppAiRoute
   '/ai-dashboard': typeof AppAiDashboardRoute
   '/ai-learning': typeof AppAiLearningRoute
@@ -883,6 +898,7 @@ export interface FileRoutesByTo {
   '/watchlists': typeof AppWatchlistsRoute
   '/api/ping': typeof ApiPingRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
+  '/api/public/agent-health': typeof ApiPublicAgentHealthRoute
   '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/full-site-health': typeof ApiPublicFullSiteHealthRoute
@@ -944,6 +960,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/_app/advisor': typeof AppAdvisorRoute
+  '/_app/agent-console': typeof AppAgentConsoleRoute
   '/_app/ai': typeof AppAiRoute
   '/_app/ai-dashboard': typeof AppAiDashboardRoute
   '/_app/ai-learning': typeof AppAiLearningRoute
@@ -997,6 +1014,7 @@ export interface FileRoutesById {
   '/_app/watchlists': typeof AppWatchlistsRoute
   '/api/ping': typeof ApiPingRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
+  '/api/public/agent-health': typeof ApiPublicAgentHealthRoute
   '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/full-site-health': typeof ApiPublicFullSiteHealthRoute
@@ -1058,6 +1076,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/advisor'
+    | '/agent-console'
     | '/ai'
     | '/ai-dashboard'
     | '/ai-learning'
@@ -1111,6 +1130,7 @@ export interface FileRouteTypes {
     | '/watchlists'
     | '/api/ping'
     | '/api/finnhub/stream'
+    | '/api/public/agent-health'
     | '/api/public/deploy-check'
     | '/api/public/email-config-check'
     | '/api/public/full-site-health'
@@ -1170,6 +1190,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/advisor'
+    | '/agent-console'
     | '/ai'
     | '/ai-dashboard'
     | '/ai-learning'
@@ -1223,6 +1244,7 @@ export interface FileRouteTypes {
     | '/watchlists'
     | '/api/ping'
     | '/api/finnhub/stream'
+    | '/api/public/agent-health'
     | '/api/public/deploy-check'
     | '/api/public/email-config-check'
     | '/api/public/full-site-health'
@@ -1283,6 +1305,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/_app/advisor'
+    | '/_app/agent-console'
     | '/_app/ai'
     | '/_app/ai-dashboard'
     | '/_app/ai-learning'
@@ -1336,6 +1359,7 @@ export interface FileRouteTypes {
     | '/_app/watchlists'
     | '/api/ping'
     | '/api/finnhub/stream'
+    | '/api/public/agent-health'
     | '/api/public/deploy-check'
     | '/api/public/email-config-check'
     | '/api/public/full-site-health'
@@ -1398,6 +1422,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   ApiPingRoute: typeof ApiPingRoute
   ApiFinnhubStreamRoute: typeof ApiFinnhubStreamRoute
+  ApiPublicAgentHealthRoute: typeof ApiPublicAgentHealthRoute
   ApiPublicDeployCheckRoute: typeof ApiPublicDeployCheckRoute
   ApiPublicEmailConfigCheckRoute: typeof ApiPublicEmailConfigCheckRoute
   ApiPublicFullSiteHealthRoute: typeof ApiPublicFullSiteHealthRoute
@@ -1881,6 +1906,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAiRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/agent-console': {
+      id: '/_app/agent-console'
+      path: '/agent-console'
+      fullPath: '/agent-console'
+      preLoaderRoute: typeof AppAgentConsoleRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/advisor': {
       id: '/_app/advisor'
       path: '/advisor'
@@ -1984,6 +2016,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/deploy-check'
       fullPath: '/api/public/deploy-check'
       preLoaderRoute: typeof ApiPublicDeployCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/agent-health': {
+      id: '/api/public/agent-health'
+      path: '/api/public/agent-health'
+      fullPath: '/api/public/agent-health'
+      preLoaderRoute: typeof ApiPublicAgentHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/finnhub/stream': {
@@ -2229,6 +2268,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAdvisorRoute: typeof AppAdvisorRoute
+  AppAgentConsoleRoute: typeof AppAgentConsoleRoute
   AppAiRoute: typeof AppAiRoute
   AppAiDashboardRoute: typeof AppAiDashboardRoute
   AppAiLearningRoute: typeof AppAiLearningRoute
@@ -2284,6 +2324,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdvisorRoute: AppAdvisorRoute,
+  AppAgentConsoleRoute: AppAgentConsoleRoute,
   AppAiRoute: AppAiRoute,
   AppAiDashboardRoute: AppAiDashboardRoute,
   AppAiLearningRoute: AppAiLearningRoute,
@@ -2370,6 +2411,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   ApiPingRoute: ApiPingRoute,
   ApiFinnhubStreamRoute: ApiFinnhubStreamRoute,
+  ApiPublicAgentHealthRoute: ApiPublicAgentHealthRoute,
   ApiPublicDeployCheckRoute: ApiPublicDeployCheckRoute,
   ApiPublicEmailConfigCheckRoute: ApiPublicEmailConfigCheckRoute,
   ApiPublicFullSiteHealthRoute: ApiPublicFullSiteHealthRoute,
