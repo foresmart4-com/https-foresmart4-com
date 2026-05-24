@@ -130,6 +130,9 @@ import { Route as ApiPublicProvidersEodhdExchangesRouteImport } from './routes/a
 import { Route as ApiPublicMarketSnapshotRunRouteImport } from './routes/api/public/market/snapshot/run'
 import { Route as ApiPublicMarketSnapshotHistoryRouteImport } from './routes/api/public/market/snapshot/history'
 import { Route as ApiPublicGenesis100ExecutionHistoryRouteImport } from './routes/api/public/genesis100/execution/history'
+import { Route as ApiPaymentsMyfatoorahWebhookRouteImport } from './routes/api/payments/myfatoorah/webhook'
+import { Route as ApiPaymentsMyfatoorahStatusRouteImport } from './routes/api/payments/myfatoorah/status'
+import { Route as ApiPaymentsMyfatoorahCreateRouteImport } from './routes/api/payments/myfatoorah/create'
 import { Route as ApiPublicGenesis100ArchiveSummaryRouteImport } from './routes/api/public/genesis100/archive/summary'
 import { Route as ApiPublicGenesis100ArchiveLatestRouteImport } from './routes/api/public/genesis100/archive/latest'
 
@@ -771,6 +774,24 @@ const ApiPublicGenesis100ExecutionHistoryRoute =
     path: '/api/public/genesis100/execution/history',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPaymentsMyfatoorahWebhookRoute =
+  ApiPaymentsMyfatoorahWebhookRouteImport.update({
+    id: '/api/payments/myfatoorah/webhook',
+    path: '/api/payments/myfatoorah/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPaymentsMyfatoorahStatusRoute =
+  ApiPaymentsMyfatoorahStatusRouteImport.update({
+    id: '/api/payments/myfatoorah/status',
+    path: '/api/payments/myfatoorah/status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPaymentsMyfatoorahCreateRoute =
+  ApiPaymentsMyfatoorahCreateRouteImport.update({
+    id: '/api/payments/myfatoorah/create',
+    path: '/api/payments/myfatoorah/create',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicGenesis100ArchiveSummaryRoute =
   ApiPublicGenesis100ArchiveSummaryRouteImport.update({
     id: '/summary',
@@ -870,6 +891,9 @@ export interface FileRoutesByFullPath {
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
+  '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
+  '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
+  '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
   '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
   '/api/public/broker/status': typeof ApiPublicBrokerStatusRoute
   '/api/public/company/profile': typeof ApiPublicCompanyProfileRoute
@@ -994,6 +1018,9 @@ export interface FileRoutesByTo {
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
+  '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
+  '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
+  '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
   '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
   '/api/public/broker/status': typeof ApiPublicBrokerStatusRoute
   '/api/public/company/profile': typeof ApiPublicCompanyProfileRoute
@@ -1120,6 +1147,9 @@ export interface FileRoutesById {
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
+  '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
+  '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
+  '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
   '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
   '/api/public/broker/status': typeof ApiPublicBrokerStatusRoute
   '/api/public/company/profile': typeof ApiPublicCompanyProfileRoute
@@ -1246,6 +1276,9 @@ export interface FileRouteTypes {
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
+    | '/api/payments/myfatoorah/create'
+    | '/api/payments/myfatoorah/status'
+    | '/api/payments/myfatoorah/webhook'
     | '/api/public/alerts/evaluate'
     | '/api/public/broker/status'
     | '/api/public/company/profile'
@@ -1370,6 +1403,9 @@ export interface FileRouteTypes {
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
+    | '/api/payments/myfatoorah/create'
+    | '/api/payments/myfatoorah/status'
+    | '/api/payments/myfatoorah/webhook'
     | '/api/public/alerts/evaluate'
     | '/api/public/broker/status'
     | '/api/public/company/profile'
@@ -1495,6 +1531,9 @@ export interface FileRouteTypes {
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
+    | '/api/payments/myfatoorah/create'
+    | '/api/payments/myfatoorah/status'
+    | '/api/payments/myfatoorah/webhook'
     | '/api/public/alerts/evaluate'
     | '/api/public/broker/status'
     | '/api/public/company/profile'
@@ -1568,6 +1607,9 @@ export interface RootRouteChildren {
   ApiWebhooksLemonsqueezyRoute: typeof ApiWebhooksLemonsqueezyRoute
   ApiWebhooksPaddleRoute: typeof ApiWebhooksPaddleRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
+  ApiPaymentsMyfatoorahCreateRoute: typeof ApiPaymentsMyfatoorahCreateRoute
+  ApiPaymentsMyfatoorahStatusRoute: typeof ApiPaymentsMyfatoorahStatusRoute
+  ApiPaymentsMyfatoorahWebhookRoute: typeof ApiPaymentsMyfatoorahWebhookRoute
   ApiPublicAlertsEvaluateRoute: typeof ApiPublicAlertsEvaluateRoute
   ApiPublicBrokerStatusRoute: typeof ApiPublicBrokerStatusRoute
   ApiPublicCompanyProfileRoute: typeof ApiPublicCompanyProfileRoute
@@ -2454,6 +2496,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicGenesis100ExecutionHistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/payments/myfatoorah/webhook': {
+      id: '/api/payments/myfatoorah/webhook'
+      path: '/api/payments/myfatoorah/webhook'
+      fullPath: '/api/payments/myfatoorah/webhook'
+      preLoaderRoute: typeof ApiPaymentsMyfatoorahWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/payments/myfatoorah/status': {
+      id: '/api/payments/myfatoorah/status'
+      path: '/api/payments/myfatoorah/status'
+      fullPath: '/api/payments/myfatoorah/status'
+      preLoaderRoute: typeof ApiPaymentsMyfatoorahStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/payments/myfatoorah/create': {
+      id: '/api/payments/myfatoorah/create'
+      path: '/api/payments/myfatoorah/create'
+      fullPath: '/api/payments/myfatoorah/create'
+      preLoaderRoute: typeof ApiPaymentsMyfatoorahCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/genesis100/archive/summary': {
       id: '/api/public/genesis100/archive/summary'
       path: '/summary'
@@ -2637,6 +2700,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWebhooksLemonsqueezyRoute: ApiWebhooksLemonsqueezyRoute,
   ApiWebhooksPaddleRoute: ApiWebhooksPaddleRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
+  ApiPaymentsMyfatoorahCreateRoute: ApiPaymentsMyfatoorahCreateRoute,
+  ApiPaymentsMyfatoorahStatusRoute: ApiPaymentsMyfatoorahStatusRoute,
+  ApiPaymentsMyfatoorahWebhookRoute: ApiPaymentsMyfatoorahWebhookRoute,
   ApiPublicAlertsEvaluateRoute: ApiPublicAlertsEvaluateRoute,
   ApiPublicBrokerStatusRoute: ApiPublicBrokerStatusRoute,
   ApiPublicCompanyProfileRoute: ApiPublicCompanyProfileRoute,
