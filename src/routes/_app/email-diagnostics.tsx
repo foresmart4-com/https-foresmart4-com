@@ -99,9 +99,9 @@ function EmailDiagnosticsPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <StatCard label="Provider" value={summary?.configured ? "Resend" : "Not configured"} />
-        <StatCard label="Sent (24h)" value={summary?.totals.sent ?? "—"} accent="text-emerald-400" />
-        <StatCard label="Failed (24h)" value={summary?.totals.failed ?? "—"} accent="text-red-400" />
-        <StatCard label="Rate-limited" value={summary?.totals.rateLimited ?? "—"} accent="text-amber-400" />
+        <StatCard label="Sent (24h)" value={summary?.totals?.sent ?? "—"} accent="text-emerald-400" />
+        <StatCard label="Failed (24h)" value={summary?.totals?.failed ?? "—"} accent="text-red-400" />
+        <StatCard label="Rate-limited" value={summary?.totals?.rateLimited ?? "—"} accent="text-amber-400" />
         <StatCard label="Success rate" value={summary ? `${Math.round(summary.successRate * 100)}%` : "—"} />
       </div>
 

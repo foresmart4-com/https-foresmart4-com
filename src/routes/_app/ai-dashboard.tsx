@@ -482,21 +482,21 @@ function AIDashboardPage() {
         {data && <TacticalExecutionPanel data={data} ar={ar} />}
         {data && <PrecisionPanel data={data} ar={ar} />}
 
-        <AutonomousExecutionPanel data={data} ar={ar} />
+        <ErrorBoundary fallbackTitle="تعذر تحميل هذا الجزء"><AutonomousExecutionPanel data={data} ar={ar} /></ErrorBoundary>
 
         <InvestmentPlansPanel data={data ?? null} ar={ar} />
 
-        <ExecutionControlCenter data={data ?? null} ar={ar} />
+        <ErrorBoundary fallbackTitle="تعذر تحميل هذا الجزء"><ExecutionControlCenter data={data ?? null} ar={ar} /></ErrorBoundary>
 
         {/* Phase 3 — Capital Protection */}
-        <CapitalProtectionPanel ar={ar} />
+        <ErrorBoundary fallbackTitle="تعذر تحميل هذا الجزء"><CapitalProtectionPanel ar={ar} /></ErrorBoundary>
 
         {/* Phase 2 — Live Command Center */}
-        <LiveCommandCenter ar={ar} />
+        <ErrorBoundary fallbackTitle="تعذر تحميل هذا الجزء"><LiveCommandCenter ar={ar} /></ErrorBoundary>
 
-        <MonitoringCommandCenter data={data} ar={ar} />
+        <ErrorBoundary fallbackTitle="تعذر تحميل هذا الجزء"><MonitoringCommandCenter data={data} ar={ar} /></ErrorBoundary>
 
-        <EmailDeliveryPanel />
+        <ErrorBoundary fallbackTitle="تعذر تحميل هذا الجزء"><EmailDeliveryPanel /></ErrorBoundary>
 
         <div className="px-4">
           <a href="/email-diagnostics" className="inline-flex items-center text-sm text-primary underline hover:no-underline">
@@ -504,12 +504,12 @@ function AIDashboardPage() {
           </a>
         </div>
 
-        <InvitationSenderPanel ar={ar} />
+        <ErrorBoundary fallbackTitle="تعذر تحميل هذا الجزء"><InvitationSenderPanel ar={ar} /></ErrorBoundary>
 
         <SecurityCommandCenter data={data} ar={ar} />
 
         {/* Master Phase — Institutional AI Trading Ecosystem */}
-        <MasterControlCenter ar={ar} />
+        <ErrorBoundary fallbackTitle="تعذر تحميل هذا الجزء"><MasterControlCenter ar={ar} /></ErrorBoundary>
 
 
 
