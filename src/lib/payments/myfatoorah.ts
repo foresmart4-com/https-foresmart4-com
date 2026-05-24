@@ -128,18 +128,15 @@ function saveTransaction(tx: MyFatoorahTransaction) {
 
 export function getMyFatoorahRuntimeStatus() {
   const config = readConfig();
-  const unique = new Map<string, MyFatoorahTransaction>();
-  for (const tx of transactions.values()) unique.set(tx.id, tx);
 
   return {
     provider: "myfatoorah",
     configured: config.configured,
-    mode: config.mode,
-    baseUrl: config.baseUrl,
+    mode: process.env.MYFATOORAH_MODE ?? config.mode,
+    baseUrl: process.env.MYFATOORAH_BASE_URL ?? config.baseUrl,
     secretsExposed: false,
-    statuses: MYFATOORAH_STATUS_LABELS_AR,
-    transactions: [...unique.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 25).map(publicTransaction),
-    ...MYFATOORAH_COMPANY_FLAGS,
+    companyOnly: true,
+    publicPayments: false,
   };
 }
 

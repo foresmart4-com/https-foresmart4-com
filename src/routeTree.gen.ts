@@ -124,15 +124,15 @@ import { Route as ApiPublicGenesis100AllocationsRouteImport } from './routes/api
 import { Route as ApiPublicCompanyProfileRouteImport } from './routes/api/public/company/profile'
 import { Route as ApiPublicBrokerStatusRouteImport } from './routes/api/public/broker/status'
 import { Route as ApiPublicAlertsEvaluateRouteImport } from './routes/api/public/alerts/evaluate'
+import { Route as ApiPaymentsMyfatoorahWebhookRouteImport } from './routes/api/payments/myfatoorah/webhook'
+import { Route as ApiPaymentsMyfatoorahStatusRouteImport } from './routes/api/payments/myfatoorah/status'
+import { Route as ApiPaymentsMyfatoorahCreateRouteImport } from './routes/api/payments/myfatoorah/create'
 import { Route as ApiPublicMarketSnapshotIndexRouteImport } from './routes/api/public/market/snapshot/index'
 import { Route as ApiPublicGenesis100ExecutionIndexRouteImport } from './routes/api/public/genesis100/execution/index'
 import { Route as ApiPublicProvidersEodhdExchangesRouteImport } from './routes/api/public/providers/eodhd/exchanges'
 import { Route as ApiPublicMarketSnapshotRunRouteImport } from './routes/api/public/market/snapshot/run'
 import { Route as ApiPublicMarketSnapshotHistoryRouteImport } from './routes/api/public/market/snapshot/history'
 import { Route as ApiPublicGenesis100ExecutionHistoryRouteImport } from './routes/api/public/genesis100/execution/history'
-import { Route as ApiPaymentsMyfatoorahWebhookRouteImport } from './routes/api/payments/myfatoorah/webhook'
-import { Route as ApiPaymentsMyfatoorahStatusRouteImport } from './routes/api/payments/myfatoorah/status'
-import { Route as ApiPaymentsMyfatoorahCreateRouteImport } from './routes/api/payments/myfatoorah/create'
 import { Route as ApiPublicGenesis100ArchiveSummaryRouteImport } from './routes/api/public/genesis100/archive/summary'
 import { Route as ApiPublicGenesis100ArchiveLatestRouteImport } from './routes/api/public/genesis100/archive/latest'
 
@@ -738,6 +738,24 @@ const ApiPublicAlertsEvaluateRoute = ApiPublicAlertsEvaluateRouteImport.update({
   path: '/api/public/alerts/evaluate',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPaymentsMyfatoorahWebhookRoute =
+  ApiPaymentsMyfatoorahWebhookRouteImport.update({
+    id: '/api/payments/myfatoorah/webhook',
+    path: '/api/payments/myfatoorah/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPaymentsMyfatoorahStatusRoute =
+  ApiPaymentsMyfatoorahStatusRouteImport.update({
+    id: '/api/payments/myfatoorah/status',
+    path: '/api/payments/myfatoorah/status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPaymentsMyfatoorahCreateRoute =
+  ApiPaymentsMyfatoorahCreateRouteImport.update({
+    id: '/api/payments/myfatoorah/create',
+    path: '/api/payments/myfatoorah/create',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicMarketSnapshotIndexRoute =
   ApiPublicMarketSnapshotIndexRouteImport.update({
     id: '/api/public/market/snapshot/',
@@ -772,24 +790,6 @@ const ApiPublicGenesis100ExecutionHistoryRoute =
   ApiPublicGenesis100ExecutionHistoryRouteImport.update({
     id: '/api/public/genesis100/execution/history',
     path: '/api/public/genesis100/execution/history',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPaymentsMyfatoorahWebhookRoute =
-  ApiPaymentsMyfatoorahWebhookRouteImport.update({
-    id: '/api/payments/myfatoorah/webhook',
-    path: '/api/payments/myfatoorah/webhook',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPaymentsMyfatoorahStatusRoute =
-  ApiPaymentsMyfatoorahStatusRouteImport.update({
-    id: '/api/payments/myfatoorah/status',
-    path: '/api/payments/myfatoorah/status',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPaymentsMyfatoorahCreateRoute =
-  ApiPaymentsMyfatoorahCreateRouteImport.update({
-    id: '/api/payments/myfatoorah/create',
-    path: '/api/payments/myfatoorah/create',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicGenesis100ArchiveSummaryRoute =
@@ -2454,6 +2454,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAlertsEvaluateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/payments/myfatoorah/webhook': {
+      id: '/api/payments/myfatoorah/webhook'
+      path: '/api/payments/myfatoorah/webhook'
+      fullPath: '/api/payments/myfatoorah/webhook'
+      preLoaderRoute: typeof ApiPaymentsMyfatoorahWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/payments/myfatoorah/status': {
+      id: '/api/payments/myfatoorah/status'
+      path: '/api/payments/myfatoorah/status'
+      fullPath: '/api/payments/myfatoorah/status'
+      preLoaderRoute: typeof ApiPaymentsMyfatoorahStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/payments/myfatoorah/create': {
+      id: '/api/payments/myfatoorah/create'
+      path: '/api/payments/myfatoorah/create'
+      fullPath: '/api/payments/myfatoorah/create'
+      preLoaderRoute: typeof ApiPaymentsMyfatoorahCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/market/snapshot/': {
       id: '/api/public/market/snapshot/'
       path: '/api/public/market/snapshot'
@@ -2494,27 +2515,6 @@ declare module '@tanstack/react-router' {
       path: '/api/public/genesis100/execution/history'
       fullPath: '/api/public/genesis100/execution/history'
       preLoaderRoute: typeof ApiPublicGenesis100ExecutionHistoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/payments/myfatoorah/webhook': {
-      id: '/api/payments/myfatoorah/webhook'
-      path: '/api/payments/myfatoorah/webhook'
-      fullPath: '/api/payments/myfatoorah/webhook'
-      preLoaderRoute: typeof ApiPaymentsMyfatoorahWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/payments/myfatoorah/status': {
-      id: '/api/payments/myfatoorah/status'
-      path: '/api/payments/myfatoorah/status'
-      fullPath: '/api/payments/myfatoorah/status'
-      preLoaderRoute: typeof ApiPaymentsMyfatoorahStatusRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/payments/myfatoorah/create': {
-      id: '/api/payments/myfatoorah/create'
-      path: '/api/payments/myfatoorah/create'
-      fullPath: '/api/payments/myfatoorah/create'
-      preLoaderRoute: typeof ApiPaymentsMyfatoorahCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/genesis100/archive/summary': {
