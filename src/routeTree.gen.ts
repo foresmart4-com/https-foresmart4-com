@@ -127,6 +127,10 @@ import { Route as ApiPublicAlertsEvaluateRouteImport } from './routes/api/public
 import { Route as ApiPaymentsMyfatoorahWebhookRouteImport } from './routes/api/payments/myfatoorah/webhook'
 import { Route as ApiPaymentsMyfatoorahStatusRouteImport } from './routes/api/payments/myfatoorah/status'
 import { Route as ApiPaymentsMyfatoorahCreateRouteImport } from './routes/api/payments/myfatoorah/create'
+import { Route as ApiAiKnowledgeTopicsRouteImport } from './routes/api/ai/knowledge/topics'
+import { Route as ApiAiKnowledgeStatusRouteImport } from './routes/api/ai/knowledge/status'
+import { Route as ApiAiKnowledgeSearchRouteImport } from './routes/api/ai/knowledge/search'
+import { Route as ApiAiKnowledgeApplyRouteImport } from './routes/api/ai/knowledge/apply'
 import { Route as ApiAiIntelligenceMarketRouteImport } from './routes/api/ai/intelligence/market'
 import { Route as ApiAiIntelligenceMacroRouteImport } from './routes/api/ai/intelligence/macro'
 import { Route as ApiAiIntelligenceLearningRouteImport } from './routes/api/ai/intelligence/learning'
@@ -760,6 +764,26 @@ const ApiPaymentsMyfatoorahCreateRoute =
     path: '/api/payments/myfatoorah/create',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAiKnowledgeTopicsRoute = ApiAiKnowledgeTopicsRouteImport.update({
+  id: '/api/ai/knowledge/topics',
+  path: '/api/ai/knowledge/topics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiKnowledgeStatusRoute = ApiAiKnowledgeStatusRouteImport.update({
+  id: '/api/ai/knowledge/status',
+  path: '/api/ai/knowledge/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiKnowledgeSearchRoute = ApiAiKnowledgeSearchRouteImport.update({
+  id: '/api/ai/knowledge/search',
+  path: '/api/ai/knowledge/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiKnowledgeApplyRoute = ApiAiKnowledgeApplyRouteImport.update({
+  id: '/api/ai/knowledge/apply',
+  path: '/api/ai/knowledge/apply',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAiIntelligenceMarketRoute = ApiAiIntelligenceMarketRouteImport.update({
   id: '/api/ai/intelligence/market',
   path: '/api/ai/intelligence/market',
@@ -921,6 +945,10 @@ export interface FileRoutesByFullPath {
   '/api/ai/intelligence/learning': typeof ApiAiIntelligenceLearningRoute
   '/api/ai/intelligence/macro': typeof ApiAiIntelligenceMacroRoute
   '/api/ai/intelligence/market': typeof ApiAiIntelligenceMarketRoute
+  '/api/ai/knowledge/apply': typeof ApiAiKnowledgeApplyRoute
+  '/api/ai/knowledge/search': typeof ApiAiKnowledgeSearchRoute
+  '/api/ai/knowledge/status': typeof ApiAiKnowledgeStatusRoute
+  '/api/ai/knowledge/topics': typeof ApiAiKnowledgeTopicsRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
   '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
   '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -1052,6 +1080,10 @@ export interface FileRoutesByTo {
   '/api/ai/intelligence/learning': typeof ApiAiIntelligenceLearningRoute
   '/api/ai/intelligence/macro': typeof ApiAiIntelligenceMacroRoute
   '/api/ai/intelligence/market': typeof ApiAiIntelligenceMarketRoute
+  '/api/ai/knowledge/apply': typeof ApiAiKnowledgeApplyRoute
+  '/api/ai/knowledge/search': typeof ApiAiKnowledgeSearchRoute
+  '/api/ai/knowledge/status': typeof ApiAiKnowledgeStatusRoute
+  '/api/ai/knowledge/topics': typeof ApiAiKnowledgeTopicsRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
   '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
   '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -1185,6 +1217,10 @@ export interface FileRoutesById {
   '/api/ai/intelligence/learning': typeof ApiAiIntelligenceLearningRoute
   '/api/ai/intelligence/macro': typeof ApiAiIntelligenceMacroRoute
   '/api/ai/intelligence/market': typeof ApiAiIntelligenceMarketRoute
+  '/api/ai/knowledge/apply': typeof ApiAiKnowledgeApplyRoute
+  '/api/ai/knowledge/search': typeof ApiAiKnowledgeSearchRoute
+  '/api/ai/knowledge/status': typeof ApiAiKnowledgeStatusRoute
+  '/api/ai/knowledge/topics': typeof ApiAiKnowledgeTopicsRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
   '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
   '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -1318,6 +1354,10 @@ export interface FileRouteTypes {
     | '/api/ai/intelligence/learning'
     | '/api/ai/intelligence/macro'
     | '/api/ai/intelligence/market'
+    | '/api/ai/knowledge/apply'
+    | '/api/ai/knowledge/search'
+    | '/api/ai/knowledge/status'
+    | '/api/ai/knowledge/topics'
     | '/api/payments/myfatoorah/create'
     | '/api/payments/myfatoorah/status'
     | '/api/payments/myfatoorah/webhook'
@@ -1449,6 +1489,10 @@ export interface FileRouteTypes {
     | '/api/ai/intelligence/learning'
     | '/api/ai/intelligence/macro'
     | '/api/ai/intelligence/market'
+    | '/api/ai/knowledge/apply'
+    | '/api/ai/knowledge/search'
+    | '/api/ai/knowledge/status'
+    | '/api/ai/knowledge/topics'
     | '/api/payments/myfatoorah/create'
     | '/api/payments/myfatoorah/status'
     | '/api/payments/myfatoorah/webhook'
@@ -1581,6 +1625,10 @@ export interface FileRouteTypes {
     | '/api/ai/intelligence/learning'
     | '/api/ai/intelligence/macro'
     | '/api/ai/intelligence/market'
+    | '/api/ai/knowledge/apply'
+    | '/api/ai/knowledge/search'
+    | '/api/ai/knowledge/status'
+    | '/api/ai/knowledge/topics'
     | '/api/payments/myfatoorah/create'
     | '/api/payments/myfatoorah/status'
     | '/api/payments/myfatoorah/webhook'
@@ -1661,6 +1709,10 @@ export interface RootRouteChildren {
   ApiAiIntelligenceLearningRoute: typeof ApiAiIntelligenceLearningRoute
   ApiAiIntelligenceMacroRoute: typeof ApiAiIntelligenceMacroRoute
   ApiAiIntelligenceMarketRoute: typeof ApiAiIntelligenceMarketRoute
+  ApiAiKnowledgeApplyRoute: typeof ApiAiKnowledgeApplyRoute
+  ApiAiKnowledgeSearchRoute: typeof ApiAiKnowledgeSearchRoute
+  ApiAiKnowledgeStatusRoute: typeof ApiAiKnowledgeStatusRoute
+  ApiAiKnowledgeTopicsRoute: typeof ApiAiKnowledgeTopicsRoute
   ApiPaymentsMyfatoorahCreateRoute: typeof ApiPaymentsMyfatoorahCreateRoute
   ApiPaymentsMyfatoorahStatusRoute: typeof ApiPaymentsMyfatoorahStatusRoute
   ApiPaymentsMyfatoorahWebhookRoute: typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -2529,6 +2581,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPaymentsMyfatoorahCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/knowledge/topics': {
+      id: '/api/ai/knowledge/topics'
+      path: '/api/ai/knowledge/topics'
+      fullPath: '/api/ai/knowledge/topics'
+      preLoaderRoute: typeof ApiAiKnowledgeTopicsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/knowledge/status': {
+      id: '/api/ai/knowledge/status'
+      path: '/api/ai/knowledge/status'
+      fullPath: '/api/ai/knowledge/status'
+      preLoaderRoute: typeof ApiAiKnowledgeStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/knowledge/search': {
+      id: '/api/ai/knowledge/search'
+      path: '/api/ai/knowledge/search'
+      fullPath: '/api/ai/knowledge/search'
+      preLoaderRoute: typeof ApiAiKnowledgeSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/knowledge/apply': {
+      id: '/api/ai/knowledge/apply'
+      path: '/api/ai/knowledge/apply'
+      fullPath: '/api/ai/knowledge/apply'
+      preLoaderRoute: typeof ApiAiKnowledgeApplyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ai/intelligence/market': {
       id: '/api/ai/intelligence/market'
       path: '/api/ai/intelligence/market'
@@ -2786,6 +2866,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiIntelligenceLearningRoute: ApiAiIntelligenceLearningRoute,
   ApiAiIntelligenceMacroRoute: ApiAiIntelligenceMacroRoute,
   ApiAiIntelligenceMarketRoute: ApiAiIntelligenceMarketRoute,
+  ApiAiKnowledgeApplyRoute: ApiAiKnowledgeApplyRoute,
+  ApiAiKnowledgeSearchRoute: ApiAiKnowledgeSearchRoute,
+  ApiAiKnowledgeStatusRoute: ApiAiKnowledgeStatusRoute,
+  ApiAiKnowledgeTopicsRoute: ApiAiKnowledgeTopicsRoute,
   ApiPaymentsMyfatoorahCreateRoute: ApiPaymentsMyfatoorahCreateRoute,
   ApiPaymentsMyfatoorahStatusRoute: ApiPaymentsMyfatoorahStatusRoute,
   ApiPaymentsMyfatoorahWebhookRoute: ApiPaymentsMyfatoorahWebhookRoute,
