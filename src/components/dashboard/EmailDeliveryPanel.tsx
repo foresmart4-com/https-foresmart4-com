@@ -40,6 +40,7 @@ export function EmailDeliveryPanel() {
       setForbidden(false);
     } catch (e: any) {
       if (String(e?.message ?? "").includes("Forbidden")) setForbidden(true);
+      else console.warn("[EmailDeliveryPanel] load failed:", e?.message);
     } finally {
       setLoading(false);
     }
@@ -88,14 +89,16 @@ export function EmailDeliveryPanel() {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 mb-4">
-        <Metric label="Sent" value={health?.totals.sent ?? 0} tone="text-emerald-400" />
-        <Metric label="Failed" value={health?.totals.failed ?? 0} tone="text-red-400" />
-        <Metric label="Pending" value={health?.totals.pending ?? 0} tone="text-amber-400" />
-        <Metric label="Success" value={`${Math.round((health?.successRate ?? 1) * 100)}%`} tone="text-primary" />
-      </div>
+      {health && (
+        <div className="grid grid-cols-4 gap-2 mb-4">
+          <Metric label="Sent" value={health?.totals?.sent ?? 0} tone="text-emerald-400" />
+          <Metric label="Failed" value={health?.totals?.failed ?? 0} tone="text-red-400" />
+          <Metric label="Pending" value={health?.totals?.pending ?? 0} tone="text-amber-400" />
+          <Metric label="Success" value={`${Math.round((health?.successRate ?? 1) * 100)}%`} tone="text-primary" />
+        </div>
+      )}
 
-      {health?.lastError && (
+      {health && health.lastError && (
         <div className="mb-3 p-2 rounded-md bg-red-500/5 border border-red-500/20 text-xs text-red-300 break-words">
           Last error: {health.lastError}
         </div>
