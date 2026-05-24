@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeQuote, resolveAsset, type AssetClass } from "@/lib/market/router";
 
+
+const BUILD_TIME = new Date().toISOString();
+const QUOTE_ROUTER_VERSION = "quote-router-eodhd-marketstack-v1";
 const REGION_MAP: Record<string, string> = {
   us_stock: "us", saudi_stock: "saudi", gcc_stock: "gcc", uk_stock: "uk",
   european_stock: "europe", china_stock: "china", hongkong_stock: "hongkong",
@@ -40,6 +43,9 @@ export const Route = createFileRoute("/api/public/quote")({
         try {
           const quote = await routeQuote(symbol);
           return new Response(JSON.stringify({
+            gitCommit: process.env.RAILWAY_GIT_COMMIT_SHA ?? "local",
+            buildTime: BUILD_TIME,
+            quoteRouterVersion: QUOTE_ROUTER_VERSION,
             success: quote.success,
             symbol: quote.symbol,
             inputSymbol: symbol,
@@ -72,6 +78,9 @@ export const Route = createFileRoute("/api/public/quote")({
           });
         } catch (err) {
           return new Response(JSON.stringify({
+            gitCommit: process.env.RAILWAY_GIT_COMMIT_SHA ?? "local",
+            buildTime: BUILD_TIME,
+            quoteRouterVersion: QUOTE_ROUTER_VERSION,
             success: false,
             symbol,
             inputSymbol: symbol,
@@ -109,18 +118,18 @@ export const Route = createFileRoute("/api/public/quote")({
 
 function getChains(assetClass: AssetClass): string[] {
   const map: Record<string, string[]> = {
-    us_stock: ["fmp", "twelvedata", "alphavantage", "finnhub"],
-    saudi_stock: ["sahmk", "fmp", "twelvedata", "alphavantage"],
-    gcc_stock: ["fmp", "twelvedata", "alphavantage"],
-    uk_stock: ["fmp", "twelvedata", "alphavantage"],
-    european_stock: ["fmp", "twelvedata", "alphavantage"],
-    china_stock: ["fmp", "twelvedata", "alphavantage"],
-    hongkong_stock: ["fmp", "twelvedata", "alphavantage"],
-    crypto: ["binance", "coingecko", "twelvedata", "fmp"],
-    forex: ["twelvedata", "fmp", "alphavantage"],
-    metal: ["twelvedata", "commodityprice", "fmp", "alphavantage"],
-    commodity: ["commodityprice", "fmp", "alphavantage", "twelvedata"],
+    us_stock: ["finnhub", "eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
+    saudi_stock: ["sahmk", "eodhd", "marketstack", "twelvedata", "fmp", "alphavantage"],
+    gcc_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
+    uk_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
+    european_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
+    china_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
+    hongkong_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage", "yahoo"],
+    crypto: ["binance", "coingecko", "twelvedata", "eodhd", "fmp"],
+    forex: ["twelvedata", "eodhd", "fmp", "alphavantage", "marketstack"],
+    metal: ["twelvedata", "eodhd", "commodityprice", "fmp", "alphavantage"],
+    commodity: ["eodhd", "commodityprice", "fmp", "alphavantage", "twelvedata"],
     macro: ["fred", "fmp"],
   };
-  return map[assetClass] ?? ["fmp", "twelvedata", "alphavantage"];
+  return map[assetClass] ?? ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"];
 }
