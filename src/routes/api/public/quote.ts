@@ -64,6 +64,8 @@ export const Route = createFileRoute("/api/public/quote")({
               latencyMs: Date.now() - start,
               resolverPath: resolved.resolverPath,
               providerPriority: chains,
+              triedProviderSymbols: chains.map((p) => ({ provider: p, symbol: symbol })),
+              triedProviderSymbols: chains.map((p) => ({ provider: p, symbol: symbol })),
             },
           }, null, 2), {
             headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
@@ -94,6 +96,7 @@ export const Route = createFileRoute("/api/public/quote")({
               latencyMs: Date.now() - start,
               resolverPath: resolved.resolverPath,
               providerPriority: chains,
+              triedProviderSymbols: chains.map((p) => ({ provider: p, symbol: symbol })),
             },
           }, null, 2), {
             headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },

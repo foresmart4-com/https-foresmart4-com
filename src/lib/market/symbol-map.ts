@@ -27,7 +27,8 @@ export type ProviderKey =
   | "sahmk"
   | "fmp"
   | "commodityprice"
-  | "fred";
+  | "fred"
+  | "yahoo";
 
 
 interface SymbolEntry extends Partial<Record<ProviderKey, string>> {
@@ -70,6 +71,13 @@ const STATIC_MAP: Record<string, SymbolEntry> = {
   // ---------- Saudi indices ----------
   TASI:      { canonical: "TASI.SR", twelvedata: "TASI", alphavantage: "TASI.SR", tradingview: "TVC:TASI" },
   "TASI.SR": { canonical: "TASI.SR", twelvedata: "TASI", alphavantage: "TASI.SR", tradingview: "TVC:TASI" },
+  // ---------- Hong Kong ----------
+  "0700.HK": { canonical: "0700.HK", fmp: "0700.HK", twelvedata: "0700.HK", alphavantage: "0700.HK" },
+  "700.HK": { canonical: "0700.HK", fmp: "0700.HK", twelvedata: "0700.HK", alphavantage: "0700.HK" },
+  "9988.HK": { canonical: "9988.HK", fmp: "9988.HK", twelvedata: "9988.HK", alphavantage: "9988.HK" },
+  "1299.HK": { canonical: "1299.HK", fmp: "1299.HK", twelvedata: "1299.HK", alphavantage: "1299.HK" },
+  "0005.HK": { canonical: "0005.HK", fmp: "0005.HK", twelvedata: "0005.HK", alphavantage: "0005.HK" },
+
 };
 
 /** Lookup the canonical (display) form for a raw symbol. */

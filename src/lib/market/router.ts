@@ -24,6 +24,7 @@ import { getSahmkQuote } from "@/services/providers/sahmk";
 import { getFmpQuote } from "@/services/providers/fmp";
 import { getCommodityQuote } from "@/services/providers/commodityprice";
 import { getFredQuote } from "@/services/providers/fred";
+import { getYahooQuote } from "@/services/providers/yahoo";
 import { translateSymbol, type ProviderKey } from "@/lib/market/symbol-map";
 import { supports, unsupportedReason, isRealtime } from "@/lib/market/capabilities";
 
@@ -60,7 +61,8 @@ export type ProviderId =
   | "sahmk"
   | "fmp"
   | "commodityprice"
-  | "fred";
+  | "fred"
+  | "yahoo";
 
 
 export type ProviderMode = "live" | "delayed" | "cached" | "stale" | "synthetic";
@@ -380,7 +382,7 @@ const CHAINS: Record<AssetClass, ProviderId[]> = {
   uk_stock:        ["fmp", "twelvedata", "alphavantage"],
   european_stock:  ["fmp", "twelvedata", "alphavantage"],
   china_stock:     ["fmp", "twelvedata", "alphavantage"],
-  hongkong_stock:  ["fmp", "twelvedata", "alphavantage"],
+  hongkong_stock:  ["fmp", "twelvedata", "alphavantage", "yahoo"],
   macro:           ["fred", "fmp", "alphavantage"],
   news:            ["fmp", "finnhub"],
   unknown:         ["fmp", "twelvedata", "finnhub", "alphavantage"],
@@ -755,6 +757,23 @@ async function runFred(_asset: ResolvedAsset, sym: string): Promise<UpstreamResu
   };
 }
 
+
+async function runYahoo(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  const r = await getYahooQuote(sym);
+  if ("ok" in r && r.ok === false) {
+    throw new Error(`yahoo: ${r.reason} — ${r.message}`);
+  }
+  const q = r as Exclude<typeof r, { ok: false }>;
+  return {
+    price: q.price,
+    change: q.change,
+    changePercent: q.changePercent,
+    volume: q.volume,
+    timestamp: q.timestamp,
+    delayed: false,
+  };
+}
+
 const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<UpstreamResult>> = {
   finnhub: runFinnhub,
   twelvedata: runTwelveData,
@@ -767,6 +786,7 @@ const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<Ups
   fmp: runFmp,
   commodityprice: runCommodityPrice,
   fred: runFred,
+  yahoo: runYahoo,
 };
 
 /** Map our internal ProviderId → the symbol-map ProviderKey. 1:1 today. */
@@ -782,7 +802,7 @@ const PROVIDER_KEY: Record<ProviderId, ProviderKey> = {
   fmp: "fmp",
   commodityprice: "commodityprice",
   fred: "fred",
-
+  yahoo: "fmp",
 };
 
 // ---------- Core router ----------
@@ -806,6 +826,7 @@ export function getProviderConnected(): Partial<Record<ProviderId, boolean>> {
     alphavantage:   !!process.env.ALPHAVANTAGE_API_KEY,
     sahmk:          !!process.env.SAHMK_API_KEY,
     fmp:            !!process.env.FMP_API_KEY,
+    yahoo:          true,
     fred:           !!process.env.FRED_API_KEY,
     commodityprice: !!(process.env.COMMODITYPRICE_API_KEY ?? process.env.COMMODITYPRICEAPI_KEY),
     binance:        true,
