@@ -9,9 +9,11 @@ export const Route = createFileRoute("/api/public/ui-health")({
           uiRepairPack: "v3",
           contrastAuditFixed: true,
           disclaimerPersistenceFixed: true,
+          disclaimerVersion: "v4",
+          disclaimerPersistenceV4: true,
           disclaimerStorageKeys: [
-            "foresmart_disclaimer_ack_v1",
-            "foresmart_disclaimer_ack_v1:<userId>",
+            "foresmart_disclaimer_ack_v4",
+            "foresmart_disclaimer_ack_v4:<userId>",
           ],
           repeatedFooterDisclaimerRemoved: true,
           developerButtonHidden: true,

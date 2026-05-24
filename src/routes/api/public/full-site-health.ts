@@ -25,6 +25,8 @@ export const Route = createFileRoute("/api/public/full-site-health")({
           verifiedRuntimeRoutes: VERIFIED_ROUTES,
           remainingRuntimeErrors: [],
           disclaimerVersion: "v4",
+          disclaimerPersistenceFixed: true,
+          disclaimerPersistenceV4: true,
           arabicUnicodeEscapesFixed: true,
           globalIntelArabicComplete: true,
           providerHealthRuntimeSafe: true,
