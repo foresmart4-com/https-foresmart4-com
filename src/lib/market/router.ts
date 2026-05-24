@@ -33,6 +33,11 @@ export type AssetClass =
   | "crypto"
   | "us_stock"
   | "saudi_stock"
+  | "gcc_stock"
+  | "uk_stock"
+  | "european_stock"
+  | "china_stock"
+  | "hongkong_stock"
   | "metal"
   | "forex"
   | "commodity"
@@ -40,6 +45,8 @@ export type AssetClass =
   | "bond"
   | "treasury"
   | "index"
+  | "macro"
+  | "news"
   | "unknown";
 
 export type ProviderId =
@@ -165,7 +172,7 @@ const FOREX_RE = /^([A-Z]{3})[\/-]?([A-Z]{3})$/;
 const CRYPTO_SUFFIX_RE = /^([A-Z0-9]{2,8})[-/](USDT?|BUSD|USDC|BTC|ETH)$/i;
 const CRYPTO_PLAIN = new Set(["BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "DOGE", "AVAX", "MATIC", "DOT", "LTC", "LINK", "ATOM", "TRX"]);
 const CRYPTO_QUOTES = ["USDT", "USDC", "BUSD", "USD", "BTC", "ETH"];
-const FIATS = new Set(["USD", "EUR", "GBP", "JPY", "CHF", "AUD", "CAD", "NZD", "CNY", "SAR", "AED", "TRY"]);
+const FIATS = new Set(["USD", "EUR", "GBP", "JPY", "CHF", "AUD", "CAD", "NZD", "CNY", "SAR", "AED", "TRY", "KWD", "BHD", "OMR", "QAR", "HKD", "CNH", "SGD", "SEK", "NOK", "DKK", "PLN", "CZK", "HUF"]);
 
 export interface ResolvedAsset {
   assetClass: AssetClass;
@@ -213,6 +220,64 @@ export function resolveAsset(rawSymbol: string): ResolvedAsset {
   if (/\.SR$/.test(raw) || /:TADAWUL$/.test(raw)) {
     return make("saudi_stock", raw.replace(/:TADAWUL$/, ".SR"),
       "saudi:.SR", "saudi_suffix", ".SR or :TADAWUL suffix");
+  }
+
+  // 2b. GCC stocks
+  if (/\.(QA|QATA)$/i.test(raw)) {
+    return make("gcc_stock", raw, "gcc:qatar", "gcc_suffix", "Qatar exchange suffix");
+  }
+  if (/\.(DU|DFM)$/i.test(raw)) {
+    return make("gcc_stock", raw, "gcc:dubai", "gcc_suffix", "Dubai exchange suffix");
+  }
+  if (/\.(AD|ADX)$/i.test(raw)) {
+    return make("gcc_stock", raw, "gcc:abudhabi", "gcc_suffix", "Abu Dhabi exchange suffix");
+  }
+  if (/\.KW$/i.test(raw)) {
+    return make("gcc_stock", raw, "gcc:kuwait", "gcc_suffix", "Kuwait exchange suffix");
+  }
+  if (/\.BH$/i.test(raw)) {
+    return make("gcc_stock", raw, "gcc:bahrain", "gcc_suffix", "Bahrain exchange suffix");
+  }
+  if (/\.OM$/i.test(raw)) {
+    return make("gcc_stock", raw, "gcc:oman", "gcc_suffix", "Oman exchange suffix");
+  }
+
+  // 2c. UK stocks (.L suffix)
+  if (/\.L$/i.test(raw)) {
+    return make("uk_stock", raw, "uk:.L", "uk_suffix", "London Stock Exchange suffix");
+  }
+
+  // 2d. European stocks
+  if (/\.(DE|XETRA)$/i.test(raw)) {
+    return make("european_stock", raw, "eu:germany", "eu_suffix", "German exchange suffix");
+  }
+  if (/\.PA$/i.test(raw)) {
+    return make("european_stock", raw, "eu:france", "eu_suffix", "Euronext Paris suffix");
+  }
+  if (/\.MI$/i.test(raw)) {
+    return make("european_stock", raw, "eu:italy", "eu_suffix", "Milan exchange suffix");
+  }
+  if (/\.MC$/i.test(raw)) {
+    return make("european_stock", raw, "eu:spain", "eu_suffix", "Madrid exchange suffix");
+  }
+  if (/\.AS$/i.test(raw)) {
+    return make("european_stock", raw, "eu:netherlands", "eu_suffix", "Amsterdam exchange suffix");
+  }
+  if (/\.SW$/i.test(raw)) {
+    return make("european_stock", raw, "eu:switzerland", "eu_suffix", "Swiss exchange suffix");
+  }
+
+  // 2e. China stocks
+  if (/\.SS$/i.test(raw)) {
+    return make("china_stock", raw, "cn:shanghai", "cn_suffix", "Shanghai exchange suffix");
+  }
+  if (/\.SZ$/i.test(raw)) {
+    return make("china_stock", raw, "cn:shenzhen", "cn_suffix", "Shenzhen exchange suffix");
+  }
+
+  // 2f. Hong Kong stocks
+  if (/\.HK$/i.test(raw)) {
+    return make("hongkong_stock", raw, "hk:.HK", "hk_suffix", "Hong Kong exchange suffix");
   }
 
   // 3. Treasuries / macro series (FRED-backed). US10Y goes here, NOT bonds.
@@ -311,7 +376,14 @@ const CHAINS: Record<AssetClass, ProviderId[]> = {
   index:       ["fmp", "twelvedata", "finnhub", "tradingview"],
   // Forex: TwelveData → FMP → AlphaVantage → Finnhub OANDA
   forex:       ["twelvedata", "fmp", "alphavantage", "finnhub"],
-  unknown:     ["finnhub", "twelvedata", "fmp", "alphavantage"],
+  gcc_stock:       ["fmp", "twelvedata", "alphavantage"],
+  uk_stock:        ["fmp", "twelvedata", "alphavantage"],
+  european_stock:  ["fmp", "twelvedata", "alphavantage"],
+  china_stock:     ["fmp", "twelvedata", "alphavantage"],
+  hongkong_stock:  ["fmp", "twelvedata", "alphavantage"],
+  macro:           ["fred", "fmp", "alphavantage"],
+  news:            ["fmp", "finnhub"],
+  unknown:         ["fmp", "twelvedata", "finnhub", "alphavantage"],
 };
 
 

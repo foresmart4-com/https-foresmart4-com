@@ -78,8 +78,10 @@ import { Route as ApiWebhooksPaddleRouteImport } from './routes/api/webhooks/pad
 import { Route as ApiWebhooksLemonsqueezyRouteImport } from './routes/api/webhooks/lemonsqueezy'
 import { Route as ApiPublicVersionRouteImport } from './routes/api/public/version'
 import { Route as ApiPublicUiHealthRouteImport } from './routes/api/public/ui-health'
+import { Route as ApiPublicSupportedMarketsRouteImport } from './routes/api/public/supported-markets'
 import { Route as ApiPublicRouterTestRouteImport } from './routes/api/public/router-test'
 import { Route as ApiPublicRouterRegressionRouteImport } from './routes/api/public/router-regression'
+import { Route as ApiPublicQuoteRouteImport } from './routes/api/public/quote'
 import { Route as ApiPublicProviderHealthFullRouteImport } from './routes/api/public/provider-health-full'
 import { Route as ApiPublicMoyasarWebhookRouteImport } from './routes/api/public/moyasar-webhook'
 import { Route as ApiPublicMarketIntelligenceRouteImport } from './routes/api/public/market-intelligence'
@@ -469,6 +471,12 @@ const ApiPublicUiHealthRoute = ApiPublicUiHealthRouteImport.update({
   path: '/api/public/ui-health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSupportedMarketsRoute =
+  ApiPublicSupportedMarketsRouteImport.update({
+    id: '/api/public/supported-markets',
+    path: '/api/public/supported-markets',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicRouterTestRoute = ApiPublicRouterTestRouteImport.update({
   id: '/api/public/router-test',
   path: '/api/public/router-test',
@@ -480,6 +488,11 @@ const ApiPublicRouterRegressionRoute =
     path: '/api/public/router-regression',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicQuoteRoute = ApiPublicQuoteRouteImport.update({
+  id: '/api/public/quote',
+  path: '/api/public/quote',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicProviderHealthFullRoute =
   ApiPublicProviderHealthFullRouteImport.update({
     id: '/api/public/provider-health-full',
@@ -806,8 +819,10 @@ export interface FileRoutesByFullPath {
   '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/provider-health-full': typeof ApiPublicProviderHealthFullRoute
+  '/api/public/quote': typeof ApiPublicQuoteRoute
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
+  '/api/public/supported-markets': typeof ApiPublicSupportedMarketsRoute
   '/api/public/ui-health': typeof ApiPublicUiHealthRoute
   '/api/public/version': typeof ApiPublicVersionRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
@@ -922,8 +937,10 @@ export interface FileRoutesByTo {
   '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/provider-health-full': typeof ApiPublicProviderHealthFullRoute
+  '/api/public/quote': typeof ApiPublicQuoteRoute
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
+  '/api/public/supported-markets': typeof ApiPublicSupportedMarketsRoute
   '/api/public/ui-health': typeof ApiPublicUiHealthRoute
   '/api/public/version': typeof ApiPublicVersionRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
@@ -1040,8 +1057,10 @@ export interface FileRoutesById {
   '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/provider-health-full': typeof ApiPublicProviderHealthFullRoute
+  '/api/public/quote': typeof ApiPublicQuoteRoute
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
+  '/api/public/supported-markets': typeof ApiPublicSupportedMarketsRoute
   '/api/public/ui-health': typeof ApiPublicUiHealthRoute
   '/api/public/version': typeof ApiPublicVersionRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
@@ -1158,8 +1177,10 @@ export interface FileRouteTypes {
     | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
     | '/api/public/provider-health-full'
+    | '/api/public/quote'
     | '/api/public/router-regression'
     | '/api/public/router-test'
+    | '/api/public/supported-markets'
     | '/api/public/ui-health'
     | '/api/public/version'
     | '/api/webhooks/lemonsqueezy'
@@ -1274,8 +1295,10 @@ export interface FileRouteTypes {
     | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
     | '/api/public/provider-health-full'
+    | '/api/public/quote'
     | '/api/public/router-regression'
     | '/api/public/router-test'
+    | '/api/public/supported-markets'
     | '/api/public/ui-health'
     | '/api/public/version'
     | '/api/webhooks/lemonsqueezy'
@@ -1391,8 +1414,10 @@ export interface FileRouteTypes {
     | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
     | '/api/public/provider-health-full'
+    | '/api/public/quote'
     | '/api/public/router-regression'
     | '/api/public/router-test'
+    | '/api/public/supported-markets'
     | '/api/public/ui-health'
     | '/api/public/version'
     | '/api/webhooks/lemonsqueezy'
@@ -1456,8 +1481,10 @@ export interface RootRouteChildren {
   ApiPublicMarketIntelligenceRoute: typeof ApiPublicMarketIntelligenceRoute
   ApiPublicMoyasarWebhookRoute: typeof ApiPublicMoyasarWebhookRoute
   ApiPublicProviderHealthFullRoute: typeof ApiPublicProviderHealthFullRoute
+  ApiPublicQuoteRoute: typeof ApiPublicQuoteRoute
   ApiPublicRouterRegressionRoute: typeof ApiPublicRouterRegressionRoute
   ApiPublicRouterTestRoute: typeof ApiPublicRouterTestRoute
+  ApiPublicSupportedMarketsRoute: typeof ApiPublicSupportedMarketsRoute
   ApiPublicUiHealthRoute: typeof ApiPublicUiHealthRoute
   ApiPublicVersionRoute: typeof ApiPublicVersionRoute
   ApiWebhooksLemonsqueezyRoute: typeof ApiWebhooksLemonsqueezyRoute
@@ -1981,6 +2008,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicUiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/supported-markets': {
+      id: '/api/public/supported-markets'
+      path: '/api/public/supported-markets'
+      fullPath: '/api/public/supported-markets'
+      preLoaderRoute: typeof ApiPublicSupportedMarketsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/router-test': {
       id: '/api/public/router-test'
       path: '/api/public/router-test'
@@ -1993,6 +2027,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/router-regression'
       fullPath: '/api/public/router-regression'
       preLoaderRoute: typeof ApiPublicRouterRegressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/quote': {
+      id: '/api/public/quote'
+      path: '/api/public/quote'
+      fullPath: '/api/public/quote'
+      preLoaderRoute: typeof ApiPublicQuoteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/provider-health-full': {
@@ -2461,8 +2502,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMarketIntelligenceRoute: ApiPublicMarketIntelligenceRoute,
   ApiPublicMoyasarWebhookRoute: ApiPublicMoyasarWebhookRoute,
   ApiPublicProviderHealthFullRoute: ApiPublicProviderHealthFullRoute,
+  ApiPublicQuoteRoute: ApiPublicQuoteRoute,
   ApiPublicRouterRegressionRoute: ApiPublicRouterRegressionRoute,
   ApiPublicRouterTestRoute: ApiPublicRouterTestRoute,
+  ApiPublicSupportedMarketsRoute: ApiPublicSupportedMarketsRoute,
   ApiPublicUiHealthRoute: ApiPublicUiHealthRoute,
   ApiPublicVersionRoute: ApiPublicVersionRoute,
   ApiWebhooksLemonsqueezyRoute: ApiWebhooksLemonsqueezyRoute,
