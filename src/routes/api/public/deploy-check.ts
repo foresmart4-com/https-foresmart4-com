@@ -23,6 +23,7 @@ export const Route = createFileRoute("/api/public/deploy-check")({
           brokerRoute: true,
           executionRoute: true,
           governanceRoute: true,
+          marketCoverageEndpoint: true,
           liveExecutionEnabled: false,
         }, null, 2), {
           headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
