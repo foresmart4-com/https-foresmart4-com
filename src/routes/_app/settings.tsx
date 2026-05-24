@@ -306,7 +306,7 @@ function SettingsPage() {
                   mock:     { Icon: AlertTriangle, cls: "text-warning",  label_ar: "تجريبي",     label_en: "Mock" },
                   disabled: { Icon: XCircle,       cls: "text-danger",   label_ar: "غير مفعّل",   label_en: "Disabled" },
                 } as const;
-                const m = map[row.state]; const Icon = m.Icon;
+                const m = map[row.state]; const Icon = m?.Icon ?? Activity;
                 return (
                   <li key={i} className="flex items-center justify-between gap-3 py-3">
                     <div className="min-w-0">

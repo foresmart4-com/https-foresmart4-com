@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Brain, ShieldAlert, TrendingUp, TrendingDown, Pause, Octagon, Target, AlertTriangle, Bot } from "lucide-react";
+import { Brain, ShieldAlert, TrendingUp, TrendingDown, Pause, Octagon, Target, AlertTriangle, Bot , Activity } from "lucide-react";
 
 const SAUDI_MOCK: AssetContext[] = [
   { symbol: "2222.SR", name_ar: "أرامكو السعودية", name_en: "Saudi Aramco", category: "saudi", price: 28.40, change24h: 1.42, currency: "SAR" },
@@ -135,7 +135,7 @@ const ACTION_META = {
 function DecisionCard({ d, onAutoTrade }: { d: TradingDecision; onAutoTrade: (d: TradingDecision) => void }) {
   const { lang } = useI18n();
   const m = ACTION_META[d.action];
-  const Icon = m.Icon;
+  const Icon = m?.Icon ?? Activity;
   const riskClass = d.riskLevel === "HIGH" ? "text-danger" : d.riskLevel === "MEDIUM" ? "text-warning" : "text-success";
 
   return (

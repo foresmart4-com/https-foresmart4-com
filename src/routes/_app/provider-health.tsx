@@ -43,7 +43,7 @@ function stateBadge(row: ProviderStatusRow, ar: boolean) {
     unknown:         { cls: "bg-muted text-muted-foreground border-border",              ar: "غير معروف",    en: "Unknown",         Icon: Wrench },
   };
   const m = map[row.connState];
-  const Icon = m.Icon;
+  const Icon = m?.Icon ?? Activity;
   return (
     <Badge variant="outline" className={`gap-1 ${m.cls}`}>
       <Icon className="h-3 w-3" />
