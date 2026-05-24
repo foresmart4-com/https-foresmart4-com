@@ -76,6 +76,7 @@ import { Route as AppAdvisorRouteImport } from './routes/_app/advisor'
 import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
 import { Route as ApiWebhooksPaddleRouteImport } from './routes/api/webhooks/paddle'
 import { Route as ApiWebhooksLemonsqueezyRouteImport } from './routes/api/webhooks/lemonsqueezy'
+import { Route as ApiPublicVersionRouteImport } from './routes/api/public/version'
 import { Route as ApiPublicUiHealthRouteImport } from './routes/api/public/ui-health'
 import { Route as ApiPublicRouterTestRouteImport } from './routes/api/public/router-test'
 import { Route as ApiPublicRouterRegressionRouteImport } from './routes/api/public/router-regression'
@@ -84,6 +85,7 @@ import { Route as ApiPublicMoyasarWebhookRouteImport } from './routes/api/public
 import { Route as ApiPublicMarketIntelligenceRouteImport } from './routes/api/public/market-intelligence'
 import { Route as ApiPublicIntelligenceHealthRouteImport } from './routes/api/public/intelligence-health'
 import { Route as ApiPublicHistoryTestRouteImport } from './routes/api/public/history-test'
+import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicFullSiteHealthRouteImport } from './routes/api/public/full-site-health'
 import { Route as ApiPublicEmailConfigCheckRouteImport } from './routes/api/public/email-config-check'
 import { Route as ApiPublicDeployCheckRouteImport } from './routes/api/public/deploy-check'
@@ -457,6 +459,11 @@ const ApiWebhooksLemonsqueezyRoute = ApiWebhooksLemonsqueezyRouteImport.update({
   path: '/api/webhooks/lemonsqueezy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicVersionRoute = ApiPublicVersionRouteImport.update({
+  id: '/api/public/version',
+  path: '/api/public/version',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicUiHealthRoute = ApiPublicUiHealthRouteImport.update({
   id: '/api/public/ui-health',
   path: '/api/public/ui-health',
@@ -499,6 +506,11 @@ const ApiPublicIntelligenceHealthRoute =
 const ApiPublicHistoryTestRoute = ApiPublicHistoryTestRouteImport.update({
   id: '/api/public/history-test',
   path: '/api/public/history-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
+  id: '/api/public/health',
+  path: '/api/public/health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicFullSiteHealthRoute = ApiPublicFullSiteHealthRouteImport.update({
@@ -788,6 +800,7 @@ export interface FileRoutesByFullPath {
   '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/full-site-health': typeof ApiPublicFullSiteHealthRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
   '/api/public/intelligence-health': typeof ApiPublicIntelligenceHealthRoute
   '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
@@ -796,6 +809,7 @@ export interface FileRoutesByFullPath {
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
   '/api/public/ui-health': typeof ApiPublicUiHealthRoute
+  '/api/public/version': typeof ApiPublicVersionRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
@@ -902,6 +916,7 @@ export interface FileRoutesByTo {
   '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/full-site-health': typeof ApiPublicFullSiteHealthRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
   '/api/public/intelligence-health': typeof ApiPublicIntelligenceHealthRoute
   '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
@@ -910,6 +925,7 @@ export interface FileRoutesByTo {
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
   '/api/public/ui-health': typeof ApiPublicUiHealthRoute
+  '/api/public/version': typeof ApiPublicVersionRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
@@ -1018,6 +1034,7 @@ export interface FileRoutesById {
   '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/full-site-health': typeof ApiPublicFullSiteHealthRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
   '/api/public/intelligence-health': typeof ApiPublicIntelligenceHealthRoute
   '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
@@ -1026,6 +1043,7 @@ export interface FileRoutesById {
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
   '/api/public/ui-health': typeof ApiPublicUiHealthRoute
+  '/api/public/version': typeof ApiPublicVersionRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
@@ -1134,6 +1152,7 @@ export interface FileRouteTypes {
     | '/api/public/deploy-check'
     | '/api/public/email-config-check'
     | '/api/public/full-site-health'
+    | '/api/public/health'
     | '/api/public/history-test'
     | '/api/public/intelligence-health'
     | '/api/public/market-intelligence'
@@ -1142,6 +1161,7 @@ export interface FileRouteTypes {
     | '/api/public/router-regression'
     | '/api/public/router-test'
     | '/api/public/ui-health'
+    | '/api/public/version'
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
@@ -1248,6 +1268,7 @@ export interface FileRouteTypes {
     | '/api/public/deploy-check'
     | '/api/public/email-config-check'
     | '/api/public/full-site-health'
+    | '/api/public/health'
     | '/api/public/history-test'
     | '/api/public/intelligence-health'
     | '/api/public/market-intelligence'
@@ -1256,6 +1277,7 @@ export interface FileRouteTypes {
     | '/api/public/router-regression'
     | '/api/public/router-test'
     | '/api/public/ui-health'
+    | '/api/public/version'
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
@@ -1363,6 +1385,7 @@ export interface FileRouteTypes {
     | '/api/public/deploy-check'
     | '/api/public/email-config-check'
     | '/api/public/full-site-health'
+    | '/api/public/health'
     | '/api/public/history-test'
     | '/api/public/intelligence-health'
     | '/api/public/market-intelligence'
@@ -1371,6 +1394,7 @@ export interface FileRouteTypes {
     | '/api/public/router-regression'
     | '/api/public/router-test'
     | '/api/public/ui-health'
+    | '/api/public/version'
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
@@ -1426,6 +1450,7 @@ export interface RootRouteChildren {
   ApiPublicDeployCheckRoute: typeof ApiPublicDeployCheckRoute
   ApiPublicEmailConfigCheckRoute: typeof ApiPublicEmailConfigCheckRoute
   ApiPublicFullSiteHealthRoute: typeof ApiPublicFullSiteHealthRoute
+  ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicHistoryTestRoute: typeof ApiPublicHistoryTestRoute
   ApiPublicIntelligenceHealthRoute: typeof ApiPublicIntelligenceHealthRoute
   ApiPublicMarketIntelligenceRoute: typeof ApiPublicMarketIntelligenceRoute
@@ -1434,6 +1459,7 @@ export interface RootRouteChildren {
   ApiPublicRouterRegressionRoute: typeof ApiPublicRouterRegressionRoute
   ApiPublicRouterTestRoute: typeof ApiPublicRouterTestRoute
   ApiPublicUiHealthRoute: typeof ApiPublicUiHealthRoute
+  ApiPublicVersionRoute: typeof ApiPublicVersionRoute
   ApiWebhooksLemonsqueezyRoute: typeof ApiWebhooksLemonsqueezyRoute
   ApiWebhooksPaddleRoute: typeof ApiWebhooksPaddleRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
@@ -1941,6 +1967,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksLemonsqueezyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/version': {
+      id: '/api/public/version'
+      path: '/api/public/version'
+      fullPath: '/api/public/version'
+      preLoaderRoute: typeof ApiPublicVersionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/ui-health': {
       id: '/api/public/ui-health'
       path: '/api/public/ui-health'
@@ -1995,6 +2028,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/history-test'
       fullPath: '/api/public/history-test'
       preLoaderRoute: typeof ApiPublicHistoryTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/health': {
+      id: '/api/public/health'
+      path: '/api/public/health'
+      fullPath: '/api/public/health'
+      preLoaderRoute: typeof ApiPublicHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/full-site-health': {
@@ -2415,6 +2455,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicDeployCheckRoute: ApiPublicDeployCheckRoute,
   ApiPublicEmailConfigCheckRoute: ApiPublicEmailConfigCheckRoute,
   ApiPublicFullSiteHealthRoute: ApiPublicFullSiteHealthRoute,
+  ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicHistoryTestRoute: ApiPublicHistoryTestRoute,
   ApiPublicIntelligenceHealthRoute: ApiPublicIntelligenceHealthRoute,
   ApiPublicMarketIntelligenceRoute: ApiPublicMarketIntelligenceRoute,
@@ -2423,6 +2464,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicRouterRegressionRoute: ApiPublicRouterRegressionRoute,
   ApiPublicRouterTestRoute: ApiPublicRouterTestRoute,
   ApiPublicUiHealthRoute: ApiPublicUiHealthRoute,
+  ApiPublicVersionRoute: ApiPublicVersionRoute,
   ApiWebhooksLemonsqueezyRoute: ApiWebhooksLemonsqueezyRoute,
   ApiWebhooksPaddleRoute: ApiWebhooksPaddleRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,

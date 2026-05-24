@@ -114,7 +114,7 @@ export function GlobalIntelPanel() {
                 <ul className="mt-1 space-y-1">
                   {narrative.result.topBias.map((b, i) => (
                     <li key={i} className="flex justify-between text-xs">
-                      <span><b>{b.asset}</b> · <span className={biasColor[b.bias] ?? ""}>{b.bias}</span></span>
+                      <span><b>{b.asset}</b> · <span className={biasColor[b.bias] ?? ""}>{lang === "ar" ? (b.bias === "bullish" ? "صعودي" : b.bias === "bearish" ? "هبوطي" : "محايد") : b.bias}</span></span>
                       <span className="text-muted-foreground">{(b.confidence * 100).toFixed(0)}%</span>
                     </li>
                   ))}
@@ -150,11 +150,11 @@ export function GlobalIntelPanel() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <span className="font-semibold">{o.assetName}</span>
-                      <span className={`ms-2 text-sm ${biasColor[o.bias]}`}>{o.bias}</span>
+                      <span className={`ms-2 text-sm ${biasColor[o.bias]}`}>{lang === "ar" ? (o.bias === "bullish" ? "صعودي" : o.bias === "bearish" ? "هبوطي" : "محايد") : o.bias}</span>
                       <Badge variant="outline" className="ms-2">{o.kind}</Badge>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {lang === "ar" ? "ثقة" : "Conf"} {(o.confidence * 100).toFixed(0)}% · EV {o.expectedReturn}% · {o.horizonHrs}h
+                      {lang === "ar" ? "ثقة" : "Conf"} {(o.confidence * 100).toFixed(0)}% · {lang === "ar" ? "العائد المتوقع" : "EV"} {o.expectedReturn}% · {o.horizonHrs}{lang === "ar" ? "س" : "h"}
                     </div>
                   </div>
                   <Progress value={o.confidence * 100} className="h-1.5" />

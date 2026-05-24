@@ -147,8 +147,19 @@ function CalendarPage() {
       setSource(data?.source || "");
       setMode((data?.mode as "live" | "delayed" | "mock") || "mock");
       setLastUpdated(Date.now());
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load events");
+    } catch {
+      const fallbackEvents: EvtItem[] = [
+        { date: new Date().toISOString().slice(0, 10), time: "15:30", country: "United States", flag: "🇺🇸", event: "US CPI (Consumer Price Index)", impact: "high" },
+        { date: new Date().toISOString().slice(0, 10), time: "16:00", country: "United States", flag: "🇺🇸", event: "FOMC Meeting Minutes", impact: "high" },
+        { date: new Date(Date.now() + 86400000).toISOString().slice(0, 10), time: "10:00", country: "Euro Area", flag: "🇪🇺", event: "ECB Interest Rate Decision", impact: "high" },
+        { date: new Date(Date.now() + 86400000).toISOString().slice(0, 10), time: "12:00", country: "Saudi Arabia", flag: "🇸🇦", event: "Saudi GDP Growth Rate", impact: "medium" },
+        { date: new Date(Date.now() + 172800000).toISOString().slice(0, 10), time: "14:30", country: "United States", flag: "🇺🇸", event: "Non-Farm Payrolls", impact: "high" },
+        { date: new Date(Date.now() + 172800000).toISOString().slice(0, 10), time: "16:00", country: "United Kingdom", flag: "🇬🇧", event: "BOE Interest Rate Decision", impact: "high" },
+      ];
+      setEvents(fallbackEvents);
+      setSource(ar ? "بيانات تجريبية" : "sample data");
+      setMode("mock");
+      setLastUpdated(Date.now());
     } finally { setLoading(false); setRefreshing(false); }
   }
 
