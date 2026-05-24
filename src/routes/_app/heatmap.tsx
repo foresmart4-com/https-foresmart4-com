@@ -28,7 +28,7 @@ import { useRiskTolerance, maxVolatilityPctForRisk, riskLabel, useBooleanPref } 
 import { AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/_app/heatmap")({
-  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u062e\u0631\u064a\u0637\u0629 \u0627\u0644\u062d\u0631\u0627\u0631\u064a\u0629"><HeatmapPage /></ErrorBoundary>,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الخريطة الحرارية"><HeatmapPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Market Heatmap — ForeSmart" },

@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { Activity, Gauge, RefreshCw, Signal, Wifi, WifiOff, BellRing, History } from "lucide-react";
 
 export const Route = createFileRoute("/_app/market-data-monitor")({
-  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><MarketDataMonitorPage /></ErrorBoundary>,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><MarketDataMonitorPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Market Data Monitor — ForeSmart" },

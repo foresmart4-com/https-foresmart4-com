@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Bell, AlertTriangle, Info, Zap, Filter } from "lucide-react";
 
 export const Route = createFileRoute("/_app/alert-center")({
-  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><AlertCenterPage /></ErrorBoundary>,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><AlertCenterPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Alert Center — ForeSmart" },

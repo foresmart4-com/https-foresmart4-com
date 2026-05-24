@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wallet, Info, Ban, Sparkles } from "lucide-react";
 
-export const Route = createFileRoute("/_app/deposit")({ component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><DepositPage /></ErrorBoundary> });
+export const Route = createFileRoute("/_app/deposit")({ component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><DepositPage /></ErrorBoundary> });
 
 function DepositPage() {
   const { lang, dir } = useI18n();

@@ -46,7 +46,7 @@ export function DecisionEnginePanel({ packet, stats, audit, status, onRefresh, a
   const [historyOf, setHistoryOf] = useState<string | null>(null);
 
   const composite = packet?.composite;
-  const BiasIcon = composite ? BIAS[composite.bias].icon : Minus;
+  const BiasIcon = composite ? (BIAS[composite.bias]?.icon ?? Minus) : Minus;
 
   const explainEdges = useMemo(() => packet?.explain.edges ?? [], [packet]);
 
@@ -84,7 +84,7 @@ export function DecisionEnginePanel({ packet, stats, audit, status, onRefresh, a
 
         {composite && (
           <div className="mt-3 grid gap-3 md:grid-cols-4">
-            <div className={`rounded-lg border p-3 ${BIAS[composite.bias].cls}`}>
+            <div className={`rounded-lg border p-3 ${BIAS[composite.bias]?.cls ?? ""}`}>
               <div className="flex items-center gap-2 text-xs uppercase tracking-wider opacity-80">
                 <BiasIcon className="h-3.5 w-3.5" /> {T(ar, "Composite bias", "الاتجاه المركّب")}
               </div>
@@ -137,10 +137,10 @@ export function DecisionEnginePanel({ packet, stats, audit, status, onRefresh, a
           {/* Consensus */}
           <TabsContent value="composite" className="mt-4 space-y-2">
             {packet.consensus.map((c) => {
-              const Icon = BIAS[c.bias].icon;
+              const Icon = BIAS[c.bias]?.icon ?? Minus;
               return (
                 <div key={c.agentId} className="flex items-center gap-3 rounded-lg border border-border/50 bg-card/40 p-2.5">
-                  <Badge variant="outline" className={`${BIAS[c.bias].cls} text-[10px]`}>
+                  <Badge variant="outline" className={`${BIAS[c.bias]?.cls ?? ""} text-[10px]`}>
                     <Icon className="me-1 h-3 w-3" /> {c.bias}
                   </Badge>
                   <div className="min-w-0 flex-1">

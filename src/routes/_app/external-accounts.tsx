@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { Bitcoin, Building2, Briefcase, Trash2, Plus, Link2, Shield } from "lucide-react";
 
 export const Route = createFileRoute("/_app/external-accounts")({
-  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><ExternalAccountsPage /></ErrorBoundary>,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><ExternalAccountsPage /></ErrorBoundary>,
 });
 
 type Provider = "crypto_wallet" | "lean" | "snaptrade";

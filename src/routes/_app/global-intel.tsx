@@ -5,7 +5,7 @@ import { GdeltIntelPanel } from "@/components/dashboard/GdeltIntelPanel";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_app/global-intel")({
-  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0639\u0627\u0644\u0645\u064a"><GlobalIntelPage /></ErrorBoundary>,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الذكاء العالمي"><GlobalIntelPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "\u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0639\u0627\u0644\u0645\u064a \u2014 ForeSmart" },

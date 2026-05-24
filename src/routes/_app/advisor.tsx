@@ -20,7 +20,7 @@ import { AIDecisionTester } from "@/components/AIDecisionTester";
 import { AutoTradingModeBar, BacktestingPanel, TradingJournalPanel } from "@/components/ForeSmartPanels";
 
 export const Route = createFileRoute("/_app/advisor")({
-  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><AdvisorPage /></ErrorBoundary>,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><AdvisorPage /></ErrorBoundary>,
 });
 
 function AdvisorPage() {

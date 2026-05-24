@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Activity, AlertTriangle, CheckCircle2, RefreshCw, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/_app/db-diagnostics")({
-  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><DbDiagnosticsPage /></ErrorBoundary>,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><DbDiagnosticsPage /></ErrorBoundary>,
 });
 
 type Section = Record<string, number | string>;

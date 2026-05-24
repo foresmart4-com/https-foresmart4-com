@@ -9,7 +9,7 @@ import { Building, Shield, Info } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/bank-accounts")({
-  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><BankAccountsPage /></ErrorBoundary>,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><BankAccountsPage /></ErrorBoundary>,
 });
 
 function BankAccountsPage() {

@@ -22,7 +22,7 @@ import { User as UserIcon, Key, Trash2, ShieldCheck, History, CheckCircle2, XCir
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/profile")({
-  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><ProfilePage /></ErrorBoundary>,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><ProfilePage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Profile & Settings — ForeSmart" },

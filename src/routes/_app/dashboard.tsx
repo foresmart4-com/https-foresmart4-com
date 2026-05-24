@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import { portfolioKpis, portfolioPerformance, aiAlerts, topOpportunities } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/_app/dashboard")({
-  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><DashboardPage /></ErrorBoundary>,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><DashboardPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Dashboard — ForeSmart" },

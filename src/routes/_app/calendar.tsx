@@ -17,7 +17,7 @@ import { useBooleanPref } from "@/lib/investor-prefs";
 import type { IntelCategory } from "@/lib/asset-picker";
 
 export const Route = createFileRoute("/_app/calendar")({
-  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><CalendarPage /></ErrorBoundary>,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><CalendarPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Economic Calendar — ForeSmart" },

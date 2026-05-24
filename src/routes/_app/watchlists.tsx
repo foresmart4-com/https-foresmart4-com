@@ -27,7 +27,7 @@ import { CreateAlertDialog } from "@/components/pickers/CreateAlertDialog";
 import { addUserAsset } from "@/lib/assets.functions";
 
 export const Route = createFileRoute("/_app/watchlists")({
-  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><WatchlistsPage /></ErrorBoundary>,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><WatchlistsPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "قوائم المتابعة — ForeSmart" },

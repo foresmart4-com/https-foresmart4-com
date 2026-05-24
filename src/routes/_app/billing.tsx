@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { listProviders, BILLING_PLANS } from "@/services/billing/providers";
 import { LegalFooter } from "@/components/LegalFooter";
 
-export const Route = createFileRoute("/_app/billing")({ component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><BillingPage /></ErrorBoundary> });
+export const Route = createFileRoute("/_app/billing")({ component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><BillingPage /></ErrorBoundary> });
 
 function BillingPage() {
   const { lang, dir } = useI18n();

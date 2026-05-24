@@ -18,7 +18,7 @@ import { StripeSubscriptionCheckout, type SubPriceId } from "@/components/Stripe
 import { PayPalCheckoutButton } from "@/components/PayPalCheckoutButton";
 import { LegalFooter } from "@/components/LegalFooter";
 
-export const Route = createFileRoute("/_app/subscription")({ component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><SubscriptionPage /></ErrorBoundary> });
+export const Route = createFileRoute("/_app/subscription")({ component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><SubscriptionPage /></ErrorBoundary> });
 
 const PRICE_MAP: Record<string, SubPriceId> = {
   quarterly:      "quarterly_sar",

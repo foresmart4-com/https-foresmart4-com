@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_app/help")({
       { name: "description", content: "ForeSmart help center: wallet, Binance, Alpaca, Interactive Brokers, subscriptions, paper and live trading." },
     ],
   }),
-  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><HelpCenterPage /></ErrorBoundary>,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><HelpCenterPage /></ErrorBoundary>,
 });
 
 type Topic = {

@@ -44,7 +44,7 @@ export function InstitutionalIntelligencePanel({ intel, ar = false }: Props) {
 
   const composite = view?.composite;
   const obs = view?.observability;
-  const BiasIcon = composite ? BIAS_ICON[composite.bias] : Minus;
+  const BiasIcon = composite ? (BIAS_ICON[composite.bias] ?? Minus) : Minus;
 
   const totalContribution = useMemo(
     () => (view?.agents ?? []).reduce((s, a) => s + Math.abs(a.score * a.weight), 0) || 1,
@@ -117,8 +117,8 @@ export function InstitutionalIntelligencePanel({ intel, ar = false }: Props) {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {view.agents.map((a) => {
-                  const Icon = AGENT_ICON[a.id];
-                  const BI = BIAS_ICON[a.bias];
+                  const Icon = AGENT_ICON[a.id] ?? Activity;
+                  const BI = BIAS_ICON[a.bias] ?? Minus;
                   const contribPct = Math.round((Math.abs(a.score * a.weight) / totalContribution) * 100);
                   return (
                     <div key={a.id} className="p-3 rounded-md border border-border/50 bg-muted/20">

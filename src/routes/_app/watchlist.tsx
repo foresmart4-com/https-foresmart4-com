@@ -15,7 +15,7 @@ import { WatchlistPanel } from "@/components/WatchlistPanel";
 import { SmartAlertsPanel } from "@/components/ForeSmartPanels";
 
 export const Route = createFileRoute("/_app/watchlist")({
-  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><WatchlistPage /></ErrorBoundary>,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><WatchlistPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Watchlist — ForeSmart" },

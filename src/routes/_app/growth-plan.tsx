@@ -13,7 +13,7 @@ import { Sprout, Target, Calendar, ShieldAlert, CheckCircle2, AlertTriangle, Tre
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/growth-plan")({
-  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629"><GrowthPlanPage /></ErrorBoundary>,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><GrowthPlanPage /></ErrorBoundary>,
 });
 
 const FOCUS_OPTS: { id: "crypto" | "stocks" | "metals" | "fx" | "savings"; ar: string; en: string }[] = [
