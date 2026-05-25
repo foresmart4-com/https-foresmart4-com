@@ -115,7 +115,7 @@ export const askAdvisor = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) {
-      return { structured: null, raw: "", error: "AI gateway is not configured." };
+      return { structured: null, raw: "", error: "ai_not_configured", engine: "heuristic" as const };
     }
     const lang = resolveLang(data);
     const baseSys = lang === "ar" ? sysAr : sysEn;
@@ -153,7 +153,7 @@ export const askAdvisor = createServerFn({ method: "POST" })
       const d = await r.json();
       const raw: string = d.choices?.[0]?.message?.content ?? "";
       const structured = safeParseJson(raw);
-      return { structured, raw, error: null as string | null };
+      return { structured, raw, error: null as string | null, engine: "ai" as const };
     } catch (e) {
       console.error(e);
       return { structured: null, raw: "", error: "network_error" };

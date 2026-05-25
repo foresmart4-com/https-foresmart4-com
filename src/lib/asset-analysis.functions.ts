@@ -63,7 +63,7 @@ export const analyzeAsset = createServerFn({ method: "POST" })
   .inputValidator((d) => AssetInput.parse(d))
   .handler(async ({ data }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) return { verdict: null as AssetVerdict | null, error: "ai_not_configured" };
+    if (!apiKey) return { verdict: null as AssetVerdict | null, error: "ai_not_configured", engine: "heuristic" as const };
 
     const lang = resolveLang(data);
     const baseSys = lang === "ar"
@@ -116,7 +116,7 @@ Provide a verdict tailored to a small/retail trader. Entry / stop / targets shou
       const call = d.choices?.[0]?.message?.tool_calls?.[0];
       if (!call?.function?.arguments) return { verdict: null, error: "no_tool_call" };
       const verdict = JSON.parse(call.function.arguments) as AssetVerdict;
-      return { verdict, error: null as string | null };
+      return { verdict, error: null as string | null, engine: "ai" as const };
     } catch (e) {
       console.error(e);
       return { verdict: null, error: "network_error" };
@@ -272,7 +272,7 @@ export const microCapitalPlan = createServerFn({ method: "POST" })
   .inputValidator((d) => PlanInput.parse(d))
   .handler(async ({ data }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) return { plan: null as MicroCapitalPlan | null, error: "ai_not_configured", detail: "LOVABLE_API_KEY missing" };
+    if (!apiKey) return { plan: null as MicroCapitalPlan | null, error: "ai_not_configured", detail: "LOVABLE_API_KEY missing", engine: "heuristic" as const };
 
     const today = new Date().toISOString().slice(0, 10);
 
@@ -317,27 +317,27 @@ Build a comprehensive plan. Allocations percentages must sum to ~100% and reflec
       }
     } catch (e) {
       console.error("microCapitalPlan timeout/network fallback", e);
-      return { plan: buildDeterministicMicroPlan(data), error: null as string | null, detail: "fallback_plan" };
+      return { plan: buildDeterministicMicroPlan(data), error: null as string | null, detail: "fallback_plan", engine: "heuristic" as const };
     }
 
-    if (r.status === 429) return { plan: null, error: "rate_limited", detail: "Too many requests" };
-    if (r.status === 402) return { plan: null, error: "payment_required", detail: "Add Lovable AI credits" };
+    if (r.status === 429) return { plan: null, error: "rate_limited", detail: "Too many requests", engine: "heuristic" as const };
+    if (r.status === 402) return { plan: null, error: "payment_required", detail: "Add Lovable AI credits", engine: "heuristic" as const };
     if (!r.ok) {
       const txt = await r.text();
       console.error("microCapitalPlan error", r.status, txt);
-      return { plan: buildDeterministicMicroPlan(data), error: null as string | null, detail: "fallback_plan" };
+      return { plan: buildDeterministicMicroPlan(data), error: null as string | null, detail: "fallback_plan", engine: "heuristic" as const };
     }
 
     let firstPlan: MicroCapitalPlan;
     try {
       const d = await r.json();
       const call = d.choices?.[0]?.message?.tool_calls?.[0];
-      if (!call?.function?.arguments) return { plan: buildDeterministicMicroPlan(data), error: null as string | null, detail: "fallback_plan" };
+      if (!call?.function?.arguments) return { plan: buildDeterministicMicroPlan(data), error: null as string | null, detail: "fallback_plan", engine: "heuristic" as const };
       firstPlan = JSON.parse(call.function.arguments) as MicroCapitalPlan;
     } catch (e) {
       console.error(e);
-      return { plan: buildDeterministicMicroPlan(data), error: null as string | null, detail: "fallback_plan" };
+      return { plan: buildDeterministicMicroPlan(data), error: null as string | null, detail: "fallback_plan", engine: "heuristic" as const };
     }
 
-    return { plan: firstPlan, error: null as string | null, detail: null as string | null };
+    return { plan: firstPlan, error: null as string | null, detail: null as string | null, engine: "ai" as const };
   });

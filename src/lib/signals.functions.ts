@@ -235,11 +235,13 @@ export const generateSignals = createServerFn({ method: "POST" })
     const candidates = market.assets.filter((a) => a.history.length >= 14).slice(0, 18);
 
     let sentimentMap: Record<string, { sentiment: number; note: string }> = {};
+    let usedAI = false;
     if (apiKey) {
       sentimentMap = await aiSentimentBatch(
         apiKey,
         candidates.map((a) => ({ symbol: a.symbol, name: a.name, changePct: a.changePct })),
       );
+      usedAI = Object.keys(sentimentMap).length > 0;
     }
 
     const signals = candidates.map((a) => {
@@ -251,5 +253,5 @@ export const generateSignals = createServerFn({ method: "POST" })
     // sort: highest |score|, buy/sell first
     signals.sort((a, b) => b.confidence - a.confidence);
 
-    return { signals, generatedAt: Date.now() };
+    return { signals, generatedAt: Date.now(), engine: (usedAI ? "ai" : "heuristic") as "ai" | "heuristic" };
   });
