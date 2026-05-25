@@ -63,6 +63,7 @@ export async function testRiskTwinDecision(input: RiskTwinDecisionInput = {}) {
     action: input.action ?? "watch",
     riskTwinApproved,
     riskTwinScore,
+    maxDrawdown: maxExpectedDrawdown,
     maxExpectedDrawdown,
     liquidityRisk,
     correlationRisk,
