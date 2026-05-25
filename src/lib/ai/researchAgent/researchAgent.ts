@@ -16,6 +16,7 @@ interface ResearchBrief {
   importantEvents: unknown[];
   assetsAffected: string[];
   sourceCredibilityAverage: number;
+  watchlist: string[];
   recommendedWatchlist: string[];
   researchConfidence: number;
   liveTrading: false;
@@ -54,6 +55,7 @@ export async function runDailyResearchAgent(): Promise<ResearchBrief> {
     ((macro?.sourceCredibilityAverage ?? 0) + (news?.sourceCredibilityAverage ?? 0) + (knowledge?.confidence ?? 50)) / 3,
   );
   const researchConfidence = Math.max(20, Math.min(90, Math.round((sourceCredibilityAverage + (macro?.confidencePercent ?? 0)) / 2)));
+  const watchlist = [...new Set(assetsAffected)].slice(0, 10);
   const brief: ResearchBrief = {
     researchAgentVersion: "research-agent-v1",
     id: `research-${Date.now()}`,
@@ -64,7 +66,8 @@ export async function runDailyResearchAgent(): Promise<ResearchBrief> {
     importantEvents: calendar?.events ?? [],
     assetsAffected,
     sourceCredibilityAverage,
-    recommendedWatchlist: [...new Set(assetsAffected)].slice(0, 10),
+    watchlist,
+    recommendedWatchlist: watchlist,
     researchConfidence,
     ...AI_SAFETY_FLAGS,
   };
