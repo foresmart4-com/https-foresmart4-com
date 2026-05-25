@@ -1,7 +1,11 @@
 // Market data services
-// CoinGecko: live crypto (no API key required for public endpoints)
-// Stocks/commodities: placeholders — to be wired later via Twelve Data / Alpha Vantage / Finnhub
-// or a Saudi market data provider when available.
+// CoinGecko: live crypto (no API key — browser-safe, called directly from client components)
+// Saudi / US / Commodity: server-side only via provider adapters (SAHMK / Finnhub / TwelveData / AlphaVantage)
+
+import { createServerFn } from "@tanstack/react-start";
+
+// "mock" retained for backward compatibility with AIDecisionPanel isMock check.
+export type CryptoSource = "live" | "mock" | "delayed" | "simulated" | "unavailable";
 
 export type CryptoQuote = {
   id: string;
@@ -11,7 +15,7 @@ export type CryptoQuote = {
   price: number;
   change24h: number;
   marketCap?: number;
-  source: "live" | "mock";
+  source: CryptoSource;
   updatedAt: number;
 };
 
@@ -25,6 +29,7 @@ const SYMBOL_MAP: Record<string, { sym: string; name_en: string; name_ar: string
   ripple:      { sym: "XRP", name_en: "XRP",      name_ar: "ريبل" },
 };
 
+// Fallback keeps source "mock" so AIDecisionPanel.isMock check stays correct.
 const MOCK_CRYPTO: CryptoQuote[] = [
   { id: "bitcoin",     symbol: "BTC", name_en: "Bitcoin",  name_ar: "بتكوين",      price: 64800, change24h: -0.74, marketCap: 1_270_000_000_000, source: "mock", updatedAt: Date.now() },
   { id: "ethereum",    symbol: "ETH", name_en: "Ethereum", name_ar: "إيثيريوم",    price: 3120,  change24h: -0.42, marketCap: 375_000_000_000,   source: "mock", updatedAt: Date.now() },
@@ -33,6 +38,7 @@ const MOCK_CRYPTO: CryptoQuote[] = [
   { id: "ripple",      symbol: "XRP", name_en: "XRP",      name_ar: "ريبل",        price: 0.52,  change24h: -1.08, marketCap: 29_000_000_000,    source: "mock", updatedAt: Date.now() },
 ];
 
+// Browser-callable — CoinGecko is a public API, no key needed.
 export async function fetchCryptoLive(): Promise<CryptoQuote[]> {
   try {
     const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${COINGECKO_IDS.join(",")}&price_change_percentage=24h`;
@@ -63,41 +69,132 @@ export async function fetchCryptoLive(): Promise<CryptoQuote[]> {
   }
 }
 
-// ===== Placeholders for future integration =====
-// TODO: wire to Twelve Data / Alpha Vantage / Finnhub
-export async function fetchSaudiMarketData() {
-  return {
-    source: "mock" as const,
-    updatedAt: Date.now(),
-    items: [
-      { symbol: "2222.SR", name_ar: "أرامكو السعودية", name_en: "Saudi Aramco", price: 28.40, change: 1.42 },
-      { symbol: "1120.SR", name_ar: "الراجحي",          name_en: "Al Rajhi",      price: 92.10, change: 0.35 },
-      { symbol: "TASI",    name_ar: "تاسي",              name_en: "TASI",          price: 11820, change: 0.62 },
-    ],
-  };
-}
+// ===== Server-side market data via provider adapters =====
 
-// TODO: wire to Alpha Vantage / Finnhub / Polygon
-export async function fetchUSMarketData() {
-  return {
-    source: "mock" as const,
-    updatedAt: Date.now(),
-    items: [
-      { symbol: "S&P 500", name_ar: "ستاندرد آند بورز", name_en: "S&P 500", price: 5870,  change: -0.18 },
-      { symbol: "NASDAQ",  name_ar: "ناسداك",            name_en: "Nasdaq",  price: 19240, change: 0.42 },
-      { symbol: "NVDA",    name_ar: "إنفيديا",           name_en: "NVIDIA",  price: 142.20, change: 2.18 },
-    ],
-  };
-}
+export type MarketDataItem = {
+  symbol: string;
+  name_ar: string;
+  name_en: string;
+  price: number;
+  change: number;
+};
 
-// TODO: wire to Metals-API / TradingEconomics
-export async function fetchCommodityData() {
-  return {
-    source: "mock" as const,
-    updatedAt: Date.now(),
-    items: [
-      { symbol: "XAU", name_ar: "الذهب", name_en: "Gold (oz)",     price: 2418, change: 0.94 },
-      { symbol: "WTI", name_ar: "النفط", name_en: "Crude Oil WTI", price: 78.20, change: -1.21 },
-    ],
-  };
-}
+export type MarketDataResult = {
+  source: "live" | "delayed" | "unavailable";
+  updatedAt: number;
+  items: MarketDataItem[];
+};
+
+// Saudi market: SAHMK (live) → TwelveData (delayed) → unavailable
+export const fetchSaudiMarketData = createServerFn({ method: "GET" })
+  .handler(async (): Promise<MarketDataResult> => {
+    const now = Date.now();
+    const pairs = [
+      { symbol: "2222.SR", name_ar: "أرامكو السعودية", name_en: "Saudi Aramco" },
+      { symbol: "1120.SR", name_ar: "الراجحي",         name_en: "Al Rajhi Bank" },
+    ];
+    if (process.env.SAHMK_API_KEY) {
+      try {
+        const { getQuote } = await import("@/services/providers/sahmk");
+        const settled = await Promise.allSettled(pairs.map((p) => getQuote(p.symbol)));
+        const items: MarketDataItem[] = [];
+        for (let i = 0; i < settled.length; i++) {
+          const r = settled[i];
+          if (r.status === "fulfilled" && r.value.price) {
+            items.push({ ...pairs[i], price: r.value.price, change: r.value.changePercent ?? 0 });
+          }
+        }
+        if (items.length > 0) return { source: "live", updatedAt: now, items };
+      } catch { /* fall through */ }
+    }
+    if (process.env.TWELVEDATA_API_KEY) {
+      try {
+        const { getQuote } = await import("@/services/providers/twelvedata");
+        const settled = await Promise.allSettled(pairs.map((p) => getQuote(p.symbol)));
+        const items: MarketDataItem[] = [];
+        for (let i = 0; i < settled.length; i++) {
+          const r = settled[i];
+          if (r.status === "fulfilled") {
+            const price = parseFloat(r.value.close ?? "0");
+            if (price) items.push({ ...pairs[i], price, change: parseFloat(r.value.percent_change ?? "0") });
+          }
+        }
+        if (items.length > 0) return { source: "delayed", updatedAt: now, items };
+      } catch { /* fall through */ }
+    }
+    return { source: "unavailable", updatedAt: now, items: [] };
+  });
+
+// US market: Finnhub (live) → TwelveData (delayed) → unavailable
+export const fetchUSMarketData = createServerFn({ method: "GET" })
+  .handler(async (): Promise<MarketDataResult> => {
+    const now = Date.now();
+    const pairs = [
+      { symbol: "SPY",  name_ar: "ستاندرد آند بورز", name_en: "S&P 500 ETF" },
+      { symbol: "QQQ",  name_ar: "ناسداك",            name_en: "Nasdaq 100 ETF" },
+      { symbol: "NVDA", name_ar: "إنفيديا",           name_en: "NVIDIA" },
+    ];
+    if (process.env.FINNHUB_API_KEY) {
+      try {
+        const { getQuote } = await import("@/services/providers/finnhub");
+        const settled = await Promise.allSettled(pairs.map((p) => getQuote(p.symbol)));
+        const items: MarketDataItem[] = [];
+        for (let i = 0; i < settled.length; i++) {
+          const r = settled[i];
+          if (r.status === "fulfilled" && r.value.c) {
+            items.push({ ...pairs[i], price: r.value.c, change: r.value.dp ?? 0 });
+          }
+        }
+        if (items.length >= 2) return { source: "live", updatedAt: now, items };
+      } catch { /* fall through */ }
+    }
+    if (process.env.TWELVEDATA_API_KEY) {
+      try {
+        const { getBatchQuotes } = await import("@/services/providers/twelvedata");
+        const batch = await getBatchQuotes(pairs.map((p) => p.symbol));
+        const items: MarketDataItem[] = [];
+        for (const p of pairs) {
+          const q = batch[p.symbol];
+          if (!q) continue;
+          const price = parseFloat(q.close ?? "0");
+          if (price) items.push({ ...p, price, change: parseFloat(q.percent_change ?? "0") });
+        }
+        if (items.length >= 2) return { source: "delayed", updatedAt: now, items };
+      } catch { /* fall through */ }
+    }
+    return { source: "unavailable", updatedAt: now, items: [] };
+  });
+
+// Commodities: AlphaVantage WTI/Brent (daily, delayed, cached 24h) → unavailable
+export const fetchCommodityData = createServerFn({ method: "GET" })
+  .handler(async (): Promise<MarketDataResult> => {
+    const now = Date.now();
+    if (!process.env.ALPHAVANTAGE_API_KEY) return { source: "unavailable", updatedAt: now, items: [] };
+    try {
+      const { getOilWti, getOilBrent, getGoldQuote } = await import("@/services/providers/alphavantage");
+      const [wtiR, brentR, goldR] = await Promise.allSettled([getOilWti(), getOilBrent(), getGoldQuote()]);
+      const items: MarketDataItem[] = [];
+      if (wtiR.status === "fulfilled") {
+        const rows = wtiR.value?.data ?? [];
+        const price = parseFloat(rows[0]?.value ?? "0");
+        const prev = parseFloat(rows[1]?.value ?? "0");
+        if (price > 0) items.push({ symbol: "WTI", name_ar: "النفط الخام", name_en: "Crude Oil WTI", price, change: prev ? ((price - prev) / prev) * 100 : 0 });
+      }
+      if (brentR.status === "fulfilled") {
+        const rows = brentR.value?.data ?? [];
+        const price = parseFloat(rows[0]?.value ?? "0");
+        const prev = parseFloat(rows[1]?.value ?? "0");
+        if (price > 0) items.push({ symbol: "BRENT", name_ar: "نفط برنت", name_en: "Crude Oil Brent", price, change: prev ? ((price - prev) / prev) * 100 : 0 });
+      }
+      if (goldR.status === "fulfilled") {
+        const gq = goldR.value?.["Global Quote"];
+        if (gq) {
+          const price = parseFloat(gq["05. price"] ?? "0");
+          const changePct = parseFloat((gq["10. change percent"] ?? "0%").replace("%", ""));
+          if (price > 0) items.push({ symbol: "GLD", name_ar: "صندوق الذهب (GLD)", name_en: "Gold ETF (GLD)", price, change: changePct });
+        }
+      }
+      if (items.length > 0) return { source: "delayed", updatedAt: now, items };
+    } catch { /* fall through */ }
+    return { source: "unavailable", updatedAt: now, items: [] };
+  });

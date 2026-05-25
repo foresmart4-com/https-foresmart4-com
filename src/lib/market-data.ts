@@ -13,6 +13,7 @@ export interface AssetQuote {
   low24h: number;
   volume: number;
   history: { t: number; p: number }[]; // 24h price points
+  source: "live" | "delayed" | "simulated" | "unavailable";
 }
 
 const CRYPTO_IDS = [
@@ -41,6 +42,7 @@ function syntheticCrypto(meta: (typeof CRYPTO_IDS)[number]): AssetQuote {
     high24h: Math.max(...history.map((x) => x.p)),
     low24h: Math.min(...history.map((x) => x.p)),
     volume: 0, history,
+    source: "simulated" as const,
   };
 }
 
@@ -80,6 +82,7 @@ async function fetchCrypto(): Promise<AssetQuote[]> {
         low24h: coin.low_24h,
         volume: coin.total_volume,
         history,
+        source: "live" as const,
       });
       }
     return results.length ? results : CRYPTO_IDS.map(syntheticCrypto);
@@ -126,6 +129,7 @@ async function fetchFX(): Promise<AssetQuote[]> {
         low24h: Math.min(...prices),
         volume: 0,
         history: points,
+        source: "live" as const,
       });
     } catch { /* skip */ }
   }
@@ -171,6 +175,7 @@ async function fetchMetals(): Promise<AssetQuote[]> {
         low24h: coin.low_24h,
         volume: coin.total_volume,
         history,
+        source: "live" as const,
       });
     }
     return out;
@@ -207,6 +212,7 @@ function syntheticAsset(meta: { symbol: string; name: string; baseline: number }
     high24h: Math.max(...history.slice(-5).map((x) => x.p)),
     low24h: Math.min(...history.slice(-5).map((x) => x.p)),
     volume: 0, history,
+    source: "simulated" as const,
   };
 }
 
@@ -267,6 +273,7 @@ async function fetchYahooAsset(
       low24h: res.meta.regularMarketDayLow ?? price,
       volume: res.meta.regularMarketVolume ?? 0,
       history: history.length ? history : [{ t: Date.now(), p: price }],
+      source: "delayed" as const,
     };
   } catch {
     return syntheticAsset(f, category);
@@ -294,6 +301,177 @@ async function fetchBonds(): Promise<AssetQuote[]> {
   return Promise.all(BOND_FUNDS.map((f) => fetchYahooAsset(f, "bonds")));
 }
 
+// ===== US stocks: Finnhub (live) → TwelveData (delayed) → Yahoo Finance (delayed) =====
+const US_STOCKS = [
+  { symbol: "SPY",  name: "S&P 500 ETF",   baseline: 560 },
+  { symbol: "QQQ",  name: "Nasdaq 100 ETF", baseline: 480 },
+  { symbol: "NVDA", name: "NVIDIA",          baseline: 130 },
+  { symbol: "MSFT", name: "Microsoft",       baseline: 420 },
+];
+
+async function fetchUSStocks(): Promise<AssetQuote[]> {
+  const now = Date.now();
+  if (process.env.FINNHUB_API_KEY) {
+    try {
+      const { getQuote } = await import("@/services/providers/finnhub");
+      const settled = await Promise.allSettled(US_STOCKS.map((s) => getQuote(s.symbol)));
+      const out: AssetQuote[] = [];
+      for (let i = 0; i < settled.length; i++) {
+        const r = settled[i];
+        const meta = US_STOCKS[i];
+        if (r.status === "fulfilled" && r.value.c) {
+          const q = r.value;
+          out.push({
+            symbol: meta.symbol, name: meta.name, category: "stocks",
+            price: q.c, changePct: q.dp ?? 0,
+            high24h: q.h, low24h: q.l, volume: 0,
+            history: [{ t: now - 86_400_000, p: q.pc }, { t: now, p: q.c }],
+            source: "live",
+          });
+        }
+      }
+      if (out.length >= 2) return out;
+    } catch (e) { console.warn("[market-data] Finnhub stocks:", e); }
+  }
+  if (process.env.TWELVEDATA_API_KEY) {
+    try {
+      const { getBatchQuotes } = await import("@/services/providers/twelvedata");
+      const batch = await getBatchQuotes(US_STOCKS.map((s) => s.symbol));
+      const out: AssetQuote[] = [];
+      for (const meta of US_STOCKS) {
+        const q = batch[meta.symbol];
+        if (!q) continue;
+        const price = parseFloat(q.close ?? "0");
+        if (!price) continue;
+        out.push({
+          symbol: meta.symbol, name: meta.name, category: "stocks",
+          price, changePct: parseFloat(q.percent_change ?? "0"),
+          high24h: parseFloat(q.high ?? String(price)),
+          low24h: parseFloat(q.low ?? String(price)),
+          volume: parseFloat(q.volume ?? "0"),
+          history: [
+            { t: now - 86_400_000, p: parseFloat(q.previous_close ?? String(price)) },
+            { t: now, p: price },
+          ],
+          source: "delayed",
+        });
+      }
+      if (out.length >= 2) return out;
+    } catch (e) { console.warn("[market-data] TwelveData stocks:", e); }
+  }
+  // Yahoo Finance fallback (free, delayed, no key required)
+  const yahooSettled = await Promise.allSettled(US_STOCKS.map((s) => fetchYahooAsset(s, "stocks")));
+  const yahooOut = yahooSettled.flatMap((r) =>
+    r.status === "fulfilled" && r.value.price > 0 ? [r.value] : [],
+  );
+  if (yahooOut.length >= 2) return yahooOut;
+  return US_STOCKS.map((s) => ({
+    symbol: s.symbol, name: s.name, category: "stocks" as AssetCategory,
+    price: 0, changePct: 0, high24h: 0, low24h: 0, volume: 0, history: [],
+    source: "unavailable" as const,
+  }));
+}
+
+// ===== Saudi stocks: SAHMK (live) → TwelveData (delayed) =====
+const SAUDI_STOCKS = [
+  { symbol: "2222.SR", name: "Saudi Aramco" },
+  { symbol: "1120.SR", name: "Al Rajhi Bank" },
+];
+
+async function fetchSaudiStocks(): Promise<AssetQuote[]> {
+  const now = Date.now();
+  if (process.env.SAHMK_API_KEY) {
+    try {
+      const { getQuote } = await import("@/services/providers/sahmk");
+      const settled = await Promise.allSettled(SAUDI_STOCKS.map((s) => getQuote(s.symbol)));
+      const out: AssetQuote[] = [];
+      for (let i = 0; i < settled.length; i++) {
+        const r = settled[i];
+        const meta = SAUDI_STOCKS[i];
+        if (r.status === "fulfilled" && r.value.price) {
+          const q = r.value;
+          out.push({
+            symbol: meta.symbol, name: meta.name, category: "stocks",
+            price: q.price, changePct: q.changePercent ?? 0,
+            high24h: q.price, low24h: q.price, volume: q.volume ?? 0,
+            history: [{ t: now, p: q.price }],
+            source: q.delayed ? "delayed" : "live",
+          });
+        }
+      }
+      if (out.length > 0) return out;
+    } catch (e) { console.warn("[market-data] SAHMK:", e); }
+  }
+  if (process.env.TWELVEDATA_API_KEY) {
+    try {
+      const { getQuote: tdQ } = await import("@/services/providers/twelvedata");
+      const settled = await Promise.allSettled(SAUDI_STOCKS.map((s) => tdQ(s.symbol)));
+      const out: AssetQuote[] = [];
+      for (let i = 0; i < settled.length; i++) {
+        const r = settled[i];
+        const meta = SAUDI_STOCKS[i];
+        if (r.status === "fulfilled") {
+          const price = parseFloat(r.value.close ?? "0");
+          if (!price) continue;
+          out.push({
+            symbol: meta.symbol, name: meta.name, category: "stocks",
+            price, changePct: parseFloat(r.value.percent_change ?? "0"),
+            high24h: parseFloat(r.value.high ?? String(price)),
+            low24h: parseFloat(r.value.low ?? String(price)),
+            volume: parseFloat(r.value.volume ?? "0"),
+            history: [{ t: now, p: price }],
+            source: "delayed",
+          });
+        }
+      }
+      if (out.length > 0) return out;
+    } catch (e) { console.warn("[market-data] TwelveData Saudi:", e); }
+  }
+  return SAUDI_STOCKS.map((s) => ({
+    symbol: s.symbol, name: s.name, category: "stocks" as AssetCategory,
+    price: 0, changePct: 0, high24h: 0, low24h: 0, volume: 0, history: [],
+    source: "unavailable" as const,
+  }));
+}
+
+// ===== Oil: AlphaVantage WTI/Brent daily series (cached 24h — minimal quota cost) =====
+async function fetchOil(): Promise<AssetQuote[]> {
+  if (!process.env.ALPHAVANTAGE_API_KEY) return [];
+  try {
+    const { getOilWti, getOilBrent } = await import("@/services/providers/alphavantage");
+    const [wtiR, brentR] = await Promise.allSettled([getOilWti(), getOilBrent()]);
+    const out: AssetQuote[] = [];
+    const parse = (
+      r: PromiseSettledResult<{ data: Array<{ date: string; value: string }> }>,
+      symbol: string,
+      name: string,
+    ): AssetQuote | null => {
+      if (r.status !== "fulfilled") return null;
+      const rows = r.value?.data ?? [];
+      if (rows.length < 2) return null;
+      const price = parseFloat(rows[0].value);
+      const prev = parseFloat(rows[1].value);
+      if (!price || price <= 0) return null;
+      const history = rows.slice(0, 30).reverse()
+        .map((d) => ({ t: new Date(d.date).getTime(), p: parseFloat(d.value) }))
+        .filter((h) => h.p > 0);
+      return {
+        symbol, name, category: "oil",
+        price, changePct: prev ? ((price - prev) / prev) * 100 : 0,
+        high24h: price, low24h: price, volume: 0,
+        history, source: "delayed",
+      };
+    };
+    const wti = parse(wtiR, "WTI", "Crude Oil WTI");
+    const brent = parse(brentR, "BRENT", "Crude Oil Brent");
+    if (wti) out.push(wti);
+    if (brent) out.push(brent);
+    return out;
+  } catch (e) {
+    console.warn("[market-data] Oil fetch:", e);
+    return [];
+  }
+}
 
 export const getMarketData = createServerFn({ method: "GET" })
   .handler(async () => {
@@ -305,14 +483,20 @@ export const getMarketData = createServerFn({ method: "GET" })
         return [];
       }
     };
-    const [crypto, fx, metals, metalFunds, bonds] = await Promise.all([
+    const [crypto, fx, metals, metalFunds, bonds, usStocks, saudiStocks, oil] = await Promise.all([
       safe(fetchCrypto, "crypto"),
       safe(fetchFX, "fx"),
       safe(fetchMetals, "metals"),
       safe(fetchMetalFunds, "metal-funds"),
       safe(fetchBonds, "bonds"),
+      safe(fetchUSStocks, "us-stocks"),
+      safe(fetchSaudiStocks, "saudi-stocks"),
+      safe(fetchOil, "oil"),
     ]);
-    return { assets: [...crypto, ...metals, ...metalFunds, ...fx, ...bonds], fetchedAt: Date.now() };
+    return {
+      assets: [...crypto, ...metals, ...metalFunds, ...fx, ...bonds, ...usStocks, ...saudiStocks, ...oil],
+      fetchedAt: Date.now(),
+    };
   });
 
 // ===== Technical indicators =====
