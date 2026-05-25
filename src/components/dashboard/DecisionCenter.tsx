@@ -66,7 +66,7 @@ export function DecisionCenter({ opportunities, lang }: Props) {
               key={o.symbol}
               className="hover-lift gradient-card relative overflow-hidden rounded-xl border border-border shadow-card"
             >
-              <div className={cn("h-0.5 w-full", SIGNAL_STRIPE[o.signal] ?? "bg-border")} />
+              <div className={cn("h-1 w-full", SIGNAL_STRIPE[o.signal] ?? "bg-border")} />
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -86,7 +86,7 @@ export function DecisionCenter({ opportunities, lang }: Props) {
                       {signalLabel(o.signal, ar)}
                     </span>
                     {isUrgent && (
-                      <span className="rounded-full bg-primary/20 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+                      <span className="rounded-full bg-primary/20 px-1.5 py-0.5 text-[10px] font-bold text-primary">
                         {ar ? "عاجل" : "Urgent"}
                       </span>
                     )}
@@ -127,7 +127,7 @@ export function DecisionCenter({ opportunities, lang }: Props) {
 
         {/* AI Risk Guard — static institutional card */}
         <div className="hover-lift gradient-card relative overflow-hidden rounded-xl border border-border shadow-card">
-          <div className="h-0.5 w-full bg-accent" />
+          <div className="h-1 w-full bg-accent" />
           <div className="p-4">
             <div className="flex items-start justify-between gap-2">
               <div>

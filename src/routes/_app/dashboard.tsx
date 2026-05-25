@@ -276,25 +276,30 @@ function DashboardPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           {/* Summary + AI Assessment */}
           <Card className="gradient-card p-5 shadow-card">
-            <div className="grid grid-cols-2 gap-3">
-              {portfolioKpis.slice(0, 4).map((k, i) => {
-                const Icon = KPI_ICONS[i] ?? Activity;
-                return (
-                  <div key={i} className="flex items-center gap-2.5 rounded-lg border border-border/40 bg-card/40 p-2.5">
-                    <span className={cn("grid h-7 w-7 shrink-0 place-items-center rounded-md", TONE_CLS[k.tone])}>
-                      <Icon className="h-3.5 w-3.5" />
-                    </span>
-                    <div className="min-w-0">
-                      <div className="truncate text-[10px] text-muted-foreground">
-                        {ar ? k.label_ar : k.label_en}
-                      </div>
-                      <div className="truncate text-sm font-bold leading-tight">{k.value}</div>
-                    </div>
+            <div className="mb-4 flex flex-wrap gap-x-6 gap-y-3 border-b border-border/40 pb-4">
+              {portfolioKpis.slice(0, 3).map((k) => (
+                <div key={k.label_en}>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {ar ? k.label_ar : k.label_en}
                   </div>
-                );
-              })}
+                  <div className={cn(
+                    "mt-0.5 font-display text-base font-bold leading-tight",
+                    k.tone === "success" ? "text-success" : k.tone === "primary" ? "text-primary" : "text-foreground",
+                  )}>
+                    {k.value}
+                  </div>
+                  {k.change && (
+                    <div className={cn(
+                      "mt-0.5 text-[10px] font-semibold",
+                      k.change.startsWith("+") ? "text-success" : k.change.startsWith("-") ? "text-danger" : "text-muted-foreground",
+                    )}>
+                      {k.change}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-            <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3">
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
               <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold text-primary">
                 <Brain className="h-3.5 w-3.5" />
                 {ar ? "تقييم AI" : "AI Assessment"}
@@ -356,7 +361,7 @@ function DashboardPage() {
               key={a.to}
               to={a.to}
               className={cn(
-                "hover-lift flex flex-col gap-2 rounded-xl border p-4 transition-colors gradient-card shadow-card",
+                "hover-lift flex flex-col gap-2 rounded-xl border p-4 transition-colors shadow-card",
                 a.cls,
               )}
             >

@@ -96,7 +96,7 @@ export function SmartMarketPulse({ assets, lang, isLoading }: Props) {
                 </div>
                 <span
                   className={cn(
-                    "mt-2 inline-block rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide",
+                    "mt-2 inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase",
                     label.cls,
                   )}
                 >

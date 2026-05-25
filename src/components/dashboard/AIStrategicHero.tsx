@@ -67,7 +67,7 @@ export function AIStrategicHero({ lang, isFetching, onRefresh, assets, opportuni
               <Brain className="h-3 w-3 shrink-0" />
               {ar ? "فور سمارت AI • مؤسسي" : "ForeSmart AI • Institutional"}
             </span>
-            <h1 className="font-display text-2xl font-bold sm:text-3xl">
+            <h1 className="font-display text-3xl font-bold sm:text-4xl">
               <span className="text-gradient">{ar ? "مركز القيادة" : "Command Center"}</span>
             </h1>
             <p className="text-sm text-muted-foreground">
