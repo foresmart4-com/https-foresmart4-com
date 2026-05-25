@@ -203,6 +203,29 @@ interface SourceRegistryApi {
   enabledSourceCategories: string[];
 }
 
+interface DebateApi {
+  agents: Array<{
+    agentId: string;
+    stance: string;
+    confidencePercent: number;
+    reasoningAr: string;
+    riskScore: number;
+    warnings: string[];
+  }>;
+}
+
+interface ConsensusApi {
+  consensus: {
+    consensusVersion: string;
+    confidenceConsensus: number;
+    agreementPercent: number;
+    dominantView: string;
+    decisionBias: string;
+    finalConsensusAr: string;
+    riskConsensus: number;
+  };
+}
+
 const periods = ["hourly", "daily", "weekly", "monthly", "quarterly", "semiannual", "annual"];
 
 async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -235,6 +258,8 @@ function Genesis100Page() {
   const [intelligence, setIntelligence] = useState<IntelligenceApi | null>(null);
   const [firewall, setFirewall] = useState<FirewallApi | null>(null);
   const [sourceRegistry, setSourceRegistry] = useState<SourceRegistryApi | null>(null);
+  const [debate, setDebate] = useState<DebateApi | null>(null);
+  const [consensus, setConsensus] = useState<ConsensusApi | null>(null);
   const [riskWarnings, setRiskWarnings] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
@@ -245,7 +270,7 @@ function Genesis100Page() {
 
   const load = async () => {
     setError(null);
-    const [s, a, d, c, n, ar, intel, fw, sr] = await Promise.all([
+    const [s, a, d, c, n, ar, intel, fw, sr, db, cs] = await Promise.all([
       getJson<StatusApi>("/api/public/genesis100/status"),
       getJson<{ allocations: AllocationApi[] }>("/api/public/genesis100/allocations"),
       getJson<{ decisions: DecisionApi[] }>("/api/public/genesis100/decisions"),
@@ -255,6 +280,8 @@ function Genesis100Page() {
       getJson<IntelligenceApi>("/api/public/genesis100/intelligence"),
       getJson<FirewallApi>("/api/public/genesis100/decision-firewall"),
       getJson<SourceRegistryApi>("/api/public/genesis100/source-registry"),
+      getJson<DebateApi>("/api/public/genesis100/debate"),
+      getJson<ConsensusApi>("/api/public/genesis100/consensus"),
     ]);
     setStatus(s);
     setAllocations(a.allocations ?? []);
@@ -265,6 +292,8 @@ function Genesis100Page() {
     setIntelligence(intel);
     setFirewall(fw);
     setSourceRegistry(sr);
+    setDebate(db);
+    setConsensus(cs);
   };
 
   useEffect(() => {
@@ -480,6 +509,38 @@ function Genesis100Page() {
               {(sourceRegistry?.enabledSourceCategories ?? []).slice(0, 8).map((c) => (
                 <Badge key={c} variant="outline">{c}</Badge>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader><CardTitle>{t("مناظرة الذكاء الاصطناعي", "AI Debate")}</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {(debate?.agents ?? []).slice(0, 8).map((agent) => (
+              <div key={agent.agentId} className="rounded-md border p-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{agent.agentId}</span>
+                  <Badge variant="outline">{agent.stance} · {agent.confidencePercent}%</Badge>
+                </div>
+                <p className="mt-1 text-muted-foreground">{agent.reasoningAr}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>{t("إجماع الوكلاء", "Consensus %")}</CardTitle></CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="rounded-md bg-muted p-3">
+              {consensus?.consensus.finalConsensusAr ?? t("لا يوجد إجماع بعد.", "No consensus yet.")}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-md border p-2">{t("الاتفاق", "Agreement")}: {consensus?.consensus.agreementPercent ?? 0}%</div>
+              <div className="rounded-md border p-2">{t("المخاطر", "Risk Debate")}: {consensus?.consensus.riskConsensus ?? 0}%</div>
+              <div className="rounded-md border p-2">{t("الرأي الغالب", "Dominant")}: {consensus?.consensus.dominantView ?? "-"}</div>
+              <div className="rounded-md border p-2">{t("التحيز", "Bias")}: {consensus?.consensus.decisionBias ?? "watch"}</div>
             </div>
           </CardContent>
         </Card>

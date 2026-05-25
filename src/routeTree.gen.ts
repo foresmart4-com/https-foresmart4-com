@@ -95,6 +95,8 @@ import { Route as ApiPublicEmailConfigCheckRouteImport } from './routes/api/publ
 import { Route as ApiPublicDeployCheckRouteImport } from './routes/api/public/deploy-check'
 import { Route as ApiPublicAgentHealthRouteImport } from './routes/api/public/agent-health'
 import { Route as ApiFinnhubStreamRouteImport } from './routes/api/finnhub/stream'
+import { Route as ApiAiDebateRouteImport } from './routes/api/ai/debate'
+import { Route as ApiAiConsensusRouteImport } from './routes/api/ai/consensus'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -116,8 +118,10 @@ import { Route as ApiPublicGenesis100IntelligenceRouteImport } from './routes/ap
 import { Route as ApiPublicGenesis100GovernanceRouteImport } from './routes/api/public/genesis100/governance'
 import { Route as ApiPublicGenesis100DecisionsRouteImport } from './routes/api/public/genesis100/decisions'
 import { Route as ApiPublicGenesis100DecisionFirewallRouteImport } from './routes/api/public/genesis100/decision-firewall'
+import { Route as ApiPublicGenesis100DebateRouteImport } from './routes/api/public/genesis100/debate'
 import { Route as ApiPublicGenesis100CredibilityRouteImport } from './routes/api/public/genesis100/credibility'
 import { Route as ApiPublicGenesis100ControlsRouteImport } from './routes/api/public/genesis100/controls'
+import { Route as ApiPublicGenesis100ConsensusRouteImport } from './routes/api/public/genesis100/consensus'
 import { Route as ApiPublicGenesis100ArchiveRouteImport } from './routes/api/public/genesis100/archive'
 import { Route as ApiPublicGenesis100AnalyzeRouteImport } from './routes/api/public/genesis100/analyze'
 import { Route as ApiPublicGenesis100AllocationsRouteImport } from './routes/api/public/genesis100/allocations'
@@ -158,6 +162,7 @@ import { Route as ApiAiCredibilitySourcesRouteImport } from './routes/api/ai/cre
 import { Route as ApiAiBacktestStatusRouteImport } from './routes/api/ai/backtest/status'
 import { Route as ApiAiBacktestRunRouteImport } from './routes/api/ai/backtest/run'
 import { Route as ApiAiBacktestReportRouteImport } from './routes/api/ai/backtest/report'
+import { Route as ApiAiAgentsStatusRouteImport } from './routes/api/ai/agents/status'
 import { Route as ApiAiAgentsPortfolioDebateRouteImport } from './routes/api/ai/agents/portfolio-debate'
 import { Route as ApiAiAgentsDebateRouteImport } from './routes/api/ai/agents/debate'
 import { Route as ApiAiAgentsConsensusRouteImport } from './routes/api/ai/agents/consensus'
@@ -605,6 +610,16 @@ const ApiFinnhubStreamRoute = ApiFinnhubStreamRouteImport.update({
   path: '/api/finnhub/stream',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAiDebateRoute = ApiAiDebateRouteImport.update({
+  id: '/api/ai/debate',
+  path: '/api/ai/debate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiConsensusRoute = ApiAiConsensusRouteImport.update({
+  id: '/api/ai/consensus',
+  path: '/api/ai/consensus',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -727,6 +742,12 @@ const ApiPublicGenesis100DecisionFirewallRoute =
     path: '/api/public/genesis100/decision-firewall',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicGenesis100DebateRoute =
+  ApiPublicGenesis100DebateRouteImport.update({
+    id: '/api/public/genesis100/debate',
+    path: '/api/public/genesis100/debate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicGenesis100CredibilityRoute =
   ApiPublicGenesis100CredibilityRouteImport.update({
     id: '/api/public/genesis100/credibility',
@@ -737,6 +758,12 @@ const ApiPublicGenesis100ControlsRoute =
   ApiPublicGenesis100ControlsRouteImport.update({
     id: '/api/public/genesis100/controls',
     path: '/api/public/genesis100/controls',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100ConsensusRoute =
+  ApiPublicGenesis100ConsensusRouteImport.update({
+    id: '/api/public/genesis100/consensus',
+    path: '/api/public/genesis100/consensus',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicGenesis100ArchiveRoute =
@@ -953,6 +980,11 @@ const ApiAiBacktestReportRoute = ApiAiBacktestReportRouteImport.update({
   path: '/api/ai/backtest/report',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAiAgentsStatusRoute = ApiAiAgentsStatusRouteImport.update({
+  id: '/api/ai/agents/status',
+  path: '/api/ai/agents/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAiAgentsPortfolioDebateRoute =
   ApiAiAgentsPortfolioDebateRouteImport.update({
     id: '/api/ai/agents/portfolio-debate',
@@ -1082,6 +1114,8 @@ export interface FileRoutesByFullPath {
   '/watchlist': typeof AppWatchlistRoute
   '/watchlists': typeof AppWatchlistsRoute
   '/api/ping': typeof ApiPingRoute
+  '/api/ai/consensus': typeof ApiAiConsensusRoute
+  '/api/ai/debate': typeof ApiAiDebateRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/agent-health': typeof ApiPublicAgentHealthRoute
   '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
@@ -1107,6 +1141,7 @@ export interface FileRoutesByFullPath {
   '/api/ai/agents/consensus': typeof ApiAiAgentsConsensusRoute
   '/api/ai/agents/debate': typeof ApiAiAgentsDebateRoute
   '/api/ai/agents/portfolio-debate': typeof ApiAiAgentsPortfolioDebateRoute
+  '/api/ai/agents/status': typeof ApiAiAgentsStatusRoute
   '/api/ai/backtest/report': typeof ApiAiBacktestReportRoute
   '/api/ai/backtest/run': typeof ApiAiBacktestRunRoute
   '/api/ai/backtest/status': typeof ApiAiBacktestStatusRoute
@@ -1147,8 +1182,10 @@ export interface FileRoutesByFullPath {
   '/api/public/genesis100/allocations': typeof ApiPublicGenesis100AllocationsRoute
   '/api/public/genesis100/analyze': typeof ApiPublicGenesis100AnalyzeRoute
   '/api/public/genesis100/archive': typeof ApiPublicGenesis100ArchiveRouteWithChildren
+  '/api/public/genesis100/consensus': typeof ApiPublicGenesis100ConsensusRoute
   '/api/public/genesis100/controls': typeof ApiPublicGenesis100ControlsRoute
   '/api/public/genesis100/credibility': typeof ApiPublicGenesis100CredibilityRoute
+  '/api/public/genesis100/debate': typeof ApiPublicGenesis100DebateRoute
   '/api/public/genesis100/decision-firewall': typeof ApiPublicGenesis100DecisionFirewallRoute
   '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
   '/api/public/genesis100/governance': typeof ApiPublicGenesis100GovernanceRoute
@@ -1243,6 +1280,8 @@ export interface FileRoutesByTo {
   '/watchlist': typeof AppWatchlistRoute
   '/watchlists': typeof AppWatchlistsRoute
   '/api/ping': typeof ApiPingRoute
+  '/api/ai/consensus': typeof ApiAiConsensusRoute
+  '/api/ai/debate': typeof ApiAiDebateRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/agent-health': typeof ApiPublicAgentHealthRoute
   '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
@@ -1268,6 +1307,7 @@ export interface FileRoutesByTo {
   '/api/ai/agents/consensus': typeof ApiAiAgentsConsensusRoute
   '/api/ai/agents/debate': typeof ApiAiAgentsDebateRoute
   '/api/ai/agents/portfolio-debate': typeof ApiAiAgentsPortfolioDebateRoute
+  '/api/ai/agents/status': typeof ApiAiAgentsStatusRoute
   '/api/ai/backtest/report': typeof ApiAiBacktestReportRoute
   '/api/ai/backtest/run': typeof ApiAiBacktestRunRoute
   '/api/ai/backtest/status': typeof ApiAiBacktestStatusRoute
@@ -1308,8 +1348,10 @@ export interface FileRoutesByTo {
   '/api/public/genesis100/allocations': typeof ApiPublicGenesis100AllocationsRoute
   '/api/public/genesis100/analyze': typeof ApiPublicGenesis100AnalyzeRoute
   '/api/public/genesis100/archive': typeof ApiPublicGenesis100ArchiveRouteWithChildren
+  '/api/public/genesis100/consensus': typeof ApiPublicGenesis100ConsensusRoute
   '/api/public/genesis100/controls': typeof ApiPublicGenesis100ControlsRoute
   '/api/public/genesis100/credibility': typeof ApiPublicGenesis100CredibilityRoute
+  '/api/public/genesis100/debate': typeof ApiPublicGenesis100DebateRoute
   '/api/public/genesis100/decision-firewall': typeof ApiPublicGenesis100DecisionFirewallRoute
   '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
   '/api/public/genesis100/governance': typeof ApiPublicGenesis100GovernanceRoute
@@ -1406,6 +1448,8 @@ export interface FileRoutesById {
   '/_app/watchlist': typeof AppWatchlistRoute
   '/_app/watchlists': typeof AppWatchlistsRoute
   '/api/ping': typeof ApiPingRoute
+  '/api/ai/consensus': typeof ApiAiConsensusRoute
+  '/api/ai/debate': typeof ApiAiDebateRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/agent-health': typeof ApiPublicAgentHealthRoute
   '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
@@ -1431,6 +1475,7 @@ export interface FileRoutesById {
   '/api/ai/agents/consensus': typeof ApiAiAgentsConsensusRoute
   '/api/ai/agents/debate': typeof ApiAiAgentsDebateRoute
   '/api/ai/agents/portfolio-debate': typeof ApiAiAgentsPortfolioDebateRoute
+  '/api/ai/agents/status': typeof ApiAiAgentsStatusRoute
   '/api/ai/backtest/report': typeof ApiAiBacktestReportRoute
   '/api/ai/backtest/run': typeof ApiAiBacktestRunRoute
   '/api/ai/backtest/status': typeof ApiAiBacktestStatusRoute
@@ -1471,8 +1516,10 @@ export interface FileRoutesById {
   '/api/public/genesis100/allocations': typeof ApiPublicGenesis100AllocationsRoute
   '/api/public/genesis100/analyze': typeof ApiPublicGenesis100AnalyzeRoute
   '/api/public/genesis100/archive': typeof ApiPublicGenesis100ArchiveRouteWithChildren
+  '/api/public/genesis100/consensus': typeof ApiPublicGenesis100ConsensusRoute
   '/api/public/genesis100/controls': typeof ApiPublicGenesis100ControlsRoute
   '/api/public/genesis100/credibility': typeof ApiPublicGenesis100CredibilityRoute
+  '/api/public/genesis100/debate': typeof ApiPublicGenesis100DebateRoute
   '/api/public/genesis100/decision-firewall': typeof ApiPublicGenesis100DecisionFirewallRoute
   '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
   '/api/public/genesis100/governance': typeof ApiPublicGenesis100GovernanceRoute
@@ -1569,6 +1616,8 @@ export interface FileRouteTypes {
     | '/watchlist'
     | '/watchlists'
     | '/api/ping'
+    | '/api/ai/consensus'
+    | '/api/ai/debate'
     | '/api/finnhub/stream'
     | '/api/public/agent-health'
     | '/api/public/deploy-check'
@@ -1594,6 +1643,7 @@ export interface FileRouteTypes {
     | '/api/ai/agents/consensus'
     | '/api/ai/agents/debate'
     | '/api/ai/agents/portfolio-debate'
+    | '/api/ai/agents/status'
     | '/api/ai/backtest/report'
     | '/api/ai/backtest/run'
     | '/api/ai/backtest/status'
@@ -1634,8 +1684,10 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/allocations'
     | '/api/public/genesis100/analyze'
     | '/api/public/genesis100/archive'
+    | '/api/public/genesis100/consensus'
     | '/api/public/genesis100/controls'
     | '/api/public/genesis100/credibility'
+    | '/api/public/genesis100/debate'
     | '/api/public/genesis100/decision-firewall'
     | '/api/public/genesis100/decisions'
     | '/api/public/genesis100/governance'
@@ -1730,6 +1782,8 @@ export interface FileRouteTypes {
     | '/watchlist'
     | '/watchlists'
     | '/api/ping'
+    | '/api/ai/consensus'
+    | '/api/ai/debate'
     | '/api/finnhub/stream'
     | '/api/public/agent-health'
     | '/api/public/deploy-check'
@@ -1755,6 +1809,7 @@ export interface FileRouteTypes {
     | '/api/ai/agents/consensus'
     | '/api/ai/agents/debate'
     | '/api/ai/agents/portfolio-debate'
+    | '/api/ai/agents/status'
     | '/api/ai/backtest/report'
     | '/api/ai/backtest/run'
     | '/api/ai/backtest/status'
@@ -1795,8 +1850,10 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/allocations'
     | '/api/public/genesis100/analyze'
     | '/api/public/genesis100/archive'
+    | '/api/public/genesis100/consensus'
     | '/api/public/genesis100/controls'
     | '/api/public/genesis100/credibility'
+    | '/api/public/genesis100/debate'
     | '/api/public/genesis100/decision-firewall'
     | '/api/public/genesis100/decisions'
     | '/api/public/genesis100/governance'
@@ -1892,6 +1949,8 @@ export interface FileRouteTypes {
     | '/_app/watchlist'
     | '/_app/watchlists'
     | '/api/ping'
+    | '/api/ai/consensus'
+    | '/api/ai/debate'
     | '/api/finnhub/stream'
     | '/api/public/agent-health'
     | '/api/public/deploy-check'
@@ -1917,6 +1976,7 @@ export interface FileRouteTypes {
     | '/api/ai/agents/consensus'
     | '/api/ai/agents/debate'
     | '/api/ai/agents/portfolio-debate'
+    | '/api/ai/agents/status'
     | '/api/ai/backtest/report'
     | '/api/ai/backtest/run'
     | '/api/ai/backtest/status'
@@ -1957,8 +2017,10 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/allocations'
     | '/api/public/genesis100/analyze'
     | '/api/public/genesis100/archive'
+    | '/api/public/genesis100/consensus'
     | '/api/public/genesis100/controls'
     | '/api/public/genesis100/credibility'
+    | '/api/public/genesis100/debate'
     | '/api/public/genesis100/decision-firewall'
     | '/api/public/genesis100/decisions'
     | '/api/public/genesis100/governance'
@@ -2002,6 +2064,8 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
   ApiPingRoute: typeof ApiPingRoute
+  ApiAiConsensusRoute: typeof ApiAiConsensusRoute
+  ApiAiDebateRoute: typeof ApiAiDebateRoute
   ApiFinnhubStreamRoute: typeof ApiFinnhubStreamRoute
   ApiPublicAgentHealthRoute: typeof ApiPublicAgentHealthRoute
   ApiPublicDeployCheckRoute: typeof ApiPublicDeployCheckRoute
@@ -2027,6 +2091,7 @@ export interface RootRouteChildren {
   ApiAiAgentsConsensusRoute: typeof ApiAiAgentsConsensusRoute
   ApiAiAgentsDebateRoute: typeof ApiAiAgentsDebateRoute
   ApiAiAgentsPortfolioDebateRoute: typeof ApiAiAgentsPortfolioDebateRoute
+  ApiAiAgentsStatusRoute: typeof ApiAiAgentsStatusRoute
   ApiAiBacktestReportRoute: typeof ApiAiBacktestReportRoute
   ApiAiBacktestRunRoute: typeof ApiAiBacktestRunRoute
   ApiAiBacktestStatusRoute: typeof ApiAiBacktestStatusRoute
@@ -2067,8 +2132,10 @@ export interface RootRouteChildren {
   ApiPublicGenesis100AllocationsRoute: typeof ApiPublicGenesis100AllocationsRoute
   ApiPublicGenesis100AnalyzeRoute: typeof ApiPublicGenesis100AnalyzeRoute
   ApiPublicGenesis100ArchiveRoute: typeof ApiPublicGenesis100ArchiveRouteWithChildren
+  ApiPublicGenesis100ConsensusRoute: typeof ApiPublicGenesis100ConsensusRoute
   ApiPublicGenesis100ControlsRoute: typeof ApiPublicGenesis100ControlsRoute
   ApiPublicGenesis100CredibilityRoute: typeof ApiPublicGenesis100CredibilityRoute
+  ApiPublicGenesis100DebateRoute: typeof ApiPublicGenesis100DebateRoute
   ApiPublicGenesis100DecisionFirewallRoute: typeof ApiPublicGenesis100DecisionFirewallRoute
   ApiPublicGenesis100DecisionsRoute: typeof ApiPublicGenesis100DecisionsRoute
   ApiPublicGenesis100GovernanceRoute: typeof ApiPublicGenesis100GovernanceRoute
@@ -2702,6 +2769,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFinnhubStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/debate': {
+      id: '/api/ai/debate'
+      path: '/api/ai/debate'
+      fullPath: '/api/ai/debate'
+      preLoaderRoute: typeof ApiAiDebateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/consensus': {
+      id: '/api/ai/consensus'
+      path: '/api/ai/consensus'
+      fullPath: '/api/ai/consensus'
+      preLoaderRoute: typeof ApiAiConsensusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
@@ -2849,6 +2930,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicGenesis100DecisionFirewallRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/genesis100/debate': {
+      id: '/api/public/genesis100/debate'
+      path: '/api/public/genesis100/debate'
+      fullPath: '/api/public/genesis100/debate'
+      preLoaderRoute: typeof ApiPublicGenesis100DebateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/genesis100/credibility': {
       id: '/api/public/genesis100/credibility'
       path: '/api/public/genesis100/credibility'
@@ -2861,6 +2949,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/genesis100/controls'
       fullPath: '/api/public/genesis100/controls'
       preLoaderRoute: typeof ApiPublicGenesis100ControlsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/consensus': {
+      id: '/api/public/genesis100/consensus'
+      path: '/api/public/genesis100/consensus'
+      fullPath: '/api/public/genesis100/consensus'
+      preLoaderRoute: typeof ApiPublicGenesis100ConsensusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/genesis100/archive': {
@@ -3143,6 +3238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAiBacktestReportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/agents/status': {
+      id: '/api/ai/agents/status'
+      path: '/api/ai/agents/status'
+      fullPath: '/api/ai/agents/status'
+      preLoaderRoute: typeof ApiAiAgentsStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ai/agents/portfolio-debate': {
       id: '/api/ai/agents/portfolio-debate'
       path: '/api/ai/agents/portfolio-debate'
@@ -3367,6 +3469,8 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
   ApiPingRoute: ApiPingRoute,
+  ApiAiConsensusRoute: ApiAiConsensusRoute,
+  ApiAiDebateRoute: ApiAiDebateRoute,
   ApiFinnhubStreamRoute: ApiFinnhubStreamRoute,
   ApiPublicAgentHealthRoute: ApiPublicAgentHealthRoute,
   ApiPublicDeployCheckRoute: ApiPublicDeployCheckRoute,
@@ -3392,6 +3496,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiAgentsConsensusRoute: ApiAiAgentsConsensusRoute,
   ApiAiAgentsDebateRoute: ApiAiAgentsDebateRoute,
   ApiAiAgentsPortfolioDebateRoute: ApiAiAgentsPortfolioDebateRoute,
+  ApiAiAgentsStatusRoute: ApiAiAgentsStatusRoute,
   ApiAiBacktestReportRoute: ApiAiBacktestReportRoute,
   ApiAiBacktestRunRoute: ApiAiBacktestRunRoute,
   ApiAiBacktestStatusRoute: ApiAiBacktestStatusRoute,
@@ -3432,8 +3537,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicGenesis100AllocationsRoute: ApiPublicGenesis100AllocationsRoute,
   ApiPublicGenesis100AnalyzeRoute: ApiPublicGenesis100AnalyzeRoute,
   ApiPublicGenesis100ArchiveRoute: ApiPublicGenesis100ArchiveRouteWithChildren,
+  ApiPublicGenesis100ConsensusRoute: ApiPublicGenesis100ConsensusRoute,
   ApiPublicGenesis100ControlsRoute: ApiPublicGenesis100ControlsRoute,
   ApiPublicGenesis100CredibilityRoute: ApiPublicGenesis100CredibilityRoute,
+  ApiPublicGenesis100DebateRoute: ApiPublicGenesis100DebateRoute,
   ApiPublicGenesis100DecisionFirewallRoute:
     ApiPublicGenesis100DecisionFirewallRoute,
   ApiPublicGenesis100DecisionsRoute: ApiPublicGenesis100DecisionsRoute,

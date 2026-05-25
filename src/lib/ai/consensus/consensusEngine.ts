@@ -1,6 +1,8 @@
 import { runDebate } from "@/lib/ai/agents/debate";
 import { AI_SAFETY_FLAGS } from "@/lib/ai/core/safety";
 import type { DebateAgentResult } from "@/lib/ai/agents/debate/types";
+import { runInstitutionalDebate } from "@/lib/ai/debate/debateEngine";
+import type { InstitutionalAgentOpinion } from "@/lib/ai/debate/types";
 
 export type ConsensusActionBias = "watch" | "hold" | "increase_candidate" | "reduce_candidate" | "avoid";
 
@@ -45,5 +47,49 @@ export async function runConsensus(symbol: string) {
   return {
     debate,
     consensus: buildConsensus(symbol, debate),
+  };
+}
+
+export function buildInstitutionalConsensus(symbol: string, opinions: InstitutionalAgentOpinion[]) {
+  const avg = (values: number[]) => Math.round(values.reduce((a, b) => a + b, 0) / Math.max(1, values.length));
+  const bullishConsensus = avg(opinions.map((o) => o.bullishScore));
+  const bearishConsensus = avg(opinions.map((o) => o.bearishScore));
+  const riskConsensus = avg(opinions.map((o) => o.riskScore));
+  const confidenceConsensus = avg(opinions.map((o) => o.confidencePercent));
+  const bullishCount = opinions.filter((o) => o.stance === "bullish").length;
+  const bearishCount = opinions.filter((o) => o.stance === "bearish").length;
+  const neutralCount = opinions.filter((o) => o.stance === "neutral").length;
+  const uncertainCount = opinions.filter((o) => o.stance === "uncertain").length;
+  const maxAgreement = Math.max(bullishCount, bearishCount, neutralCount, uncertainCount);
+  const agreementPercent = Math.round((maxAgreement / Math.max(1, opinions.length)) * 100);
+  const disagreementPercent = 100 - agreementPercent;
+  const dominantView = bullishCount === maxAgreement ? "bullish" : bearishCount === maxAgreement ? "bearish" : uncertainCount === maxAgreement ? "uncertain" : "neutral";
+  let decisionBias: ConsensusActionBias = "watch";
+  if (riskConsensus >= 75 || dominantView === "uncertain") decisionBias = "avoid";
+  else if (bearishConsensus > bullishConsensus + 10) decisionBias = "reduce_candidate";
+  else if (bullishConsensus > bearishConsensus + 12 && confidenceConsensus >= 60) decisionBias = "increase_candidate";
+  else if (confidenceConsensus >= 50) decisionBias = "hold";
+
+  return {
+    consensusVersion: "genesis-consensus-v1",
+    symbol,
+    bullishConsensus,
+    bearishConsensus,
+    riskConsensus,
+    confidenceConsensus,
+    agreementPercent,
+    disagreementPercent,
+    dominantView,
+    decisionBias,
+    finalConsensusAr: `إجماع ${symbol}: ${decisionBias}، الرأي الغالب ${dominantView}، الثقة ${confidenceConsensus}%. لا يوجد تنفيذ.`,
+    ...AI_SAFETY_FLAGS,
+  };
+}
+
+export async function runInstitutionalConsensus(symbol: string) {
+  const debate = await runInstitutionalDebate(symbol);
+  return {
+    debate,
+    consensus: buildInstitutionalConsensus(symbol, debate),
   };
 }
