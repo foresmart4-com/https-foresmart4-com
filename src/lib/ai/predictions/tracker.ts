@@ -3,6 +3,7 @@ import { getLatestSnapshot, getSnapshotHistory } from "@/lib/market/snapshots";
 import { addMemoryEvent, getMemoryEvents } from "@/lib/ai/memory/store";
 import { getSourceCredibilityReport } from "@/lib/ai/credibility/sourceCredibility";
 import { getGenesisArchiveSummary } from "@/lib/genesis100/engine";
+import { getBacktestStatus } from "@/lib/ai/backtesting/backtestEngine";
 import { AI_SAFETY_FLAGS } from "@/lib/ai/core/safety";
 
 export type PredictionDirection = "up" | "down" | "flat";
@@ -154,8 +155,11 @@ export function getPredictionAccuracy() {
   const sourceCredibility = getSourceCredibilityReport();
   const archive = getGenesisArchiveSummary();
   const snapshots = getSnapshotHistory("daily", 30);
+  const backtest = getBacktestStatus();
+  const insufficientDataReasonAr = evaluated.length ? null : "لا توجد بيانات تقييم كافية بعد.";
 
   return {
+    predictionTrackerVersion: "prediction-tracker-v1",
     overallAccuracy,
     evaluatedCount: evaluated.length,
     totalPredictions: predictions.length,
@@ -163,6 +167,8 @@ export function getPredictionAccuracy() {
     accuracyByConfidenceTier: by((prediction) => prediction.confidenceTier),
     bestPatterns: evaluated.filter((prediction) => (prediction.accuracyScore ?? 0) >= 70).slice(0, 10),
     failedPatterns: evaluated.filter((prediction) => (prediction.accuracyScore ?? 0) < 70).slice(0, 10),
+    reasonAr: insufficientDataReasonAr,
+    insufficientDataReasonAr,
     calibrationSuggestionAr: evaluated.length
       ? overallAccuracy >= 70 ? "المعايرة جيدة مبدئياً، استمر في جمع عينات أكثر." : "خفض وزن الثقة أو حسّن مصادر البيانات قبل رفع حجم القرار."
       : "لا توجد بيانات تقييم كافية بعد.",
@@ -171,6 +177,8 @@ export function getPredictionAccuracy() {
       marketSnapshotCount: snapshots.length,
       memoryEvents: memory.length,
       sourceCredibilityAverage: sourceCredibility.averageCredibility,
+      backtestReady: backtest.ready,
+      backtestReasonAr: backtest.insufficientDataReasonAr ?? backtest.reasonAr,
     },
     ...AI_SAFETY_FLAGS,
   };
