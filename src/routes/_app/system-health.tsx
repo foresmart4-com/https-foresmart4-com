@@ -28,7 +28,8 @@ function SystemHealthPage() {
     refetchInterval: 30_000,
   });
 
-  const snap = (health.data as { snapshot: any } | undefined)?.snapshot;
+  const snap = (health.data as { snapshot: any; vault?: { configured: boolean; message: string } } | undefined)?.snapshot;
+  const vault = (health.data as { snapshot: any; vault?: { configured: boolean; message: string } } | undefined)?.vault;
 
   return (
     <div className="container mx-auto max-w-6xl space-y-6 p-6">
@@ -46,6 +47,18 @@ function SystemHealthPage() {
           </Button>
         </div>
       </header>
+
+      {vault && (
+        <Card className={`flex items-start gap-3 p-4 ${vault.configured ? "border-emerald-500/30 bg-emerald-500/5" : "border-destructive/30 bg-destructive/5"}`}>
+          {vault.configured
+            ? <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500 mt-0.5" />
+            : <AlertOctagon className="h-5 w-5 shrink-0 text-destructive mt-0.5" />}
+          <div>
+            <div className="text-sm font-semibold">{vault.configured ? "Vault key configured" : "Vault key missing"}</div>
+            {!vault.configured && <div className="mt-1 text-xs text-muted-foreground">{vault.message}</div>}
+          </div>
+        </Card>
+      )}
 
       {!snap ? (
         <Card className="p-10 text-center text-sm text-muted-foreground">Loading snapshot…</Card>

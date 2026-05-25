@@ -174,7 +174,12 @@ export const getSystemHealth = createServerFn({ method: "POST" })
     await assertAdmin(context.userId);
     const { data, error } = await supabaseAdmin.rpc("system_health_snapshot");
     if (error) throw new Error(error.message);
-    return { snapshot: JSON.parse(JSON.stringify(data ?? {})) as Record<string, any> };
+    const { vaultStatus } = await import("@/services/security/encryption");
+    const vault = vaultStatus();
+    return {
+      snapshot: JSON.parse(JSON.stringify(data ?? {})) as Record<string, any>,
+      vault: { configured: vault.ok, message: vault.message },
+    };
   });
 
 export const getErrorLogs = createServerFn({ method: "POST" })

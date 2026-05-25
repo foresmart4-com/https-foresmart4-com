@@ -68,6 +68,7 @@ import { Route as AppAdvisorRouteImport } from './routes/_app/advisor'
 import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
 import { Route as ApiWebhooksPaddleRouteImport } from './routes/api/webhooks/paddle'
 import { Route as ApiWebhooksLemonsqueezyRouteImport } from './routes/api/webhooks/lemonsqueezy'
+import { Route as ApiPublicVaultStatusRouteImport } from './routes/api/public/vault-status'
 import { Route as ApiPublicMoyasarWebhookRouteImport } from './routes/api/public/moyasar-webhook'
 import { Route as ApiPublicEmailConfigCheckRouteImport } from './routes/api/public/email-config-check'
 import { Route as ApiFinnhubStreamRouteImport } from './routes/api/finnhub/stream'
@@ -372,6 +373,11 @@ const ApiWebhooksLemonsqueezyRoute = ApiWebhooksLemonsqueezyRouteImport.update({
   path: '/api/webhooks/lemonsqueezy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicVaultStatusRoute = ApiPublicVaultStatusRouteImport.update({
+  id: '/api/public/vault-status',
+  path: '/api/public/vault-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMoyasarWebhookRoute = ApiPublicMoyasarWebhookRouteImport.update({
   id: '/api/public/moyasar-webhook',
   path: '/api/public/moyasar-webhook',
@@ -481,6 +487,7 @@ export interface FileRoutesByFullPath {
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
+  '/api/public/vault-status': typeof ApiPublicVaultStatusRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
@@ -550,6 +557,7 @@ export interface FileRoutesByTo {
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
+  '/api/public/vault-status': typeof ApiPublicVaultStatusRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
@@ -621,6 +629,7 @@ export interface FileRoutesById {
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
+  '/api/public/vault-status': typeof ApiPublicVaultStatusRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
@@ -692,6 +701,7 @@ export interface FileRouteTypes {
     | '/api/finnhub/stream'
     | '/api/public/email-config-check'
     | '/api/public/moyasar-webhook'
+    | '/api/public/vault-status'
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
@@ -761,6 +771,7 @@ export interface FileRouteTypes {
     | '/api/finnhub/stream'
     | '/api/public/email-config-check'
     | '/api/public/moyasar-webhook'
+    | '/api/public/vault-status'
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
@@ -831,6 +842,7 @@ export interface FileRouteTypes {
     | '/api/finnhub/stream'
     | '/api/public/email-config-check'
     | '/api/public/moyasar-webhook'
+    | '/api/public/vault-status'
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
@@ -856,6 +868,7 @@ export interface RootRouteChildren {
   ApiFinnhubStreamRoute: typeof ApiFinnhubStreamRoute
   ApiPublicEmailConfigCheckRoute: typeof ApiPublicEmailConfigCheckRoute
   ApiPublicMoyasarWebhookRoute: typeof ApiPublicMoyasarWebhookRoute
+  ApiPublicVaultStatusRoute: typeof ApiPublicVaultStatusRoute
   ApiWebhooksLemonsqueezyRoute: typeof ApiWebhooksLemonsqueezyRoute
   ApiWebhooksPaddleRoute: typeof ApiWebhooksPaddleRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
@@ -1282,6 +1295,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksLemonsqueezyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/vault-status': {
+      id: '/api/public/vault-status'
+      path: '/api/public/vault-status'
+      fullPath: '/api/public/vault-status'
+      preLoaderRoute: typeof ApiPublicVaultStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/moyasar-webhook': {
       id: '/api/public/moyasar-webhook'
       path: '/api/public/moyasar-webhook'
@@ -1462,6 +1482,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFinnhubStreamRoute: ApiFinnhubStreamRoute,
   ApiPublicEmailConfigCheckRoute: ApiPublicEmailConfigCheckRoute,
   ApiPublicMoyasarWebhookRoute: ApiPublicMoyasarWebhookRoute,
+  ApiPublicVaultStatusRoute: ApiPublicVaultStatusRoute,
   ApiWebhooksLemonsqueezyRoute: ApiWebhooksLemonsqueezyRoute,
   ApiWebhooksPaddleRoute: ApiWebhooksPaddleRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
@@ -1475,3 +1496,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

@@ -1,7 +1,12 @@
 // Secure API key vault — server-side persistence of broker credentials.
 // Plaintext keys never leave this module's boundary.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { encryptSecret, decryptSecret, maskKey } from "./encryption";
+import { encryptSecret, decryptSecret, maskKey, vaultStatus } from "./encryption";
+
+function assertVaultReady() {
+  const s = vaultStatus();
+  if (!s.ok) throw new Error(`vault_not_configured: ${s.message}`);
+}
 
 export type BrokerName = "binance";
 export type BrokerMode = "testnet" | "live";
@@ -29,6 +34,7 @@ export async function storeBrokerCredentials(
   apiSecret: string,
   label?: string,
 ): Promise<VaultRecordMeta> {
+  assertVaultReady();
   const k = encryptSecret(apiKey);
   const s = encryptSecret(apiSecret);
   // Use the IV/authTag from the secret payload (api key has its own ciphertext).
@@ -58,6 +64,7 @@ export async function loadBrokerCredentials(
   broker: BrokerName,
   mode: BrokerMode,
 ): Promise<VaultCredentials | null> {
+  assertVaultReady();
   const { data } = await supabaseAdmin
     .from("broker_credentials")
     .select("*").eq("user_id", userId).eq("broker", broker).eq("mode", mode)

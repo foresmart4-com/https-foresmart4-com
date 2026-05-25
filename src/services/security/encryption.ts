@@ -3,6 +3,24 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "crypt
 
 const ALGO = "aes-256-gcm";
 
+export interface VaultStatusResult {
+  ok: boolean;
+  message: string;
+}
+
+/** Non-throwing vault readiness check — safe to call from health probes. */
+export function vaultStatus(): VaultStatusResult {
+  const secret = process.env.VAULT_MASTER_KEY;
+  if (!secret || secret.length < 16) {
+    return {
+      ok: false,
+      message:
+        "VAULT_MASTER_KEY missing or too short. Generate one with: openssl rand -base64 32 — then set it in your environment secrets.",
+    };
+  }
+  return { ok: true, message: "Vault key configured." };
+}
+
 function getSecret(): string {
   const secret = process.env.VAULT_MASTER_KEY;
   if (!secret || secret.length < 16) {
