@@ -146,6 +146,8 @@ import { Route as ApiAiRiskTwinReportRouteImport } from './routes/api/ai/risk-tw
 import { Route as ApiAiResearchRunRouteImport } from './routes/api/ai/research/run'
 import { Route as ApiAiResearchLatestRouteImport } from './routes/api/ai/research/latest'
 import { Route as ApiAiResearchArchiveRouteImport } from './routes/api/ai/research/archive'
+import { Route as ApiAiQuantStatusRouteImport } from './routes/api/ai/quant/status'
+import { Route as ApiAiQuantRunRouteImport } from './routes/api/ai/quant/run'
 import { Route as ApiAiPredictionsHistoryRouteImport } from './routes/api/ai/predictions/history'
 import { Route as ApiAiPredictionsEvaluateRouteImport } from './routes/api/ai/predictions/evaluate'
 import { Route as ApiAiPredictionsCreateRouteImport } from './routes/api/ai/predictions/create'
@@ -912,6 +914,16 @@ const ApiAiResearchArchiveRoute = ApiAiResearchArchiveRouteImport.update({
   path: '/api/ai/research/archive',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAiQuantStatusRoute = ApiAiQuantStatusRouteImport.update({
+  id: '/api/ai/quant/status',
+  path: '/api/ai/quant/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiQuantRunRoute = ApiAiQuantRunRouteImport.update({
+  id: '/api/ai/quant/run',
+  path: '/api/ai/quant/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAiPredictionsHistoryRoute = ApiAiPredictionsHistoryRouteImport.update({
   id: '/api/ai/predictions/history',
   path: '/api/ai/predictions/history',
@@ -1274,6 +1286,8 @@ export interface FileRoutesByFullPath {
   '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
   '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
   '/api/ai/predictions/history': typeof ApiAiPredictionsHistoryRoute
+  '/api/ai/quant/run': typeof ApiAiQuantRunRoute
+  '/api/ai/quant/status': typeof ApiAiQuantStatusRoute
   '/api/ai/research/archive': typeof ApiAiResearchArchiveRoute
   '/api/ai/research/latest': typeof ApiAiResearchLatestRoute
   '/api/ai/research/run': typeof ApiAiResearchRunRoute
@@ -1456,6 +1470,8 @@ export interface FileRoutesByTo {
   '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
   '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
   '/api/ai/predictions/history': typeof ApiAiPredictionsHistoryRoute
+  '/api/ai/quant/run': typeof ApiAiQuantRunRoute
+  '/api/ai/quant/status': typeof ApiAiQuantStatusRoute
   '/api/ai/research/archive': typeof ApiAiResearchArchiveRoute
   '/api/ai/research/latest': typeof ApiAiResearchLatestRoute
   '/api/ai/research/run': typeof ApiAiResearchRunRoute
@@ -1640,6 +1656,8 @@ export interface FileRoutesById {
   '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
   '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
   '/api/ai/predictions/history': typeof ApiAiPredictionsHistoryRoute
+  '/api/ai/quant/run': typeof ApiAiQuantRunRoute
+  '/api/ai/quant/status': typeof ApiAiQuantStatusRoute
   '/api/ai/research/archive': typeof ApiAiResearchArchiveRoute
   '/api/ai/research/latest': typeof ApiAiResearchLatestRoute
   '/api/ai/research/run': typeof ApiAiResearchRunRoute
@@ -1824,6 +1842,8 @@ export interface FileRouteTypes {
     | '/api/ai/predictions/create'
     | '/api/ai/predictions/evaluate'
     | '/api/ai/predictions/history'
+    | '/api/ai/quant/run'
+    | '/api/ai/quant/status'
     | '/api/ai/research/archive'
     | '/api/ai/research/latest'
     | '/api/ai/research/run'
@@ -2006,6 +2026,8 @@ export interface FileRouteTypes {
     | '/api/ai/predictions/create'
     | '/api/ai/predictions/evaluate'
     | '/api/ai/predictions/history'
+    | '/api/ai/quant/run'
+    | '/api/ai/quant/status'
     | '/api/ai/research/archive'
     | '/api/ai/research/latest'
     | '/api/ai/research/run'
@@ -2189,6 +2211,8 @@ export interface FileRouteTypes {
     | '/api/ai/predictions/create'
     | '/api/ai/predictions/evaluate'
     | '/api/ai/predictions/history'
+    | '/api/ai/quant/run'
+    | '/api/ai/quant/status'
     | '/api/ai/research/archive'
     | '/api/ai/research/latest'
     | '/api/ai/research/run'
@@ -2320,6 +2344,8 @@ export interface RootRouteChildren {
   ApiAiPredictionsCreateRoute: typeof ApiAiPredictionsCreateRoute
   ApiAiPredictionsEvaluateRoute: typeof ApiAiPredictionsEvaluateRoute
   ApiAiPredictionsHistoryRoute: typeof ApiAiPredictionsHistoryRoute
+  ApiAiQuantRunRoute: typeof ApiAiQuantRunRoute
+  ApiAiQuantStatusRoute: typeof ApiAiQuantStatusRoute
   ApiAiResearchArchiveRoute: typeof ApiAiResearchArchiveRoute
   ApiAiResearchLatestRoute: typeof ApiAiResearchLatestRoute
   ApiAiResearchRunRoute: typeof ApiAiResearchRunRoute
@@ -3339,6 +3365,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAiResearchArchiveRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/quant/status': {
+      id: '/api/ai/quant/status'
+      path: '/api/ai/quant/status'
+      fullPath: '/api/ai/quant/status'
+      preLoaderRoute: typeof ApiAiQuantStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/quant/run': {
+      id: '/api/ai/quant/run'
+      path: '/api/ai/quant/run'
+      fullPath: '/api/ai/quant/run'
+      preLoaderRoute: typeof ApiAiQuantRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ai/predictions/history': {
       id: '/api/ai/predictions/history'
       path: '/api/ai/predictions/history'
@@ -3853,6 +3893,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiPredictionsCreateRoute: ApiAiPredictionsCreateRoute,
   ApiAiPredictionsEvaluateRoute: ApiAiPredictionsEvaluateRoute,
   ApiAiPredictionsHistoryRoute: ApiAiPredictionsHistoryRoute,
+  ApiAiQuantRunRoute: ApiAiQuantRunRoute,
+  ApiAiQuantStatusRoute: ApiAiQuantStatusRoute,
   ApiAiResearchArchiveRoute: ApiAiResearchArchiveRoute,
   ApiAiResearchLatestRoute: ApiAiResearchLatestRoute,
   ApiAiResearchRunRoute: ApiAiResearchRunRoute,
