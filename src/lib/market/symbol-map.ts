@@ -28,7 +28,8 @@ export type ProviderKey =
   | "fmp"
   | "commodityprice"
   | "fred"
-  | "yahoo";
+  | "yahoo"
+  | "financialdata";
 
 
 interface SymbolEntry extends Partial<Record<ProviderKey, string>> {

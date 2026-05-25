@@ -174,6 +174,7 @@ import { Route as ApiAiAgentsDebateRouteImport } from './routes/api/ai/agents/de
 import { Route as ApiAiAgentsConsensusRouteImport } from './routes/api/ai/agents/consensus'
 import { Route as ApiPublicMarketSnapshotIndexRouteImport } from './routes/api/public/market/snapshot/index'
 import { Route as ApiPublicGenesis100ExecutionIndexRouteImport } from './routes/api/public/genesis100/execution/index'
+import { Route as ApiPublicProvidersFinancialdataStatusRouteImport } from './routes/api/public/providers/financialdata/status'
 import { Route as ApiPublicProvidersEodhdExchangesRouteImport } from './routes/api/public/providers/eodhd/exchanges'
 import { Route as ApiPublicMarketSnapshotRunRouteImport } from './routes/api/public/market/snapshot/run'
 import { Route as ApiPublicMarketSnapshotHistoryRouteImport } from './routes/api/public/market/snapshot/history'
@@ -1050,6 +1051,12 @@ const ApiPublicGenesis100ExecutionIndexRoute =
     path: '/api/public/genesis100/execution/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicProvidersFinancialdataStatusRoute =
+  ApiPublicProvidersFinancialdataStatusRouteImport.update({
+    id: '/api/public/providers/financialdata/status',
+    path: '/api/public/providers/financialdata/status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicProvidersEodhdExchangesRoute =
   ApiPublicProvidersEodhdExchangesRouteImport.update({
     id: '/api/public/providers/eodhd/exchanges',
@@ -1256,6 +1263,7 @@ export interface FileRoutesByFullPath {
   '/api/public/market/snapshot/history': typeof ApiPublicMarketSnapshotHistoryRoute
   '/api/public/market/snapshot/run': typeof ApiPublicMarketSnapshotRunRoute
   '/api/public/providers/eodhd/exchanges': typeof ApiPublicProvidersEodhdExchangesRoute
+  '/api/public/providers/financialdata/status': typeof ApiPublicProvidersFinancialdataStatusRoute
   '/api/public/genesis100/execution/': typeof ApiPublicGenesis100ExecutionIndexRoute
   '/api/public/market/snapshot/': typeof ApiPublicMarketSnapshotIndexRoute
 }
@@ -1428,6 +1436,7 @@ export interface FileRoutesByTo {
   '/api/public/market/snapshot/history': typeof ApiPublicMarketSnapshotHistoryRoute
   '/api/public/market/snapshot/run': typeof ApiPublicMarketSnapshotRunRoute
   '/api/public/providers/eodhd/exchanges': typeof ApiPublicProvidersEodhdExchangesRoute
+  '/api/public/providers/financialdata/status': typeof ApiPublicProvidersFinancialdataStatusRoute
   '/api/public/genesis100/execution': typeof ApiPublicGenesis100ExecutionIndexRoute
   '/api/public/market/snapshot': typeof ApiPublicMarketSnapshotIndexRoute
 }
@@ -1602,6 +1611,7 @@ export interface FileRoutesById {
   '/api/public/market/snapshot/history': typeof ApiPublicMarketSnapshotHistoryRoute
   '/api/public/market/snapshot/run': typeof ApiPublicMarketSnapshotRunRoute
   '/api/public/providers/eodhd/exchanges': typeof ApiPublicProvidersEodhdExchangesRoute
+  '/api/public/providers/financialdata/status': typeof ApiPublicProvidersFinancialdataStatusRoute
   '/api/public/genesis100/execution/': typeof ApiPublicGenesis100ExecutionIndexRoute
   '/api/public/market/snapshot/': typeof ApiPublicMarketSnapshotIndexRoute
 }
@@ -1776,6 +1786,7 @@ export interface FileRouteTypes {
     | '/api/public/market/snapshot/history'
     | '/api/public/market/snapshot/run'
     | '/api/public/providers/eodhd/exchanges'
+    | '/api/public/providers/financialdata/status'
     | '/api/public/genesis100/execution/'
     | '/api/public/market/snapshot/'
   fileRoutesByTo: FileRoutesByTo
@@ -1948,6 +1959,7 @@ export interface FileRouteTypes {
     | '/api/public/market/snapshot/history'
     | '/api/public/market/snapshot/run'
     | '/api/public/providers/eodhd/exchanges'
+    | '/api/public/providers/financialdata/status'
     | '/api/public/genesis100/execution'
     | '/api/public/market/snapshot'
   id:
@@ -2121,6 +2133,7 @@ export interface FileRouteTypes {
     | '/api/public/market/snapshot/history'
     | '/api/public/market/snapshot/run'
     | '/api/public/providers/eodhd/exchanges'
+    | '/api/public/providers/financialdata/status'
     | '/api/public/genesis100/execution/'
     | '/api/public/market/snapshot/'
   fileRoutesById: FileRoutesById
@@ -2240,6 +2253,7 @@ export interface RootRouteChildren {
   ApiPublicMarketSnapshotHistoryRoute: typeof ApiPublicMarketSnapshotHistoryRoute
   ApiPublicMarketSnapshotRunRoute: typeof ApiPublicMarketSnapshotRunRoute
   ApiPublicProvidersEodhdExchangesRoute: typeof ApiPublicProvidersEodhdExchangesRoute
+  ApiPublicProvidersFinancialdataStatusRoute: typeof ApiPublicProvidersFinancialdataStatusRoute
   ApiPublicGenesis100ExecutionIndexRoute: typeof ApiPublicGenesis100ExecutionIndexRoute
   ApiPublicMarketSnapshotIndexRoute: typeof ApiPublicMarketSnapshotIndexRoute
 }
@@ -3401,6 +3415,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicGenesis100ExecutionIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/providers/financialdata/status': {
+      id: '/api/public/providers/financialdata/status'
+      path: '/api/public/providers/financialdata/status'
+      fullPath: '/api/public/providers/financialdata/status'
+      preLoaderRoute: typeof ApiPublicProvidersFinancialdataStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/providers/eodhd/exchanges': {
       id: '/api/public/providers/eodhd/exchanges'
       path: '/api/public/providers/eodhd/exchanges'
@@ -3698,6 +3719,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMarketSnapshotHistoryRoute: ApiPublicMarketSnapshotHistoryRoute,
   ApiPublicMarketSnapshotRunRoute: ApiPublicMarketSnapshotRunRoute,
   ApiPublicProvidersEodhdExchangesRoute: ApiPublicProvidersEodhdExchangesRoute,
+  ApiPublicProvidersFinancialdataStatusRoute:
+    ApiPublicProvidersFinancialdataStatusRoute,
   ApiPublicGenesis100ExecutionIndexRoute:
     ApiPublicGenesis100ExecutionIndexRoute,
   ApiPublicMarketSnapshotIndexRoute: ApiPublicMarketSnapshotIndexRoute,

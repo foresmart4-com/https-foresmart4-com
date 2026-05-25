@@ -56,6 +56,9 @@ export const CAPABILITIES: Record<ProviderId, ProviderCapabilities> = {
                   supportsRealtime: false /* free tier mostly delayed */ },
   commodityprice: { ...F, supportsMetals: true, supportsCommodities: true, supportsRealtime: true },
   fred:         { ...F, supportsBond: true, supportsTreasury: true, supportsRealtime: false /* EOD */ },
+  financialdata:{ ...F, supportsUsStock: true, supportsEtf: true, supportsForex: true,
+                  supportsCrypto: true, supportsCommodities: true, supportsMetals: true,
+                  supportsRealtime: true },
 };
 
 const CLASS_TO_CAP: Record<AssetClass, keyof ProviderCapabilities | null> = {

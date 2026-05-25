@@ -27,6 +27,7 @@ import { getFredQuote } from "@/services/providers/fred";
 import { getYahooQuote } from "@/services/providers/yahoo";
 import { getEodhdQuote } from "@/lib/market/providers/eodhd";
 import { getMarketstackQuote } from "@/lib/market/providers/marketstack";
+import { getFinancialDataQuote } from "@/lib/market/providers/financialdata";
 import { translateSymbol, type ProviderKey } from "@/lib/market/symbol-map";
 import { supports, unsupportedReason, isRealtime } from "@/lib/market/capabilities";
 
@@ -66,7 +67,8 @@ export type ProviderId =
   | "fred"
   | "yahoo"
   | "eodhd"
-  | "marketstack";
+  | "marketstack"
+  | "financialdata";
 
 
 export type ProviderMode = "live" | "delayed" | "cached" | "stale" | "synthetic";
@@ -368,20 +370,20 @@ export function resolveAsset(rawSymbol: string): ResolvedAsset {
 // ---------- Provider priority chains ----------
 
 const CHAINS: Record<AssetClass, ProviderId[]> = {
-  us_stock: ["finnhub", "eodhd", "marketstack", "fmp", "alpaca", "twelvedata", "alphavantage"],
+  us_stock: ["finnhub", "financialdata", "eodhd", "marketstack", "fmp", "alpaca", "twelvedata", "alphavantage"],
   // Saudi: SAHMK (native) → TwelveData → FMP → AlphaVantage
   saudi_stock: ["sahmk", "eodhd", "marketstack", "twelvedata", "fmp", "alphavantage"],
-  crypto: ["binance", "coingecko", "twelvedata", "eodhd", "fmp"],
+  crypto: ["binance", "coingecko", "financialdata", "twelvedata", "eodhd", "fmp"],
   // Metals: TwelveData → CommodityPriceAPI → FMP → AlphaVantage → TradingView
-  metal: ["twelvedata", "eodhd", "commodityprice", "fmp", "alphavantage", "tradingview"],
+  metal: ["twelvedata", "financialdata", "eodhd", "commodityprice", "fmp", "alphavantage", "tradingview"],
   // Commodities (oil/gas): CommodityPriceAPI → FMP → AlphaVantage → TwelveData → TradingView
-  commodity: ["eodhd", "commodityprice", "fmp", "alphavantage", "twelvedata", "tradingview"],
-  etf:         ["finnhub", "twelvedata", "fmp", "alphavantage"],
+  commodity: ["financialdata", "eodhd", "commodityprice", "fmp", "alphavantage", "twelvedata", "tradingview"],
+  etf:         ["finnhub", "financialdata", "twelvedata", "fmp", "alphavantage"],
   bond:        ["fred", "twelvedata", "alphavantage"],
   treasury:    ["fred"],
   index:       ["fmp", "twelvedata", "finnhub", "tradingview"],
   // Forex: TwelveData → FMP → AlphaVantage → Finnhub OANDA
-  forex: ["twelvedata", "eodhd", "fmp", "alphavantage", "marketstack", "finnhub"],
+  forex: ["twelvedata", "financialdata", "eodhd", "fmp", "alphavantage", "marketstack", "finnhub"],
   gcc_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
   uk_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
   european_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
@@ -782,6 +784,17 @@ async function runMarketstack(asset: ResolvedAsset, sym: string): Promise<Upstre
   }
   return { price: r.price, change: r.change, changePercent: r.changePercent, volume: r.volume, timestamp: r.timestamp, delayed: r.delayed };
 }
+
+async function runFinancialData(asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
+  const r = await getFinancialDataQuote(sym, asset.assetClass);
+  if (!r.success) {
+    const err = new Error(`financialdata: ${r.reason} — ${r.errorAr}`);
+    if (r.reason === "rate_limited") Object.assign(err, { rateLimited: true });
+    throw err;
+  }
+  return { price: r.price, change: r.change, changePercent: r.changePercent, volume: r.volume, timestamp: r.timestamp, delayed: r.delayed };
+}
+
 async function runYahoo(_asset: ResolvedAsset, sym: string): Promise<UpstreamResult> {
   const r = await getYahooQuote(sym);
   if ("ok" in r && r.ok === false) {
@@ -813,6 +826,7 @@ const RUNNERS: Record<ProviderId, (a: ResolvedAsset, sym: string) => Promise<Ups
   yahoo: runYahoo,
   eodhd: runEodhd,
   marketstack: runMarketstack,
+  financialdata: runFinancialData,
 };
 
 /** Map our internal ProviderId → the symbol-map ProviderKey. 1:1 today. */
@@ -831,6 +845,7 @@ const PROVIDER_KEY: Record<ProviderId, ProviderKey> = {
   yahoo: "fmp",
   eodhd: "fmp",
   marketstack: "fmp",
+  financialdata: "financialdata",
 };
 
 // ---------- Core router ----------
@@ -857,6 +872,7 @@ export function getProviderConnected(): Partial<Record<ProviderId, boolean>> {
     yahoo:          true,
     eodhd:          !!process.env.EODHD_API_KEY,
     marketstack:    !!process.env.MARKETSTACK_API_KEY,
+    financialdata:  !!process.env.FINANCIALDATA_API_KEY,
     fred:           !!process.env.FRED_API_KEY,
     commodityprice: !!(process.env.COMMODITYPRICE_API_KEY ?? process.env.COMMODITYPRICEAPI_KEY),
     binance:        true,
