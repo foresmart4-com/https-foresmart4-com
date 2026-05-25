@@ -7,7 +7,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Briefcase, Plus, Sprout, Brain, Activity, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
@@ -239,6 +238,7 @@ function PortfoliosPage() {
                   {holdings.length === 0 ? (
                     <div className="p-5 text-center text-xs text-muted-foreground">{t("portfolio.noHoldings")}</div>
                   ) : (
+                    <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead className="bg-muted/30 text-[10px] uppercase text-muted-foreground">
                         <tr>
@@ -265,6 +265,7 @@ function PortfoliosPage() {
                         })}
                       </tbody>
                     </table>
+                    </div>
                   )}
                 </div>
               </Card>
