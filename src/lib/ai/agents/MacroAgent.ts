@@ -1,11 +1,21 @@
 import { routeQuote } from "@/lib/market/router";
 import { AI_CORE_VERSION, AI_SAFETY_FLAGS, AI_UNAVAILABLE_AR, safeRead } from "@/lib/ai/core/safety";
+import { getMacroFeed } from "@/lib/ai/feeds/macroFeed";
+import { getNewsFeed } from "@/lib/ai/feeds/newsFeed";
+import { getAIMemoryStatus } from "@/lib/ai/memory/store";
+import { getSourceCredibilityReport } from "@/lib/ai/credibility/sourceCredibility";
 
 const MACRO_SYMBOLS = ["WTI", "BRENT", "EURUSD", "DXY", "US10Y", "XAUUSD"];
 
 export class MacroAgent {
   async analyze() {
     const quotes = await Promise.all(MACRO_SYMBOLS.map((symbol) => safeRead(() => routeQuote(symbol), null)));
+    const [macroFeed, newsFeed, memory, sourceCredibility] = await Promise.all([
+      safeRead(() => getMacroFeed(), null),
+      safeRead(() => getNewsFeed(), null),
+      safeRead(() => getAIMemoryStatus(), null),
+      safeRead(() => getSourceCredibilityReport(), null),
+    ]);
     const available = quotes.filter((q) => q?.success);
     const avgChange = available.length
       ? available.reduce((sum, q) => sum + (q?.changePercent ?? 0), 0) / available.length
@@ -34,6 +44,11 @@ export class MacroAgent {
         provider: q?.provider ?? null,
         changePercent: q?.changePercent ?? null,
       })),
+      macroFeedConnected: Boolean(macroFeed?.availableIndicators?.length),
+      newsFeedConnected: Boolean(newsFeed?.items?.length),
+      memoryConnected: Boolean(memory?.memoryConnected),
+      sourceCredibilityConnected: Boolean(sourceCredibility?.sources?.length),
+      learningCycleReady: Boolean(memory?.learningReady),
       ...AI_SAFETY_FLAGS,
     };
   }

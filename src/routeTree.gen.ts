@@ -127,6 +127,10 @@ import { Route as ApiPublicAlertsEvaluateRouteImport } from './routes/api/public
 import { Route as ApiPaymentsMyfatoorahWebhookRouteImport } from './routes/api/payments/myfatoorah/webhook'
 import { Route as ApiPaymentsMyfatoorahStatusRouteImport } from './routes/api/payments/myfatoorah/status'
 import { Route as ApiPaymentsMyfatoorahCreateRouteImport } from './routes/api/payments/myfatoorah/create'
+import { Route as ApiAiSchedulerRunRouteImport } from './routes/api/ai/scheduler/run'
+import { Route as ApiAiMemoryStatusRouteImport } from './routes/api/ai/memory/status'
+import { Route as ApiAiLearningStatusRouteImport } from './routes/api/ai/learning/status'
+import { Route as ApiAiLearningRunCycleRouteImport } from './routes/api/ai/learning/run-cycle'
 import { Route as ApiAiKnowledgeTopicsRouteImport } from './routes/api/ai/knowledge/topics'
 import { Route as ApiAiKnowledgeStatusRouteImport } from './routes/api/ai/knowledge/status'
 import { Route as ApiAiKnowledgeSearchRouteImport } from './routes/api/ai/knowledge/search'
@@ -135,6 +139,9 @@ import { Route as ApiAiIntelligenceMarketRouteImport } from './routes/api/ai/int
 import { Route as ApiAiIntelligenceMacroRouteImport } from './routes/api/ai/intelligence/macro'
 import { Route as ApiAiIntelligenceLearningRouteImport } from './routes/api/ai/intelligence/learning'
 import { Route as ApiAiIntelligenceGenesisRouteImport } from './routes/api/ai/intelligence/genesis'
+import { Route as ApiAiFeedsNewsRouteImport } from './routes/api/ai/feeds/news'
+import { Route as ApiAiFeedsMacroRouteImport } from './routes/api/ai/feeds/macro'
+import { Route as ApiAiCredibilitySourcesRouteImport } from './routes/api/ai/credibility/sources'
 import { Route as ApiPublicMarketSnapshotIndexRouteImport } from './routes/api/public/market/snapshot/index'
 import { Route as ApiPublicGenesis100ExecutionIndexRouteImport } from './routes/api/public/genesis100/execution/index'
 import { Route as ApiPublicProvidersEodhdExchangesRouteImport } from './routes/api/public/providers/eodhd/exchanges'
@@ -764,6 +771,26 @@ const ApiPaymentsMyfatoorahCreateRoute =
     path: '/api/payments/myfatoorah/create',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAiSchedulerRunRoute = ApiAiSchedulerRunRouteImport.update({
+  id: '/api/ai/scheduler/run',
+  path: '/api/ai/scheduler/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiMemoryStatusRoute = ApiAiMemoryStatusRouteImport.update({
+  id: '/api/ai/memory/status',
+  path: '/api/ai/memory/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiLearningStatusRoute = ApiAiLearningStatusRouteImport.update({
+  id: '/api/ai/learning/status',
+  path: '/api/ai/learning/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiLearningRunCycleRoute = ApiAiLearningRunCycleRouteImport.update({
+  id: '/api/ai/learning/run-cycle',
+  path: '/api/ai/learning/run-cycle',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAiKnowledgeTopicsRoute = ApiAiKnowledgeTopicsRouteImport.update({
   id: '/api/ai/knowledge/topics',
   path: '/api/ai/knowledge/topics',
@@ -806,6 +833,21 @@ const ApiAiIntelligenceGenesisRoute =
     path: '/api/ai/intelligence/genesis',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAiFeedsNewsRoute = ApiAiFeedsNewsRouteImport.update({
+  id: '/api/ai/feeds/news',
+  path: '/api/ai/feeds/news',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiFeedsMacroRoute = ApiAiFeedsMacroRouteImport.update({
+  id: '/api/ai/feeds/macro',
+  path: '/api/ai/feeds/macro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiCredibilitySourcesRoute = ApiAiCredibilitySourcesRouteImport.update({
+  id: '/api/ai/credibility/sources',
+  path: '/api/ai/credibility/sources',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMarketSnapshotIndexRoute =
   ApiPublicMarketSnapshotIndexRouteImport.update({
     id: '/api/public/market/snapshot/',
@@ -941,6 +983,9 @@ export interface FileRoutesByFullPath {
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
+  '/api/ai/credibility/sources': typeof ApiAiCredibilitySourcesRoute
+  '/api/ai/feeds/macro': typeof ApiAiFeedsMacroRoute
+  '/api/ai/feeds/news': typeof ApiAiFeedsNewsRoute
   '/api/ai/intelligence/genesis': typeof ApiAiIntelligenceGenesisRoute
   '/api/ai/intelligence/learning': typeof ApiAiIntelligenceLearningRoute
   '/api/ai/intelligence/macro': typeof ApiAiIntelligenceMacroRoute
@@ -949,6 +994,10 @@ export interface FileRoutesByFullPath {
   '/api/ai/knowledge/search': typeof ApiAiKnowledgeSearchRoute
   '/api/ai/knowledge/status': typeof ApiAiKnowledgeStatusRoute
   '/api/ai/knowledge/topics': typeof ApiAiKnowledgeTopicsRoute
+  '/api/ai/learning/run-cycle': typeof ApiAiLearningRunCycleRoute
+  '/api/ai/learning/status': typeof ApiAiLearningStatusRoute
+  '/api/ai/memory/status': typeof ApiAiMemoryStatusRoute
+  '/api/ai/scheduler/run': typeof ApiAiSchedulerRunRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
   '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
   '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -1076,6 +1125,9 @@ export interface FileRoutesByTo {
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
+  '/api/ai/credibility/sources': typeof ApiAiCredibilitySourcesRoute
+  '/api/ai/feeds/macro': typeof ApiAiFeedsMacroRoute
+  '/api/ai/feeds/news': typeof ApiAiFeedsNewsRoute
   '/api/ai/intelligence/genesis': typeof ApiAiIntelligenceGenesisRoute
   '/api/ai/intelligence/learning': typeof ApiAiIntelligenceLearningRoute
   '/api/ai/intelligence/macro': typeof ApiAiIntelligenceMacroRoute
@@ -1084,6 +1136,10 @@ export interface FileRoutesByTo {
   '/api/ai/knowledge/search': typeof ApiAiKnowledgeSearchRoute
   '/api/ai/knowledge/status': typeof ApiAiKnowledgeStatusRoute
   '/api/ai/knowledge/topics': typeof ApiAiKnowledgeTopicsRoute
+  '/api/ai/learning/run-cycle': typeof ApiAiLearningRunCycleRoute
+  '/api/ai/learning/status': typeof ApiAiLearningStatusRoute
+  '/api/ai/memory/status': typeof ApiAiMemoryStatusRoute
+  '/api/ai/scheduler/run': typeof ApiAiSchedulerRunRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
   '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
   '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -1213,6 +1269,9 @@ export interface FileRoutesById {
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
+  '/api/ai/credibility/sources': typeof ApiAiCredibilitySourcesRoute
+  '/api/ai/feeds/macro': typeof ApiAiFeedsMacroRoute
+  '/api/ai/feeds/news': typeof ApiAiFeedsNewsRoute
   '/api/ai/intelligence/genesis': typeof ApiAiIntelligenceGenesisRoute
   '/api/ai/intelligence/learning': typeof ApiAiIntelligenceLearningRoute
   '/api/ai/intelligence/macro': typeof ApiAiIntelligenceMacroRoute
@@ -1221,6 +1280,10 @@ export interface FileRoutesById {
   '/api/ai/knowledge/search': typeof ApiAiKnowledgeSearchRoute
   '/api/ai/knowledge/status': typeof ApiAiKnowledgeStatusRoute
   '/api/ai/knowledge/topics': typeof ApiAiKnowledgeTopicsRoute
+  '/api/ai/learning/run-cycle': typeof ApiAiLearningRunCycleRoute
+  '/api/ai/learning/status': typeof ApiAiLearningStatusRoute
+  '/api/ai/memory/status': typeof ApiAiMemoryStatusRoute
+  '/api/ai/scheduler/run': typeof ApiAiSchedulerRunRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
   '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
   '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -1350,6 +1413,9 @@ export interface FileRouteTypes {
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
+    | '/api/ai/credibility/sources'
+    | '/api/ai/feeds/macro'
+    | '/api/ai/feeds/news'
     | '/api/ai/intelligence/genesis'
     | '/api/ai/intelligence/learning'
     | '/api/ai/intelligence/macro'
@@ -1358,6 +1424,10 @@ export interface FileRouteTypes {
     | '/api/ai/knowledge/search'
     | '/api/ai/knowledge/status'
     | '/api/ai/knowledge/topics'
+    | '/api/ai/learning/run-cycle'
+    | '/api/ai/learning/status'
+    | '/api/ai/memory/status'
+    | '/api/ai/scheduler/run'
     | '/api/payments/myfatoorah/create'
     | '/api/payments/myfatoorah/status'
     | '/api/payments/myfatoorah/webhook'
@@ -1485,6 +1555,9 @@ export interface FileRouteTypes {
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
+    | '/api/ai/credibility/sources'
+    | '/api/ai/feeds/macro'
+    | '/api/ai/feeds/news'
     | '/api/ai/intelligence/genesis'
     | '/api/ai/intelligence/learning'
     | '/api/ai/intelligence/macro'
@@ -1493,6 +1566,10 @@ export interface FileRouteTypes {
     | '/api/ai/knowledge/search'
     | '/api/ai/knowledge/status'
     | '/api/ai/knowledge/topics'
+    | '/api/ai/learning/run-cycle'
+    | '/api/ai/learning/status'
+    | '/api/ai/memory/status'
+    | '/api/ai/scheduler/run'
     | '/api/payments/myfatoorah/create'
     | '/api/payments/myfatoorah/status'
     | '/api/payments/myfatoorah/webhook'
@@ -1621,6 +1698,9 @@ export interface FileRouteTypes {
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
+    | '/api/ai/credibility/sources'
+    | '/api/ai/feeds/macro'
+    | '/api/ai/feeds/news'
     | '/api/ai/intelligence/genesis'
     | '/api/ai/intelligence/learning'
     | '/api/ai/intelligence/macro'
@@ -1629,6 +1709,10 @@ export interface FileRouteTypes {
     | '/api/ai/knowledge/search'
     | '/api/ai/knowledge/status'
     | '/api/ai/knowledge/topics'
+    | '/api/ai/learning/run-cycle'
+    | '/api/ai/learning/status'
+    | '/api/ai/memory/status'
+    | '/api/ai/scheduler/run'
     | '/api/payments/myfatoorah/create'
     | '/api/payments/myfatoorah/status'
     | '/api/payments/myfatoorah/webhook'
@@ -1705,6 +1789,9 @@ export interface RootRouteChildren {
   ApiWebhooksLemonsqueezyRoute: typeof ApiWebhooksLemonsqueezyRoute
   ApiWebhooksPaddleRoute: typeof ApiWebhooksPaddleRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
+  ApiAiCredibilitySourcesRoute: typeof ApiAiCredibilitySourcesRoute
+  ApiAiFeedsMacroRoute: typeof ApiAiFeedsMacroRoute
+  ApiAiFeedsNewsRoute: typeof ApiAiFeedsNewsRoute
   ApiAiIntelligenceGenesisRoute: typeof ApiAiIntelligenceGenesisRoute
   ApiAiIntelligenceLearningRoute: typeof ApiAiIntelligenceLearningRoute
   ApiAiIntelligenceMacroRoute: typeof ApiAiIntelligenceMacroRoute
@@ -1713,6 +1800,10 @@ export interface RootRouteChildren {
   ApiAiKnowledgeSearchRoute: typeof ApiAiKnowledgeSearchRoute
   ApiAiKnowledgeStatusRoute: typeof ApiAiKnowledgeStatusRoute
   ApiAiKnowledgeTopicsRoute: typeof ApiAiKnowledgeTopicsRoute
+  ApiAiLearningRunCycleRoute: typeof ApiAiLearningRunCycleRoute
+  ApiAiLearningStatusRoute: typeof ApiAiLearningStatusRoute
+  ApiAiMemoryStatusRoute: typeof ApiAiMemoryStatusRoute
+  ApiAiSchedulerRunRoute: typeof ApiAiSchedulerRunRoute
   ApiPaymentsMyfatoorahCreateRoute: typeof ApiPaymentsMyfatoorahCreateRoute
   ApiPaymentsMyfatoorahStatusRoute: typeof ApiPaymentsMyfatoorahStatusRoute
   ApiPaymentsMyfatoorahWebhookRoute: typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -2581,6 +2672,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPaymentsMyfatoorahCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/scheduler/run': {
+      id: '/api/ai/scheduler/run'
+      path: '/api/ai/scheduler/run'
+      fullPath: '/api/ai/scheduler/run'
+      preLoaderRoute: typeof ApiAiSchedulerRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/memory/status': {
+      id: '/api/ai/memory/status'
+      path: '/api/ai/memory/status'
+      fullPath: '/api/ai/memory/status'
+      preLoaderRoute: typeof ApiAiMemoryStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/learning/status': {
+      id: '/api/ai/learning/status'
+      path: '/api/ai/learning/status'
+      fullPath: '/api/ai/learning/status'
+      preLoaderRoute: typeof ApiAiLearningStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/learning/run-cycle': {
+      id: '/api/ai/learning/run-cycle'
+      path: '/api/ai/learning/run-cycle'
+      fullPath: '/api/ai/learning/run-cycle'
+      preLoaderRoute: typeof ApiAiLearningRunCycleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ai/knowledge/topics': {
       id: '/api/ai/knowledge/topics'
       path: '/api/ai/knowledge/topics'
@@ -2635,6 +2754,27 @@ declare module '@tanstack/react-router' {
       path: '/api/ai/intelligence/genesis'
       fullPath: '/api/ai/intelligence/genesis'
       preLoaderRoute: typeof ApiAiIntelligenceGenesisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/feeds/news': {
+      id: '/api/ai/feeds/news'
+      path: '/api/ai/feeds/news'
+      fullPath: '/api/ai/feeds/news'
+      preLoaderRoute: typeof ApiAiFeedsNewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/feeds/macro': {
+      id: '/api/ai/feeds/macro'
+      path: '/api/ai/feeds/macro'
+      fullPath: '/api/ai/feeds/macro'
+      preLoaderRoute: typeof ApiAiFeedsMacroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/credibility/sources': {
+      id: '/api/ai/credibility/sources'
+      path: '/api/ai/credibility/sources'
+      fullPath: '/api/ai/credibility/sources'
+      preLoaderRoute: typeof ApiAiCredibilitySourcesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/market/snapshot/': {
@@ -2862,6 +3002,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWebhooksLemonsqueezyRoute: ApiWebhooksLemonsqueezyRoute,
   ApiWebhooksPaddleRoute: ApiWebhooksPaddleRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
+  ApiAiCredibilitySourcesRoute: ApiAiCredibilitySourcesRoute,
+  ApiAiFeedsMacroRoute: ApiAiFeedsMacroRoute,
+  ApiAiFeedsNewsRoute: ApiAiFeedsNewsRoute,
   ApiAiIntelligenceGenesisRoute: ApiAiIntelligenceGenesisRoute,
   ApiAiIntelligenceLearningRoute: ApiAiIntelligenceLearningRoute,
   ApiAiIntelligenceMacroRoute: ApiAiIntelligenceMacroRoute,
@@ -2870,6 +3013,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiKnowledgeSearchRoute: ApiAiKnowledgeSearchRoute,
   ApiAiKnowledgeStatusRoute: ApiAiKnowledgeStatusRoute,
   ApiAiKnowledgeTopicsRoute: ApiAiKnowledgeTopicsRoute,
+  ApiAiLearningRunCycleRoute: ApiAiLearningRunCycleRoute,
+  ApiAiLearningStatusRoute: ApiAiLearningStatusRoute,
+  ApiAiMemoryStatusRoute: ApiAiMemoryStatusRoute,
+  ApiAiSchedulerRunRoute: ApiAiSchedulerRunRoute,
   ApiPaymentsMyfatoorahCreateRoute: ApiPaymentsMyfatoorahCreateRoute,
   ApiPaymentsMyfatoorahStatusRoute: ApiPaymentsMyfatoorahStatusRoute,
   ApiPaymentsMyfatoorahWebhookRoute: ApiPaymentsMyfatoorahWebhookRoute,

@@ -5,6 +5,8 @@ export const AI_INSUFFICIENT_HISTORY_AR = "لا توجد بيانات تاريخ
 export const AI_SAFETY_FLAGS = {
   liveTrading: false,
   executionAgent: false,
+  externalTransfersAllowed: false,
+  fundMovementBlocked: true,
   secretsExposed: false,
 } as const;
 

@@ -27,6 +27,10 @@ interface AgentHealthApi {
   executionEnabled: boolean;
   decisionsCount: number;
   lastCycleAt: string | null;
+  macroFeedConnected?: boolean;
+  newsFeedConnected?: boolean;
+  sourceCredibilityConnected?: boolean;
+  learningCycleReady?: boolean;
 }
 
 const MODE_AR: Record<string, string> = { observation: "مراقبة", advisory: "استشاري", execution_ready: "جاهز للتنفيذ" };
@@ -121,6 +125,25 @@ function AgentConsolePage() {
             <div className="flex justify-between"><span className="text-muted-foreground">{ar ? "التحويل الخارجي" : "External transfer"}</span><span className="text-rose-400">{ar ? "محظور" : "Blocked"}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">{ar ? "عزل الخزينة" : "Treasury isolation"}</span><span className="text-emerald-400">{ar ? "مفعل" : "Active"}</span></div>
           </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-4">
+        <Card className="border-amber-500/10 bg-zinc-900/60">
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-amber-400">{ar ? "حالة الماكرو" : "Macro Feed Status"}</CardTitle></CardHeader>
+          <CardContent className="text-sm">{data.macroFeedConnected ? (ar ? "متصل" : "Connected") : (ar ? "غير مكتمل" : "Limited")}</CardContent>
+        </Card>
+        <Card className="border-amber-500/10 bg-zinc-900/60">
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-amber-400">{ar ? "حالة الأخبار" : "News Feed Status"}</CardTitle></CardHeader>
+          <CardContent className="text-sm">{data.newsFeedConnected ? (ar ? "متصل" : "Connected") : (ar ? "مزود مفقود" : "Provider missing")}</CardContent>
+        </Card>
+        <Card className="border-amber-500/10 bg-zinc-900/60">
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-amber-400">{ar ? "موثوقية المصادر" : "Source Credibility"}</CardTitle></CardHeader>
+          <CardContent className="text-sm">{data.sourceCredibilityConnected ? (ar ? "نشطة" : "Active") : "—"}</CardContent>
+        </Card>
+        <Card className="border-amber-500/10 bg-zinc-900/60">
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-amber-400">{ar ? "آخر تعلم" : "Last Learning Cycle"}</CardTitle></CardHeader>
+          <CardContent className="text-sm">{data.learningCycleReady ? (ar ? "جاهز" : "Ready") : (ar ? "غير كاف" : "Insufficient")}</CardContent>
         </Card>
       </div>
 

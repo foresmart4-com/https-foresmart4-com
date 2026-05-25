@@ -1,5 +1,9 @@
 import { getProviderConnected, getRouterDiagnostics, routeQuote } from "@/lib/market/router";
 import { AI_CORE_VERSION, AI_SAFETY_FLAGS, AI_UNAVAILABLE_AR, safeArray, safeRead } from "@/lib/ai/core/safety";
+import { getMacroFeed } from "@/lib/ai/feeds/macroFeed";
+import { getNewsFeed } from "@/lib/ai/feeds/newsFeed";
+import { getAIMemoryStatus } from "@/lib/ai/memory/store";
+import { getSourceCredibilityReport } from "@/lib/ai/credibility/sourceCredibility";
 
 const MARKET_SYMBOLS = ["AAPL", "BTCUSDT", "WTI", "BRENT", "XAUUSD", "EURUSD", "2222.SR"];
 
@@ -11,6 +15,12 @@ export class MarketIntelligenceAgent {
     const validQuotes = safeArray<typeof quotes[number]>(quotes).filter(Boolean);
     const connected = getProviderConnected();
     const diagnostics = safeRead(() => getRouterDiagnostics(), null);
+    const [macroFeed, newsFeed, memory, sourceCredibility] = await Promise.all([
+      safeRead(() => getMacroFeed(), null),
+      safeRead(() => getNewsFeed(), null),
+      safeRead(() => getAIMemoryStatus(), null),
+      safeRead(() => getSourceCredibilityReport(), null),
+    ]);
     const liveCount = validQuotes.filter((q) => q?.success).length;
     const riskLevel = liveCount >= 5 ? "medium" : liveCount >= 2 ? "elevated" : "high";
     const marketRegime = liveCount >= 5 ? "mixed" : "defensive";
@@ -34,6 +44,11 @@ export class MarketIntelligenceAgent {
         connected,
         diagnostics: await diagnostics,
       },
+      macroFeedConnected: Boolean(macroFeed?.availableIndicators?.length),
+      newsFeedConnected: Boolean(newsFeed?.items?.length),
+      memoryConnected: Boolean(memory?.memoryConnected),
+      sourceCredibilityConnected: Boolean(sourceCredibility?.sources?.length),
+      learningCycleReady: Boolean(memory?.learningReady),
       ...AI_SAFETY_FLAGS,
     };
   }

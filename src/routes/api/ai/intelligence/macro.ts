@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { MacroAgent } from "@/lib/ai/intelligence";
-import { AI_UNAVAILABLE_AR } from "@/lib/ai/core/safety";
+import { AI_SAFETY_FLAGS, AI_UNAVAILABLE_AR } from "@/lib/ai/core/safety";
 
 export const Route = createFileRoute("/api/ai/intelligence/macro")({
   server: {
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/api/ai/intelligence/macro")({
             headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
           });
         } catch {
-          return new Response(JSON.stringify({ explanationAr: AI_UNAVAILABLE_AR, confidenceScore: 0, liveTrading: false }, null, 2), {
+          return new Response(JSON.stringify({ explanationAr: AI_UNAVAILABLE_AR, confidenceScore: 0, ...AI_SAFETY_FLAGS }, null, 2), {
             headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
           });
         }
