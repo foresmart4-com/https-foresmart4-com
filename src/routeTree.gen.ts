@@ -127,6 +127,9 @@ import { Route as ApiPublicAlertsEvaluateRouteImport } from './routes/api/public
 import { Route as ApiPaymentsMyfatoorahWebhookRouteImport } from './routes/api/payments/myfatoorah/webhook'
 import { Route as ApiPaymentsMyfatoorahStatusRouteImport } from './routes/api/payments/myfatoorah/status'
 import { Route as ApiPaymentsMyfatoorahCreateRouteImport } from './routes/api/payments/myfatoorah/create'
+import { Route as ApiAiStrategyLabStrategiesRouteImport } from './routes/api/ai/strategy-lab/strategies'
+import { Route as ApiAiStrategyLabRecommendationRouteImport } from './routes/api/ai/strategy-lab/recommendation'
+import { Route as ApiAiStrategyLabCompareRouteImport } from './routes/api/ai/strategy-lab/compare'
 import { Route as ApiAiSourcesHealthRouteImport } from './routes/api/ai/sources/health'
 import { Route as ApiAiSchedulerRunRouteImport } from './routes/api/ai/scheduler/run'
 import { Route as ApiAiScenariosRunRouteImport } from './routes/api/ai/scenarios/run'
@@ -786,6 +789,23 @@ const ApiPaymentsMyfatoorahCreateRoute =
     path: '/api/payments/myfatoorah/create',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAiStrategyLabStrategiesRoute =
+  ApiAiStrategyLabStrategiesRouteImport.update({
+    id: '/api/ai/strategy-lab/strategies',
+    path: '/api/ai/strategy-lab/strategies',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiStrategyLabRecommendationRoute =
+  ApiAiStrategyLabRecommendationRouteImport.update({
+    id: '/api/ai/strategy-lab/recommendation',
+    path: '/api/ai/strategy-lab/recommendation',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiStrategyLabCompareRoute = ApiAiStrategyLabCompareRouteImport.update({
+  id: '/api/ai/strategy-lab/compare',
+  path: '/api/ai/strategy-lab/compare',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAiSourcesHealthRoute = ApiAiSourcesHealthRouteImport.update({
   id: '/api/ai/sources/health',
   path: '/api/ai/sources/health',
@@ -1108,6 +1128,9 @@ export interface FileRoutesByFullPath {
   '/api/ai/scenarios/run': typeof ApiAiScenariosRunRoute
   '/api/ai/scheduler/run': typeof ApiAiSchedulerRunRoute
   '/api/ai/sources/health': typeof ApiAiSourcesHealthRoute
+  '/api/ai/strategy-lab/compare': typeof ApiAiStrategyLabCompareRoute
+  '/api/ai/strategy-lab/recommendation': typeof ApiAiStrategyLabRecommendationRoute
+  '/api/ai/strategy-lab/strategies': typeof ApiAiStrategyLabStrategiesRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
   '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
   '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -1265,6 +1288,9 @@ export interface FileRoutesByTo {
   '/api/ai/scenarios/run': typeof ApiAiScenariosRunRoute
   '/api/ai/scheduler/run': typeof ApiAiSchedulerRunRoute
   '/api/ai/sources/health': typeof ApiAiSourcesHealthRoute
+  '/api/ai/strategy-lab/compare': typeof ApiAiStrategyLabCompareRoute
+  '/api/ai/strategy-lab/recommendation': typeof ApiAiStrategyLabRecommendationRoute
+  '/api/ai/strategy-lab/strategies': typeof ApiAiStrategyLabStrategiesRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
   '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
   '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -1424,6 +1450,9 @@ export interface FileRoutesById {
   '/api/ai/scenarios/run': typeof ApiAiScenariosRunRoute
   '/api/ai/scheduler/run': typeof ApiAiSchedulerRunRoute
   '/api/ai/sources/health': typeof ApiAiSourcesHealthRoute
+  '/api/ai/strategy-lab/compare': typeof ApiAiStrategyLabCompareRoute
+  '/api/ai/strategy-lab/recommendation': typeof ApiAiStrategyLabRecommendationRoute
+  '/api/ai/strategy-lab/strategies': typeof ApiAiStrategyLabStrategiesRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
   '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
   '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -1583,6 +1612,9 @@ export interface FileRouteTypes {
     | '/api/ai/scenarios/run'
     | '/api/ai/scheduler/run'
     | '/api/ai/sources/health'
+    | '/api/ai/strategy-lab/compare'
+    | '/api/ai/strategy-lab/recommendation'
+    | '/api/ai/strategy-lab/strategies'
     | '/api/payments/myfatoorah/create'
     | '/api/payments/myfatoorah/status'
     | '/api/payments/myfatoorah/webhook'
@@ -1740,6 +1772,9 @@ export interface FileRouteTypes {
     | '/api/ai/scenarios/run'
     | '/api/ai/scheduler/run'
     | '/api/ai/sources/health'
+    | '/api/ai/strategy-lab/compare'
+    | '/api/ai/strategy-lab/recommendation'
+    | '/api/ai/strategy-lab/strategies'
     | '/api/payments/myfatoorah/create'
     | '/api/payments/myfatoorah/status'
     | '/api/payments/myfatoorah/webhook'
@@ -1898,6 +1933,9 @@ export interface FileRouteTypes {
     | '/api/ai/scenarios/run'
     | '/api/ai/scheduler/run'
     | '/api/ai/sources/health'
+    | '/api/ai/strategy-lab/compare'
+    | '/api/ai/strategy-lab/recommendation'
+    | '/api/ai/strategy-lab/strategies'
     | '/api/payments/myfatoorah/create'
     | '/api/payments/myfatoorah/status'
     | '/api/payments/myfatoorah/webhook'
@@ -2004,6 +2042,9 @@ export interface RootRouteChildren {
   ApiAiScenariosRunRoute: typeof ApiAiScenariosRunRoute
   ApiAiSchedulerRunRoute: typeof ApiAiSchedulerRunRoute
   ApiAiSourcesHealthRoute: typeof ApiAiSourcesHealthRoute
+  ApiAiStrategyLabCompareRoute: typeof ApiAiStrategyLabCompareRoute
+  ApiAiStrategyLabRecommendationRoute: typeof ApiAiStrategyLabRecommendationRoute
+  ApiAiStrategyLabStrategiesRoute: typeof ApiAiStrategyLabStrategiesRoute
   ApiPaymentsMyfatoorahCreateRoute: typeof ApiPaymentsMyfatoorahCreateRoute
   ApiPaymentsMyfatoorahStatusRoute: typeof ApiPaymentsMyfatoorahStatusRoute
   ApiPaymentsMyfatoorahWebhookRoute: typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -2872,6 +2913,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPaymentsMyfatoorahCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/strategy-lab/strategies': {
+      id: '/api/ai/strategy-lab/strategies'
+      path: '/api/ai/strategy-lab/strategies'
+      fullPath: '/api/ai/strategy-lab/strategies'
+      preLoaderRoute: typeof ApiAiStrategyLabStrategiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/strategy-lab/recommendation': {
+      id: '/api/ai/strategy-lab/recommendation'
+      path: '/api/ai/strategy-lab/recommendation'
+      fullPath: '/api/ai/strategy-lab/recommendation'
+      preLoaderRoute: typeof ApiAiStrategyLabRecommendationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/strategy-lab/compare': {
+      id: '/api/ai/strategy-lab/compare'
+      path: '/api/ai/strategy-lab/compare'
+      fullPath: '/api/ai/strategy-lab/compare'
+      preLoaderRoute: typeof ApiAiStrategyLabCompareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ai/sources/health': {
       id: '/api/ai/sources/health'
       path: '/api/ai/sources/health'
@@ -3337,6 +3399,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiScenariosRunRoute: ApiAiScenariosRunRoute,
   ApiAiSchedulerRunRoute: ApiAiSchedulerRunRoute,
   ApiAiSourcesHealthRoute: ApiAiSourcesHealthRoute,
+  ApiAiStrategyLabCompareRoute: ApiAiStrategyLabCompareRoute,
+  ApiAiStrategyLabRecommendationRoute: ApiAiStrategyLabRecommendationRoute,
+  ApiAiStrategyLabStrategiesRoute: ApiAiStrategyLabStrategiesRoute,
   ApiPaymentsMyfatoorahCreateRoute: ApiPaymentsMyfatoorahCreateRoute,
   ApiPaymentsMyfatoorahStatusRoute: ApiPaymentsMyfatoorahStatusRoute,
   ApiPaymentsMyfatoorahWebhookRoute: ApiPaymentsMyfatoorahWebhookRoute,
