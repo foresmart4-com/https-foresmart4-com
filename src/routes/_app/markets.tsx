@@ -228,7 +228,7 @@ function StocksTab({
   onAnalyze: (a: SelectedAsset) => void;
   onBuy: (a: SelectedAsset) => void;
 }) {
-  const { t, lang } = useI18n();
+  const { lang } = useI18n();
   const { data, isLoading } = useQuery({
     queryKey: ["stocks"],
     queryFn: () => getStocksData(),
