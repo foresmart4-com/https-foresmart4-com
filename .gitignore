@@ -30,3 +30,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets and environment backups — never commit these
+.env.backup
+.env.backup.*
+.env.save
+.env.save.*
+*.save
+
+# npm lockfile — Bun (bun.lock) is the canonical package manager for this project
+package-lock.json
