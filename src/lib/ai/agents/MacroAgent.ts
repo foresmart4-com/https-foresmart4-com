@@ -2,19 +2,23 @@ import { routeQuote } from "@/lib/market/router";
 import { AI_CORE_VERSION, AI_SAFETY_FLAGS, AI_UNAVAILABLE_AR, safeRead } from "@/lib/ai/core/safety";
 import { getMacroFeed } from "@/lib/ai/feeds/macroFeed";
 import { getNewsFeed } from "@/lib/ai/feeds/newsFeed";
+import { getEconomicCalendar } from "@/lib/ai/feeds/economicCalendar";
 import { getAIMemoryStatus } from "@/lib/ai/memory/store";
 import { getSourceCredibilityReport } from "@/lib/ai/credibility/sourceCredibility";
+import { getTrustedSourceHealth } from "@/lib/ai/sources/trustedSources";
 
 const MACRO_SYMBOLS = ["WTI", "BRENT", "EURUSD", "DXY", "US10Y", "XAUUSD"];
 
 export class MacroAgent {
   async analyze() {
     const quotes = await Promise.all(MACRO_SYMBOLS.map((symbol) => safeRead(() => routeQuote(symbol), null)));
-    const [macroFeed, newsFeed, memory, sourceCredibility] = await Promise.all([
+    const [macroFeed, newsFeed, economicCalendar, memory, sourceCredibility, sourceHealth] = await Promise.all([
       safeRead(() => getMacroFeed(), null),
       safeRead(() => getNewsFeed(), null),
+      safeRead(() => getEconomicCalendar(), null),
       safeRead(() => getAIMemoryStatus(), null),
       safeRead(() => getSourceCredibilityReport(), null),
+      safeRead(() => getTrustedSourceHealth(), null),
     ]);
     const available = quotes.filter((q) => q?.success);
     const avgChange = available.length
@@ -46,8 +50,14 @@ export class MacroAgent {
       })),
       macroFeedConnected: Boolean(macroFeed?.availableIndicators?.length),
       newsFeedConnected: Boolean(newsFeed?.items?.length),
+      economicCalendarConnected: Boolean(economicCalendar?.calendarReady),
       memoryConnected: Boolean(memory?.memoryConnected),
       sourceCredibilityConnected: Boolean(sourceCredibility?.sources?.length),
+      trustedSourcesConnected: Boolean(sourceHealth?.trustedSourcesConnected),
+      sourceCredibilityAverage: sourceHealth?.sourceCredibilityAverage ?? sourceCredibility?.averageCredibility ?? 0,
+      liveSourceCount: sourceHealth?.liveSourceCount ?? 0,
+      fallbackSourceCount: sourceHealth?.fallbackSourceCount ?? 0,
+      sourceWarningsAr: sourceHealth?.sourceWarningsAr ?? [],
       learningCycleReady: Boolean(memory?.learningReady),
       ...AI_SAFETY_FLAGS,
     };

@@ -127,6 +127,7 @@ import { Route as ApiPublicAlertsEvaluateRouteImport } from './routes/api/public
 import { Route as ApiPaymentsMyfatoorahWebhookRouteImport } from './routes/api/payments/myfatoorah/webhook'
 import { Route as ApiPaymentsMyfatoorahStatusRouteImport } from './routes/api/payments/myfatoorah/status'
 import { Route as ApiPaymentsMyfatoorahCreateRouteImport } from './routes/api/payments/myfatoorah/create'
+import { Route as ApiAiSourcesHealthRouteImport } from './routes/api/ai/sources/health'
 import { Route as ApiAiSchedulerRunRouteImport } from './routes/api/ai/scheduler/run'
 import { Route as ApiAiMemoryStatusRouteImport } from './routes/api/ai/memory/status'
 import { Route as ApiAiLearningStatusRouteImport } from './routes/api/ai/learning/status'
@@ -141,6 +142,7 @@ import { Route as ApiAiIntelligenceLearningRouteImport } from './routes/api/ai/i
 import { Route as ApiAiIntelligenceGenesisRouteImport } from './routes/api/ai/intelligence/genesis'
 import { Route as ApiAiFeedsNewsRouteImport } from './routes/api/ai/feeds/news'
 import { Route as ApiAiFeedsMacroRouteImport } from './routes/api/ai/feeds/macro'
+import { Route as ApiAiFeedsEconomicCalendarRouteImport } from './routes/api/ai/feeds/economic-calendar'
 import { Route as ApiAiCredibilitySourcesRouteImport } from './routes/api/ai/credibility/sources'
 import { Route as ApiPublicMarketSnapshotIndexRouteImport } from './routes/api/public/market/snapshot/index'
 import { Route as ApiPublicGenesis100ExecutionIndexRouteImport } from './routes/api/public/genesis100/execution/index'
@@ -771,6 +773,11 @@ const ApiPaymentsMyfatoorahCreateRoute =
     path: '/api/payments/myfatoorah/create',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAiSourcesHealthRoute = ApiAiSourcesHealthRouteImport.update({
+  id: '/api/ai/sources/health',
+  path: '/api/ai/sources/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAiSchedulerRunRoute = ApiAiSchedulerRunRouteImport.update({
   id: '/api/ai/scheduler/run',
   path: '/api/ai/scheduler/run',
@@ -843,6 +850,12 @@ const ApiAiFeedsMacroRoute = ApiAiFeedsMacroRouteImport.update({
   path: '/api/ai/feeds/macro',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAiFeedsEconomicCalendarRoute =
+  ApiAiFeedsEconomicCalendarRouteImport.update({
+    id: '/api/ai/feeds/economic-calendar',
+    path: '/api/ai/feeds/economic-calendar',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAiCredibilitySourcesRoute = ApiAiCredibilitySourcesRouteImport.update({
   id: '/api/ai/credibility/sources',
   path: '/api/ai/credibility/sources',
@@ -984,6 +997,7 @@ export interface FileRoutesByFullPath {
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/api/ai/credibility/sources': typeof ApiAiCredibilitySourcesRoute
+  '/api/ai/feeds/economic-calendar': typeof ApiAiFeedsEconomicCalendarRoute
   '/api/ai/feeds/macro': typeof ApiAiFeedsMacroRoute
   '/api/ai/feeds/news': typeof ApiAiFeedsNewsRoute
   '/api/ai/intelligence/genesis': typeof ApiAiIntelligenceGenesisRoute
@@ -998,6 +1012,7 @@ export interface FileRoutesByFullPath {
   '/api/ai/learning/status': typeof ApiAiLearningStatusRoute
   '/api/ai/memory/status': typeof ApiAiMemoryStatusRoute
   '/api/ai/scheduler/run': typeof ApiAiSchedulerRunRoute
+  '/api/ai/sources/health': typeof ApiAiSourcesHealthRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
   '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
   '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -1126,6 +1141,7 @@ export interface FileRoutesByTo {
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/api/ai/credibility/sources': typeof ApiAiCredibilitySourcesRoute
+  '/api/ai/feeds/economic-calendar': typeof ApiAiFeedsEconomicCalendarRoute
   '/api/ai/feeds/macro': typeof ApiAiFeedsMacroRoute
   '/api/ai/feeds/news': typeof ApiAiFeedsNewsRoute
   '/api/ai/intelligence/genesis': typeof ApiAiIntelligenceGenesisRoute
@@ -1140,6 +1156,7 @@ export interface FileRoutesByTo {
   '/api/ai/learning/status': typeof ApiAiLearningStatusRoute
   '/api/ai/memory/status': typeof ApiAiMemoryStatusRoute
   '/api/ai/scheduler/run': typeof ApiAiSchedulerRunRoute
+  '/api/ai/sources/health': typeof ApiAiSourcesHealthRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
   '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
   '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -1270,6 +1287,7 @@ export interface FileRoutesById {
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/api/ai/credibility/sources': typeof ApiAiCredibilitySourcesRoute
+  '/api/ai/feeds/economic-calendar': typeof ApiAiFeedsEconomicCalendarRoute
   '/api/ai/feeds/macro': typeof ApiAiFeedsMacroRoute
   '/api/ai/feeds/news': typeof ApiAiFeedsNewsRoute
   '/api/ai/intelligence/genesis': typeof ApiAiIntelligenceGenesisRoute
@@ -1284,6 +1302,7 @@ export interface FileRoutesById {
   '/api/ai/learning/status': typeof ApiAiLearningStatusRoute
   '/api/ai/memory/status': typeof ApiAiMemoryStatusRoute
   '/api/ai/scheduler/run': typeof ApiAiSchedulerRunRoute
+  '/api/ai/sources/health': typeof ApiAiSourcesHealthRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
   '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
   '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -1414,6 +1433,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
     | '/api/ai/credibility/sources'
+    | '/api/ai/feeds/economic-calendar'
     | '/api/ai/feeds/macro'
     | '/api/ai/feeds/news'
     | '/api/ai/intelligence/genesis'
@@ -1428,6 +1448,7 @@ export interface FileRouteTypes {
     | '/api/ai/learning/status'
     | '/api/ai/memory/status'
     | '/api/ai/scheduler/run'
+    | '/api/ai/sources/health'
     | '/api/payments/myfatoorah/create'
     | '/api/payments/myfatoorah/status'
     | '/api/payments/myfatoorah/webhook'
@@ -1556,6 +1577,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
     | '/api/ai/credibility/sources'
+    | '/api/ai/feeds/economic-calendar'
     | '/api/ai/feeds/macro'
     | '/api/ai/feeds/news'
     | '/api/ai/intelligence/genesis'
@@ -1570,6 +1592,7 @@ export interface FileRouteTypes {
     | '/api/ai/learning/status'
     | '/api/ai/memory/status'
     | '/api/ai/scheduler/run'
+    | '/api/ai/sources/health'
     | '/api/payments/myfatoorah/create'
     | '/api/payments/myfatoorah/status'
     | '/api/payments/myfatoorah/webhook'
@@ -1699,6 +1722,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
     | '/api/ai/credibility/sources'
+    | '/api/ai/feeds/economic-calendar'
     | '/api/ai/feeds/macro'
     | '/api/ai/feeds/news'
     | '/api/ai/intelligence/genesis'
@@ -1713,6 +1737,7 @@ export interface FileRouteTypes {
     | '/api/ai/learning/status'
     | '/api/ai/memory/status'
     | '/api/ai/scheduler/run'
+    | '/api/ai/sources/health'
     | '/api/payments/myfatoorah/create'
     | '/api/payments/myfatoorah/status'
     | '/api/payments/myfatoorah/webhook'
@@ -1790,6 +1815,7 @@ export interface RootRouteChildren {
   ApiWebhooksPaddleRoute: typeof ApiWebhooksPaddleRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
   ApiAiCredibilitySourcesRoute: typeof ApiAiCredibilitySourcesRoute
+  ApiAiFeedsEconomicCalendarRoute: typeof ApiAiFeedsEconomicCalendarRoute
   ApiAiFeedsMacroRoute: typeof ApiAiFeedsMacroRoute
   ApiAiFeedsNewsRoute: typeof ApiAiFeedsNewsRoute
   ApiAiIntelligenceGenesisRoute: typeof ApiAiIntelligenceGenesisRoute
@@ -1804,6 +1830,7 @@ export interface RootRouteChildren {
   ApiAiLearningStatusRoute: typeof ApiAiLearningStatusRoute
   ApiAiMemoryStatusRoute: typeof ApiAiMemoryStatusRoute
   ApiAiSchedulerRunRoute: typeof ApiAiSchedulerRunRoute
+  ApiAiSourcesHealthRoute: typeof ApiAiSourcesHealthRoute
   ApiPaymentsMyfatoorahCreateRoute: typeof ApiPaymentsMyfatoorahCreateRoute
   ApiPaymentsMyfatoorahStatusRoute: typeof ApiPaymentsMyfatoorahStatusRoute
   ApiPaymentsMyfatoorahWebhookRoute: typeof ApiPaymentsMyfatoorahWebhookRoute
@@ -2672,6 +2699,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPaymentsMyfatoorahCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/sources/health': {
+      id: '/api/ai/sources/health'
+      path: '/api/ai/sources/health'
+      fullPath: '/api/ai/sources/health'
+      preLoaderRoute: typeof ApiAiSourcesHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ai/scheduler/run': {
       id: '/api/ai/scheduler/run'
       path: '/api/ai/scheduler/run'
@@ -2768,6 +2802,13 @@ declare module '@tanstack/react-router' {
       path: '/api/ai/feeds/macro'
       fullPath: '/api/ai/feeds/macro'
       preLoaderRoute: typeof ApiAiFeedsMacroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/feeds/economic-calendar': {
+      id: '/api/ai/feeds/economic-calendar'
+      path: '/api/ai/feeds/economic-calendar'
+      fullPath: '/api/ai/feeds/economic-calendar'
+      preLoaderRoute: typeof ApiAiFeedsEconomicCalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/ai/credibility/sources': {
@@ -3003,6 +3044,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWebhooksPaddleRoute: ApiWebhooksPaddleRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
   ApiAiCredibilitySourcesRoute: ApiAiCredibilitySourcesRoute,
+  ApiAiFeedsEconomicCalendarRoute: ApiAiFeedsEconomicCalendarRoute,
   ApiAiFeedsMacroRoute: ApiAiFeedsMacroRoute,
   ApiAiFeedsNewsRoute: ApiAiFeedsNewsRoute,
   ApiAiIntelligenceGenesisRoute: ApiAiIntelligenceGenesisRoute,
@@ -3017,6 +3059,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiLearningStatusRoute: ApiAiLearningStatusRoute,
   ApiAiMemoryStatusRoute: ApiAiMemoryStatusRoute,
   ApiAiSchedulerRunRoute: ApiAiSchedulerRunRoute,
+  ApiAiSourcesHealthRoute: ApiAiSourcesHealthRoute,
   ApiPaymentsMyfatoorahCreateRoute: ApiPaymentsMyfatoorahCreateRoute,
   ApiPaymentsMyfatoorahStatusRoute: ApiPaymentsMyfatoorahStatusRoute,
   ApiPaymentsMyfatoorahWebhookRoute: ApiPaymentsMyfatoorahWebhookRoute,

@@ -3,6 +3,7 @@ import { getGenesisArchiveSummary, getGenesisIntelligence } from "@/lib/genesis1
 import { MarketIntelligenceAgent } from "@/lib/ai/agents/MarketIntelligenceAgent";
 import { getMacroFeed } from "@/lib/ai/feeds/macroFeed";
 import { getNewsFeed } from "@/lib/ai/feeds/newsFeed";
+import { getEconomicCalendar } from "@/lib/ai/feeds/economicCalendar";
 import { getAIMemoryStatus, addMemoryEvent, updateSourceReliability } from "@/lib/ai/memory/store";
 import { getSourceCredibilityReport } from "@/lib/ai/credibility/sourceCredibility";
 import { AI_INSUFFICIENT_HISTORY_AR, AI_SAFETY_FLAGS, safeRead } from "@/lib/ai/core/safety";
@@ -23,10 +24,11 @@ export async function getLearningCycleStatus() {
 
 export async function runLearningCycle() {
   const cycleId = `learn-${Date.now()}`;
-  const [market, macro, news, genesis, router, archive] = await Promise.all([
+  const [market, macro, news, calendar, genesis, router, archive] = await Promise.all([
     safeRead(() => new MarketIntelligenceAgent().analyze(), null),
     safeRead(() => getMacroFeed(), null),
     safeRead(() => getNewsFeed(), null),
+    safeRead(() => getEconomicCalendar(), null),
     safeRead(() => getGenesisIntelligence(), null),
     safeRead(() => getRouterDiagnostics(), null),
     safeRead(() => getGenesisArchiveSummary(), null),
@@ -36,6 +38,7 @@ export async function runLearningCycle() {
     market?.topDrivers?.length ?? 0,
     macro?.availableIndicators?.length ?? 0,
     news?.items?.length ?? 0,
+    calendar?.events?.length ?? 0,
     archive?.count ?? 0,
     router?.metrics ? Object.keys(router.metrics).length : 0,
   ].reduce((a, b) => a + b, 0);
@@ -67,6 +70,7 @@ export async function runLearningCycle() {
     updateSourceReliability("market_router", "regulated_market_data", 84),
     updateSourceReliability("macro_feed", "official_economic_sources", macro?.confidencePercent ?? 50),
     updateSourceReliability("news_feed", "financial_news", news?.items?.length ? 64 : 35),
+    updateSourceReliability("economic_calendar", "official_economic_sources", calendar?.calendarReady ? 70 : 35),
   ];
   const event = addMemoryEvent({
     type: "learning_event",
@@ -82,6 +86,7 @@ export async function runLearningCycle() {
     memoryEventsAdded: 1,
     sourceReliabilityUpdated: updated.length,
     marketRegime: market?.marketRegime ?? genesis?.marketRegime ?? "mixed",
+    economicCalendarConnected: Boolean(calendar?.calendarReady),
     confidenceCalibration: Math.min(95, 50 + evidenceCount),
     learningSummaryAr: "اكتملت دورة التعلم اليدوية وتم ربط السوق والماكرو والأخبار وذاكرة Genesis.",
     event,

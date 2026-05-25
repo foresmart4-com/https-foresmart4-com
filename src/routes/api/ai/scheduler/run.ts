@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { MarketIntelligenceAgent } from "@/lib/ai/agents/MarketIntelligenceAgent";
 import { getMacroFeed } from "@/lib/ai/feeds/macroFeed";
 import { getNewsFeed } from "@/lib/ai/feeds/newsFeed";
+import { getEconomicCalendar } from "@/lib/ai/feeds/economicCalendar";
 import { runLearningCycle } from "@/lib/ai/learning/cycle";
 import { analyzeGenesisUniverse, getGenesisIntelligence } from "@/lib/genesis100/engine";
 import { AI_SAFETY_FLAGS } from "@/lib/ai/core/safety";
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/api/ai/scheduler/run")({
         await step("market_intelligence", () => new MarketIntelligenceAgent().analyze());
         await step("macro_feed", () => getMacroFeed());
         await step("news_feed", () => getNewsFeed());
+        await step("economic_calendar", () => getEconomicCalendar());
         await step("learning_cycle", () => runLearningCycle());
         await step("genesis_intelligence_refresh", async () => {
           await analyzeGenesisUniverse();
