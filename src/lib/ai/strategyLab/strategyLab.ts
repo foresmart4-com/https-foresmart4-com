@@ -13,6 +13,7 @@ export interface StrategyScore {
   strategyName: StrategyId;
   nameAr: string;
   expectedReturnScore: number;
+  returnScore: number;
   riskScore: number;
   drawdownScore: number;
   macroFitScore: number;
@@ -76,6 +77,7 @@ export async function compareStrategies(): Promise<{ strategyLabVersion: string;
       strategyName: s.id,
       nameAr: s.nameAr,
       expectedReturnScore,
+      returnScore: expectedReturnScore,
       riskScore,
       drawdownScore,
       macroFitScore,
