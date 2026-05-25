@@ -144,6 +144,9 @@ import { Route as ApiAiFeedsNewsRouteImport } from './routes/api/ai/feeds/news'
 import { Route as ApiAiFeedsMacroRouteImport } from './routes/api/ai/feeds/macro'
 import { Route as ApiAiFeedsEconomicCalendarRouteImport } from './routes/api/ai/feeds/economic-calendar'
 import { Route as ApiAiCredibilitySourcesRouteImport } from './routes/api/ai/credibility/sources'
+import { Route as ApiAiAgentsPortfolioDebateRouteImport } from './routes/api/ai/agents/portfolio-debate'
+import { Route as ApiAiAgentsDebateRouteImport } from './routes/api/ai/agents/debate'
+import { Route as ApiAiAgentsConsensusRouteImport } from './routes/api/ai/agents/consensus'
 import { Route as ApiPublicMarketSnapshotIndexRouteImport } from './routes/api/public/market/snapshot/index'
 import { Route as ApiPublicGenesis100ExecutionIndexRouteImport } from './routes/api/public/genesis100/execution/index'
 import { Route as ApiPublicProvidersEodhdExchangesRouteImport } from './routes/api/public/providers/eodhd/exchanges'
@@ -861,6 +864,22 @@ const ApiAiCredibilitySourcesRoute = ApiAiCredibilitySourcesRouteImport.update({
   path: '/api/ai/credibility/sources',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAiAgentsPortfolioDebateRoute =
+  ApiAiAgentsPortfolioDebateRouteImport.update({
+    id: '/api/ai/agents/portfolio-debate',
+    path: '/api/ai/agents/portfolio-debate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiAgentsDebateRoute = ApiAiAgentsDebateRouteImport.update({
+  id: '/api/ai/agents/debate',
+  path: '/api/ai/agents/debate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiAgentsConsensusRoute = ApiAiAgentsConsensusRouteImport.update({
+  id: '/api/ai/agents/consensus',
+  path: '/api/ai/agents/consensus',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMarketSnapshotIndexRoute =
   ApiPublicMarketSnapshotIndexRouteImport.update({
     id: '/api/public/market/snapshot/',
@@ -996,6 +1015,9 @@ export interface FileRoutesByFullPath {
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
+  '/api/ai/agents/consensus': typeof ApiAiAgentsConsensusRoute
+  '/api/ai/agents/debate': typeof ApiAiAgentsDebateRoute
+  '/api/ai/agents/portfolio-debate': typeof ApiAiAgentsPortfolioDebateRoute
   '/api/ai/credibility/sources': typeof ApiAiCredibilitySourcesRoute
   '/api/ai/feeds/economic-calendar': typeof ApiAiFeedsEconomicCalendarRoute
   '/api/ai/feeds/macro': typeof ApiAiFeedsMacroRoute
@@ -1140,6 +1162,9 @@ export interface FileRoutesByTo {
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
+  '/api/ai/agents/consensus': typeof ApiAiAgentsConsensusRoute
+  '/api/ai/agents/debate': typeof ApiAiAgentsDebateRoute
+  '/api/ai/agents/portfolio-debate': typeof ApiAiAgentsPortfolioDebateRoute
   '/api/ai/credibility/sources': typeof ApiAiCredibilitySourcesRoute
   '/api/ai/feeds/economic-calendar': typeof ApiAiFeedsEconomicCalendarRoute
   '/api/ai/feeds/macro': typeof ApiAiFeedsMacroRoute
@@ -1286,6 +1311,9 @@ export interface FileRoutesById {
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
+  '/api/ai/agents/consensus': typeof ApiAiAgentsConsensusRoute
+  '/api/ai/agents/debate': typeof ApiAiAgentsDebateRoute
+  '/api/ai/agents/portfolio-debate': typeof ApiAiAgentsPortfolioDebateRoute
   '/api/ai/credibility/sources': typeof ApiAiCredibilitySourcesRoute
   '/api/ai/feeds/economic-calendar': typeof ApiAiFeedsEconomicCalendarRoute
   '/api/ai/feeds/macro': typeof ApiAiFeedsMacroRoute
@@ -1432,6 +1460,9 @@ export interface FileRouteTypes {
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
+    | '/api/ai/agents/consensus'
+    | '/api/ai/agents/debate'
+    | '/api/ai/agents/portfolio-debate'
     | '/api/ai/credibility/sources'
     | '/api/ai/feeds/economic-calendar'
     | '/api/ai/feeds/macro'
@@ -1576,6 +1607,9 @@ export interface FileRouteTypes {
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
+    | '/api/ai/agents/consensus'
+    | '/api/ai/agents/debate'
+    | '/api/ai/agents/portfolio-debate'
     | '/api/ai/credibility/sources'
     | '/api/ai/feeds/economic-calendar'
     | '/api/ai/feeds/macro'
@@ -1721,6 +1755,9 @@ export interface FileRouteTypes {
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
+    | '/api/ai/agents/consensus'
+    | '/api/ai/agents/debate'
+    | '/api/ai/agents/portfolio-debate'
     | '/api/ai/credibility/sources'
     | '/api/ai/feeds/economic-calendar'
     | '/api/ai/feeds/macro'
@@ -1814,6 +1851,9 @@ export interface RootRouteChildren {
   ApiWebhooksLemonsqueezyRoute: typeof ApiWebhooksLemonsqueezyRoute
   ApiWebhooksPaddleRoute: typeof ApiWebhooksPaddleRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
+  ApiAiAgentsConsensusRoute: typeof ApiAiAgentsConsensusRoute
+  ApiAiAgentsDebateRoute: typeof ApiAiAgentsDebateRoute
+  ApiAiAgentsPortfolioDebateRoute: typeof ApiAiAgentsPortfolioDebateRoute
   ApiAiCredibilitySourcesRoute: typeof ApiAiCredibilitySourcesRoute
   ApiAiFeedsEconomicCalendarRoute: typeof ApiAiFeedsEconomicCalendarRoute
   ApiAiFeedsMacroRoute: typeof ApiAiFeedsMacroRoute
@@ -2818,6 +2858,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAiCredibilitySourcesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/agents/portfolio-debate': {
+      id: '/api/ai/agents/portfolio-debate'
+      path: '/api/ai/agents/portfolio-debate'
+      fullPath: '/api/ai/agents/portfolio-debate'
+      preLoaderRoute: typeof ApiAiAgentsPortfolioDebateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/agents/debate': {
+      id: '/api/ai/agents/debate'
+      path: '/api/ai/agents/debate'
+      fullPath: '/api/ai/agents/debate'
+      preLoaderRoute: typeof ApiAiAgentsDebateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/agents/consensus': {
+      id: '/api/ai/agents/consensus'
+      path: '/api/ai/agents/consensus'
+      fullPath: '/api/ai/agents/consensus'
+      preLoaderRoute: typeof ApiAiAgentsConsensusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/market/snapshot/': {
       id: '/api/public/market/snapshot/'
       path: '/api/public/market/snapshot'
@@ -3043,6 +3104,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWebhooksLemonsqueezyRoute: ApiWebhooksLemonsqueezyRoute,
   ApiWebhooksPaddleRoute: ApiWebhooksPaddleRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
+  ApiAiAgentsConsensusRoute: ApiAiAgentsConsensusRoute,
+  ApiAiAgentsDebateRoute: ApiAiAgentsDebateRoute,
+  ApiAiAgentsPortfolioDebateRoute: ApiAiAgentsPortfolioDebateRoute,
   ApiAiCredibilitySourcesRoute: ApiAiCredibilitySourcesRoute,
   ApiAiFeedsEconomicCalendarRoute: ApiAiFeedsEconomicCalendarRoute,
   ApiAiFeedsMacroRoute: ApiAiFeedsMacroRoute,
