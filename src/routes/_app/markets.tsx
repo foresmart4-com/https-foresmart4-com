@@ -523,6 +523,15 @@ function RegionSection({
 
 /* ─── Assets tab (crypto / metals / fx / bonds) ─────────────────────────────── */
 
+type SignalFilter = "all" | "buy" | "hold" | "sell";
+
+const CATEGORY_LABELS: Record<string, { en: string; ar: string }> = {
+  crypto:     { en: "Cryptocurrencies", ar: "العملات الرقمية" },
+  currencies: { en: "Forex",            ar: "الفوركس" },
+  metals:     { en: "Metals & Commodities", ar: "المعادن والسلع" },
+  bonds:      { en: "Bonds",            ar: "السندات" },
+};
+
 function AssetsTab({
   category,
   onAnalyze,
@@ -532,14 +541,36 @@ function AssetsTab({
   onAnalyze: (a: SelectedAsset) => void;
   onBuy: (a: SelectedAsset) => void;
 }) {
-  const { t } = useI18n();
+  const { lang } = useI18n();
+  const ar = lang === "ar";
   const marketFn = useServerFn(getMarketData);
   const { data, isLoading } = useQuery({
     queryKey: ["market"],
     queryFn: () => marketFn(),
     refetchInterval: 60000,
   });
-  const items = (data?.assets ?? []).filter((a) => a.category === category);
+
+  const [query, setQuery] = useState("");
+  const [signalFilter, setSignalFilter] = useState<SignalFilter>("all");
+
+  const allItems = useMemo(
+    () => (data?.assets ?? []).filter((a) => a.category === category),
+    [data, category],
+  );
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return allItems.filter((a) => {
+      if (q && !a.symbol.toLowerCase().includes(q) && !a.name.toLowerCase().includes(q)) return false;
+      if (signalFilter !== "all") {
+        const sig = deriveSignal(a.history.map((p) => p.p)).signal;
+        if (sig !== signalFilter) return false;
+      }
+      return true;
+    });
+  }, [allItems, query, signalFilter]);
+
+  const catLabel = CATEGORY_LABELS[category] ?? { en: category, ar: category };
 
   if (isLoading) {
     return (
@@ -551,7 +582,72 @@ function AssetsTab({
     );
   }
 
-  return <AssetTable items={items} onAnalyze={onAnalyze} onBuy={onBuy} />;
+  return (
+    <>
+      {/* Filter bar */}
+      <div className="rounded-xl gradient-card border border-border p-4 shadow-card">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-base font-semibold sm:text-lg">
+              {ar ? catLabel.ar : catLabel.en}
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              {ar
+                ? `${filtered.length} من ${allItems.length} أصل`
+                : `${filtered.length} of ${allItems.length} assets`}
+            </p>
+          </div>
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={ar ? "بحث برمز أو اسم..." : "Search symbol or name..."}
+            className="h-8 w-40 text-xs sm:w-56"
+          />
+        </div>
+
+        {/* Signal filter pills */}
+        <div className="flex flex-wrap gap-2">
+          {(["all", "buy", "hold", "sell"] as const).map((f) => {
+            const labels: Record<SignalFilter, { en: string; ar: string }> = {
+              all:  { en: "All signals", ar: "كل الإشارات" },
+              buy:  { en: "Buy",         ar: "شراء" },
+              hold: { en: "Hold",        ar: "انتظار" },
+              sell: { en: "Sell",        ar: "بيع" },
+            };
+            const activeCls =
+              f === "buy"  ? "border-success bg-success/15 text-success" :
+              f === "hold" ? "border-warning bg-warning/15 text-warning" :
+              f === "sell" ? "border-danger  bg-danger/15  text-danger"  :
+                             "border-primary bg-primary/15 text-primary";
+            return (
+              <button
+                key={f}
+                onClick={() => setSignalFilter(f)}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                  signalFilter === f
+                    ? activeCls
+                    : "border-border bg-muted/40 text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {ar ? labels[f].ar : labels[f].en}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {filtered.length === 0 && allItems.length > 0 && (
+        <p className="text-center text-sm text-muted-foreground py-4">
+          {ar ? "لا نتائج تطابق الفلتر الحالي" : "No assets match the current filter"}
+        </p>
+      )}
+
+      {filtered.length > 0 && (
+        <AssetTable items={filtered} onAnalyze={onAnalyze} onBuy={onBuy} />
+      )}
+    </>
+  );
 }
 
 /* ─── Asset table ────────────────────────────────────────────────────────────── */
