@@ -35,6 +35,7 @@ function SignalsPage() {
   const fn = useServerFn(generateSignals);
   const [signals, setSignals] = useState<TradeSignal[]>([]);
   const [generatedAt, setGeneratedAt] = useState<number | null>(null);
+  const [signalEngine, setSignalEngine] = useState<"ai" | "heuristic" | null>(null);
   const [actionFilter, setActionFilter] = useState<FilterAction>("all");
   const [horizonFilter, setHorizonFilter] = useState<FilterHorizon>("all");
 
@@ -43,6 +44,7 @@ function SignalsPage() {
     onSuccess: (d) => {
       setSignals(d.signals);
       setGeneratedAt(d.generatedAt);
+      setSignalEngine(d.engine);
       toast.success(lang === "ar" ? `تم توليد ${d.signals.length} إشارة` : `Generated ${d.signals.length} signals`);
     },
     onError: () => toast.error(lang === "ar" ? "فشل توليد الإشارات" : "Failed to generate"),
@@ -162,8 +164,15 @@ function SignalsPage() {
       )}
 
       {generatedAt && (
-        <p className="mt-6 text-center text-xs text-muted-foreground">
+        <p className="mt-6 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
           {lang === "ar" ? "آخر تحديث:" : "Last update:"} {new Date(generatedAt).toLocaleTimeString(lang === "ar" ? "ar-SA" : "en-US")}
+          {signalEngine && (
+            <span className={cn("rounded-md px-1.5 py-0.5 text-[10px] font-semibold ring-1",
+              signalEngine === "ai" ? "bg-primary/10 text-primary ring-primary/30" : "bg-muted/40 text-muted-foreground ring-border"
+            )}>
+              {signalEngine === "ai" ? (lang === "ar" ? "معنويات AI" : "AI Sentiment") : (lang === "ar" ? "تحليل محلي" : "Local Analysis")}
+            </span>
+          )}
         </p>
       )}
     </div>

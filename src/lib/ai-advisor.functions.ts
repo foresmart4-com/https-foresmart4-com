@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { localeGuardrails, rtlNumberHint, resolveLang } from "@/lib/ai/locale";
+import { safeParseJson } from "@/lib/ai-gateway.server";
 
 const InputSchema = z.object({
   question: z.string().min(1).max(2000),
@@ -97,27 +98,6 @@ Quality rules:
 - entry, stopLoss, targets: concrete price levels, never percentages.
 - risks: 4-5 items ordered from highest to lowest severity.`;
 
-function safeParseJson(raw: string): AdvisorStructuredReply | null {
-  if (!raw) return null;
-  let s = raw.trim();
-  // Strip markdown fences if present
-  s = s.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
-  // Try direct parse, then fallback to first {...} block
-  try {
-    return JSON.parse(s) as AdvisorStructuredReply;
-  } catch {
-    const m = s.match(/\{[\s\S]*\}/);
-    if (m) {
-      try {
-        return JSON.parse(m[0]) as AdvisorStructuredReply;
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  }
-}
-
 export const askAdvisor = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => InputSchema.parse(input))
@@ -166,7 +146,7 @@ export const askAdvisor = createServerFn({ method: "POST" })
       }
       const d = await r.json();
       const raw: string = d.choices?.[0]?.message?.content ?? "";
-      const structured = safeParseJson(raw);
+      const structured = safeParseJson<AdvisorStructuredReply>(raw);
       return { structured, raw, error: null as string | null, engine: "ai" as const };
     } catch (e) {
       console.error(e);

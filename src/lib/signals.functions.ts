@@ -154,19 +154,22 @@ ${list}
 أعد JSON فقط بهذه الصيغة الصارمة (بدون markdown أو نص إضافي):
 { "RESULTS": [ { "symbol": "...", "sentiment": <عدد صحيح -100..100>, "note": "..." } ] }`;
 
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), 15000);
   try {
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
+      signal: ctrl.signal,
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "أنت محلل أسواق مالية. أعد JSON صحيحاً فقط بدون markdown." },
+          { role: "system", content: "أنت محلل أسواق مالي كمي مؤسسي. حلّل بموضوعية عالية واستخدم لغة احتمالية. أعد JSON صحيحاً فقط بدون markdown." },
           { role: "user", content: prompt },
         ],
         response_format: { type: "json_object" },
       }),
-    });
+    }).finally(() => clearTimeout(timeout));
     if (!r.ok) return {};
     const d = await r.json();
     const raw: string = d.choices?.[0]?.message?.content ?? "{}";

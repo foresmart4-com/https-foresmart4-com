@@ -31,6 +31,7 @@ function GrowthPlanPage() {
   const [focus, setFocus] = useState<("crypto" | "stocks" | "metals" | "fx" | "savings")[]>(["crypto", "stocks", "metals"]);
   const [busy, setBusy] = useState(false);
   const [plan, setPlan] = useState<MicroCapitalPlan | null>(null);
+  const [planEngine, setPlanEngine] = useState<"ai" | "heuristic" | null>(null);
   const buildPlan = useServerFn(microCapitalPlan);
 
   const run = async () => {
@@ -42,19 +43,22 @@ function GrowthPlanPage() {
       toast.error(lang === "ar" ? "اختر مجالاً واحداً على الأقل" : "Pick at least one focus");
       return;
     }
-    setBusy(true); setPlan(null);
+    setBusy(true); setPlan(null); setPlanEngine(null);
     try {
       const res = await buildPlan({
         data: { capitalSar: capital, riskAppetite: risk, monthsHorizon: months, focus, language: lang },
       });
-      if (res.error === "rate_limited") toast.error(lang === "ar" ? "تم تجاوز الحد، حاول بعد قليل" : "Rate limited, try again shortly");
-      else if (res.error === "payment_required") toast.error(lang === "ar" ? "أضف رصيداً في Lovable AI" : "Add Lovable AI credits");
-      else if (res.error || !res.plan) {
+      if (res.error || !res.plan) {
         const detail = (res as any).detail ? ` — ${(res as any).detail}` : "";
         toast.error((lang === "ar" ? "تعذر إنشاء الخطة" : "Failed to build plan") + detail);
       } else {
         setPlan(res.plan);
-        toast.success(lang === "ar" ? "تم إعداد خطة محسّنة بالذكاء الاصطناعي" : "AI-refined plan ready");
+        setPlanEngine((res as any).engine ?? null);
+        const isAI = (res as any).engine === "ai";
+        toast.success(isAI
+          ? (lang === "ar" ? "تم إعداد خطة مخصصة بالذكاء الاصطناعي" : "AI-tailored plan ready")
+          : (lang === "ar" ? "تم إعداد خطة موجّهة محلياً" : "Heuristic plan ready")
+        );
       }
     } catch (e: any) {
       console.error(e);
@@ -167,7 +171,20 @@ function GrowthPlanPage() {
         </div>
       )}
 
-      {plan && <PlanView plan={plan} lang={lang} capital={capital} />}
+      {plan && (
+        <>
+          {planEngine && (
+            <div className="flex justify-end">
+              <span className={cn("rounded-md px-2 py-0.5 text-[10px] font-semibold ring-1",
+                planEngine === "ai" ? "bg-primary/10 text-primary ring-primary/30" : "bg-muted/40 text-muted-foreground ring-border"
+              )}>
+                {planEngine === "ai" ? (lang === "ar" ? "خطة AI" : "AI Plan") : (lang === "ar" ? "خطة محلية" : "Heuristic Plan")}
+              </span>
+            </div>
+          )}
+          <PlanView plan={plan} lang={lang} capital={capital} />
+        </>
+      )}
     </div>
   );
 }

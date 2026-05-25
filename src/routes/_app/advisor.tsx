@@ -30,11 +30,12 @@ function AdvisorPage() {
   const [q, setQ] = useState("");
   const [reply, setReply] = useState<AdvisorStructuredReply | null>(null);
   const [rawFallback, setRawFallback] = useState<string>("");
+  const [advisorEngine, setAdvisorEngine] = useState<"ai" | "heuristic" | null>(null);
   const [busy, setBusy] = useState(false);
 
   const send = async () => {
     if (!q.trim()) return;
-    setBusy(true); setReply(null); setRawFallback("");
+    setBusy(true); setReply(null); setRawFallback(""); setAdvisorEngine(null);
     try {
       const ctx = (market?.assets ?? [])
         .slice(0, 12)
@@ -44,7 +45,7 @@ function AdvisorPage() {
       if (res.error === "rate_limited") return toast.error(lang === "ar" ? "تم تجاوز الحد، حاول لاحقاً" : "Rate limit, try again");
       if (res.error === "payment_required") return toast.error(lang === "ar" ? "أضف رصيداً في إعدادات Lovable AI" : "Add credits in Lovable AI settings");
       if (res.error) return toast.error(res.error);
-      if (res.structured) setReply(res.structured);
+      if (res.structured) { setReply(res.structured); setAdvisorEngine((res as any).engine ?? null); }
       else setRawFallback(res.raw);
     } catch (error: any) {
       console.error(error);
@@ -115,7 +116,20 @@ function AdvisorPage() {
 
       {busy && <ThinkingState lang={lang} />}
 
-      {reply && <StructuredReply data={reply} lang={lang} />}
+      {reply && (
+        <>
+          {advisorEngine && (
+            <div className="mt-6 flex justify-end">
+              <span className={cn("rounded-md px-2 py-0.5 text-[10px] font-semibold ring-1",
+                advisorEngine === "ai" ? "bg-primary/10 text-primary ring-primary/30" : "bg-muted/40 text-muted-foreground ring-border"
+              )}>
+                {advisorEngine === "ai" ? "AI" : (lang === "ar" ? "محلي" : "Heuristic")}
+              </span>
+            </div>
+          )}
+          <StructuredReply data={reply} lang={lang} />
+        </>
+      )}
 
       {!reply && rawFallback && (
         <div className="mt-6 whitespace-pre-wrap rounded-xl border border-border gradient-card p-6 text-sm shadow-card">

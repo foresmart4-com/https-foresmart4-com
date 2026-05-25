@@ -31,11 +31,12 @@ const actionMeta = {
 export function AssetAnalysisDialog({ open, onOpenChange, asset }: Props) {
   const { lang } = useI18n();
   const [verdict, setVerdict] = useState<AssetVerdict | null>(null);
+  const [engine, setEngine] = useState<"ai" | "heuristic" | null>(null);
   const [busy, setBusy] = useState(false);
 
   const run = async () => {
     if (!asset) return;
-    setBusy(true); setVerdict(null);
+    setBusy(true); setVerdict(null); setEngine(null);
     try {
       const res = await analyzeAsset({
         data: {
@@ -52,13 +53,13 @@ export function AssetAnalysisDialog({ open, onOpenChange, asset }: Props) {
       if (res.error === "rate_limited") toast.error(lang === "ar" ? "تم تجاوز الحد، حاول لاحقاً" : "Rate limit");
       else if (res.error === "payment_required") toast.error(lang === "ar" ? "أضف رصيداً في Lovable AI" : "Add credits");
       else if (res.error) toast.error(lang === "ar" ? "تعذر التحليل" : "Analysis failed");
-      else setVerdict(res.verdict);
+      else { setVerdict(res.verdict); setEngine((res as any).engine ?? null); }
     } finally { setBusy(false); }
   };
 
   useEffect(() => {
     if (open && asset) run();
-    if (!open) setVerdict(null);
+    if (!open) { setVerdict(null); setEngine(null); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, asset?.symbol]);
 
@@ -72,6 +73,13 @@ export function AssetAnalysisDialog({ open, onOpenChange, asset }: Props) {
           <DialogTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary" />
             {lang === "ar" ? "تحليل ذكي" : "AI Analysis"}: {asset?.name || asset?.symbol}
+            {engine && (
+              <span className={cn("ms-auto rounded-md px-2 py-0.5 text-[10px] font-semibold ring-1",
+                engine === "ai" ? "bg-primary/10 text-primary ring-primary/30" : "bg-muted/40 text-muted-foreground ring-border"
+              )}>
+                {engine === "ai" ? "AI" : (lang === "ar" ? "محلي" : "Local")}
+              </span>
+            )}
           </DialogTitle>
         </DialogHeader>
 

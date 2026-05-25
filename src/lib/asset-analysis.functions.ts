@@ -317,8 +317,8 @@ Build a comprehensive plan. Allocations percentages must sum to ~100% and reflec
 
     let r: Response;
     try {
-      // Default to the current fast AI Gateway model, then fall back to lite.
-      r = await callPlanModel(apiKey, "google/gemini-3-flash-preview", messages);
+      // Primary model matches the gateway default; lite is the fast fallback on 429/503.
+      r = await callPlanModel(apiKey, "google/gemini-2.5-flash", messages);
       if (r.status === 429 || r.status === 503) {
         r = await callPlanModel(apiKey, "google/gemini-2.5-flash-lite", messages);
       }
@@ -327,8 +327,8 @@ Build a comprehensive plan. Allocations percentages must sum to ~100% and reflec
       return { plan: buildDeterministicMicroPlan(data), error: null as string | null, detail: "fallback_plan", engine: "heuristic" as const };
     }
 
-    if (r.status === 429) return { plan: null, error: "rate_limited", detail: "Too many requests", engine: "heuristic" as const };
-    if (r.status === 402) return { plan: null, error: "payment_required", detail: "Add Lovable AI credits", engine: "heuristic" as const };
+    if (r.status === 429) return { plan: buildDeterministicMicroPlan(data), error: null as string | null, detail: "rate_limited_fallback", engine: "heuristic" as const };
+    if (r.status === 402) return { plan: buildDeterministicMicroPlan(data), error: null as string | null, detail: "payment_required_fallback", engine: "heuristic" as const };
     if (!r.ok) {
       const txt = await r.text();
       console.error("microCapitalPlan error", r.status, txt);
