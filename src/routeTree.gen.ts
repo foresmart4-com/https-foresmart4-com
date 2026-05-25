@@ -142,6 +142,9 @@ import { Route as ApiAiScenariosListRouteImport } from './routes/api/ai/scenario
 import { Route as ApiAiRiskTwinTestDecisionRouteImport } from './routes/api/ai/risk-twin/test-decision'
 import { Route as ApiAiRiskTwinStatusRouteImport } from './routes/api/ai/risk-twin/status'
 import { Route as ApiAiRiskTwinReportRouteImport } from './routes/api/ai/risk-twin/report'
+import { Route as ApiAiResearchRunRouteImport } from './routes/api/ai/research/run'
+import { Route as ApiAiResearchLatestRouteImport } from './routes/api/ai/research/latest'
+import { Route as ApiAiResearchArchiveRouteImport } from './routes/api/ai/research/archive'
 import { Route as ApiAiPredictionsHistoryRouteImport } from './routes/api/ai/predictions/history'
 import { Route as ApiAiPredictionsEvaluateRouteImport } from './routes/api/ai/predictions/evaluate'
 import { Route as ApiAiPredictionsCreateRouteImport } from './routes/api/ai/predictions/create'
@@ -879,6 +882,21 @@ const ApiAiRiskTwinReportRoute = ApiAiRiskTwinReportRouteImport.update({
   path: '/api/ai/risk-twin/report',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAiResearchRunRoute = ApiAiResearchRunRouteImport.update({
+  id: '/api/ai/research/run',
+  path: '/api/ai/research/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiResearchLatestRoute = ApiAiResearchLatestRouteImport.update({
+  id: '/api/ai/research/latest',
+  path: '/api/ai/research/latest',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiResearchArchiveRoute = ApiAiResearchArchiveRouteImport.update({
+  id: '/api/ai/research/archive',
+  path: '/api/ai/research/archive',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAiPredictionsHistoryRoute = ApiAiPredictionsHistoryRouteImport.update({
   id: '/api/ai/predictions/history',
   path: '/api/ai/predictions/history',
@@ -1184,6 +1202,9 @@ export interface FileRoutesByFullPath {
   '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
   '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
   '/api/ai/predictions/history': typeof ApiAiPredictionsHistoryRoute
+  '/api/ai/research/archive': typeof ApiAiResearchArchiveRoute
+  '/api/ai/research/latest': typeof ApiAiResearchLatestRoute
+  '/api/ai/research/run': typeof ApiAiResearchRunRoute
   '/api/ai/risk-twin/report': typeof ApiAiRiskTwinReportRoute
   '/api/ai/risk-twin/status': typeof ApiAiRiskTwinStatusRoute
   '/api/ai/risk-twin/test-decision': typeof ApiAiRiskTwinTestDecisionRoute
@@ -1353,6 +1374,9 @@ export interface FileRoutesByTo {
   '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
   '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
   '/api/ai/predictions/history': typeof ApiAiPredictionsHistoryRoute
+  '/api/ai/research/archive': typeof ApiAiResearchArchiveRoute
+  '/api/ai/research/latest': typeof ApiAiResearchLatestRoute
+  '/api/ai/research/run': typeof ApiAiResearchRunRoute
   '/api/ai/risk-twin/report': typeof ApiAiRiskTwinReportRoute
   '/api/ai/risk-twin/status': typeof ApiAiRiskTwinStatusRoute
   '/api/ai/risk-twin/test-decision': typeof ApiAiRiskTwinTestDecisionRoute
@@ -1524,6 +1548,9 @@ export interface FileRoutesById {
   '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
   '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
   '/api/ai/predictions/history': typeof ApiAiPredictionsHistoryRoute
+  '/api/ai/research/archive': typeof ApiAiResearchArchiveRoute
+  '/api/ai/research/latest': typeof ApiAiResearchLatestRoute
+  '/api/ai/research/run': typeof ApiAiResearchRunRoute
   '/api/ai/risk-twin/report': typeof ApiAiRiskTwinReportRoute
   '/api/ai/risk-twin/status': typeof ApiAiRiskTwinStatusRoute
   '/api/ai/risk-twin/test-decision': typeof ApiAiRiskTwinTestDecisionRoute
@@ -1695,6 +1722,9 @@ export interface FileRouteTypes {
     | '/api/ai/predictions/create'
     | '/api/ai/predictions/evaluate'
     | '/api/ai/predictions/history'
+    | '/api/ai/research/archive'
+    | '/api/ai/research/latest'
+    | '/api/ai/research/run'
     | '/api/ai/risk-twin/report'
     | '/api/ai/risk-twin/status'
     | '/api/ai/risk-twin/test-decision'
@@ -1864,6 +1894,9 @@ export interface FileRouteTypes {
     | '/api/ai/predictions/create'
     | '/api/ai/predictions/evaluate'
     | '/api/ai/predictions/history'
+    | '/api/ai/research/archive'
+    | '/api/ai/research/latest'
+    | '/api/ai/research/run'
     | '/api/ai/risk-twin/report'
     | '/api/ai/risk-twin/status'
     | '/api/ai/risk-twin/test-decision'
@@ -2034,6 +2067,9 @@ export interface FileRouteTypes {
     | '/api/ai/predictions/create'
     | '/api/ai/predictions/evaluate'
     | '/api/ai/predictions/history'
+    | '/api/ai/research/archive'
+    | '/api/ai/research/latest'
+    | '/api/ai/research/run'
     | '/api/ai/risk-twin/report'
     | '/api/ai/risk-twin/status'
     | '/api/ai/risk-twin/test-decision'
@@ -2152,6 +2188,9 @@ export interface RootRouteChildren {
   ApiAiPredictionsCreateRoute: typeof ApiAiPredictionsCreateRoute
   ApiAiPredictionsEvaluateRoute: typeof ApiAiPredictionsEvaluateRoute
   ApiAiPredictionsHistoryRoute: typeof ApiAiPredictionsHistoryRoute
+  ApiAiResearchArchiveRoute: typeof ApiAiResearchArchiveRoute
+  ApiAiResearchLatestRoute: typeof ApiAiResearchLatestRoute
+  ApiAiResearchRunRoute: typeof ApiAiResearchRunRoute
   ApiAiRiskTwinReportRoute: typeof ApiAiRiskTwinReportRoute
   ApiAiRiskTwinStatusRoute: typeof ApiAiRiskTwinStatusRoute
   ApiAiRiskTwinTestDecisionRoute: typeof ApiAiRiskTwinTestDecisionRoute
@@ -3138,6 +3177,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAiRiskTwinReportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/research/run': {
+      id: '/api/ai/research/run'
+      path: '/api/ai/research/run'
+      fullPath: '/api/ai/research/run'
+      preLoaderRoute: typeof ApiAiResearchRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/research/latest': {
+      id: '/api/ai/research/latest'
+      path: '/api/ai/research/latest'
+      fullPath: '/api/ai/research/latest'
+      preLoaderRoute: typeof ApiAiResearchLatestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/research/archive': {
+      id: '/api/ai/research/archive'
+      path: '/api/ai/research/archive'
+      fullPath: '/api/ai/research/archive'
+      preLoaderRoute: typeof ApiAiResearchArchiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ai/predictions/history': {
       id: '/api/ai/predictions/history'
       path: '/api/ai/predictions/history'
@@ -3581,6 +3641,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiPredictionsCreateRoute: ApiAiPredictionsCreateRoute,
   ApiAiPredictionsEvaluateRoute: ApiAiPredictionsEvaluateRoute,
   ApiAiPredictionsHistoryRoute: ApiAiPredictionsHistoryRoute,
+  ApiAiResearchArchiveRoute: ApiAiResearchArchiveRoute,
+  ApiAiResearchLatestRoute: ApiAiResearchLatestRoute,
+  ApiAiResearchRunRoute: ApiAiResearchRunRoute,
   ApiAiRiskTwinReportRoute: ApiAiRiskTwinReportRoute,
   ApiAiRiskTwinStatusRoute: ApiAiRiskTwinStatusRoute,
   ApiAiRiskTwinTestDecisionRoute: ApiAiRiskTwinTestDecisionRoute,

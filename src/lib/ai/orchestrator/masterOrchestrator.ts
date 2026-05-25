@@ -9,13 +9,14 @@ import { runPortfolioStress } from "@/lib/ai/scenarios/scenarioEngine";
 import { getStrategyRecommendation } from "@/lib/ai/strategyLab/strategyLab";
 import { getGenesisArchiveSummary } from "@/lib/genesis100/engine";
 import { addMemoryEvent } from "@/lib/ai/memory/store";
+import { runDailyResearchAgent } from "@/lib/ai/researchAgent/researchAgent";
 import { AI_SAFETY_FLAGS, safeRead } from "@/lib/ai/core/safety";
 
 const ORCHESTRATOR_SYMBOLS = ["AAPL", "BTCUSDT", "WTI", "2222.SR"];
 
 export async function runMasterOrchestrator() {
   const cycleId = `master-${Date.now()}`;
-  const [market, macro, news, knowledge, consensusResults, backtest, predictions, stress, strategy, archive] = await Promise.all([
+  const [market, macro, news, knowledge, consensusResults, backtest, predictions, stress, strategy, research, archive] = await Promise.all([
     safeRead(() => new MarketIntelligenceAgent().analyze(), null),
     safeRead(() => getMacroFeed(), null),
     safeRead(() => getNewsFeed(), null),
@@ -25,6 +26,7 @@ export async function runMasterOrchestrator() {
     safeRead(() => getPredictionAccuracy(), null),
     safeRead(() => runPortfolioStress(), null),
     safeRead(() => getStrategyRecommendation(), null),
+    safeRead(() => runDailyResearchAgent(), null),
     safeRead(() => getGenesisArchiveSummary(), null),
   ]);
 
@@ -44,12 +46,14 @@ export async function runMasterOrchestrator() {
   ].slice(0, 8);
   const topOpportunities = [
     ...(news?.topOpportunities ?? []),
-    ...(knowledge?.investmentPrinciples ?? []).slice(0, 3),
+    ...(research?.topOpportunities ?? []),
+    ...(knowledge?.investmentPrinciples ?? []).slice(0, 2),
   ].slice(0, 8);
   const confidenceInputs = [
     market?.topDrivers?.length ? 60 : 35,
     macro?.confidencePercent ?? 0,
     strategy?.bestStrategy?.confidencePercent ?? 0,
+    research?.researchConfidence ?? 0,
     predictions?.overallAccuracy ?? 0,
   ];
   const overallConfidencePercent = Math.round(confidenceInputs.reduce((a, b) => a + b, 0) / confidenceInputs.length);
@@ -70,8 +74,8 @@ export async function runMasterOrchestrator() {
     blockedDecisions,
     approvedWatchlist,
     strategyRecommendation: strategy?.bestStrategy ?? null,
-    researchSummaryAr: `تم تنسيق السوق والماكرو والأخبار والمعرفة وGenesis archive. أفضل استراتيجية: ${strategy?.bestStrategy?.nameAr ?? "غير محددة"}.`,
-    learningEventsAdded: event ? 1 : 0,
+    researchSummaryAr: research?.dailyResearchBriefAr ?? `تم تنسيق السوق والماكرو والأخبار والمعرفة وGenesis archive. أفضل استراتيجية: ${strategy?.bestStrategy?.nameAr ?? "غير محددة"}.`,
+    learningEventsAdded: event ? 2 : 1,
     overallConfidencePercent,
     executionEnabled: false,
     externalTransfersAllowed: false,

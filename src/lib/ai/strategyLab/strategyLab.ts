@@ -9,6 +9,7 @@ export type StrategyId = "growth" | "value" | "momentum" | "defensive" | "macro"
 
 export interface StrategyScore {
   id: StrategyId;
+  strategyName: StrategyId;
   nameAr: string;
   expectedReturnScore: number;
   riskScore: number;
@@ -39,7 +40,7 @@ function clamp(n: number) {
 export function listStrategies() {
   return {
     strategyLabVersion: "strategy-lab-v1",
-    strategies: STRATEGIES.map((s) => ({ id: s.id, nameAr: s.nameAr })),
+    strategies: STRATEGIES.map((s) => ({ id: s.id, strategyName: s.id, nameAr: s.nameAr })),
     ...AI_SAFETY_FLAGS,
   };
 }
@@ -69,6 +70,7 @@ export async function compareStrategies(): Promise<{ strategyLabVersion: string;
     const confidencePercent = clamp((expectedReturnScore + drawdownScore + macroFitScore + historicalFitScore) / 4);
     return {
       id: s.id,
+      strategyName: s.id,
       nameAr: s.nameAr,
       expectedReturnScore,
       riskScore,
