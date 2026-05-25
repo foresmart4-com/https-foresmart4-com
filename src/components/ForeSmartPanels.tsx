@@ -25,31 +25,67 @@ function download(name: string, content: string, type = "text/csv;charset=utf-8"
 
 export function SmartAlertsPanel() {
   const { lang } = useI18n();
+  const ar = lang === "ar";
   const { items } = useWatchlist();
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const decisions = useMemo(() => items.map((a) => generateTradingDecision({ symbol: a.symbol, category: a.category as any, price: a.price, change24h: a.change24h, currency: a.currency } as AssetContext)), [items]);
-  const alerts = useMemo(() => buildSmartAlerts(decisions, true), [decisions]);
+  const allAlerts = useMemo(() => buildSmartAlerts(decisions, true), [decisions]);
+  const alerts = useMemo(() => allAlerts.filter((a) => !dismissed.has(a.id)), [allAlerts, dismissed]);
+
+  const dismiss = (id: string) => {
+    setDismissed((prev) => new Set([...prev, id]));
+    toast.success(ar ? "تم تجاهل التنبيه" : "Alert dismissed");
+  };
+
   return (
-    <Card className="p-5">
-      <header className="mb-3 flex items-center gap-2">
-        <Bell className="h-4 w-4 text-primary" />
-        <h3 className="font-display text-base font-semibold">{lang === "ar" ? "تنبيهات السوق الذكية" : "Smart Market Alerts"}</h3>
-        <Badge variant="outline" className="text-[10px]">{alerts.length}</Badge>
+    <Card className="overflow-hidden gradient-card border border-border shadow-card">
+      <header className="flex items-center justify-between border-b border-border bg-muted/30 px-5 py-3">
+        <div className="flex items-center gap-2">
+          <Bell className="h-4 w-4 text-primary" />
+          <h3 className="font-display text-base font-semibold">{ar ? "تنبيهات السوق الذكية" : "Smart Market Alerts"}</h3>
+          <Badge variant="outline" className="text-[10px]">{alerts.length}</Badge>
+        </div>
+        {dismissed.size > 0 && (
+          <Button size="sm" variant="ghost" className="h-6 text-[10px] text-muted-foreground"
+            onClick={() => setDismissed(new Set())}>
+            {ar ? "إعادة الكل" : "Restore all"}
+          </Button>
+        )}
       </header>
-      <div className="space-y-2">
-        {alerts.length === 0 && <p className="text-xs text-muted-foreground">{lang === "ar" ? "لا تنبيهات" : "No alerts"}</p>}
+      <div className="divide-y divide-border/50">
+        {alerts.length === 0 && (
+          <div className="px-5 py-8 text-center">
+            <Bell className="mx-auto mb-2 h-6 w-6 text-muted-foreground/60" />
+            <p className="text-xs text-muted-foreground">{ar ? "لا تنبيهات نشطة" : "No active alerts"}</p>
+          </div>
+        )}
         {alerts.map((a) => (
-          <div key={a.id} className={cn("rounded-md border p-2 text-xs",
-            a.severity === "critical" && "border-danger/30 bg-danger/5",
-            a.severity === "warning" && "border-warning/30 bg-warning/5",
-            a.severity === "info" && "border-primary/20 bg-primary/5")}>
-            <div className="flex items-center justify-between">
-              <div className="font-medium">{lang === "ar" ? a.message_ar : a.message_en}</div>
-              <Badge variant="outline" className="text-[10px]">{a.kind}</Badge>
+          <div key={a.id} className={cn("px-5 py-3 text-xs",
+            a.severity === "critical" && "border-s-2 border-s-danger",
+            a.severity === "warning"  && "border-s-2 border-s-warning",
+            a.severity === "info"     && "border-s-2 border-s-primary/60")}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="font-medium leading-snug">{ar ? a.message_ar : a.message_en}</div>
+                <div className="mt-0.5 text-[11px] text-muted-foreground">{ar ? a.suggestion_ar : a.suggestion_en}</div>
+              </div>
+              <Badge
+                variant="outline"
+                className={cn("shrink-0 text-[10px]",
+                  a.severity === "critical" && "border-danger/40 text-danger",
+                  a.severity === "warning"  && "border-warning/40 text-warning",
+                  a.severity === "info"     && "border-primary/40 text-primary")}>
+                {a.kind.replace(/_/g, " ")}
+              </Badge>
             </div>
-            <div className="text-[11px] text-muted-foreground">{lang === "ar" ? a.suggestion_ar : a.suggestion_en}</div>
-            <div className="mt-1 flex gap-1.5">
-              <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => toast.info(lang === "ar" ? "تمت إضافة للمراقبة" : "Watching")}>{lang === "ar" ? "مراقبة" : "Watch"}</Button>
-              <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => toast.success(lang === "ar" ? "تم التجاهل" : "Dismissed")}>{lang === "ar" ? "تجاهل" : "Dismiss"}</Button>
+            <div className="mt-1.5 flex gap-1.5">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 px-2 text-[10px]"
+                onClick={() => dismiss(a.id)}>
+                {ar ? "تجاهل" : "Dismiss"}
+              </Button>
             </div>
           </div>
         ))}

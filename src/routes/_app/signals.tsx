@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -9,9 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import {
   Sparkles, TrendingUp, TrendingDown, Eye, Pause,
   Activity, Target, ShieldAlert, Flame, Clock, RefreshCw, Brain,
+  Bookmark, Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { addToWatchlist } from "@/lib/watchlistStore";
 
 export const Route = createFileRoute("/_app/signals")({
   component: SignalsPage,
@@ -299,6 +301,39 @@ function SignalCard({ s, lang }: { s: TradeSignal; lang: "ar" | "en" }) {
           )}
         </div>
       )}
+
+      {/* Actions */}
+      <div className="mt-4 flex flex-wrap gap-1.5 border-t border-border/40 pt-3">
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 gap-1.5 text-[11px]"
+          onClick={() => {
+            const ok = addToWatchlist({
+              symbol: s.symbol,
+              name: s.asset_name,
+              category: (s.category ?? "other") as any,
+              price: s.entry_price,
+              change24h: 0,
+              currency: "USD",
+            });
+            toast[ok ? "success" : "info"](
+              lang === "ar"
+                ? (ok ? `أُضيف ${s.symbol} للمراقبة` : "موجود بالفعل في المراقبة")
+                : (ok ? `${s.symbol} added to watchlist` : "Already in watchlist"),
+            );
+          }}
+        >
+          <Bookmark className="h-3 w-3" />
+          {lang === "ar" ? "مراقبة" : "Watch"}
+        </Button>
+        <Button asChild size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]">
+          <Link to={`/alerts?symbol=${s.symbol}&price=${s.entry_price}` as any}>
+            <Bell className="h-3 w-3" />
+            {lang === "ar" ? "تنبيه" : "Alert"}
+          </Link>
+        </Button>
+      </div>
     </article>
   );
 }

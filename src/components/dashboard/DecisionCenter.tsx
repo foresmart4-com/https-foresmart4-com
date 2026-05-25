@@ -1,7 +1,10 @@
 import { cn } from "@/lib/utils";
-import { Brain, Target, AlertTriangle, Shield, TrendingUp, TrendingDown, Eye } from "lucide-react";
+import { Brain, Target, AlertTriangle, Shield, TrendingUp, TrendingDown, Eye, Bookmark } from "lucide-react";
 import { ConfidenceBar, RiskHeat } from "@/components/dashboard/ConfidenceBar";
 import type { MockOpportunity } from "@/lib/mock-data";
+import { Button } from "@/components/ui/button";
+import { addToWatchlist } from "@/lib/watchlistStore";
+import { toast } from "sonner";
 
 interface Props {
   opportunities: MockOpportunity[];
@@ -120,6 +123,32 @@ export function DecisionCenter({ opportunities, lang }: Props) {
                     {ar ? "تحذير مخاطر — راجع نقطة الوقف" : "Risk warning — review stop level"}
                   </div>
                 )}
+
+                <div className="mt-3 border-t border-border/40 pt-2.5">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 w-full gap-1.5 text-[11px]"
+                    onClick={() => {
+                      const ok = addToWatchlist({
+                        symbol: o.symbol,
+                        name: ar ? o.name_ar : o.name_en,
+                        category: "other" as any,
+                        price: 0,
+                        change24h: o.change,
+                        currency: "USD",
+                      });
+                      toast[ok ? "success" : "info"](
+                        ar
+                          ? (ok ? `أُضيف ${o.symbol} للمراقبة` : "موجود بالفعل")
+                          : (ok ? `${o.symbol} added to watchlist` : "Already in watchlist"),
+                      );
+                    }}
+                  >
+                    <Bookmark className="h-3 w-3" />
+                    {ar ? "إضافة للمراقبة" : "Add to watchlist"}
+                  </Button>
+                </div>
               </div>
             </div>
           );
