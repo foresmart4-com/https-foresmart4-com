@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, Briefcase, CheckCircle2, RefreshCw, ShieldCheck, TrendingUp } from "lucide-react";
+import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, Briefcase, CheckCircle2, RefreshCw, ShieldCheck, TrendingUp, Activity } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -66,7 +66,6 @@ function StocksPortfolioPage() {
   const connected = Boolean(snapshot);
   const isUnauthorized = result && !result.ok && result.status === "account_error" && /401/.test(result.error);
 
-  // Auto-disable auto-refresh on error and surface a single toast
   useEffect(() => {
     if (result && !result.ok) {
       if (autoRefresh) setAutoRefresh(false);
@@ -94,32 +93,62 @@ function StocksPortfolioPage() {
     : ar ? "مزامنة Alpaca" : "Sync Alpaca";
 
   return (
-    <main className="container mx-auto max-w-6xl space-y-6 p-6" dir={dir}>
-      <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Briefcase className="h-6 w-6 text-primary" />
-            <h1 className="font-display text-3xl font-bold">{ar ? "محفظة الأسهم" : "Stocks Portfolio"}</h1>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {ar ? "اتصال مباشر من السيرفر مع Alpaca Paper API بدون أي طلبات من الواجهة إلى Alpaca." : "Server-side Alpaca Paper API connection with no frontend requests to Alpaca."}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <ConnectionBadge connected={connected} syncing={portfolio.isFetching} />
-          <div className="flex items-center gap-2 rounded-md border border-border px-3 py-1.5">
-            <Switch id="auto-refresh" checked={autoRefresh} onCheckedChange={setAutoRefresh} disabled={Boolean(result && !result.ok)} />
-            <Label htmlFor="auto-refresh" className="text-xs">
-              {ar ? "تحديث تلقائي كل 60ث" : "Auto-refresh 60s"}
-            </Label>
-          </div>
-          <Button onClick={handleSync} disabled={portfolio.isFetching} className="gap-2">
-            <RefreshCw className={`h-4 w-4 ${portfolio.isFetching ? "animate-spin" : ""}`} />
-            {syncLabel}
-          </Button>
-        </div>
-      </header>
+    <main className="container mx-auto max-w-6xl space-y-6 p-4 sm:p-6" dir={dir}>
 
+      {/* ─── Hero ─────────────────────────────────────────────────────── */}
+      <div className="ornament-border relative overflow-hidden rounded-2xl shadow-elegant">
+        <div className="gradient-hero absolute inset-0 pointer-events-none" />
+        <div className="relative z-10 p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl gradient-primary shadow-glow">
+                <TrendingUp className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
+                  <Activity className="h-3.5 w-3.5" />
+                  {ar ? "محفظة Alpaca Paper — بدون تداول حقيقي" : "Alpaca Paper Portfolio — No Live Trading"}
+                </div>
+                <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">
+                  <span className="text-gradient">{ar ? "محفظة الأسهم" : "Stocks Portfolio"}</span>
+                </h1>
+                <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+                  {ar
+                    ? "اتصال مباشر من السيرفر مع Alpaca Paper API بدون أي طلبات من الواجهة إلى Alpaca."
+                    : "Server-side Alpaca Paper API connection. No frontend requests to Alpaca."}
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <ConnectionBadge connected={connected} syncing={portfolio.isFetching} />
+              <Badge variant="outline" className="text-xs border-warning/40 text-warning">
+                {ar ? "Preview فقط" : "Preview only"}
+              </Badge>
+            </div>
+          </div>
+        </div>
+        <div className="relative z-10 border-t border-border/40 bg-card/30 px-5 py-2.5 sm:px-6">
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <div className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-1.5">
+              <Switch id="auto-refresh" checked={autoRefresh} onCheckedChange={setAutoRefresh} disabled={Boolean(result && !result.ok)} />
+              <Label htmlFor="auto-refresh" className="text-xs text-muted-foreground">
+                {ar ? "تحديث تلقائي كل 60ث" : "Auto-refresh 60s"}
+              </Label>
+            </div>
+            <Button onClick={handleSync} disabled={portfolio.isFetching} size="sm" className="gap-2">
+              <RefreshCw className={`h-3.5 w-3.5 ${portfolio.isFetching ? "animate-spin" : ""}`} />
+              {syncLabel}
+            </Button>
+            {lastSyncAt && connected && (
+              <span className="ms-auto text-muted-foreground">
+                {ar ? "آخر مزامنة:" : "Last sync:"} {new Date(lastSyncAt).toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Status alert ─────────────────────────────────────────────── */}
       <Alert className={connected ? "border-success/40" : isUnauthorized ? "border-destructive/40" : "border-warning/40"}>
         {connected ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
         <AlertDescription className="flex flex-wrap items-center gap-2 text-sm">
@@ -127,11 +156,6 @@ function StocksPortfolioPage() {
           <Badge variant={LIVE_TRADING_ENABLED ? "default" : "outline"}>
             {LIVE_TRADING_ENABLED ? (ar ? "التداول الحقيقي مفعّل" : "Live trading ON") : (ar ? "Preview فقط — التداول الحقيقي معطّل" : "Preview only — live trading disabled")}
           </Badge>
-          {lastSyncAt && connected && (
-            <span className="text-muted-foreground">
-              {ar ? "آخر مزامنة:" : "Last sync:"} {new Date(lastSyncAt).toLocaleTimeString()}
-            </span>
-          )}
           {isUnauthorized && (
             <span className="text-destructive font-medium">
               {ar ? "فشل /v2/account: 401 Unauthorized. تحقق من APCA-API-KEY-ID و APCA-API-SECRET-KEY على السيرفر." : "/v2/account failed: 401 Unauthorized. Verify APCA-API-KEY-ID and APCA-API-SECRET-KEY on the server."}
@@ -169,7 +193,7 @@ function ConnectionBadge({ connected, syncing }: { connected: boolean; syncing: 
 
 function LoadingState() {
   return (
-    <Card className="p-6">
+    <Card className="gradient-card border border-border shadow-card p-6">
       <div className="flex items-center gap-3 text-sm text-muted-foreground">
         <RefreshCw className="h-4 w-4 animate-spin" />
         Loading Alpaca portfolio…
@@ -237,7 +261,7 @@ function PreviewOrderTicket() {
   };
 
   return (
-    <Card className="space-y-4 p-4">
+    <Card className="gradient-card border border-border shadow-card space-y-4 p-4">
       <div className="flex flex-wrap items-center gap-2">
         <TrendingUp className="h-4 w-4 text-primary" />
         <h2 className="font-display text-lg font-semibold">{ar ? "Buy/Sell Preview للأسهم الأمريكية" : "US Stock Buy/Sell Preview"}</h2>
@@ -329,7 +353,7 @@ function PositionsTable({ positions }: { positions: Position[] }) {
   );
 
   return (
-    <Card className="overflow-hidden p-0">
+    <Card className="gradient-card border border-border shadow-card overflow-hidden p-0">
       <header className="flex items-center justify-between border-b border-border bg-gradient-to-r from-muted/50 to-transparent p-3">
         <div className="flex items-center gap-2">
           <h2 className="font-display font-semibold">{ar ? "Positions" : "Positions"}</h2>
@@ -338,7 +362,7 @@ function PositionsTable({ positions }: { positions: Position[] }) {
         {positions.length > 0 && (
           <div className="flex items-center gap-3 text-xs">
             <span className="text-muted-foreground">{ar ? "إجمالي:" : "Total:"} <span className="font-mono font-semibold text-foreground">{formatUsd(totalMV, "USD")}</span></span>
-            <span className={`font-mono font-semibold ${totalPnl < 0 ? "text-destructive" : "text-success"}`}>
+            <span className={`font-mono font-semibold ${totalPnl < 0 ? "text-danger" : "text-success"}`}>
               {totalPnl >= 0 ? "▲" : "▼"} {formatUsd(totalPnl, "USD")}
             </span>
           </div>
@@ -370,7 +394,7 @@ function PositionsTable({ positions }: { positions: Position[] }) {
                   <td className="px-3 py-2.5 text-end font-mono">{formatUsd(position.currentPrice, "USD")}</td>
                   <td className="px-3 py-2.5 text-end font-mono font-medium">{formatUsd(position.marketValue, "USD")}</td>
                   <td className="px-3 py-2.5 text-end">
-                    <div className={`inline-flex flex-col items-end rounded px-2 py-1 font-mono text-xs font-semibold ${pnlPositive ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                    <div className={`inline-flex flex-col items-end rounded px-2 py-1 font-mono text-xs font-semibold ${pnlPositive ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`}>
                       <span>{pnlPositive ? "+" : ""}{formatUsd(position.unrealizedPnl, "USD")}</span>
                       <span className="text-[10px] opacity-80">{pnlPositive ? "+" : ""}{pnlPct.toFixed(2)}%</span>
                     </div>
@@ -391,7 +415,7 @@ function OpenOrdersTable({ orders }: { orders: OpenOrder[] }) {
   const { lang } = useI18n();
   const ar = lang === "ar";
   return (
-    <Card className="p-0">
+    <Card className="gradient-card border border-border shadow-card p-0">
       <header className="flex items-center justify-between border-b border-border p-3">
         <h2 className="font-semibold">{ar ? "Open Orders" : "Open Orders"}</h2>
         <span className="text-xs text-muted-foreground">{orders.length}</span>
@@ -431,7 +455,7 @@ function OpenOrdersTable({ orders }: { orders: OpenOrder[] }) {
 
 function Metric({ label, value, tone }: { label: string; value: string; tone?: "success" }) {
   return (
-    <Card className="p-4">
+    <Card className="hover-lift gradient-card border border-border shadow-card p-4">
       <div className="text-xs uppercase text-muted-foreground">{label}</div>
       <div className={`mt-1 text-xl font-semibold ${tone === "success" ? "text-success" : ""}`}>{value}</div>
     </Card>

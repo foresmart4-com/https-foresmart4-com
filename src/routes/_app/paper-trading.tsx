@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GraduationCap, TrendingUp, TrendingDown, RotateCcw } from "lucide-react";
+import { GraduationCap, TrendingUp, TrendingDown, RotateCcw, Activity } from "lucide-react";
 import { toast } from "sonner";
 import { getMarketData } from "@/lib/market-data";
 import { getStocksData, REGION_LABELS, type StockRegion } from "@/lib/stocks-data";
+import { DataStatusBadge } from "@/components/DataStatusBadge";
 
 type Kind = "stocks" | "crypto" | "metals" | "bonds" | "currencies";
 
@@ -142,43 +143,78 @@ function PaperTradingPage() {
   };
 
   return (
-    <div className="container mx-auto max-w-6xl space-y-6 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl font-bold flex items-center gap-2">
-            <GraduationCap className="h-7 w-7 text-primary" /> {lang === "ar" ? "محاكي التداول" : "Paper Trading"}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {lang === "ar" ? "تدرب بأموال افتراضية بدون مخاطر." : "Practice with virtual cash, no risk."}
-          </p>
-        </div>
-        <Button variant="outline" onClick={reset} className="gap-2"><RotateCcw className="h-4 w-4" /> {lang === "ar" ? "إعادة ضبط" : "Reset"}</Button>
-      </header>
+    <div className="container mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
 
+      {/* ─── Hero ─────────────────────────────────────────────────────── */}
+      <div className="ornament-border relative overflow-hidden rounded-2xl shadow-elegant">
+        <div className="gradient-hero absolute inset-0 pointer-events-none" />
+        <div className="relative z-10 p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl gradient-primary shadow-glow">
+                <GraduationCap className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
+                  <Activity className="h-3.5 w-3.5" />
+                  {lang === "ar" ? "محاكاة التداول بدون مخاطر" : "Risk-Free Trading Simulation"}
+                </div>
+                <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">
+                  <span className="text-gradient">{lang === "ar" ? "محاكي التداول" : "Paper Trading"}</span>
+                </h1>
+                <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+                  {lang === "ar"
+                    ? "تدرب بـ 100,000 دولار افتراضي — لا مخاطر حقيقية، لا أموال حقيقية."
+                    : "Practice with $100,000 in virtual cash — zero real risk, zero real money."}
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card/70 px-3 py-2 backdrop-blur-sm">
+                <span className="text-xs text-muted-foreground">{lang === "ar" ? "النقد" : "Cash"}</span>
+                <span className="font-display text-lg font-bold">${cash.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+              </div>
+              <Button variant="outline" onClick={reset} className="gap-2 shrink-0">
+                <RotateCcw className="h-4 w-4" /> {lang === "ar" ? "إعادة ضبط" : "Reset"}
+              </Button>
+            </div>
+          </div>
+        </div>
+        <div className="relative z-10 border-t border-border/40 bg-card/30 px-5 py-2.5 sm:px-6">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-semibold text-primary">{lang === "ar" ? "تلميح:" : "Tip:"}</span>
+            {lang === "ar" ? "كل الصفقات افتراضية — لا يتم تنفيذ أي أوامر حقيقية في الأسواق." : "All trades are virtual — no real orders are placed in any market."}
+            <DataStatusBadge status="simulation" className="ms-auto" />
+          </div>
+        </div>
+      </div>
+
+      {/* ─── KPI cards ────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="p-4">
+        <Card className="hover-lift gradient-card border border-border shadow-card p-4">
           <div className="text-xs text-muted-foreground">{lang === "ar" ? "النقد" : "Cash"}</div>
           <div className="font-display text-xl font-bold">${cash.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
         </Card>
-        <Card className="p-4">
+        <Card className="hover-lift gradient-card border border-border shadow-card p-4">
           <div className="text-xs text-muted-foreground">{lang === "ar" ? "قيمة المحفظة" : "Holdings value"}</div>
           <div className="font-display text-xl font-bold">${portfolioValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
         </Card>
-        <Card className="p-4">
+        <Card className="hover-lift gradient-card border border-border shadow-card p-4">
           <div className="text-xs text-muted-foreground">{lang === "ar" ? "الأرباح غير المحققة" : "Unrealized P&L"}</div>
-          <div className={"font-display text-xl font-bold " + (unrealizedPnl >= 0 ? "text-emerald-500" : "text-rose-500")}>
+          <div className={"font-display text-xl font-bold " + (unrealizedPnl >= 0 ? "text-success" : "text-danger")}>
             {unrealizedPnl >= 0 ? "+" : ""}${unrealizedPnl.toFixed(2)}
           </div>
         </Card>
-        <Card className="p-4">
+        <Card className="hover-lift gradient-card border border-border shadow-card p-4">
           <div className="text-xs text-muted-foreground">{lang === "ar" ? "إجمالي العائد" : "Total return"}</div>
-          <div className={"font-display text-xl font-bold " + (totalReturnPct >= 0 ? "text-emerald-500" : "text-rose-500")}>
+          <div className={"font-display text-xl font-bold " + (totalReturnPct >= 0 ? "text-success" : "text-danger")}>
             {totalReturnPct >= 0 ? "+" : ""}{totalReturnPct.toFixed(2)}%
           </div>
         </Card>
       </div>
 
-      <Card className="p-4 space-y-3">
+      {/* ─── Trade form ───────────────────────────────────────────────── */}
+      <Card className="gradient-card border border-border shadow-card p-4 space-y-3">
         <div className="grid gap-3 md:grid-cols-4">
           <div>
             <label className="text-xs text-muted-foreground">{lang === "ar" ? "النوع" : "Type"}</label>
@@ -239,7 +275,8 @@ function PaperTradingPage() {
         </div>
       </Card>
 
-      <Card className="overflow-hidden">
+      {/* ─── Open positions ───────────────────────────────────────────── */}
+      <Card className="gradient-card border border-border shadow-card overflow-hidden">
         <div className="bg-muted/40 px-4 py-2 font-semibold text-sm">{lang === "ar" ? "صفقات مفتوحة" : "Open positions"}</div>
         {openTrades.length === 0 ? (
           <div className="p-6 text-center text-muted-foreground text-sm">{lang === "ar" ? "لا توجد صفقات مفتوحة" : "No open trades"}</div>
@@ -267,7 +304,7 @@ function PaperTradingPage() {
                     <td className="p-3 text-end">{Number(t.quantity)}</td>
                     <td className="p-3 text-end">${Number(t.price).toFixed(2)}</td>
                     <td className="p-3 text-end">${cur.toFixed(2)}</td>
-                    <td className={"p-3 text-end font-medium " + (pnl >= 0 ? "text-emerald-500" : "text-rose-500")}>
+                    <td className={"p-3 text-end font-medium " + (pnl >= 0 ? "text-success" : "text-danger")}>
                       {pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}
                     </td>
                     <td className="p-3 text-end">
@@ -281,8 +318,9 @@ function PaperTradingPage() {
         )}
       </Card>
 
+      {/* ─── Trade history ────────────────────────────────────────────── */}
       {closedTrades.length > 0 && (
-        <Card className="overflow-hidden">
+        <Card className="gradient-card border border-border shadow-card overflow-hidden">
           <div className="bg-muted/40 px-4 py-2 font-semibold text-sm">{lang === "ar" ? "السجل" : "History"}</div>
           <table className="w-full text-sm">
             <thead className="bg-muted/20 text-xs uppercase">
@@ -301,7 +339,7 @@ function PaperTradingPage() {
                   <td className="p-3">{t.side}</td>
                   <td className="p-3 text-end">{Number(t.quantity)}</td>
                   <td className="p-3 text-end text-muted-foreground">${Number(t.price).toFixed(2)} → ${Number(t.closed_price ?? 0).toFixed(2)}</td>
-                  <td className={"p-3 text-end font-medium " + (Number(t.pnl ?? 0) >= 0 ? "text-emerald-500" : "text-rose-500")}>
+                  <td className={"p-3 text-end font-medium " + (Number(t.pnl ?? 0) >= 0 ? "text-success" : "text-danger")}>
                     {Number(t.pnl ?? 0) >= 0 ? "+" : ""}${Number(t.pnl ?? 0).toFixed(2)}
                   </td>
                 </tr>
