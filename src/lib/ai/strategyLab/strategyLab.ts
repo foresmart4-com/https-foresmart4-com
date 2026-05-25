@@ -3,6 +3,7 @@ import { runPortfolioStress } from "@/lib/ai/scenarios/scenarioEngine";
 import { applyKnowledge } from "@/lib/ai/knowledge";
 import { getGenesisArchiveSummary } from "@/lib/genesis100/engine";
 import { getMacroFeed } from "@/lib/ai/feeds/macroFeed";
+import { getRiskTwinReport } from "@/lib/ai/riskTwin/riskTwinEngine";
 import { AI_SAFETY_FLAGS } from "@/lib/ai/core/safety";
 
 export type StrategyId = "growth" | "value" | "momentum" | "defensive" | "macro" | "income" | "crisis_hedge" | "balanced_ai";
@@ -46,9 +47,10 @@ export function listStrategies() {
 }
 
 export async function compareStrategies(): Promise<{ strategyLabVersion: string; strategies: StrategyScore[] } & typeof AI_SAFETY_FLAGS> {
-  const [backtest, stress, knowledge, archive, macro] = await Promise.all([
+  const [backtest, stress, riskTwin, knowledge, archive, macro] = await Promise.all([
     Promise.resolve(runGenesisBacktest("90d")),
     runPortfolioStress(),
+    getRiskTwinReport(),
     applyKnowledge("AAPL"),
     Promise.resolve(getGenesisArchiveSummary()),
     getMacroFeed(),
@@ -56,13 +58,14 @@ export async function compareStrategies(): Promise<{ strategyLabVersion: string;
   const backtestReady = "ready" in backtest && backtest.ready === true;
   const historicalBoost = backtestReady ? Math.min(20, Number(backtest.strategyAccuracy ?? 0) / 5) : 0;
   const stressPenalty = Math.min(25, Number(stress.worstDrawdownEstimate ?? 0) * 2);
+  const riskTwinPenalty = Math.min(15, Number(riskTwin.rejectedCount ?? 0) * 3);
   const macroBoost = macro.confidencePercent / 5;
   const knowledgeBoost = (knowledge.confidence ?? 50) / 10;
   const archiveDepth = Math.min(10, (archive.count ?? 0) / 5);
 
   const raw = STRATEGIES.map((s) => {
     const expectedReturnScore = clamp(s.returnBase + historicalBoost + knowledgeBoost - (s.id === "crisis_hedge" ? 0 : stressPenalty / 3));
-    const riskScore = clamp(s.riskBase + stressPenalty - (s.id === "defensive" || s.id === "crisis_hedge" ? 15 : 0));
+    const riskScore = clamp(s.riskBase + stressPenalty + riskTwinPenalty - (s.id === "defensive" || s.id === "crisis_hedge" ? 15 : 0));
     const drawdownScore = clamp(100 - riskScore);
     const macroFitScore = clamp((s.id === "macro" || s.id === "crisis_hedge" ? 68 : 52) + macroBoost);
     const marketFitScore = clamp((expectedReturnScore + drawdownScore) / 2);
@@ -80,7 +83,7 @@ export async function compareStrategies(): Promise<{ strategyLabVersion: string;
       historicalFitScore,
       confidencePercent,
       recommendedWeight: 0,
-      explanationAr: `استراتيجية ${s.nameAr}: عائد متوقع ${expectedReturnScore}/100، مخاطر ${riskScore}/100، ملاءمة ماكرو ${macroFitScore}/100.`,
+      explanationAr: `استراتيجية ${s.nameAr}: عائد متوقع ${expectedReturnScore}/100، مخاطر ${riskScore}/100، ملاءمة ماكرو ${macroFitScore}/100، ونتيجة توأم المخاطر ${riskTwin.rejectedCount ?? 0} رفض.`,
     };
   });
 
