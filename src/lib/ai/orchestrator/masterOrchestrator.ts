@@ -11,13 +11,53 @@ import { getStrategyRecommendation } from "@/lib/ai/strategyLab/strategyLab";
 import { getGenesisArchiveSummary } from "@/lib/genesis100/engine";
 import { addMemoryEvent } from "@/lib/ai/memory/store";
 import { runDailyResearchAgent } from "@/lib/ai/researchAgent/researchAgent";
+import { runPortfolioOptimizer } from "@/lib/ai/optimizer/portfolioOptimizer";
+import { queryKnowledgeGraph } from "@/lib/ai/knowledgeGraph/knowledgeGraphEngine";
+import { runAltDataLayer } from "@/lib/ai/altdata/altDataEngine";
 import { AI_SAFETY_FLAGS, safeRead } from "@/lib/ai/core/safety";
 
 const ORCHESTRATOR_SYMBOLS = ["AAPL", "BTCUSDT", "WTI", "2222.SR"];
 
+export async function getMasterOrchestratorStatus() {
+  const [market, macro, news, archive] = await Promise.all([
+    safeRead(() => new MarketIntelligenceAgent().analyze(), null),
+    safeRead(() => getMacroFeed(), null),
+    safeRead(() => getNewsFeed(), null),
+    safeRead(() => getGenesisArchiveSummary(), null),
+  ]);
+
+  return {
+    orchestratorVersion: "master-orchestrator-v1",
+    ready: true,
+    modules: {
+      marketIntelligence: Boolean(market),
+      macroFeed: Boolean(macro),
+      newsFeed: Boolean(news),
+      genesisArchive: Boolean(archive),
+      debate: true,
+      backtesting: true,
+      predictionTracker: true,
+      scenarios: true,
+      riskTwin: true,
+      strategyLab: true,
+      researchAgent: true,
+    },
+    systemHealth: {
+      marketRegime: market?.marketRegime ?? macro?.macroRegime ?? "unknown",
+      macroFeedConnected: Boolean(macro?.availableIndicators?.length),
+      newsFeedConnected: Boolean(news?.items?.length),
+      genesisArchiveCount: archive?.count ?? 0,
+    },
+    executionEnabled: false,
+    externalTransfersAllowed: false,
+    fundMovementBlocked: true,
+    ...AI_SAFETY_FLAGS,
+  };
+}
+
 export async function runMasterOrchestrator() {
   const cycleId = `master-${Date.now()}`;
-  const [market, macro, news, knowledge, consensusResults, backtest, predictions, stress, riskTwin, strategy, research, archive] = await Promise.all([
+  const [market, macro, news, knowledge, consensusResults, backtest, predictions, stress, riskTwin, strategy, research, optimizer, graph, altdata, archive] = await Promise.all([
     safeRead(() => new MarketIntelligenceAgent().analyze(), null),
     safeRead(() => getMacroFeed(), null),
     safeRead(() => getNewsFeed(), null),
@@ -29,6 +69,9 @@ export async function runMasterOrchestrator() {
     safeRead(() => getRiskTwinReport(), null),
     safeRead(() => getStrategyRecommendation(), null),
     safeRead(() => runDailyResearchAgent(), null),
+    safeRead(() => runPortfolioOptimizer(), null),
+    safeRead(() => queryKnowledgeGraph(), null),
+    safeRead(() => runAltDataLayer(), null),
     safeRead(() => getGenesisArchiveSummary(), null),
   ]);
 
@@ -50,6 +93,7 @@ export async function runMasterOrchestrator() {
   const topOpportunities = [
     ...(news?.topOpportunities ?? []),
     ...(research?.topOpportunities ?? []),
+    ...(altdata?.altSignals ?? []).slice(0, 2).map((signal: { source: string; signal: string }) => `${signal.source}: ${signal.signal}`),
     ...(knowledge?.investmentPrinciples ?? []).slice(0, 2),
   ].slice(0, 8);
   const confidenceInputs = [
@@ -81,6 +125,16 @@ export async function runMasterOrchestrator() {
     researchSummaryAr: research?.dailyResearchBriefAr ?? `تم تنسيق السوق والماكرو والأخبار والمعرفة وGenesis archive. أفضل استراتيجية: ${strategy?.bestStrategy?.nameAr ?? "غير محددة"}.`,
     learningEventsAdded: event ? 2 : 1,
     overallConfidencePercent,
+    systemHealth: {
+      macroFeedConnected: Boolean(macro),
+      newsFeedConnected: Boolean(news),
+      backtestReady: Boolean(backtest?.ready),
+      riskTwinReady: Boolean(riskTwin),
+      optimizerReady: Boolean(optimizer),
+      knowledgeGraphReady: Boolean(graph),
+      altDataReady: Boolean(altdata),
+      archiveCount: archive?.count ?? 0,
+    },
     executionEnabled: false,
     liveTrading: false,
     externalTransfersAllowed: false,

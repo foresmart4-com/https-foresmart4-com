@@ -150,7 +150,10 @@ import { Route as ApiAiPredictionsHistoryRouteImport } from './routes/api/ai/pre
 import { Route as ApiAiPredictionsEvaluateRouteImport } from './routes/api/ai/predictions/evaluate'
 import { Route as ApiAiPredictionsCreateRouteImport } from './routes/api/ai/predictions/create'
 import { Route as ApiAiPredictionsAccuracyRouteImport } from './routes/api/ai/predictions/accuracy'
+import { Route as ApiAiOrchestratorStatusRouteImport } from './routes/api/ai/orchestrator/status'
 import { Route as ApiAiOrchestratorRunRouteImport } from './routes/api/ai/orchestrator/run'
+import { Route as ApiAiOptimizerRunRouteImport } from './routes/api/ai/optimizer/run'
+import { Route as ApiAiOptimizerReportRouteImport } from './routes/api/ai/optimizer/report'
 import { Route as ApiAiMemoryStatusRouteImport } from './routes/api/ai/memory/status'
 import { Route as ApiAiLearningStatusRouteImport } from './routes/api/ai/learning/status'
 import { Route as ApiAiLearningRunCycleRouteImport } from './routes/api/ai/learning/run-cycle'
@@ -158,6 +161,9 @@ import { Route as ApiAiKnowledgeTopicsRouteImport } from './routes/api/ai/knowle
 import { Route as ApiAiKnowledgeStatusRouteImport } from './routes/api/ai/knowledge/status'
 import { Route as ApiAiKnowledgeSearchRouteImport } from './routes/api/ai/knowledge/search'
 import { Route as ApiAiKnowledgeApplyRouteImport } from './routes/api/ai/knowledge/apply'
+import { Route as ApiAiKnowledgeGraphUpdateRouteImport } from './routes/api/ai/knowledge-graph/update'
+import { Route as ApiAiKnowledgeGraphStatusRouteImport } from './routes/api/ai/knowledge-graph/status'
+import { Route as ApiAiKnowledgeGraphQueryRouteImport } from './routes/api/ai/knowledge-graph/query'
 import { Route as ApiAiIntelligenceMarketRouteImport } from './routes/api/ai/intelligence/market'
 import { Route as ApiAiIntelligenceMacroRouteImport } from './routes/api/ai/intelligence/macro'
 import { Route as ApiAiIntelligenceLearningRouteImport } from './routes/api/ai/intelligence/learning'
@@ -169,6 +175,8 @@ import { Route as ApiAiCredibilitySourcesRouteImport } from './routes/api/ai/cre
 import { Route as ApiAiBacktestStatusRouteImport } from './routes/api/ai/backtest/status'
 import { Route as ApiAiBacktestRunRouteImport } from './routes/api/ai/backtest/run'
 import { Route as ApiAiBacktestReportRouteImport } from './routes/api/ai/backtest/report'
+import { Route as ApiAiAltdataStatusRouteImport } from './routes/api/ai/altdata/status'
+import { Route as ApiAiAltdataRunRouteImport } from './routes/api/ai/altdata/run'
 import { Route as ApiAiAgentsStatusRouteImport } from './routes/api/ai/agents/status'
 import { Route as ApiAiAgentsPortfolioDebateRouteImport } from './routes/api/ai/agents/portfolio-debate'
 import { Route as ApiAiAgentsDebateRouteImport } from './routes/api/ai/agents/debate'
@@ -926,9 +934,24 @@ const ApiAiPredictionsAccuracyRoute =
     path: '/api/ai/predictions/accuracy',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAiOrchestratorStatusRoute = ApiAiOrchestratorStatusRouteImport.update({
+  id: '/api/ai/orchestrator/status',
+  path: '/api/ai/orchestrator/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAiOrchestratorRunRoute = ApiAiOrchestratorRunRouteImport.update({
   id: '/api/ai/orchestrator/run',
   path: '/api/ai/orchestrator/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiOptimizerRunRoute = ApiAiOptimizerRunRouteImport.update({
+  id: '/api/ai/optimizer/run',
+  path: '/api/ai/optimizer/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiOptimizerReportRoute = ApiAiOptimizerReportRouteImport.update({
+  id: '/api/ai/optimizer/report',
+  path: '/api/ai/optimizer/report',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAiMemoryStatusRoute = ApiAiMemoryStatusRouteImport.update({
@@ -966,6 +989,24 @@ const ApiAiKnowledgeApplyRoute = ApiAiKnowledgeApplyRouteImport.update({
   path: '/api/ai/knowledge/apply',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAiKnowledgeGraphUpdateRoute =
+  ApiAiKnowledgeGraphUpdateRouteImport.update({
+    id: '/api/ai/knowledge-graph/update',
+    path: '/api/ai/knowledge-graph/update',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiKnowledgeGraphStatusRoute =
+  ApiAiKnowledgeGraphStatusRouteImport.update({
+    id: '/api/ai/knowledge-graph/status',
+    path: '/api/ai/knowledge-graph/status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiKnowledgeGraphQueryRoute =
+  ApiAiKnowledgeGraphQueryRouteImport.update({
+    id: '/api/ai/knowledge-graph/query',
+    path: '/api/ai/knowledge-graph/query',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAiIntelligenceMarketRoute = ApiAiIntelligenceMarketRouteImport.update({
   id: '/api/ai/intelligence/market',
   path: '/api/ai/intelligence/market',
@@ -1022,6 +1063,16 @@ const ApiAiBacktestRunRoute = ApiAiBacktestRunRouteImport.update({
 const ApiAiBacktestReportRoute = ApiAiBacktestReportRouteImport.update({
   id: '/api/ai/backtest/report',
   path: '/api/ai/backtest/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiAltdataStatusRoute = ApiAiAltdataStatusRouteImport.update({
+  id: '/api/ai/altdata/status',
+  path: '/api/ai/altdata/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiAltdataRunRoute = ApiAiAltdataRunRouteImport.update({
+  id: '/api/ai/altdata/run',
+  path: '/api/ai/altdata/run',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAiAgentsStatusRoute = ApiAiAgentsStatusRouteImport.update({
@@ -1192,6 +1243,8 @@ export interface FileRoutesByFullPath {
   '/api/ai/agents/debate': typeof ApiAiAgentsDebateRoute
   '/api/ai/agents/portfolio-debate': typeof ApiAiAgentsPortfolioDebateRoute
   '/api/ai/agents/status': typeof ApiAiAgentsStatusRoute
+  '/api/ai/altdata/run': typeof ApiAiAltdataRunRoute
+  '/api/ai/altdata/status': typeof ApiAiAltdataStatusRoute
   '/api/ai/backtest/report': typeof ApiAiBacktestReportRoute
   '/api/ai/backtest/run': typeof ApiAiBacktestRunRoute
   '/api/ai/backtest/status': typeof ApiAiBacktestStatusRoute
@@ -1203,6 +1256,9 @@ export interface FileRoutesByFullPath {
   '/api/ai/intelligence/learning': typeof ApiAiIntelligenceLearningRoute
   '/api/ai/intelligence/macro': typeof ApiAiIntelligenceMacroRoute
   '/api/ai/intelligence/market': typeof ApiAiIntelligenceMarketRoute
+  '/api/ai/knowledge-graph/query': typeof ApiAiKnowledgeGraphQueryRoute
+  '/api/ai/knowledge-graph/status': typeof ApiAiKnowledgeGraphStatusRoute
+  '/api/ai/knowledge-graph/update': typeof ApiAiKnowledgeGraphUpdateRoute
   '/api/ai/knowledge/apply': typeof ApiAiKnowledgeApplyRoute
   '/api/ai/knowledge/search': typeof ApiAiKnowledgeSearchRoute
   '/api/ai/knowledge/status': typeof ApiAiKnowledgeStatusRoute
@@ -1210,7 +1266,10 @@ export interface FileRoutesByFullPath {
   '/api/ai/learning/run-cycle': typeof ApiAiLearningRunCycleRoute
   '/api/ai/learning/status': typeof ApiAiLearningStatusRoute
   '/api/ai/memory/status': typeof ApiAiMemoryStatusRoute
+  '/api/ai/optimizer/report': typeof ApiAiOptimizerReportRoute
+  '/api/ai/optimizer/run': typeof ApiAiOptimizerRunRoute
   '/api/ai/orchestrator/run': typeof ApiAiOrchestratorRunRoute
+  '/api/ai/orchestrator/status': typeof ApiAiOrchestratorStatusRoute
   '/api/ai/predictions/accuracy': typeof ApiAiPredictionsAccuracyRoute
   '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
   '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
@@ -1366,6 +1425,8 @@ export interface FileRoutesByTo {
   '/api/ai/agents/debate': typeof ApiAiAgentsDebateRoute
   '/api/ai/agents/portfolio-debate': typeof ApiAiAgentsPortfolioDebateRoute
   '/api/ai/agents/status': typeof ApiAiAgentsStatusRoute
+  '/api/ai/altdata/run': typeof ApiAiAltdataRunRoute
+  '/api/ai/altdata/status': typeof ApiAiAltdataStatusRoute
   '/api/ai/backtest/report': typeof ApiAiBacktestReportRoute
   '/api/ai/backtest/run': typeof ApiAiBacktestRunRoute
   '/api/ai/backtest/status': typeof ApiAiBacktestStatusRoute
@@ -1377,6 +1438,9 @@ export interface FileRoutesByTo {
   '/api/ai/intelligence/learning': typeof ApiAiIntelligenceLearningRoute
   '/api/ai/intelligence/macro': typeof ApiAiIntelligenceMacroRoute
   '/api/ai/intelligence/market': typeof ApiAiIntelligenceMarketRoute
+  '/api/ai/knowledge-graph/query': typeof ApiAiKnowledgeGraphQueryRoute
+  '/api/ai/knowledge-graph/status': typeof ApiAiKnowledgeGraphStatusRoute
+  '/api/ai/knowledge-graph/update': typeof ApiAiKnowledgeGraphUpdateRoute
   '/api/ai/knowledge/apply': typeof ApiAiKnowledgeApplyRoute
   '/api/ai/knowledge/search': typeof ApiAiKnowledgeSearchRoute
   '/api/ai/knowledge/status': typeof ApiAiKnowledgeStatusRoute
@@ -1384,7 +1448,10 @@ export interface FileRoutesByTo {
   '/api/ai/learning/run-cycle': typeof ApiAiLearningRunCycleRoute
   '/api/ai/learning/status': typeof ApiAiLearningStatusRoute
   '/api/ai/memory/status': typeof ApiAiMemoryStatusRoute
+  '/api/ai/optimizer/report': typeof ApiAiOptimizerReportRoute
+  '/api/ai/optimizer/run': typeof ApiAiOptimizerRunRoute
   '/api/ai/orchestrator/run': typeof ApiAiOrchestratorRunRoute
+  '/api/ai/orchestrator/status': typeof ApiAiOrchestratorStatusRoute
   '/api/ai/predictions/accuracy': typeof ApiAiPredictionsAccuracyRoute
   '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
   '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
@@ -1542,6 +1609,8 @@ export interface FileRoutesById {
   '/api/ai/agents/debate': typeof ApiAiAgentsDebateRoute
   '/api/ai/agents/portfolio-debate': typeof ApiAiAgentsPortfolioDebateRoute
   '/api/ai/agents/status': typeof ApiAiAgentsStatusRoute
+  '/api/ai/altdata/run': typeof ApiAiAltdataRunRoute
+  '/api/ai/altdata/status': typeof ApiAiAltdataStatusRoute
   '/api/ai/backtest/report': typeof ApiAiBacktestReportRoute
   '/api/ai/backtest/run': typeof ApiAiBacktestRunRoute
   '/api/ai/backtest/status': typeof ApiAiBacktestStatusRoute
@@ -1553,6 +1622,9 @@ export interface FileRoutesById {
   '/api/ai/intelligence/learning': typeof ApiAiIntelligenceLearningRoute
   '/api/ai/intelligence/macro': typeof ApiAiIntelligenceMacroRoute
   '/api/ai/intelligence/market': typeof ApiAiIntelligenceMarketRoute
+  '/api/ai/knowledge-graph/query': typeof ApiAiKnowledgeGraphQueryRoute
+  '/api/ai/knowledge-graph/status': typeof ApiAiKnowledgeGraphStatusRoute
+  '/api/ai/knowledge-graph/update': typeof ApiAiKnowledgeGraphUpdateRoute
   '/api/ai/knowledge/apply': typeof ApiAiKnowledgeApplyRoute
   '/api/ai/knowledge/search': typeof ApiAiKnowledgeSearchRoute
   '/api/ai/knowledge/status': typeof ApiAiKnowledgeStatusRoute
@@ -1560,7 +1632,10 @@ export interface FileRoutesById {
   '/api/ai/learning/run-cycle': typeof ApiAiLearningRunCycleRoute
   '/api/ai/learning/status': typeof ApiAiLearningStatusRoute
   '/api/ai/memory/status': typeof ApiAiMemoryStatusRoute
+  '/api/ai/optimizer/report': typeof ApiAiOptimizerReportRoute
+  '/api/ai/optimizer/run': typeof ApiAiOptimizerRunRoute
   '/api/ai/orchestrator/run': typeof ApiAiOrchestratorRunRoute
+  '/api/ai/orchestrator/status': typeof ApiAiOrchestratorStatusRoute
   '/api/ai/predictions/accuracy': typeof ApiAiPredictionsAccuracyRoute
   '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
   '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
@@ -1718,6 +1793,8 @@ export interface FileRouteTypes {
     | '/api/ai/agents/debate'
     | '/api/ai/agents/portfolio-debate'
     | '/api/ai/agents/status'
+    | '/api/ai/altdata/run'
+    | '/api/ai/altdata/status'
     | '/api/ai/backtest/report'
     | '/api/ai/backtest/run'
     | '/api/ai/backtest/status'
@@ -1729,6 +1806,9 @@ export interface FileRouteTypes {
     | '/api/ai/intelligence/learning'
     | '/api/ai/intelligence/macro'
     | '/api/ai/intelligence/market'
+    | '/api/ai/knowledge-graph/query'
+    | '/api/ai/knowledge-graph/status'
+    | '/api/ai/knowledge-graph/update'
     | '/api/ai/knowledge/apply'
     | '/api/ai/knowledge/search'
     | '/api/ai/knowledge/status'
@@ -1736,7 +1816,10 @@ export interface FileRouteTypes {
     | '/api/ai/learning/run-cycle'
     | '/api/ai/learning/status'
     | '/api/ai/memory/status'
+    | '/api/ai/optimizer/report'
+    | '/api/ai/optimizer/run'
     | '/api/ai/orchestrator/run'
+    | '/api/ai/orchestrator/status'
     | '/api/ai/predictions/accuracy'
     | '/api/ai/predictions/create'
     | '/api/ai/predictions/evaluate'
@@ -1892,6 +1975,8 @@ export interface FileRouteTypes {
     | '/api/ai/agents/debate'
     | '/api/ai/agents/portfolio-debate'
     | '/api/ai/agents/status'
+    | '/api/ai/altdata/run'
+    | '/api/ai/altdata/status'
     | '/api/ai/backtest/report'
     | '/api/ai/backtest/run'
     | '/api/ai/backtest/status'
@@ -1903,6 +1988,9 @@ export interface FileRouteTypes {
     | '/api/ai/intelligence/learning'
     | '/api/ai/intelligence/macro'
     | '/api/ai/intelligence/market'
+    | '/api/ai/knowledge-graph/query'
+    | '/api/ai/knowledge-graph/status'
+    | '/api/ai/knowledge-graph/update'
     | '/api/ai/knowledge/apply'
     | '/api/ai/knowledge/search'
     | '/api/ai/knowledge/status'
@@ -1910,7 +1998,10 @@ export interface FileRouteTypes {
     | '/api/ai/learning/run-cycle'
     | '/api/ai/learning/status'
     | '/api/ai/memory/status'
+    | '/api/ai/optimizer/report'
+    | '/api/ai/optimizer/run'
     | '/api/ai/orchestrator/run'
+    | '/api/ai/orchestrator/status'
     | '/api/ai/predictions/accuracy'
     | '/api/ai/predictions/create'
     | '/api/ai/predictions/evaluate'
@@ -2067,6 +2158,8 @@ export interface FileRouteTypes {
     | '/api/ai/agents/debate'
     | '/api/ai/agents/portfolio-debate'
     | '/api/ai/agents/status'
+    | '/api/ai/altdata/run'
+    | '/api/ai/altdata/status'
     | '/api/ai/backtest/report'
     | '/api/ai/backtest/run'
     | '/api/ai/backtest/status'
@@ -2078,6 +2171,9 @@ export interface FileRouteTypes {
     | '/api/ai/intelligence/learning'
     | '/api/ai/intelligence/macro'
     | '/api/ai/intelligence/market'
+    | '/api/ai/knowledge-graph/query'
+    | '/api/ai/knowledge-graph/status'
+    | '/api/ai/knowledge-graph/update'
     | '/api/ai/knowledge/apply'
     | '/api/ai/knowledge/search'
     | '/api/ai/knowledge/status'
@@ -2085,7 +2181,10 @@ export interface FileRouteTypes {
     | '/api/ai/learning/run-cycle'
     | '/api/ai/learning/status'
     | '/api/ai/memory/status'
+    | '/api/ai/optimizer/report'
+    | '/api/ai/optimizer/run'
     | '/api/ai/orchestrator/run'
+    | '/api/ai/orchestrator/status'
     | '/api/ai/predictions/accuracy'
     | '/api/ai/predictions/create'
     | '/api/ai/predictions/evaluate'
@@ -2190,6 +2289,8 @@ export interface RootRouteChildren {
   ApiAiAgentsDebateRoute: typeof ApiAiAgentsDebateRoute
   ApiAiAgentsPortfolioDebateRoute: typeof ApiAiAgentsPortfolioDebateRoute
   ApiAiAgentsStatusRoute: typeof ApiAiAgentsStatusRoute
+  ApiAiAltdataRunRoute: typeof ApiAiAltdataRunRoute
+  ApiAiAltdataStatusRoute: typeof ApiAiAltdataStatusRoute
   ApiAiBacktestReportRoute: typeof ApiAiBacktestReportRoute
   ApiAiBacktestRunRoute: typeof ApiAiBacktestRunRoute
   ApiAiBacktestStatusRoute: typeof ApiAiBacktestStatusRoute
@@ -2201,6 +2302,9 @@ export interface RootRouteChildren {
   ApiAiIntelligenceLearningRoute: typeof ApiAiIntelligenceLearningRoute
   ApiAiIntelligenceMacroRoute: typeof ApiAiIntelligenceMacroRoute
   ApiAiIntelligenceMarketRoute: typeof ApiAiIntelligenceMarketRoute
+  ApiAiKnowledgeGraphQueryRoute: typeof ApiAiKnowledgeGraphQueryRoute
+  ApiAiKnowledgeGraphStatusRoute: typeof ApiAiKnowledgeGraphStatusRoute
+  ApiAiKnowledgeGraphUpdateRoute: typeof ApiAiKnowledgeGraphUpdateRoute
   ApiAiKnowledgeApplyRoute: typeof ApiAiKnowledgeApplyRoute
   ApiAiKnowledgeSearchRoute: typeof ApiAiKnowledgeSearchRoute
   ApiAiKnowledgeStatusRoute: typeof ApiAiKnowledgeStatusRoute
@@ -2208,7 +2312,10 @@ export interface RootRouteChildren {
   ApiAiLearningRunCycleRoute: typeof ApiAiLearningRunCycleRoute
   ApiAiLearningStatusRoute: typeof ApiAiLearningStatusRoute
   ApiAiMemoryStatusRoute: typeof ApiAiMemoryStatusRoute
+  ApiAiOptimizerReportRoute: typeof ApiAiOptimizerReportRoute
+  ApiAiOptimizerRunRoute: typeof ApiAiOptimizerRunRoute
   ApiAiOrchestratorRunRoute: typeof ApiAiOrchestratorRunRoute
+  ApiAiOrchestratorStatusRoute: typeof ApiAiOrchestratorStatusRoute
   ApiAiPredictionsAccuracyRoute: typeof ApiAiPredictionsAccuracyRoute
   ApiAiPredictionsCreateRoute: typeof ApiAiPredictionsCreateRoute
   ApiAiPredictionsEvaluateRoute: typeof ApiAiPredictionsEvaluateRoute
@@ -3260,11 +3367,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAiPredictionsAccuracyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/orchestrator/status': {
+      id: '/api/ai/orchestrator/status'
+      path: '/api/ai/orchestrator/status'
+      fullPath: '/api/ai/orchestrator/status'
+      preLoaderRoute: typeof ApiAiOrchestratorStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ai/orchestrator/run': {
       id: '/api/ai/orchestrator/run'
       path: '/api/ai/orchestrator/run'
       fullPath: '/api/ai/orchestrator/run'
       preLoaderRoute: typeof ApiAiOrchestratorRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/optimizer/run': {
+      id: '/api/ai/optimizer/run'
+      path: '/api/ai/optimizer/run'
+      fullPath: '/api/ai/optimizer/run'
+      preLoaderRoute: typeof ApiAiOptimizerRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/optimizer/report': {
+      id: '/api/ai/optimizer/report'
+      path: '/api/ai/optimizer/report'
+      fullPath: '/api/ai/optimizer/report'
+      preLoaderRoute: typeof ApiAiOptimizerReportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/ai/memory/status': {
@@ -3314,6 +3442,27 @@ declare module '@tanstack/react-router' {
       path: '/api/ai/knowledge/apply'
       fullPath: '/api/ai/knowledge/apply'
       preLoaderRoute: typeof ApiAiKnowledgeApplyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/knowledge-graph/update': {
+      id: '/api/ai/knowledge-graph/update'
+      path: '/api/ai/knowledge-graph/update'
+      fullPath: '/api/ai/knowledge-graph/update'
+      preLoaderRoute: typeof ApiAiKnowledgeGraphUpdateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/knowledge-graph/status': {
+      id: '/api/ai/knowledge-graph/status'
+      path: '/api/ai/knowledge-graph/status'
+      fullPath: '/api/ai/knowledge-graph/status'
+      preLoaderRoute: typeof ApiAiKnowledgeGraphStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/knowledge-graph/query': {
+      id: '/api/ai/knowledge-graph/query'
+      path: '/api/ai/knowledge-graph/query'
+      fullPath: '/api/ai/knowledge-graph/query'
+      preLoaderRoute: typeof ApiAiKnowledgeGraphQueryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/ai/intelligence/market': {
@@ -3391,6 +3540,20 @@ declare module '@tanstack/react-router' {
       path: '/api/ai/backtest/report'
       fullPath: '/api/ai/backtest/report'
       preLoaderRoute: typeof ApiAiBacktestReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/altdata/status': {
+      id: '/api/ai/altdata/status'
+      path: '/api/ai/altdata/status'
+      fullPath: '/api/ai/altdata/status'
+      preLoaderRoute: typeof ApiAiAltdataStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/altdata/run': {
+      id: '/api/ai/altdata/run'
+      path: '/api/ai/altdata/run'
+      fullPath: '/api/ai/altdata/run'
+      preLoaderRoute: typeof ApiAiAltdataRunRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/ai/agents/status': {
@@ -3659,6 +3822,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiAgentsDebateRoute: ApiAiAgentsDebateRoute,
   ApiAiAgentsPortfolioDebateRoute: ApiAiAgentsPortfolioDebateRoute,
   ApiAiAgentsStatusRoute: ApiAiAgentsStatusRoute,
+  ApiAiAltdataRunRoute: ApiAiAltdataRunRoute,
+  ApiAiAltdataStatusRoute: ApiAiAltdataStatusRoute,
   ApiAiBacktestReportRoute: ApiAiBacktestReportRoute,
   ApiAiBacktestRunRoute: ApiAiBacktestRunRoute,
   ApiAiBacktestStatusRoute: ApiAiBacktestStatusRoute,
@@ -3670,6 +3835,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiIntelligenceLearningRoute: ApiAiIntelligenceLearningRoute,
   ApiAiIntelligenceMacroRoute: ApiAiIntelligenceMacroRoute,
   ApiAiIntelligenceMarketRoute: ApiAiIntelligenceMarketRoute,
+  ApiAiKnowledgeGraphQueryRoute: ApiAiKnowledgeGraphQueryRoute,
+  ApiAiKnowledgeGraphStatusRoute: ApiAiKnowledgeGraphStatusRoute,
+  ApiAiKnowledgeGraphUpdateRoute: ApiAiKnowledgeGraphUpdateRoute,
   ApiAiKnowledgeApplyRoute: ApiAiKnowledgeApplyRoute,
   ApiAiKnowledgeSearchRoute: ApiAiKnowledgeSearchRoute,
   ApiAiKnowledgeStatusRoute: ApiAiKnowledgeStatusRoute,
@@ -3677,7 +3845,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiLearningRunCycleRoute: ApiAiLearningRunCycleRoute,
   ApiAiLearningStatusRoute: ApiAiLearningStatusRoute,
   ApiAiMemoryStatusRoute: ApiAiMemoryStatusRoute,
+  ApiAiOptimizerReportRoute: ApiAiOptimizerReportRoute,
+  ApiAiOptimizerRunRoute: ApiAiOptimizerRunRoute,
   ApiAiOrchestratorRunRoute: ApiAiOrchestratorRunRoute,
+  ApiAiOrchestratorStatusRoute: ApiAiOrchestratorStatusRoute,
   ApiAiPredictionsAccuracyRoute: ApiAiPredictionsAccuracyRoute,
   ApiAiPredictionsCreateRoute: ApiAiPredictionsCreateRoute,
   ApiAiPredictionsEvaluateRoute: ApiAiPredictionsEvaluateRoute,
