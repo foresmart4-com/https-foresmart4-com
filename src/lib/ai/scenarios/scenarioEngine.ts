@@ -1,6 +1,7 @@
 import { getGenesisAllocations } from "@/lib/genesis100/engine";
 import { routeQuote } from "@/lib/market/router";
 import { getMacroFeed } from "@/lib/ai/feeds/macroFeed";
+import { getNewsFeed } from "@/lib/ai/feeds/newsFeed";
 import { applyKnowledge } from "@/lib/ai/knowledge";
 import { AI_SAFETY_FLAGS, safeRead } from "@/lib/ai/core/safety";
 
@@ -10,7 +11,6 @@ export type ScenarioId =
   | "fed_rate_hike"
   | "fed_rate_cut"
   | "dollar_strength"
-  | "dollar_weakness"
   | "liquidity_crisis"
   | "recession"
   | "inflation_shock"
@@ -40,7 +40,6 @@ export const SCENARIOS: ScenarioDefinition[] = [
   { id: "fed_rate_hike", nameAr: "رفع فائدة أمريكي", affectedAssets: ["AAPL", "QQQ", "BTCUSDT", "XAUUSD"], expectedImpactPercent: -5, riskLevel: "high", hedgeCandidates: ["DXY", "cash", "US10Y"] },
   { id: "fed_rate_cut", nameAr: "خفض فائدة أمريكي", affectedAssets: ["SPY", "QQQ", "BTCUSDT", "XAUUSD"], expectedImpactPercent: 5, riskLevel: "medium", hedgeCandidates: ["cash"] },
   { id: "dollar_strength", nameAr: "قوة الدولار", affectedAssets: ["EURUSD", "XAUUSD", "BTCUSDT"], expectedImpactPercent: -4, riskLevel: "medium", hedgeCandidates: ["DXY", "cash"] },
-  { id: "dollar_weakness", nameAr: "ضعف الدولار", affectedAssets: ["EURUSD", "XAUUSD", "WTI", "BTCUSDT"], expectedImpactPercent: 4, riskLevel: "medium", hedgeCandidates: ["SPY"] },
   { id: "liquidity_crisis", nameAr: "أزمة سيولة", affectedAssets: ["AAPL", "QQQ", "BTCUSDT", "2222.SR"], expectedImpactPercent: -12, riskLevel: "critical", hedgeCandidates: ["cash", "US10Y", "XAUUSD"] },
   { id: "recession", nameAr: "ركود اقتصادي", affectedAssets: ["AAPL", "MSFT", "XOM", "WTI"], expectedImpactPercent: -9, riskLevel: "critical", hedgeCandidates: ["cash", "US10Y", "XAUUSD"] },
   { id: "inflation_shock", nameAr: "صدمة تضخم", affectedAssets: ["XAUUSD", "WTI", "BRENT", "SPY"], expectedImpactPercent: -6, riskLevel: "high", hedgeCandidates: ["XAUUSD", "commodities", "cash"] },
@@ -72,6 +71,7 @@ export async function runScenario(id: string | null): Promise<ScenarioResult & t
   const exposureWeight = exposed.reduce((sum, allocation) => sum + (allocation.targetWeight ?? 0), 0);
   const quoteReads = await Promise.all(scenario.affectedAssets.map((symbol) => safeRead(() => routeQuote(symbol), null)));
   const macro = await safeRead(() => getMacroFeed(), null);
+  const news = await safeRead(() => getNewsFeed(), null);
   const knowledge = await safeRead(() => applyKnowledge(scenario.affectedAssets[0] ?? "AAPL"), null);
   const dataConfidence = quoteReads.filter((quote) => quote?.success).length / Math.max(1, quoteReads.length);
   const portfolioDrawdownEstimate = Number(Math.abs(exposureWeight * scenario.expectedImpactPercent).toFixed(2));
@@ -81,7 +81,7 @@ export async function runScenario(id: string | null): Promise<ScenarioResult & t
     ...scenario,
     portfolioDrawdownEstimate,
     assetsAtRisk: exposed.length ? exposed.map((allocation) => allocation.symbol) : scenario.affectedAssets,
-    recommendedActionAr: `راقب سيناريو ${scenario.nameAr}. خفف المخاطر تدريجياً عند ارتفاع التعرض، واستخدم المرشحات الدفاعية: ${scenario.hedgeCandidates.join(", ")}. ${knowledge?.decisionSupportAr ?? ""}`,
+    recommendedActionAr: `راقب سيناريو ${scenario.nameAr}. خفف المخاطر تدريجياً عند ارتفاع التعرض، واستخدم المرشحات الدفاعية: ${scenario.hedgeCandidates.join(", ")}. ${news?.summaryAr ?? ""} ${knowledge?.decisionSupportAr ?? ""}`,
     confidencePercent,
     ...AI_SAFETY_FLAGS,
   };
