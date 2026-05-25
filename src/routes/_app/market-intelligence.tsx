@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n } from "@/lib/i18n";
+import { DataStatusBadge } from "@/components/DataStatusBadge";
 import {
   Brain, TrendingUp, TrendingDown, Activity, AlertTriangle,
   Sparkles, Calendar, Newspaper, Layers, Loader2, ShieldAlert,
@@ -33,19 +34,21 @@ type PortfolioScore = Awaited<ReturnType<typeof getPortfolioRiskScore>>;
 type WatchlistOut = Awaited<ReturnType<typeof getWatchlistIntelligence>>;
 
 const REC_STYLES: Record<string, string> = {
-  strong_buy: "bg-emerald-600 text-white",
-  buy: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+  strong_buy: "bg-success text-white border-success/50",
+  buy: "bg-success/15 text-success border-success/30",
   hold: "bg-muted text-muted-foreground",
-  reduce: "bg-orange-500/15 text-orange-600 border-orange-500/30",
-  sell: "bg-rose-600 text-white",
+  reduce: "bg-warning/15 text-warning border-warning/30",
+  sell: "bg-danger text-white border-danger/50",
 };
 
 const RISK_STYLES: Record<string, string> = {
-  low: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
-  moderate: "bg-amber-500/15 text-amber-600 border-amber-500/30",
-  elevated: "bg-orange-500/15 text-orange-600 border-orange-500/30",
-  high: "bg-rose-500/15 text-rose-600 border-rose-500/30",
+  low: "bg-success/15 text-success border-success/30",
+  moderate: "bg-warning/15 text-warning border-warning/30",
+  elevated: "bg-warning/20 text-warning border-warning/40",
+  high: "bg-danger/15 text-danger border-danger/30",
 };
+
+const PRESET_SYMBOLS = ["AAPL", "BTC", "ETH", "SPX", "NDX", "XAU"];
 
 function MarketIntelligencePage() {
   const { lang } = useI18n();
@@ -107,40 +110,75 @@ function MarketIntelligencePage() {
   const tfRows = report?.timeframes ?? [];
 
   return (
-    <div className="container mx-auto p-4 md:p-6 space-y-6" dir={ar ? "rtl" : "ltr"}>
-      <header className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-            <Brain className="h-7 w-7 text-primary" />
-            {t("ذكاء السوق", "Market Intelligence")}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {t(
-              "تحليل متعدد الإطارات الزمنية، مشاعر الأخبار، النظام السوقي، المخاطر، ومخرجات قابلة للتفسير.",
-              "Multi-timeframe trend, news sentiment, regime, risk, and explainable AI outputs.",
-            )}
-          </p>
-        </div>
-      </header>
+    <div className="container mx-auto max-w-7xl space-y-6 p-4 sm:p-6" dir={ar ? "rtl" : "ltr"}>
 
-      {/* Symbol input */}
-      <Card>
+      {/* ─── Hero ─────────────────────────────────────────────────────── */}
+      <div className="ornament-border relative overflow-hidden rounded-2xl shadow-elegant">
+        <div className="gradient-hero absolute inset-0 pointer-events-none" />
+        <div className="relative z-10 p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl gradient-primary shadow-glow">
+                <Brain className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
+                  <Activity className="h-3.5 w-3.5" />
+                  {ar ? "محرك الاستخبارات" : "Intelligence Engine"}
+                </div>
+                <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">
+                  <span className="text-gradient">{t("ذكاء السوق", "Market Intelligence")}</span>
+                </h1>
+                <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+                  {t(
+                    "تحليل متعدد الإطارات الزمنية، مشاعر الأخبار، النظام السوقي، المخاطر، ومخرجات قابلة للتفسير.",
+                    "Multi-timeframe trend, news sentiment, regime, risk, and explainable AI outputs.",
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="relative z-10 border-t border-border/40 bg-card/30 px-5 py-2.5 sm:px-6">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-semibold text-primary">{ar ? "تلميح:" : "Tip:"}</span>
+            {ar ? "أدخل أي رمز مالي للحصول على تحليل فوري متعدد الأبعاد." : "Enter any financial symbol for instant multi-dimensional analysis."}
+            <DataStatusBadge status="simulation" className="ms-auto" />
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Symbol input ─────────────────────────────────────────────── */}
+      <Card className="gradient-card border border-border shadow-card">
         <CardHeader>
           <CardTitle className="text-base">{t("تحليل رمز", "Analyse symbol")}</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap items-center gap-2">
-          <Input
-            value={symbol}
-            onChange={(e) => setSymbol(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") runReport(symbol); }}
-            placeholder={t("مثال: AAPL, NVDA, GLD", "e.g. AAPL, NVDA, GLD")}
-            className="max-w-xs"
-          />
-          <Button onClick={() => runReport(symbol)} disabled={loading || !symbol.trim()}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            <span className="ms-2">{t("تحليل", "Analyse")}</span>
-          </Button>
-          {err && <span className="text-sm text-destructive">{err}</span>}
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              value={symbol}
+              onChange={(e) => setSymbol(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") runReport(symbol); }}
+              placeholder={t("مثال: AAPL, NVDA, GLD", "e.g. AAPL, NVDA, GLD")}
+              className="max-w-xs"
+            />
+            <Button onClick={() => runReport(symbol)} disabled={loading || !symbol.trim()}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              <span className="ms-2">{t("تحليل", "Analyse")}</span>
+            </Button>
+            {err && <span className="text-sm text-destructive">{err}</span>}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {PRESET_SYMBOLS.map((s) => (
+              <button
+                key={s}
+                onClick={() => { setSymbol(s); runReport(s); }}
+                className="rounded-full border border-border/70 bg-muted/30 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-foreground"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
@@ -152,9 +190,9 @@ function MarketIntelligencePage() {
 
       {report && (
         <>
-          {/* Summary tiles */}
+          {/* ─── Summary tiles ────────────────────────────────────────── */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <Card>
+            <Card className="hover-lift gradient-card border border-border shadow-card">
               <CardContent className="p-4">
                 <div className="text-xs text-muted-foreground">{t("التوصية", "Recommendation")}</div>
                 <Badge className={`mt-2 ${REC_STYLES[report.recommendation]}`}>
@@ -165,31 +203,31 @@ function MarketIntelligencePage() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="hover-lift gradient-card border border-border shadow-card">
               <CardContent className="p-4">
                 <div className="text-xs text-muted-foreground">{t("السعر", "Price")}</div>
                 <div className="text-2xl font-bold mt-1">{report.price.toFixed(2)}</div>
-                <div className={`text-sm flex items-center gap-1 ${report.changePct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                <div className={`text-sm flex items-center gap-1 ${report.changePct >= 0 ? "text-success" : "text-danger"}`}>
                   {report.changePct >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                   {report.changePct >= 0 ? "+" : ""}{report.changePct.toFixed(2)}%
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="hover-lift gradient-card border border-border shadow-card">
               <CardContent className="p-4">
                 <div className="text-xs text-muted-foreground">{t("الاتجاه", "Trend score")}</div>
                 <div className="text-2xl font-bold mt-1">{report.trendScore}</div>
                 <Progress value={(report.trendScore + 100) / 2} className="mt-2 h-2" />
               </CardContent>
             </Card>
-            <Card>
+            <Card className="hover-lift gradient-card border border-border shadow-card">
               <CardContent className="p-4">
                 <div className="text-xs text-muted-foreground">{t("التذبذب", "Volatility")}</div>
                 <div className="text-2xl font-bold mt-1">{report.volatilityScore}</div>
                 <Progress value={report.volatilityScore} className="mt-2 h-2" />
               </CardContent>
             </Card>
-            <Card>
+            <Card className="hover-lift gradient-card border border-border shadow-card">
               <CardContent className="p-4">
                 <div className="text-xs text-muted-foreground">{t("المخاطر", "Risk")}</div>
                 <Badge className={`mt-2 ${RISK_STYLES[report.risk.band]}`}>
@@ -199,8 +237,8 @@ function MarketIntelligencePage() {
             </Card>
           </div>
 
-          {/* Rationale */}
-          <Card>
+          {/* ─── Rationale ────────────────────────────────────────────── */}
+          <Card className="gradient-card border border-border shadow-card">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Sparkles className="h-4 w-4" /> {t("ملخص الذكاء الاصطناعي", "AI rationale")}
@@ -212,8 +250,8 @@ function MarketIntelligencePage() {
           </Card>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Timeframes */}
-            <Card>
+            {/* ─── Timeframes ───────────────────────────────────────── */}
+            <Card className="gradient-card border border-border shadow-card">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Layers className="h-4 w-4" /> {t("الإطارات الزمنية", "Timeframes")}
@@ -234,7 +272,7 @@ function MarketIntelligencePage() {
                     {tfRows.map((s) => (
                       <tr key={s.timeframe} className="border-b last:border-0">
                         <td className="py-2 font-medium">{s.timeframe}</td>
-                        <td className={`text-end ${s.changePct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                        <td className={`text-end ${s.changePct >= 0 ? "text-success" : "text-danger"}`}>
                           {s.changePct >= 0 ? "+" : ""}{s.changePct.toFixed(2)}%
                         </td>
                         <td className="text-end uppercase text-xs">{s.trend}</td>
@@ -252,8 +290,8 @@ function MarketIntelligencePage() {
               </CardContent>
             </Card>
 
-            {/* Regime + alerts */}
-            <Card>
+            {/* ─── Regime + alerts ──────────────────────────────────── */}
+            <Card className="gradient-card border border-border shadow-card">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Activity className="h-4 w-4" /> {t("النظام والتنبيهات", "Regime & smart alerts")}
@@ -272,7 +310,7 @@ function MarketIntelligencePage() {
                   )}
                   {report.smartAlerts.map((a, i) => (
                     <div key={i} className="flex items-start gap-2 text-sm p-2 rounded border bg-muted/30">
-                      <AlertTriangle className={`h-4 w-4 mt-0.5 ${a.severity === "critical" ? "text-rose-600" : a.severity === "warn" ? "text-amber-600" : "text-muted-foreground"}`} />
+                      <AlertTriangle className={`h-4 w-4 mt-0.5 ${a.severity === "critical" ? "text-danger" : a.severity === "warn" ? "text-warning" : "text-muted-foreground"}`} />
                       <div>
                         <div className="font-medium text-xs uppercase">{a.kind.replace(/_/g, " ")}</div>
                         <div>{a.message}</div>
@@ -283,8 +321,8 @@ function MarketIntelligencePage() {
               </CardContent>
             </Card>
 
-            {/* Sentiment */}
-            <Card>
+            {/* ─── Sentiment ────────────────────────────────────────── */}
+            <Card className="gradient-card border border-border shadow-card">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Newspaper className="h-4 w-4" /> {t("المشاعر الإخبارية", "News sentiment")}
@@ -300,7 +338,7 @@ function MarketIntelligencePage() {
                 <div className="space-y-1">
                   {report.sentiment.topHeadlines.map((h, i) => (
                     <a key={i} href={h.url} target="_blank" rel="noreferrer" className="block text-sm hover:underline">
-                      <span className={`me-2 text-xs ${h.polarity > 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                      <span className={`me-2 text-xs ${h.polarity > 0 ? "text-success" : "text-danger"}`}>
                         {h.polarity > 0 ? "+" : ""}{h.polarity}
                       </span>
                       {h.headline}
@@ -314,8 +352,8 @@ function MarketIntelligencePage() {
               </CardContent>
             </Card>
 
-            {/* Calendar */}
-            <Card>
+            {/* ─── Calendar ─────────────────────────────────────────── */}
+            <Card className="gradient-card border border-border shadow-card">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Calendar className="h-4 w-4" /> {t("التقويم الاقتصادي", "Economic calendar")}
@@ -342,8 +380,8 @@ function MarketIntelligencePage() {
             </Card>
           </div>
 
-          {/* Explainability */}
-          <Card>
+          {/* ─── Explainability ───────────────────────────────────────── */}
+          <Card className="gradient-card border border-border shadow-card">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Brain className="h-4 w-4" /> {t("تفسير القرار", "Decision explainability")}
@@ -358,7 +396,7 @@ function MarketIntelligencePage() {
                     <div className="col-span-3 md:col-span-2">
                       <div className="h-2 rounded bg-muted overflow-hidden">
                         <div
-                          className={`h-full ${n.contribution >= 0 ? "bg-emerald-500" : "bg-rose-500"}`}
+                          className={`h-full ${n.contribution >= 0 ? "bg-success" : "bg-danger"}`}
                           style={{ width: `${Math.min(100, Math.abs(n.contribution))}%` }}
                         />
                       </div>
@@ -372,8 +410,8 @@ function MarketIntelligencePage() {
         </>
       )}
 
-      {/* Portfolio risk */}
-      <Card>
+      {/* ─── Portfolio risk ───────────────────────────────────────────── */}
+      <Card className="gradient-card border border-border shadow-card">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <ShieldAlert className="h-4 w-4" /> {t("مخاطر المحفظة", "Portfolio risk score")}
@@ -415,8 +453,8 @@ function MarketIntelligencePage() {
         </CardContent>
       </Card>
 
-      {/* Watchlist intelligence */}
-      <Card>
+      {/* ─── Watchlist intelligence ───────────────────────────────────── */}
+      <Card className="gradient-card border border-border shadow-card">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Activity className="h-4 w-4" /> {t("ذكاء قائمة المتابعة", "Watchlist intelligence")}
@@ -462,7 +500,7 @@ function MarketIntelligencePage() {
                       ) : (
                         <>
                           <td className="text-end">{it.price.toFixed(2)}</td>
-                          <td className={`text-end ${it.changePct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                          <td className={`text-end ${it.changePct >= 0 ? "text-success" : "text-danger"}`}>
                             {it.changePct >= 0 ? "+" : ""}{it.changePct.toFixed(2)}%
                           </td>
                           <td className="text-end">
@@ -490,10 +528,10 @@ function MarketIntelligencePage() {
 
 function Metric({ label, value, signed }: { label: string; value: number; signed?: boolean }) {
   const color = signed
-    ? value > 0 ? "text-emerald-600" : value < 0 ? "text-rose-600" : ""
+    ? value > 0 ? "text-success" : value < 0 ? "text-danger" : ""
     : "";
   return (
-    <div className="rounded border p-3">
+    <div className="gradient-card border border-border rounded-lg p-3 shadow-card">
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className={`text-xl font-bold ${color}`}>{signed && value > 0 ? "+" : ""}{value}</div>
     </div>

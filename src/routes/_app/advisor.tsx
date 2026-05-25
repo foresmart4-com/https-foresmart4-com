@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { DataStatusBadge } from "@/components/DataStatusBadge";
 import { AIDecisionPanel } from "@/components/AIDecisionPanel";
 import { AutoTradingControlPanel } from "@/components/AutoTradingControlPanel";
 import { AIDecisionTester } from "@/components/AIDecisionTester";
@@ -61,31 +62,36 @@ function AdvisorPage() {
 
   return (
     <div className="container mx-auto max-w-6xl p-6">
-      {/* Hero */}
-      <div className="relative mb-8 overflow-hidden rounded-2xl border border-border gradient-card p-6 shadow-card">
-        <div className="absolute -top-16 -end-16 h-48 w-48 rounded-full bg-primary/15 blur-3xl" />
-        <div className="absolute -bottom-20 -start-10 h-56 w-56 rounded-full bg-accent/10 blur-3xl" />
-        <div className="relative flex items-start gap-4">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl gradient-primary shadow-glow">
-            <Brain className="h-6 w-6 text-primary-foreground" />
+      {/* ─── Hero ─────────────────────────────────────────────────────── */}
+      <div className="ornament-border relative mb-8 overflow-hidden rounded-2xl shadow-elegant">
+        <div className="gradient-hero absolute inset-0 pointer-events-none" />
+        <div className="relative z-10 p-5 sm:p-6">
+          <div className="flex items-start gap-4">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl gradient-primary shadow-glow">
+              <Brain className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
+                <Sparkles className="h-3.5 w-3.5" />
+                ForeSmart AI Analyst
+              </div>
+              <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">
+                <span className="text-gradient">{t("advisor")}</span>
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+                {lang === "ar"
+                  ? "إجابات مرتبة على شكل جدول زمني — قصير، متوسط، وطويل المدى — مع توصيات شراء/بيع، مستويات دخول، وقف خسارة وأهداف ربح."
+                  : "Answers organized into a clear timeline — short, medium and long-term — with buy/sell calls, entries, stop-loss and profit targets."}
+              </p>
+            </div>
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
-              <Sparkles className="h-3.5 w-3.5" />
-              ForeSmart AI Analyst
-            </div>
-            <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">
-              <span className="text-gradient">{t("advisor")}</span>
-            </h1>
-            <div className="mt-3 inline-flex items-center gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-1 text-[11px] text-warning">
-              <AlertTriangle className="h-3 w-3" />
-              {lang === "ar" ? "التحليل مساعد ولا يعتبر توصية مالية ملزمة." : "Analysis is assistive only — not binding financial advice."}
-            </div>
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              {lang === "ar"
-                ? "إجابات مرتبة على شكل جدول زمني — قصير، متوسط، وطويل المدى — مع توصيات شراء/بيع، مستويات دخول، وقف خسارة وأهداف ربح."
-                : "Answers organized into a clear timeline — short, medium and long-term — with buy/sell calls, entries, stop-loss and profit targets."}
-            </p>
+        </div>
+        <div className="relative z-10 border-t border-border/40 bg-card/30 px-5 py-2.5 sm:px-6">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <AlertTriangle className="h-3 w-3 shrink-0 text-warning" />
+            <span className="font-semibold text-warning">{lang === "ar" ? "تحذير:" : "Disclaimer:"}</span>
+            {lang === "ar" ? "التحليل مساعد ولا يعتبر توصية مالية ملزمة." : "Analysis is assistive only — not binding financial advice."}
+            <DataStatusBadge status="simulation" className="ms-auto" />
           </div>
         </div>
       </div>

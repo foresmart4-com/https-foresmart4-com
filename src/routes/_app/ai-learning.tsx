@@ -23,6 +23,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DataStatusBadge } from "@/components/DataStatusBadge";
 import {
   GraduationCap, Target, Activity, TrendingUp, Award, AlertTriangle,
   Brain, Trophy, Gauge, LineChart as LineIcon, Zap, ShieldAlert, Radar,
@@ -158,30 +159,51 @@ function AILearningPage() {
 
   return (
     <div className="container mx-auto max-w-7xl space-y-4 p-4 sm:p-6">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 text-primary" />
-            {ar ? "تعلّم الذكاء الاصطناعي" : "AI Learning Layer"}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {ar
-              ? "تتبّع النتائج، معايرة الثقة، تعزيز، ترتيب الاستراتيجيات، تكيّف مع النظام، كشف الانحراف، وزن العملاء، إعادة محاكاة، وتحسين ميتا."
-              : "Outcome tracking · calibration · reinforcement · strategy ranking · regime adaptation · drift detection · agent weighting · replay · meta-tuning."}
-          </p>
+      {/* ─── Hero ─────────────────────────────────────────────────────── */}
+      <div className="ornament-border relative overflow-hidden rounded-2xl shadow-elegant">
+        <div className="gradient-hero absolute inset-0 pointer-events-none" />
+        <div className="relative z-10 p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl gradient-primary shadow-glow">
+                <GraduationCap className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
+                  <Activity className="h-3.5 w-3.5" />
+                  {ar ? "محرك التعلم الذاتي" : "Self-Learning Engine"}
+                </div>
+                <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">
+                  <span className="text-gradient">{ar ? "تعلّم الذكاء الاصطناعي" : "AI Learning Layer"}</span>
+                </h1>
+                <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+                  {ar
+                    ? "تتبّع النتائج، معايرة الثقة، تعزيز، ترتيب الاستراتيجيات، تكيّف مع النظام، كشف الانحراف، وزن العملاء، إعادة محاكاة، وتحسين ميتا."
+                    : "Outcome tracking · calibration · reinforcement · strategy ranking · regime adaptation · drift detection · agent weighting · replay · meta-tuning."}
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <Tabs value={range} onValueChange={(v) => setRange(v as RangeKey)}>
+                <TabsList className="h-8">
+                  <TabsTrigger value="24h" className="text-xs px-2 py-0.5">24h</TabsTrigger>
+                  <TabsTrigger value="7d" className="text-xs px-2 py-0.5">7d</TabsTrigger>
+                  <TabsTrigger value="30d" className="text-xs px-2 py-0.5">30d</TabsTrigger>
+                  <TabsTrigger value="all" className="text-xs px-2 py-0.5">{ar ? "الكل" : "All"}</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <Button size="sm" variant="outline" onClick={() => setTick((t) => t + 1)}>
+                {ar ? "تحديث" : "Refresh"}
+              </Button>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Tabs value={range} onValueChange={(v) => setRange(v as RangeKey)}>
-            <TabsList className="h-8">
-              <TabsTrigger value="24h" className="text-xs px-2 py-0.5">24h</TabsTrigger>
-              <TabsTrigger value="7d" className="text-xs px-2 py-0.5">7d</TabsTrigger>
-              <TabsTrigger value="30d" className="text-xs px-2 py-0.5">30d</TabsTrigger>
-              <TabsTrigger value="all" className="text-xs px-2 py-0.5">{ar ? "الكل" : "All"}</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <Button size="sm" variant="outline" onClick={() => setTick((t) => t + 1)}>
-            {ar ? "تحديث" : "Refresh"}
-          </Button>
+        <div className="relative z-10 border-t border-border/40 bg-card/30 px-5 py-2.5 sm:px-6">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-semibold text-primary">{ar ? "تلميح:" : "Tip:"}</span>
+            {ar ? "جميع الحسابات محلية — لا ترسل بيانات خارجية." : "All computations are local — no data leaves the device."}
+            <DataStatusBadge status="simulation" className="ms-auto" />
+          </div>
         </div>
       </div>
 
@@ -233,7 +255,7 @@ function AILearningPage() {
 
       {/* Drift + Meta + Calibration summary */}
       <div className="grid gap-3 md:grid-cols-3">
-        <Card>
+        <Card className="gradient-card border border-border shadow-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Radar className="h-4 w-4 text-primary" />
@@ -254,7 +276,7 @@ function AILearningPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="gradient-card border border-border shadow-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Gauge className="h-4 w-4 text-primary" />
@@ -283,7 +305,7 @@ function AILearningPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="gradient-card border border-border shadow-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Brain className="h-4 w-4 text-primary" />
@@ -303,7 +325,7 @@ function AILearningPage() {
 
       {/* Strategy leaderboard + Agent scorecards */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card className="gradient-card border border-border shadow-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Trophy className="h-4 w-4 text-primary" />
@@ -338,7 +360,7 @@ function AILearningPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="gradient-card border border-border shadow-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Zap className="h-4 w-4 text-primary" />
@@ -375,7 +397,7 @@ function AILearningPage() {
 
       {/* Replay + Regime */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card className="gradient-card border border-border shadow-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <LineIcon className="h-4 w-4 text-primary" />
@@ -393,7 +415,7 @@ function AILearningPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="gradient-card border border-border shadow-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">{ar ? "أداء حسب النظام السوقي" : "Regime-Aware Performance"}</CardTitle>
           </CardHeader>
@@ -421,7 +443,7 @@ function AILearningPage() {
 
       {/* Failure & False positives */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card className="gradient-card border border-border shadow-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-destructive" />
@@ -451,7 +473,7 @@ function AILearningPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="gradient-card border border-border shadow-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <ShieldAlert className="h-4 w-4 text-destructive" />
@@ -482,7 +504,7 @@ function AILearningPage() {
       </div>
 
       {/* Recent trades */}
-      <Card>
+      <Card className="gradient-card border border-border shadow-card">
         <CardHeader className="pb-2">
           <CardTitle className="text-base">{ar ? "أحدث الصفقات (ذاكرة مستمرة)" : "Recent Trades (Continuous Memory)"}</CardTitle>
         </CardHeader>
@@ -499,7 +521,7 @@ function AILearningPage() {
                     {r.regime && <span className="text-xs text-muted-foreground">{r.regime}</span>}
                   </div>
                   <div className="flex items-center gap-2 text-xs">
-                    <span className={r.outcome === "win" ? "text-emerald-500" : r.outcome === "loss" ? "text-destructive" : "text-muted-foreground"}>
+                    <span className={r.outcome === "win" ? "text-success" : r.outcome === "loss" ? "text-destructive" : "text-muted-foreground"}>
                       {r.pnlPct != null ? `${r.pnlPct.toFixed(2)}%` : (ar ? "مفتوح" : "open")}
                     </span>
                   </div>
@@ -521,7 +543,7 @@ function AILearningPage() {
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <Card>
+    <Card className="hover-lift gradient-card border border-border shadow-card">
       <CardContent className="p-4">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">{icon}{label}</div>
         <p className="mt-1 text-xl font-bold tabular-nums">{value}</p>
