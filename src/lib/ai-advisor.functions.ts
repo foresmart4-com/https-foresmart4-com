@@ -38,8 +38,8 @@ export interface AdvisorStructuredReply {
   disclaimer: string;
 }
 
-const sysAr = `أنت "ForeSmart Advisor"، مستشار استثماري كبير لأصحاب رؤوس الأموال الصغيرة والمتوسطة.
-حلّل بعمق وفق العوامل: الجيوسياسة والحروب، الطقس والكوارث، العملات والمعادن والسلع، البرامج الحكومية ورؤى الدول، سلاسل الإمداد، العقار، الغذاء، أخبار الشركات، الشركات الناشئة، العجز السيادي، صرف العملات وسياسات البنوك المركزية.
+const sysAr = `أنت "ForeSmart Advisor"، مستشار استثماري كبير متخصص في أصحاب رؤوس الأموال الصغيرة والمتوسطة في السوق السعودي والخليجي.
+حلّل بعمق وفق العوامل: سياسة الفيدرالي وساما، التضخم، DXY، أسعار النفط وقرارات أوبك+، الجيوسياسة والحروب، الطقس والكوارث، العملات والمعادن والسلع، البرامج الحكومية ورؤى الدول، سلاسل الإمداد، العقار، الغذاء، أخبار الشركات، الشركات الناشئة، العجز السيادي، صرف العملات وسياسات البنوك المركزية.
 يجب أن يكون ردك **JSON صحيحاً فقط** يطابق هذا المخطط — بدون أي نص خارج الـJSON ولا أكواد markdown:
 {
   "headline": string,
@@ -61,10 +61,15 @@ const sysAr = `أنت "ForeSmart Advisor"، مستشار استثماري كبي
   "risks": string[],
   "disclaimer": string
 }
-اجعل الـtimeline يحتوي حتماً على ثلاث خانات: short (أيام-أسابيع)، medium (أشهر)، long (سنوات). اكتب كل النصوص بالعربية الفصحى الواضحة.`;
+قواعد الجودة:
+- اجعل الـtimeline يحتوي حتماً على ثلاث خانات: short (أيام-أسابيع)، medium (أشهر)، long (سنوات).
+- في قائمة factors: أدرج 5-7 عوامل مرتبة بأهميتها الراهنة. كل حقل impact يبدأ بـ "صاعد" أو "هابط" أو "محايد" ثم شرح مختصر بجملة واحدة.
+- entry وstopLoss وtargets: مستويات سعرية محددة، ليس نسباً.
+- risks: 4-5 مخاطر مرتبة من الأخطر للأقل.
+- اكتب كل النصوص بالعربية الفصحى الواضحة.`;
 
-const sysEn = `You are "ForeSmart Advisor", a senior advisor for small and mid-capital investors.
-Weigh: geopolitics & wars, weather/disasters, FX/metals/commodities, sovereign development programs, supply chains, real estate, food markets, company news, startups, sovereign deficits, central bank policy.
+const sysEn = `You are "ForeSmart Advisor", a senior advisor specialising in small and mid-capital investors in Saudi Arabia and the Gulf.
+Weigh: Fed and SAMA policy, inflation, DXY, oil prices and OPEC+ decisions, geopolitics & wars, weather/disasters, FX/metals/commodities, sovereign development programs, supply chains, real estate, food markets, company news, startups, sovereign deficits, central bank policy.
 Reply with **valid JSON ONLY** matching this schema (no prose outside, no markdown fences):
 {
   "headline": string,
@@ -86,7 +91,11 @@ Reply with **valid JSON ONLY** matching this schema (no prose outside, no markdo
   "risks": string[],
   "disclaimer": string
 }
-Always include three timeline entries: short (days-weeks), medium (months), long (years).`;
+Quality rules:
+- Always include three timeline entries: short (days-weeks), medium (months), long (years).
+- In factors: list 5-7 items ordered by current relevance. Each impact field must start with "Bullish", "Bearish", or "Neutral" followed by a one-sentence explanation.
+- entry, stopLoss, targets: concrete price levels, never percentages.
+- risks: 4-5 items ordered from highest to lowest severity.`;
 
 function safeParseJson(raw: string): AdvisorStructuredReply | null {
   if (!raw) return null;
@@ -123,10 +132,14 @@ export const askAdvisor = createServerFn({ method: "POST" })
     const langDirective = lang === "ar"
       ? "أنتج الجواب بالعربية الفصحى المؤسسية حصراً، 100% عربي.\n\n"
       : "Reply in native institutional English ONLY, 100% English.\n\n";
+    const today = new Date().toISOString().slice(0, 10);
+    const dateLine = lang === "ar" ? `التاريخ: ${today}` : `Date: ${today}`;
     const userMsg = langDirective + (data.context
-      ? `${data.question}\n\nMarket context:\n${data.context}`
-      : data.question);
+      ? `${data.question}\n\nMarket context:\n${data.context}\n\n${dateLine}`
+      : `${data.question}\n\n${dateLine}`);
 
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 22000);
     try {
       const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -134,6 +147,7 @@ export const askAdvisor = createServerFn({ method: "POST" })
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
+        signal: ctrl.signal,
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
           messages: [
@@ -142,13 +156,13 @@ export const askAdvisor = createServerFn({ method: "POST" })
           ],
           response_format: { type: "json_object" },
         }),
-      });
-      if (r.status === 429) return { structured: null, raw: "", error: "rate_limited" };
-      if (r.status === 402) return { structured: null, raw: "", error: "payment_required" };
+      }).finally(() => clearTimeout(timeout));
+      if (r.status === 429) return { structured: null, raw: "", error: "rate_limited", engine: "heuristic" as const };
+      if (r.status === 402) return { structured: null, raw: "", error: "payment_required", engine: "heuristic" as const };
       if (!r.ok) {
         const t = await r.text();
         console.error("AI gateway error", r.status, t);
-        return { structured: null, raw: "", error: "ai_error" };
+        return { structured: null, raw: "", error: "ai_error", engine: "heuristic" as const };
       }
       const d = await r.json();
       const raw: string = d.choices?.[0]?.message?.content ?? "";
@@ -156,6 +170,6 @@ export const askAdvisor = createServerFn({ method: "POST" })
       return { structured, raw, error: null as string | null, engine: "ai" as const };
     } catch (e) {
       console.error(e);
-      return { structured: null, raw: "", error: "network_error" };
+      return { structured: null, raw: "", error: "network_error", engine: "heuristic" as const };
     }
   });

@@ -52,7 +52,7 @@ const verdictTool = {
         uncertaintyLevel: { type: "string", enum: ["low", "medium", "high"], description: "Overall market uncertainty level right now." },
         marketFears: { type: "array", items: { type: "string" }, description: "2-3 current market fears / sources of uncertainty." },
       },
-      required: ["action", "confidence", "horizon", "rationale", "drivers", "risks", "arabicSummary"],
+      required: ["action", "confidence", "horizon", "rationale", "drivers", "risks", "arabicSummary", "uncertaintyLevel", "marketFears"],
       additionalProperties: false,
     },
   },
@@ -90,12 +90,19 @@ Current price: ${data.price}
 24h low: ${data.low24h ?? "n/a"}
 Date: ${new Date().toISOString().slice(0, 10)}
 
-Provide a verdict tailored to a small/retail trader. Entry / stop / targets should be concrete price levels in the asset's quote currency.`;
+Audience: small/retail investor (Saudi Arabia or Gulf region), no leverage, regulated platforms only.
+Data available: 24h snapshot — no multi-day history is provided; derive trend context from your knowledge.
+Entry / stop / targets: concrete price levels in the asset's quote currency only, never percentages.
+Position size: small-capital context — positionSizePct should reflect 2–10% of total portfolio.
+If uncertaintyLevel is "high", default to "watch" unless there is a very clear setup.`;
 
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 22000);
     try {
       const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        signal: ctrl.signal,
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
           messages: [
@@ -105,21 +112,21 @@ Provide a verdict tailored to a small/retail trader. Entry / stop / targets shou
           tools: [verdictTool],
           tool_choice: { type: "function", function: { name: "asset_verdict" } },
         }),
-      });
-      if (r.status === 429) return { verdict: null, error: "rate_limited" };
-      if (r.status === 402) return { verdict: null, error: "payment_required" };
+      }).finally(() => clearTimeout(timeout));
+      if (r.status === 429) return { verdict: null, error: "rate_limited", engine: "heuristic" as const };
+      if (r.status === 402) return { verdict: null, error: "payment_required", engine: "heuristic" as const };
       if (!r.ok) {
         console.error("analyzeAsset error", r.status, await r.text());
-        return { verdict: null, error: "ai_error" };
+        return { verdict: null, error: "ai_error", engine: "heuristic" as const };
       }
       const d = await r.json();
       const call = d.choices?.[0]?.message?.tool_calls?.[0];
-      if (!call?.function?.arguments) return { verdict: null, error: "no_tool_call" };
+      if (!call?.function?.arguments) return { verdict: null, error: "no_tool_call", engine: "heuristic" as const };
       const verdict = JSON.parse(call.function.arguments) as AssetVerdict;
       return { verdict, error: null as string | null, engine: "ai" as const };
     } catch (e) {
       console.error(e);
-      return { verdict: null, error: "network_error" };
+      return { verdict: null, error: "network_error", engine: "heuristic" as const };
     }
   });
 
