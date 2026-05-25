@@ -3,6 +3,7 @@ import { getRouterDiagnostics } from "@/lib/market/router";
 import { runPortfolioStress, runScenario } from "@/lib/ai/scenarios/scenarioEngine";
 import { MarketIntelligenceAgent } from "@/lib/ai/agents/MarketIntelligenceAgent";
 import { AI_SAFETY_FLAGS, safeRead } from "@/lib/ai/core/safety";
+import { getSourceCredibilityReport } from "@/lib/ai/credibility/sourceCredibility";
 
 interface RiskTwinDecisionInput {
   symbol?: string;
@@ -31,6 +32,7 @@ export async function testRiskTwinDecision(input: RiskTwinDecisionInput = {}) {
   const scenario = await safeRead(() => runScenario("liquidity_crisis"), null);
   const provider = await safeRead(() => getRouterDiagnostics(), null);
   const market = await safeRead(() => new MarketIntelligenceAgent().analyze(), null);
+  const sourceCredibility = getSourceCredibilityReport();
   const providerFailures = provider?.metrics ? Object.values(provider.metrics).filter((m: any) => m.errors > m.successes).length : 0;
 
   const drawdownImpact = Math.min(40, Math.abs(projectedWeight * (scenario?.expectedImpactPercent ?? -10)) * 10);
@@ -39,6 +41,9 @@ export async function testRiskTwinDecision(input: RiskTwinDecisionInput = {}) {
   const volatility = market?.riskLevel === "high" ? 20 : 10;
   const providerFailure = Math.min(20, providerFailures * 4);
   const macroStress = scenario?.riskLevel === "critical" ? 18 : 8;
+  const concentrationRisk = concentration;
+  const correlationRisk = correlationShock;
+  const liquidityRisk = liquidityShock;
   const riskPenalty = drawdownImpact + concentration + correlationShock + liquidityShock + volatility + providerFailure + macroStress;
   const riskTwinScore = clamp(confidence - riskPenalty / 2 + 35);
   const maxExpectedDrawdown = Number(Math.min(100, drawdownImpact + macroStress + concentration).toFixed(2));
@@ -59,6 +64,9 @@ export async function testRiskTwinDecision(input: RiskTwinDecisionInput = {}) {
     riskTwinApproved,
     riskTwinScore,
     maxExpectedDrawdown,
+    liquidityRisk,
+    correlationRisk,
+    concentrationRisk,
     failurePoints,
     approvalReasonAr: riskTwinApproved ? "قرار مقبول للمراقبة أو التداول الورقي ضمن حدود المخاطر." : null,
     rejectionReasonAr: riskTwinApproved ? null : "القرار مرفوض أو يحتاج مراجعة بسبب مخاطر التركيز أو السيولة أو ضعف الثقة.",
@@ -71,6 +79,7 @@ export async function testRiskTwinDecision(input: RiskTwinDecisionInput = {}) {
       providerFailure,
       macroStress,
     },
+    sourceCredibilityAverage: sourceCredibility.averageCredibility,
     ...AI_SAFETY_FLAGS,
   };
 }
