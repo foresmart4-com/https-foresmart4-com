@@ -129,6 +129,9 @@ import { Route as ApiPaymentsMyfatoorahStatusRouteImport } from './routes/api/pa
 import { Route as ApiPaymentsMyfatoorahCreateRouteImport } from './routes/api/payments/myfatoorah/create'
 import { Route as ApiAiSourcesHealthRouteImport } from './routes/api/ai/sources/health'
 import { Route as ApiAiSchedulerRunRouteImport } from './routes/api/ai/scheduler/run'
+import { Route as ApiAiScenariosRunRouteImport } from './routes/api/ai/scenarios/run'
+import { Route as ApiAiScenariosPortfolioStressRouteImport } from './routes/api/ai/scenarios/portfolio-stress'
+import { Route as ApiAiScenariosListRouteImport } from './routes/api/ai/scenarios/list'
 import { Route as ApiAiPredictionsHistoryRouteImport } from './routes/api/ai/predictions/history'
 import { Route as ApiAiPredictionsEvaluateRouteImport } from './routes/api/ai/predictions/evaluate'
 import { Route as ApiAiPredictionsCreateRouteImport } from './routes/api/ai/predictions/create'
@@ -793,6 +796,22 @@ const ApiAiSchedulerRunRoute = ApiAiSchedulerRunRouteImport.update({
   path: '/api/ai/scheduler/run',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAiScenariosRunRoute = ApiAiScenariosRunRouteImport.update({
+  id: '/api/ai/scenarios/run',
+  path: '/api/ai/scenarios/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiScenariosPortfolioStressRoute =
+  ApiAiScenariosPortfolioStressRouteImport.update({
+    id: '/api/ai/scenarios/portfolio-stress',
+    path: '/api/ai/scenarios/portfolio-stress',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiScenariosListRoute = ApiAiScenariosListRouteImport.update({
+  id: '/api/ai/scenarios/list',
+  path: '/api/ai/scenarios/list',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAiPredictionsHistoryRoute = ApiAiPredictionsHistoryRouteImport.update({
   id: '/api/ai/predictions/history',
   path: '/api/ai/predictions/history',
@@ -1084,6 +1103,9 @@ export interface FileRoutesByFullPath {
   '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
   '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
   '/api/ai/predictions/history': typeof ApiAiPredictionsHistoryRoute
+  '/api/ai/scenarios/list': typeof ApiAiScenariosListRoute
+  '/api/ai/scenarios/portfolio-stress': typeof ApiAiScenariosPortfolioStressRoute
+  '/api/ai/scenarios/run': typeof ApiAiScenariosRunRoute
   '/api/ai/scheduler/run': typeof ApiAiSchedulerRunRoute
   '/api/ai/sources/health': typeof ApiAiSourcesHealthRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
@@ -1238,6 +1260,9 @@ export interface FileRoutesByTo {
   '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
   '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
   '/api/ai/predictions/history': typeof ApiAiPredictionsHistoryRoute
+  '/api/ai/scenarios/list': typeof ApiAiScenariosListRoute
+  '/api/ai/scenarios/portfolio-stress': typeof ApiAiScenariosPortfolioStressRoute
+  '/api/ai/scenarios/run': typeof ApiAiScenariosRunRoute
   '/api/ai/scheduler/run': typeof ApiAiSchedulerRunRoute
   '/api/ai/sources/health': typeof ApiAiSourcesHealthRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
@@ -1394,6 +1419,9 @@ export interface FileRoutesById {
   '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
   '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
   '/api/ai/predictions/history': typeof ApiAiPredictionsHistoryRoute
+  '/api/ai/scenarios/list': typeof ApiAiScenariosListRoute
+  '/api/ai/scenarios/portfolio-stress': typeof ApiAiScenariosPortfolioStressRoute
+  '/api/ai/scenarios/run': typeof ApiAiScenariosRunRoute
   '/api/ai/scheduler/run': typeof ApiAiSchedulerRunRoute
   '/api/ai/sources/health': typeof ApiAiSourcesHealthRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
@@ -1550,6 +1578,9 @@ export interface FileRouteTypes {
     | '/api/ai/predictions/create'
     | '/api/ai/predictions/evaluate'
     | '/api/ai/predictions/history'
+    | '/api/ai/scenarios/list'
+    | '/api/ai/scenarios/portfolio-stress'
+    | '/api/ai/scenarios/run'
     | '/api/ai/scheduler/run'
     | '/api/ai/sources/health'
     | '/api/payments/myfatoorah/create'
@@ -1704,6 +1735,9 @@ export interface FileRouteTypes {
     | '/api/ai/predictions/create'
     | '/api/ai/predictions/evaluate'
     | '/api/ai/predictions/history'
+    | '/api/ai/scenarios/list'
+    | '/api/ai/scenarios/portfolio-stress'
+    | '/api/ai/scenarios/run'
     | '/api/ai/scheduler/run'
     | '/api/ai/sources/health'
     | '/api/payments/myfatoorah/create'
@@ -1859,6 +1893,9 @@ export interface FileRouteTypes {
     | '/api/ai/predictions/create'
     | '/api/ai/predictions/evaluate'
     | '/api/ai/predictions/history'
+    | '/api/ai/scenarios/list'
+    | '/api/ai/scenarios/portfolio-stress'
+    | '/api/ai/scenarios/run'
     | '/api/ai/scheduler/run'
     | '/api/ai/sources/health'
     | '/api/payments/myfatoorah/create'
@@ -1962,6 +1999,9 @@ export interface RootRouteChildren {
   ApiAiPredictionsCreateRoute: typeof ApiAiPredictionsCreateRoute
   ApiAiPredictionsEvaluateRoute: typeof ApiAiPredictionsEvaluateRoute
   ApiAiPredictionsHistoryRoute: typeof ApiAiPredictionsHistoryRoute
+  ApiAiScenariosListRoute: typeof ApiAiScenariosListRoute
+  ApiAiScenariosPortfolioStressRoute: typeof ApiAiScenariosPortfolioStressRoute
+  ApiAiScenariosRunRoute: typeof ApiAiScenariosRunRoute
   ApiAiSchedulerRunRoute: typeof ApiAiSchedulerRunRoute
   ApiAiSourcesHealthRoute: typeof ApiAiSourcesHealthRoute
   ApiPaymentsMyfatoorahCreateRoute: typeof ApiPaymentsMyfatoorahCreateRoute
@@ -2846,6 +2886,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAiSchedulerRunRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/scenarios/run': {
+      id: '/api/ai/scenarios/run'
+      path: '/api/ai/scenarios/run'
+      fullPath: '/api/ai/scenarios/run'
+      preLoaderRoute: typeof ApiAiScenariosRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/scenarios/portfolio-stress': {
+      id: '/api/ai/scenarios/portfolio-stress'
+      path: '/api/ai/scenarios/portfolio-stress'
+      fullPath: '/api/ai/scenarios/portfolio-stress'
+      preLoaderRoute: typeof ApiAiScenariosPortfolioStressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/scenarios/list': {
+      id: '/api/ai/scenarios/list'
+      path: '/api/ai/scenarios/list'
+      fullPath: '/api/ai/scenarios/list'
+      preLoaderRoute: typeof ApiAiScenariosListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ai/predictions/history': {
       id: '/api/ai/predictions/history'
       path: '/api/ai/predictions/history'
@@ -3271,6 +3332,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiPredictionsCreateRoute: ApiAiPredictionsCreateRoute,
   ApiAiPredictionsEvaluateRoute: ApiAiPredictionsEvaluateRoute,
   ApiAiPredictionsHistoryRoute: ApiAiPredictionsHistoryRoute,
+  ApiAiScenariosListRoute: ApiAiScenariosListRoute,
+  ApiAiScenariosPortfolioStressRoute: ApiAiScenariosPortfolioStressRoute,
+  ApiAiScenariosRunRoute: ApiAiScenariosRunRoute,
   ApiAiSchedulerRunRoute: ApiAiSchedulerRunRoute,
   ApiAiSourcesHealthRoute: ApiAiSourcesHealthRoute,
   ApiPaymentsMyfatoorahCreateRoute: ApiPaymentsMyfatoorahCreateRoute,
