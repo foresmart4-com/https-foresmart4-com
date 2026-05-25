@@ -129,6 +129,10 @@ import { Route as ApiPaymentsMyfatoorahStatusRouteImport } from './routes/api/pa
 import { Route as ApiPaymentsMyfatoorahCreateRouteImport } from './routes/api/payments/myfatoorah/create'
 import { Route as ApiAiSourcesHealthRouteImport } from './routes/api/ai/sources/health'
 import { Route as ApiAiSchedulerRunRouteImport } from './routes/api/ai/scheduler/run'
+import { Route as ApiAiPredictionsHistoryRouteImport } from './routes/api/ai/predictions/history'
+import { Route as ApiAiPredictionsEvaluateRouteImport } from './routes/api/ai/predictions/evaluate'
+import { Route as ApiAiPredictionsCreateRouteImport } from './routes/api/ai/predictions/create'
+import { Route as ApiAiPredictionsAccuracyRouteImport } from './routes/api/ai/predictions/accuracy'
 import { Route as ApiAiMemoryStatusRouteImport } from './routes/api/ai/memory/status'
 import { Route as ApiAiLearningStatusRouteImport } from './routes/api/ai/learning/status'
 import { Route as ApiAiLearningRunCycleRouteImport } from './routes/api/ai/learning/run-cycle'
@@ -789,6 +793,28 @@ const ApiAiSchedulerRunRoute = ApiAiSchedulerRunRouteImport.update({
   path: '/api/ai/scheduler/run',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAiPredictionsHistoryRoute = ApiAiPredictionsHistoryRouteImport.update({
+  id: '/api/ai/predictions/history',
+  path: '/api/ai/predictions/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiPredictionsEvaluateRoute =
+  ApiAiPredictionsEvaluateRouteImport.update({
+    id: '/api/ai/predictions/evaluate',
+    path: '/api/ai/predictions/evaluate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiPredictionsCreateRoute = ApiAiPredictionsCreateRouteImport.update({
+  id: '/api/ai/predictions/create',
+  path: '/api/ai/predictions/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiPredictionsAccuracyRoute =
+  ApiAiPredictionsAccuracyRouteImport.update({
+    id: '/api/ai/predictions/accuracy',
+    path: '/api/ai/predictions/accuracy',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAiMemoryStatusRoute = ApiAiMemoryStatusRouteImport.update({
   id: '/api/ai/memory/status',
   path: '/api/ai/memory/status',
@@ -1054,6 +1080,10 @@ export interface FileRoutesByFullPath {
   '/api/ai/learning/run-cycle': typeof ApiAiLearningRunCycleRoute
   '/api/ai/learning/status': typeof ApiAiLearningStatusRoute
   '/api/ai/memory/status': typeof ApiAiMemoryStatusRoute
+  '/api/ai/predictions/accuracy': typeof ApiAiPredictionsAccuracyRoute
+  '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
+  '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
+  '/api/ai/predictions/history': typeof ApiAiPredictionsHistoryRoute
   '/api/ai/scheduler/run': typeof ApiAiSchedulerRunRoute
   '/api/ai/sources/health': typeof ApiAiSourcesHealthRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
@@ -1204,6 +1234,10 @@ export interface FileRoutesByTo {
   '/api/ai/learning/run-cycle': typeof ApiAiLearningRunCycleRoute
   '/api/ai/learning/status': typeof ApiAiLearningStatusRoute
   '/api/ai/memory/status': typeof ApiAiMemoryStatusRoute
+  '/api/ai/predictions/accuracy': typeof ApiAiPredictionsAccuracyRoute
+  '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
+  '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
+  '/api/ai/predictions/history': typeof ApiAiPredictionsHistoryRoute
   '/api/ai/scheduler/run': typeof ApiAiSchedulerRunRoute
   '/api/ai/sources/health': typeof ApiAiSourcesHealthRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
@@ -1356,6 +1390,10 @@ export interface FileRoutesById {
   '/api/ai/learning/run-cycle': typeof ApiAiLearningRunCycleRoute
   '/api/ai/learning/status': typeof ApiAiLearningStatusRoute
   '/api/ai/memory/status': typeof ApiAiMemoryStatusRoute
+  '/api/ai/predictions/accuracy': typeof ApiAiPredictionsAccuracyRoute
+  '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
+  '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
+  '/api/ai/predictions/history': typeof ApiAiPredictionsHistoryRoute
   '/api/ai/scheduler/run': typeof ApiAiSchedulerRunRoute
   '/api/ai/sources/health': typeof ApiAiSourcesHealthRoute
   '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
@@ -1508,6 +1546,10 @@ export interface FileRouteTypes {
     | '/api/ai/learning/run-cycle'
     | '/api/ai/learning/status'
     | '/api/ai/memory/status'
+    | '/api/ai/predictions/accuracy'
+    | '/api/ai/predictions/create'
+    | '/api/ai/predictions/evaluate'
+    | '/api/ai/predictions/history'
     | '/api/ai/scheduler/run'
     | '/api/ai/sources/health'
     | '/api/payments/myfatoorah/create'
@@ -1658,6 +1700,10 @@ export interface FileRouteTypes {
     | '/api/ai/learning/run-cycle'
     | '/api/ai/learning/status'
     | '/api/ai/memory/status'
+    | '/api/ai/predictions/accuracy'
+    | '/api/ai/predictions/create'
+    | '/api/ai/predictions/evaluate'
+    | '/api/ai/predictions/history'
     | '/api/ai/scheduler/run'
     | '/api/ai/sources/health'
     | '/api/payments/myfatoorah/create'
@@ -1809,6 +1855,10 @@ export interface FileRouteTypes {
     | '/api/ai/learning/run-cycle'
     | '/api/ai/learning/status'
     | '/api/ai/memory/status'
+    | '/api/ai/predictions/accuracy'
+    | '/api/ai/predictions/create'
+    | '/api/ai/predictions/evaluate'
+    | '/api/ai/predictions/history'
     | '/api/ai/scheduler/run'
     | '/api/ai/sources/health'
     | '/api/payments/myfatoorah/create'
@@ -1908,6 +1958,10 @@ export interface RootRouteChildren {
   ApiAiLearningRunCycleRoute: typeof ApiAiLearningRunCycleRoute
   ApiAiLearningStatusRoute: typeof ApiAiLearningStatusRoute
   ApiAiMemoryStatusRoute: typeof ApiAiMemoryStatusRoute
+  ApiAiPredictionsAccuracyRoute: typeof ApiAiPredictionsAccuracyRoute
+  ApiAiPredictionsCreateRoute: typeof ApiAiPredictionsCreateRoute
+  ApiAiPredictionsEvaluateRoute: typeof ApiAiPredictionsEvaluateRoute
+  ApiAiPredictionsHistoryRoute: typeof ApiAiPredictionsHistoryRoute
   ApiAiSchedulerRunRoute: typeof ApiAiSchedulerRunRoute
   ApiAiSourcesHealthRoute: typeof ApiAiSourcesHealthRoute
   ApiPaymentsMyfatoorahCreateRoute: typeof ApiPaymentsMyfatoorahCreateRoute
@@ -2792,6 +2846,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAiSchedulerRunRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/predictions/history': {
+      id: '/api/ai/predictions/history'
+      path: '/api/ai/predictions/history'
+      fullPath: '/api/ai/predictions/history'
+      preLoaderRoute: typeof ApiAiPredictionsHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/predictions/evaluate': {
+      id: '/api/ai/predictions/evaluate'
+      path: '/api/ai/predictions/evaluate'
+      fullPath: '/api/ai/predictions/evaluate'
+      preLoaderRoute: typeof ApiAiPredictionsEvaluateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/predictions/create': {
+      id: '/api/ai/predictions/create'
+      path: '/api/ai/predictions/create'
+      fullPath: '/api/ai/predictions/create'
+      preLoaderRoute: typeof ApiAiPredictionsCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/predictions/accuracy': {
+      id: '/api/ai/predictions/accuracy'
+      path: '/api/ai/predictions/accuracy'
+      fullPath: '/api/ai/predictions/accuracy'
+      preLoaderRoute: typeof ApiAiPredictionsAccuracyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ai/memory/status': {
       id: '/api/ai/memory/status'
       path: '/api/ai/memory/status'
@@ -3185,6 +3267,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiLearningRunCycleRoute: ApiAiLearningRunCycleRoute,
   ApiAiLearningStatusRoute: ApiAiLearningStatusRoute,
   ApiAiMemoryStatusRoute: ApiAiMemoryStatusRoute,
+  ApiAiPredictionsAccuracyRoute: ApiAiPredictionsAccuracyRoute,
+  ApiAiPredictionsCreateRoute: ApiAiPredictionsCreateRoute,
+  ApiAiPredictionsEvaluateRoute: ApiAiPredictionsEvaluateRoute,
+  ApiAiPredictionsHistoryRoute: ApiAiPredictionsHistoryRoute,
   ApiAiSchedulerRunRoute: ApiAiSchedulerRunRoute,
   ApiAiSourcesHealthRoute: ApiAiSourcesHealthRoute,
   ApiPaymentsMyfatoorahCreateRoute: ApiPaymentsMyfatoorahCreateRoute,
