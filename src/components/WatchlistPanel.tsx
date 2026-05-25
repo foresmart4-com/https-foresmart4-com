@@ -11,7 +11,7 @@ import { addJournalEntry } from "@/lib/tradingJournal";
 import { DataStatusBadge } from "@/components/DataStatusBadge";
 import {
   Bookmark, Trash2, Plus, Bell, ShieldAlert,
-  TrendingUp, TrendingDown, Activity, Wallet, ChevronDown, ChevronUp,
+  TrendingUp, TrendingDown, Activity, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
