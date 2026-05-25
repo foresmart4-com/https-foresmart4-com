@@ -139,6 +139,7 @@ import { Route as ApiAiPredictionsHistoryRouteImport } from './routes/api/ai/pre
 import { Route as ApiAiPredictionsEvaluateRouteImport } from './routes/api/ai/predictions/evaluate'
 import { Route as ApiAiPredictionsCreateRouteImport } from './routes/api/ai/predictions/create'
 import { Route as ApiAiPredictionsAccuracyRouteImport } from './routes/api/ai/predictions/accuracy'
+import { Route as ApiAiOrchestratorRunRouteImport } from './routes/api/ai/orchestrator/run'
 import { Route as ApiAiMemoryStatusRouteImport } from './routes/api/ai/memory/status'
 import { Route as ApiAiLearningStatusRouteImport } from './routes/api/ai/learning/status'
 import { Route as ApiAiLearningRunCycleRouteImport } from './routes/api/ai/learning/run-cycle'
@@ -854,6 +855,11 @@ const ApiAiPredictionsAccuracyRoute =
     path: '/api/ai/predictions/accuracy',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAiOrchestratorRunRoute = ApiAiOrchestratorRunRouteImport.update({
+  id: '/api/ai/orchestrator/run',
+  path: '/api/ai/orchestrator/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAiMemoryStatusRoute = ApiAiMemoryStatusRouteImport.update({
   id: '/api/ai/memory/status',
   path: '/api/ai/memory/status',
@@ -1119,6 +1125,7 @@ export interface FileRoutesByFullPath {
   '/api/ai/learning/run-cycle': typeof ApiAiLearningRunCycleRoute
   '/api/ai/learning/status': typeof ApiAiLearningStatusRoute
   '/api/ai/memory/status': typeof ApiAiMemoryStatusRoute
+  '/api/ai/orchestrator/run': typeof ApiAiOrchestratorRunRoute
   '/api/ai/predictions/accuracy': typeof ApiAiPredictionsAccuracyRoute
   '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
   '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
@@ -1279,6 +1286,7 @@ export interface FileRoutesByTo {
   '/api/ai/learning/run-cycle': typeof ApiAiLearningRunCycleRoute
   '/api/ai/learning/status': typeof ApiAiLearningStatusRoute
   '/api/ai/memory/status': typeof ApiAiMemoryStatusRoute
+  '/api/ai/orchestrator/run': typeof ApiAiOrchestratorRunRoute
   '/api/ai/predictions/accuracy': typeof ApiAiPredictionsAccuracyRoute
   '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
   '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
@@ -1441,6 +1449,7 @@ export interface FileRoutesById {
   '/api/ai/learning/run-cycle': typeof ApiAiLearningRunCycleRoute
   '/api/ai/learning/status': typeof ApiAiLearningStatusRoute
   '/api/ai/memory/status': typeof ApiAiMemoryStatusRoute
+  '/api/ai/orchestrator/run': typeof ApiAiOrchestratorRunRoute
   '/api/ai/predictions/accuracy': typeof ApiAiPredictionsAccuracyRoute
   '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
   '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
@@ -1603,6 +1612,7 @@ export interface FileRouteTypes {
     | '/api/ai/learning/run-cycle'
     | '/api/ai/learning/status'
     | '/api/ai/memory/status'
+    | '/api/ai/orchestrator/run'
     | '/api/ai/predictions/accuracy'
     | '/api/ai/predictions/create'
     | '/api/ai/predictions/evaluate'
@@ -1763,6 +1773,7 @@ export interface FileRouteTypes {
     | '/api/ai/learning/run-cycle'
     | '/api/ai/learning/status'
     | '/api/ai/memory/status'
+    | '/api/ai/orchestrator/run'
     | '/api/ai/predictions/accuracy'
     | '/api/ai/predictions/create'
     | '/api/ai/predictions/evaluate'
@@ -1924,6 +1935,7 @@ export interface FileRouteTypes {
     | '/api/ai/learning/run-cycle'
     | '/api/ai/learning/status'
     | '/api/ai/memory/status'
+    | '/api/ai/orchestrator/run'
     | '/api/ai/predictions/accuracy'
     | '/api/ai/predictions/create'
     | '/api/ai/predictions/evaluate'
@@ -2033,6 +2045,7 @@ export interface RootRouteChildren {
   ApiAiLearningRunCycleRoute: typeof ApiAiLearningRunCycleRoute
   ApiAiLearningStatusRoute: typeof ApiAiLearningStatusRoute
   ApiAiMemoryStatusRoute: typeof ApiAiMemoryStatusRoute
+  ApiAiOrchestratorRunRoute: typeof ApiAiOrchestratorRunRoute
   ApiAiPredictionsAccuracyRoute: typeof ApiAiPredictionsAccuracyRoute
   ApiAiPredictionsCreateRoute: typeof ApiAiPredictionsCreateRoute
   ApiAiPredictionsEvaluateRoute: typeof ApiAiPredictionsEvaluateRoute
@@ -2997,6 +3010,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAiPredictionsAccuracyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/orchestrator/run': {
+      id: '/api/ai/orchestrator/run'
+      path: '/api/ai/orchestrator/run'
+      fullPath: '/api/ai/orchestrator/run'
+      preLoaderRoute: typeof ApiAiOrchestratorRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ai/memory/status': {
       id: '/api/ai/memory/status'
       path: '/api/ai/memory/status'
@@ -3390,6 +3410,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiLearningRunCycleRoute: ApiAiLearningRunCycleRoute,
   ApiAiLearningStatusRoute: ApiAiLearningStatusRoute,
   ApiAiMemoryStatusRoute: ApiAiMemoryStatusRoute,
+  ApiAiOrchestratorRunRoute: ApiAiOrchestratorRunRoute,
   ApiAiPredictionsAccuracyRoute: ApiAiPredictionsAccuracyRoute,
   ApiAiPredictionsCreateRoute: ApiAiPredictionsCreateRoute,
   ApiAiPredictionsEvaluateRoute: ApiAiPredictionsEvaluateRoute,
