@@ -6,6 +6,7 @@ import { runConsensus } from "@/lib/ai/consensus/consensusEngine";
 import { runGenesisBacktest } from "@/lib/ai/backtesting/backtestEngine";
 import { getPredictionAccuracy } from "@/lib/ai/predictions/tracker";
 import { runPortfolioStress } from "@/lib/ai/scenarios/scenarioEngine";
+import { getRiskTwinReport } from "@/lib/ai/riskTwin/riskTwinEngine";
 import { getStrategyRecommendation } from "@/lib/ai/strategyLab/strategyLab";
 import { getGenesisArchiveSummary } from "@/lib/genesis100/engine";
 import { addMemoryEvent } from "@/lib/ai/memory/store";
@@ -16,7 +17,7 @@ const ORCHESTRATOR_SYMBOLS = ["AAPL", "BTCUSDT", "WTI", "2222.SR"];
 
 export async function runMasterOrchestrator() {
   const cycleId = `master-${Date.now()}`;
-  const [market, macro, news, knowledge, consensusResults, backtest, predictions, stress, strategy, research, archive] = await Promise.all([
+  const [market, macro, news, knowledge, consensusResults, backtest, predictions, stress, riskTwin, strategy, research, archive] = await Promise.all([
     safeRead(() => new MarketIntelligenceAgent().analyze(), null),
     safeRead(() => getMacroFeed(), null),
     safeRead(() => getNewsFeed(), null),
@@ -25,6 +26,7 @@ export async function runMasterOrchestrator() {
     safeRead(() => runGenesisBacktest("90d"), null),
     safeRead(() => getPredictionAccuracy(), null),
     safeRead(() => runPortfolioStress(), null),
+    safeRead(() => getRiskTwinReport(), null),
     safeRead(() => getStrategyRecommendation(), null),
     safeRead(() => runDailyResearchAgent(), null),
     safeRead(() => getGenesisArchiveSummary(), null),
@@ -43,6 +45,7 @@ export async function runMasterOrchestrator() {
   const topRisks = [
     ...(news?.topMarketRisks ?? []),
     ...(stress?.results ?? []).slice(0, 3).map((r: { nameAr: string; riskLevel: string }) => `${r.nameAr}: ${r.riskLevel}`),
+    ...((riskTwin?.rejectedCount ?? 0) > 0 ? [`Risk Twin رفض ${riskTwin?.rejectedCount} قرارات`] : []),
   ].slice(0, 8);
   const topOpportunities = [
     ...(news?.topOpportunities ?? []),
@@ -55,6 +58,7 @@ export async function runMasterOrchestrator() {
     strategy?.bestStrategy?.confidencePercent ?? 0,
     research?.researchConfidence ?? 0,
     predictions?.overallAccuracy ?? 0,
+    riskTwin?.approvedCount || riskTwin?.rejectedCount ? 55 : 35,
   ];
   const overallConfidencePercent = Math.round(confidenceInputs.reduce((a, b) => a + b, 0) / confidenceInputs.length);
   const event = addMemoryEvent({
@@ -78,8 +82,10 @@ export async function runMasterOrchestrator() {
     learningEventsAdded: event ? 2 : 1,
     overallConfidencePercent,
     executionEnabled: false,
+    liveTrading: false,
     externalTransfersAllowed: false,
     fundMovementBlocked: true,
+    secretsExposed: false,
     ...AI_SAFETY_FLAGS,
   };
 }
