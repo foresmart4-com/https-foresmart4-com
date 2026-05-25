@@ -25,6 +25,7 @@ export interface AIPrediction {
 }
 
 const predictions: AIPrediction[] = [];
+const PREDICTION_TRACKER_VERSION = "prediction-tracker-v1";
 
 function confidenceTier(confidence: number) {
   if (confidence >= 80) return "high";
@@ -85,7 +86,7 @@ export async function createPrediction(request: Request) {
     confidence,
     metadata: { predictionId: prediction.predictionId, symbol },
   });
-  return { prediction, ...AI_SAFETY_FLAGS };
+  return { predictionTrackerVersion: PREDICTION_TRACKER_VERSION, prediction, ...AI_SAFETY_FLAGS };
 }
 
 export async function evaluatePredictions(request: Request) {
@@ -118,9 +119,11 @@ export async function evaluatePredictions(request: Request) {
   }
 
   return {
+    predictionTrackerVersion: PREDICTION_TRACKER_VERSION,
     evaluated,
     predictions: target,
     reasonAr: evaluated ? "تم تقييم التنبؤات المتاحة." : "لا توجد بيانات سوق فعلية كافية للتقييم.",
+    insufficientDataReasonAr: evaluated ? null : "لا توجد بيانات سوق فعلية كافية للتقييم.",
     ...AI_SAFETY_FLAGS,
   };
 }
@@ -128,9 +131,11 @@ export async function evaluatePredictions(request: Request) {
 export function getPredictionHistory(symbol?: string | null) {
   const filtered = symbol ? predictions.filter((prediction) => prediction.symbol === symbol.toUpperCase()) : predictions;
   return {
+    predictionTrackerVersion: PREDICTION_TRACKER_VERSION,
     count: filtered.length,
     symbol: symbol ?? null,
     predictions: filtered,
+    insufficientDataReasonAr: filtered.length ? null : "لا توجد تنبؤات محفوظة كافية بعد.",
     ...AI_SAFETY_FLAGS,
   };
 }
@@ -159,7 +164,7 @@ export function getPredictionAccuracy() {
   const insufficientDataReasonAr = evaluated.length ? null : "لا توجد بيانات تقييم كافية بعد.";
 
   return {
-    predictionTrackerVersion: "prediction-tracker-v1",
+    predictionTrackerVersion: PREDICTION_TRACKER_VERSION,
     overallAccuracy,
     evaluatedCount: evaluated.length,
     totalPredictions: predictions.length,
