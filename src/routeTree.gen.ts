@@ -144,6 +144,9 @@ import { Route as ApiAiFeedsNewsRouteImport } from './routes/api/ai/feeds/news'
 import { Route as ApiAiFeedsMacroRouteImport } from './routes/api/ai/feeds/macro'
 import { Route as ApiAiFeedsEconomicCalendarRouteImport } from './routes/api/ai/feeds/economic-calendar'
 import { Route as ApiAiCredibilitySourcesRouteImport } from './routes/api/ai/credibility/sources'
+import { Route as ApiAiBacktestStatusRouteImport } from './routes/api/ai/backtest/status'
+import { Route as ApiAiBacktestRunRouteImport } from './routes/api/ai/backtest/run'
+import { Route as ApiAiBacktestReportRouteImport } from './routes/api/ai/backtest/report'
 import { Route as ApiAiAgentsPortfolioDebateRouteImport } from './routes/api/ai/agents/portfolio-debate'
 import { Route as ApiAiAgentsDebateRouteImport } from './routes/api/ai/agents/debate'
 import { Route as ApiAiAgentsConsensusRouteImport } from './routes/api/ai/agents/consensus'
@@ -864,6 +867,21 @@ const ApiAiCredibilitySourcesRoute = ApiAiCredibilitySourcesRouteImport.update({
   path: '/api/ai/credibility/sources',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAiBacktestStatusRoute = ApiAiBacktestStatusRouteImport.update({
+  id: '/api/ai/backtest/status',
+  path: '/api/ai/backtest/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiBacktestRunRoute = ApiAiBacktestRunRouteImport.update({
+  id: '/api/ai/backtest/run',
+  path: '/api/ai/backtest/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiBacktestReportRoute = ApiAiBacktestReportRouteImport.update({
+  id: '/api/ai/backtest/report',
+  path: '/api/ai/backtest/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAiAgentsPortfolioDebateRoute =
   ApiAiAgentsPortfolioDebateRouteImport.update({
     id: '/api/ai/agents/portfolio-debate',
@@ -1018,6 +1036,9 @@ export interface FileRoutesByFullPath {
   '/api/ai/agents/consensus': typeof ApiAiAgentsConsensusRoute
   '/api/ai/agents/debate': typeof ApiAiAgentsDebateRoute
   '/api/ai/agents/portfolio-debate': typeof ApiAiAgentsPortfolioDebateRoute
+  '/api/ai/backtest/report': typeof ApiAiBacktestReportRoute
+  '/api/ai/backtest/run': typeof ApiAiBacktestRunRoute
+  '/api/ai/backtest/status': typeof ApiAiBacktestStatusRoute
   '/api/ai/credibility/sources': typeof ApiAiCredibilitySourcesRoute
   '/api/ai/feeds/economic-calendar': typeof ApiAiFeedsEconomicCalendarRoute
   '/api/ai/feeds/macro': typeof ApiAiFeedsMacroRoute
@@ -1165,6 +1186,9 @@ export interface FileRoutesByTo {
   '/api/ai/agents/consensus': typeof ApiAiAgentsConsensusRoute
   '/api/ai/agents/debate': typeof ApiAiAgentsDebateRoute
   '/api/ai/agents/portfolio-debate': typeof ApiAiAgentsPortfolioDebateRoute
+  '/api/ai/backtest/report': typeof ApiAiBacktestReportRoute
+  '/api/ai/backtest/run': typeof ApiAiBacktestRunRoute
+  '/api/ai/backtest/status': typeof ApiAiBacktestStatusRoute
   '/api/ai/credibility/sources': typeof ApiAiCredibilitySourcesRoute
   '/api/ai/feeds/economic-calendar': typeof ApiAiFeedsEconomicCalendarRoute
   '/api/ai/feeds/macro': typeof ApiAiFeedsMacroRoute
@@ -1314,6 +1338,9 @@ export interface FileRoutesById {
   '/api/ai/agents/consensus': typeof ApiAiAgentsConsensusRoute
   '/api/ai/agents/debate': typeof ApiAiAgentsDebateRoute
   '/api/ai/agents/portfolio-debate': typeof ApiAiAgentsPortfolioDebateRoute
+  '/api/ai/backtest/report': typeof ApiAiBacktestReportRoute
+  '/api/ai/backtest/run': typeof ApiAiBacktestRunRoute
+  '/api/ai/backtest/status': typeof ApiAiBacktestStatusRoute
   '/api/ai/credibility/sources': typeof ApiAiCredibilitySourcesRoute
   '/api/ai/feeds/economic-calendar': typeof ApiAiFeedsEconomicCalendarRoute
   '/api/ai/feeds/macro': typeof ApiAiFeedsMacroRoute
@@ -1463,6 +1490,9 @@ export interface FileRouteTypes {
     | '/api/ai/agents/consensus'
     | '/api/ai/agents/debate'
     | '/api/ai/agents/portfolio-debate'
+    | '/api/ai/backtest/report'
+    | '/api/ai/backtest/run'
+    | '/api/ai/backtest/status'
     | '/api/ai/credibility/sources'
     | '/api/ai/feeds/economic-calendar'
     | '/api/ai/feeds/macro'
@@ -1610,6 +1640,9 @@ export interface FileRouteTypes {
     | '/api/ai/agents/consensus'
     | '/api/ai/agents/debate'
     | '/api/ai/agents/portfolio-debate'
+    | '/api/ai/backtest/report'
+    | '/api/ai/backtest/run'
+    | '/api/ai/backtest/status'
     | '/api/ai/credibility/sources'
     | '/api/ai/feeds/economic-calendar'
     | '/api/ai/feeds/macro'
@@ -1758,6 +1791,9 @@ export interface FileRouteTypes {
     | '/api/ai/agents/consensus'
     | '/api/ai/agents/debate'
     | '/api/ai/agents/portfolio-debate'
+    | '/api/ai/backtest/report'
+    | '/api/ai/backtest/run'
+    | '/api/ai/backtest/status'
     | '/api/ai/credibility/sources'
     | '/api/ai/feeds/economic-calendar'
     | '/api/ai/feeds/macro'
@@ -1854,6 +1890,9 @@ export interface RootRouteChildren {
   ApiAiAgentsConsensusRoute: typeof ApiAiAgentsConsensusRoute
   ApiAiAgentsDebateRoute: typeof ApiAiAgentsDebateRoute
   ApiAiAgentsPortfolioDebateRoute: typeof ApiAiAgentsPortfolioDebateRoute
+  ApiAiBacktestReportRoute: typeof ApiAiBacktestReportRoute
+  ApiAiBacktestRunRoute: typeof ApiAiBacktestRunRoute
+  ApiAiBacktestStatusRoute: typeof ApiAiBacktestStatusRoute
   ApiAiCredibilitySourcesRoute: typeof ApiAiCredibilitySourcesRoute
   ApiAiFeedsEconomicCalendarRoute: typeof ApiAiFeedsEconomicCalendarRoute
   ApiAiFeedsMacroRoute: typeof ApiAiFeedsMacroRoute
@@ -2858,6 +2897,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAiCredibilitySourcesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/backtest/status': {
+      id: '/api/ai/backtest/status'
+      path: '/api/ai/backtest/status'
+      fullPath: '/api/ai/backtest/status'
+      preLoaderRoute: typeof ApiAiBacktestStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/backtest/run': {
+      id: '/api/ai/backtest/run'
+      path: '/api/ai/backtest/run'
+      fullPath: '/api/ai/backtest/run'
+      preLoaderRoute: typeof ApiAiBacktestRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/backtest/report': {
+      id: '/api/ai/backtest/report'
+      path: '/api/ai/backtest/report'
+      fullPath: '/api/ai/backtest/report'
+      preLoaderRoute: typeof ApiAiBacktestReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ai/agents/portfolio-debate': {
       id: '/api/ai/agents/portfolio-debate'
       path: '/api/ai/agents/portfolio-debate'
@@ -3107,6 +3167,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiAgentsConsensusRoute: ApiAiAgentsConsensusRoute,
   ApiAiAgentsDebateRoute: ApiAiAgentsDebateRoute,
   ApiAiAgentsPortfolioDebateRoute: ApiAiAgentsPortfolioDebateRoute,
+  ApiAiBacktestReportRoute: ApiAiBacktestReportRoute,
+  ApiAiBacktestRunRoute: ApiAiBacktestRunRoute,
+  ApiAiBacktestStatusRoute: ApiAiBacktestStatusRoute,
   ApiAiCredibilitySourcesRoute: ApiAiCredibilitySourcesRoute,
   ApiAiFeedsEconomicCalendarRoute: ApiAiFeedsEconomicCalendarRoute,
   ApiAiFeedsMacroRoute: ApiAiFeedsMacroRoute,
