@@ -1,0 +1,22 @@
+{
+  "name": "ForeSmart",
+  "short_name": "ForeSmart",
+  "description": "AI-powered market intelligence and portfolio analytics",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#C9A84C",
+  "background_color": "#1A1B2E",
+  "lang": "ar",
+  "dir": "auto",
+  "categories": ["finance", "business"],
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "619x860",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

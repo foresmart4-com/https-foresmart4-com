@@ -154,6 +154,10 @@
   @media (max-width: 768px) {
     button, [role="button"], a.btn, .tap-target { min-height: 44px; }
   }
+  /* iOS safe-area padding for standalone PWA mode */
+  @supports (padding: env(safe-area-inset-top)) {
+    body { padding-top: env(safe-area-inset-top); }
+  }
 }
 
 @layer utilities {

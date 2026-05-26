@@ -31,8 +31,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "author", content: "ForeSmart" },
+      { name: "theme-color", content: "#C9A84C" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "ForeSmart" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "google-site-verification", content: "81pqRJlRgVXh9wi5nQ7YtUbkx45HkypGz_t2soHC9b8" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "ForeSmart" },
@@ -42,6 +47,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Inter:wght@400;500;600&family=Playfair+Display:wght@500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" },
