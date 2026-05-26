@@ -1,4 +1,4 @@
-/** Genesis thesis memory — localStorage ring buffer (max 20 entries).
+/** Genesis thesis memory — localStorage ring buffer (max 50 entries).
  * Stores investment theses produced by Genesis AI for context continuity
  * and thesis tracking. Client-side only — never sent to server as PII.
  */

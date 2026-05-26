@@ -194,12 +194,11 @@ interface TrackC {
   nearTermRisk: string;
 }
 
-/** Races a promise against a timeout; returns null on timeout. */
+/** Races a promise against a timeout; returns null on timeout. Clears the timer on resolution. */
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
-  return Promise.race([
-    promise,
-    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
-  ]);
+  let tid: ReturnType<typeof setTimeout>;
+  const timeoutP = new Promise<null>((resolve) => { tid = setTimeout(() => resolve(null), ms); });
+  return Promise.race([promise, timeoutP]).finally(() => clearTimeout(tid));
 }
 
 async function runTrackA(lang: Lang, question: string, ctx: string): Promise<TrackA | null> {
