@@ -42,6 +42,11 @@ export interface GenesisReply {
   invalidation?: string;
   confidenceDrivers?: string[];
   viewChange?: string;
+  // Phase 6: multi-agent fusion fields
+  consensusStrength?: "strong" | "moderate" | "weak" | "conflicted";
+  disagreementNote?: string;   // surfaces when agents disagree significantly
+  supportingCase?: string;     // strongest corroborating argument
+  opposingCase?: string;       // devil's advocate counter-argument
 }
 
 const AskInput = z.object({
@@ -113,6 +118,10 @@ const GENESIS_SCHEMA = `{
   "invalidation": "string (optional — one sentence: the specific trigger that would break the thesis; set only when thesis is set)",
   "confidenceDrivers": ["string — factor supporting confidence level"] (optional — 2-3 items; set only when confidence ≥ 50),
   "viewChange": "string (optional — one sentence: the development that would materially shift the outlook; set only when thesis is set)",
+  "consensusStrength": <"strong"|"moderate"|"weak"|"conflicted"> (optional — include when multi-agent synthesis is provided),
+  "disagreementNote": "string — 1 sentence on what agents disagree about; set only when conflicted or weak consensus" (optional),
+  "supportingCase": "string — 1 sentence: strongest corroborating argument from parallel agent analysis" (optional),
+  "opposingCase": "string — 1 sentence: strongest counter-argument from devil's advocate" (optional),
   "scenarios": [{ "label": "string", "probability": "string e.g. 35%", "impact": "string — one sentence" }],
   "risks": ["string"],
   "suggestedAction": {
@@ -180,6 +189,86 @@ interface TrackA {
   regime: string;
   macroSummary: string;
   regimeConf: number;
+  macroBias?: "bullish" | "bearish" | "neutral"; // Phase 6: explicit bias for consensus engine
+}
+
+// Phase 6 specialist agents
+interface TrackD {
+  uncertaintyLevel: "low" | "moderate" | "high" | "extreme";
+  primaryRisk: string;         // main downside risk — 1 sentence
+  thesisWeakness: string;      // weakest link in the dominant case — 1 sentence
+  confidenceChallenge: string; // what should lower confidence — 1 sentence
+}
+
+interface TrackE {
+  counterThesis: string;  // opposing 1-sentence thesis
+  missingEvidence: string; // what the dominant view ignores — 1 sentence
+  opposingBias: "bullish" | "bearish" | "neutral";
+}
+
+// ─── Consensus engine (pure function — no AI call) ─────────────────────────
+
+interface ConsensusResult {
+  biasVotes: { bullish: number; bearish: number; neutral: number };
+  dominantBias: "bullish" | "bearish" | "neutral";
+  agreementScore: number;  // 0-100: how strongly the dominant bias wins
+  strength: "strong" | "moderate" | "weak" | "conflicted";
+  conflictNote: string;    // "" when not conflicted
+}
+
+function regimeToBias(regime: string): "bullish" | "bearish" | "neutral" {
+  const r = regime.toLowerCase();
+  if (r.includes("bull") || r.includes("risk_on") || r.includes("accumulation")) return "bullish";
+  if (r.includes("bear") || r.includes("risk_off") || r.includes("selloff") || r.includes("ranging")) return "bearish";
+  return "neutral";
+}
+
+function computeConsensus(
+  trackA: TrackA | null,
+  trackB: TrackB | null,
+  trackC: TrackC | null,
+  trackE: TrackE | null,
+): ConsensusResult {
+  const EMPTY: ConsensusResult = {
+    biasVotes: { bullish: 0, bearish: 0, neutral: 0 },
+    dominantBias: "neutral", agreementScore: 0, strength: "weak", conflictNote: "",
+  };
+
+  const votes: { bias: "bullish" | "bearish" | "neutral"; weight: number }[] = [];
+  if (trackA) votes.push({ bias: trackA.macroBias ?? regimeToBias(trackA.regime), weight: 0.35 });
+  if (trackB) votes.push({ bias: trackB.technicalBias, weight: 0.30 });
+  if (trackC) votes.push({ bias: trackC.sentimentBias, weight: 0.20 });
+  // Devil's advocate casts an opposing vote at reduced weight
+  if (trackE) votes.push({ bias: trackE.opposingBias, weight: 0.15 });
+
+  if (!votes.length) return EMPTY;
+
+  const biasVotes = { bullish: 0, bearish: 0, neutral: 0 };
+  for (const v of votes) biasVotes[v.bias] += v.weight;
+
+  const total = biasVotes.bullish + biasVotes.bearish + biasVotes.neutral || 1;
+  const dominantBias: "bullish" | "bearish" | "neutral" =
+    biasVotes.bullish >= biasVotes.bearish && biasVotes.bullish >= biasVotes.neutral ? "bullish" :
+    biasVotes.bearish >= biasVotes.bullish && biasVotes.bearish >= biasVotes.neutral ? "bearish" : "neutral";
+
+  const agreementScore = Math.round((biasVotes[dominantBias] / total) * 100);
+  const bullBearGap = Math.abs(biasVotes.bullish - biasVotes.bearish);
+  const isConflicted = bullBearGap < 0.15 && (biasVotes.bullish + biasVotes.bearish) > 0.35;
+
+  let strength: ConsensusResult["strength"];
+  let conflictNote = "";
+  if (isConflicted) {
+    strength = "conflicted";
+    conflictNote = "Macro and technical agents diverge on directional bias";
+  } else if (agreementScore >= 70) {
+    strength = "strong";
+  } else if (agreementScore >= 50) {
+    strength = "moderate";
+  } else {
+    strength = "weak";
+  }
+
+  return { biasVotes, dominantBias, agreementScore, strength, conflictNote };
 }
 
 interface TrackB {
@@ -202,10 +291,10 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
 }
 
 async function runTrackA(lang: Lang, question: string, ctx: string): Promise<TrackA | null> {
-  const schema = `{"regime":"string","macroSummary":"string — 1-2 sentences","regimeConf":<integer 0-100>}`;
+  const schema = `{"regime":"string","macroSummary":"string — 1-2 sentences","regimeConf":<integer 0-100>,"macroBias":"bullish"|"bearish"|"neutral"}`;
   const extra = lang === "ar"
-    ? "حدّد نظام السوق والسياق الكلي فقط. جملة واحدة أو جملتان بحد أقصى."
-    : "Identify the market regime and macro environment ONLY. One to two sentences max.";
+    ? "حدّد نظام السوق والسياق الكلي فقط. أضف macroBias: bullish/bearish/neutral. جملة واحدة أو جملتان بحد أقصى."
+    : "Identify the market regime and macro environment ONLY. Include macroBias as bullish, bearish, or neutral. One to two sentences max.";
   const sys = buildLocaleSystemPrompt({ lang, surface: "genesis_copilot", schema, extra });
   const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}`);
   const res = await withTimeout(
@@ -243,6 +332,38 @@ async function runTrackC(lang: Lang, question: string, ctx: string): Promise<Tra
   return res?.data ?? null;
 }
 
+// ─── Phase 6: Risk Officer (TrackD) ───────────────────────────────────────────
+
+async function runTrackD(lang: Lang, question: string, ctx: string): Promise<TrackD | null> {
+  const schema = `{"uncertaintyLevel":"low"|"moderate"|"high"|"extreme","primaryRisk":"string — 1 sentence","thesisWeakness":"string — 1 sentence","confidenceChallenge":"string — 1 sentence"}`;
+  const extra = lang === "ar"
+    ? "أنت مسؤول المخاطر المؤسسي. حدّد مستوى عدم اليقين والمخاطر الرئيسية وأوجه الضعف في الأطروحة. جملة واحدة لكل حقل فقط."
+    : "You are the institutional risk officer. Identify uncertainty level, primary downside risk, thesis weakness, and what should challenge the confidence level. One sentence per field only.";
+  const sys = buildLocaleSystemPrompt({ lang, surface: "decision_engine", schema, extra });
+  const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}`);
+  const res = await withTimeout(
+    callAIGateway<TrackD>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 300, temperature: 0.3 }),
+    8000,
+  );
+  return res?.data ?? null;
+}
+
+// ─── Phase 6: Devil's Advocate (TrackE) ───────────────────────────────────────
+
+async function runTrackE(lang: Lang, question: string, ctx: string): Promise<TrackE | null> {
+  const schema = `{"counterThesis":"string — 1 sentence opposing view","missingEvidence":"string — 1 sentence","opposingBias":"bullish"|"bearish"|"neutral"}`;
+  const extra = lang === "ar"
+    ? "أنت محامي الشيطان. قدّم الأطروحة المضادة وما يتجاهله التحليل السائد. جملة واحدة لكل حقل. خذ الجانب المعاكس للرأي الغالب."
+    : "You are the devil's advocate. Present the strongest counter-thesis and what the dominant view ignores. One sentence per field. Deliberately take the opposing side.";
+  const sys = buildLocaleSystemPrompt({ lang, surface: "market_analyst", schema, extra });
+  const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}`);
+  const res = await withTimeout(
+    callAIGateway<TrackE>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 300, temperature: 0.45 }),
+    8000,
+  );
+  return res?.data ?? null;
+}
+
 async function runFusion(
   lang: Lang,
   question: string,
@@ -250,16 +371,22 @@ async function runFusion(
   trackA: TrackA | null,
   trackB: TrackB | null,
   trackC: TrackC | null,
+  trackD: TrackD | null,
+  trackE: TrackE | null,
+  consensus: ConsensusResult,
 ): Promise<GenesisReply | null> {
   const trackLines = [
-    trackA ? `MACRO TRACK: regime=${trackA.regime} (conf ${trackA.regimeConf}%) — ${trackA.macroSummary}` : null,
-    trackB ? `TECHNICAL TRACK: ${trackB.technicalBias} bias, momentum ${trackB.momentumStrength}/100 — ${trackB.technicalNote}` : null,
-    trackC ? `SENTIMENT TRACK: ${trackC.sentimentBias}, catalysts: ${trackC.catalysts.slice(0, 2).join("; ")} — near-term risk: ${trackC.nearTermRisk}` : null,
+    trackA ? `MACRO ANALYST: regime=${trackA.regime} (${trackA.regimeConf}% conf) bias=${trackA.macroBias ?? "?"} — ${trackA.macroSummary}` : null,
+    trackB ? `TECHNICAL ANALYST: ${trackB.technicalBias} bias, momentum ${trackB.momentumStrength}/100 — ${trackB.technicalNote}` : null,
+    trackC ? `SENTIMENT ANALYST: ${trackC.sentimentBias}, catalysts: ${trackC.catalysts.slice(0, 2).join("; ")} — near-term risk: ${trackC.nearTermRisk}` : null,
+    trackD ? `RISK OFFICER: uncertainty=${trackD.uncertaintyLevel} | primary_risk: ${trackD.primaryRisk} | weakness: ${trackD.thesisWeakness}` : null,
+    trackE ? `DEVIL'S ADVOCATE: counter="${trackE.counterThesis}" | missing: ${trackE.missingEvidence}` : null,
+    `CONSENSUS (${[trackA, trackB, trackC, trackD, trackE].filter(Boolean).length} agents): dominant=${consensus.dominantBias}, agreement=${consensus.agreementScore}%, strength=${consensus.strength}${consensus.conflictNote ? ` — ${consensus.conflictNote}` : ""}`,
   ].filter(Boolean).join("\n");
 
   const fusionDirective = lang === "ar"
-    ? `نتائج المسارات التحليلية المتوازية:\n${trackLines}\n\nادمج هذه المسارات في تحليل مؤسسي شامل ومتكامل. جميع القواعد الإلزامية سارية.`
-    : `Parallel analysis track inputs:\n${trackLines}\n\nSynthesize these tracks into a unified, comprehensive institutional analysis. All mandatory rules remain in force.`;
+    ? `نتائج وكلاء التحليل المتخصصين (Phase 6 — خمسة وكلاء):\n${trackLines}\n\nادمج هذه المسارات في تحليل مؤسسي شامل. اضبط consensusStrength من نتيجة الإجماع. اضبط supportingCase من أقوى الحجج الداعمة. اضبط opposingCase من حجة محامي الشيطان. اضبط disagreementNote فقط عند التعارض أو ضعف الإجماع. جميع القواعد الإلزامية سارية.`
+    : `Specialist agent analysis (Phase 6 — five agents):\n${trackLines}\n\nSynthesize into a unified institutional analysis. Set consensusStrength from the consensus result above. Set supportingCase from the strongest corroborating argument. Set opposingCase from the devil's advocate counter-thesis. Set disagreementNote only when conflicted or weak consensus. All mandatory rules remain in force.`;
 
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
@@ -296,27 +423,34 @@ export const askGenesis = createServerFn({ method: "POST" })
       return { reply: null, error: "rate_limited" as const, engine: "heuristic" as const };
     }
 
-    // ── Parallel track path (detailed mode only) ─────────────────────────
+    // ── Multi-agent parallel path (detailed mode) — Phase 6: 5 specialist agents ──
     if (data.responseStyle === "detailed") {
-      const [settledA, settledB, settledC] = await Promise.allSettled([
-        runTrackA(lang, data.question, data.marketContext),
-        runTrackB(lang, data.question, data.marketContext),
-        runTrackC(lang, data.question, data.marketContext),
+      const [settledA, settledB, settledC, settledD, settledE] = await Promise.allSettled([
+        runTrackA(lang, data.question, data.marketContext),  // Macro Analyst
+        runTrackB(lang, data.question, data.marketContext),  // Technical Analyst
+        runTrackC(lang, data.question, data.marketContext),  // Sentiment Analyst
+        runTrackD(lang, data.question, data.marketContext),  // Risk Officer
+        runTrackE(lang, data.question, data.marketContext),  // Devil's Advocate
       ]);
 
       const trackA = settledA.status === "fulfilled" ? settledA.value : null;
       const trackB = settledB.status === "fulfilled" ? settledB.value : null;
       const trackC = settledC.status === "fulfilled" ? settledC.value : null;
-      const tracksUsed = [trackA, trackB, trackC].filter(Boolean).length;
+      const trackD = settledD.status === "fulfilled" ? settledD.value : null;
+      const trackE = settledE.status === "fulfilled" ? settledE.value : null;
+      const tracksUsed = [trackA, trackB, trackC, trackD, trackE].filter(Boolean).length;
+
+      // Pure consensus engine — no AI call, runs on track outputs only.
+      const consensus = computeConsensus(trackA, trackB, trackC, trackE);
 
       // Attempt fusion when at least one track succeeded.
       if (tracksUsed >= 1) {
-        const fused = await runFusion(lang, data.question, data.marketContext, trackA, trackB, trackC);
+        const fused = await runFusion(lang, data.question, data.marketContext, trackA, trackB, trackC, trackD, trackE, consensus);
         if (fused?.headline) {
           return { reply: fused, error: null as null, engine: "ai" as const, tracksUsed };
         }
       }
-      // Fall through to single-call if all tracks failed or fusion failed.
+      // Graceful fallback to single-call if all tracks failed or fusion failed.
     }
 
     // ── Standard single-call path (brief mode or detailed fallback) ───────

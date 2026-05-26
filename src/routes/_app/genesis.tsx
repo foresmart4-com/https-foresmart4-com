@@ -940,6 +940,62 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
             </div>
           )}
 
+          {/* Phase 6: Multi-agent synthesis — supporting / opposing / consensus */}
+          {(reply.supportingCase || reply.opposingCase || reply.consensusStrength) && (
+            <div className="space-y-2">
+              {/* Consensus strength badge */}
+              {reply.consensusStrength && (
+                <div className="flex items-center gap-2">
+                  <Scale className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    {ar ? "إجماع الوكلاء:" : "Agent consensus:"}
+                  </span>
+                  <span className={cn(
+                    "rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                    reply.consensusStrength === "strong"    ? "bg-success/10 text-success ring-1 ring-success/25" :
+                    reply.consensusStrength === "moderate"  ? "bg-primary/10 text-primary ring-1 ring-primary/25" :
+                    reply.consensusStrength === "weak"      ? "bg-muted/40 text-muted-foreground ring-1 ring-border/40" :
+                    "bg-warning/10 text-warning ring-1 ring-warning/30",
+                  )}>
+                    {ar
+                      ? reply.consensusStrength === "strong" ? "قوي"
+                        : reply.consensusStrength === "moderate" ? "معتدل"
+                        : reply.consensusStrength === "weak" ? "ضعيف" : "متعارض"
+                      : reply.consensusStrength}
+                  </span>
+                  {reply.disagreementNote && (
+                    <span className="flex items-center gap-1 text-[10px] text-warning">
+                      <AlertTriangle className="h-3 w-3 shrink-0" />
+                      {reply.disagreementNote}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Strongest supporting case */}
+              {reply.supportingCase && (
+                <div className="flex items-start gap-2 rounded-xl border border-success/25 bg-success/5 px-3 py-2 text-xs">
+                  <TrendingUp className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/70" />
+                  <div>
+                    <span className="font-semibold text-success/80">{ar ? "أقوى الحجج الداعمة: " : "Supporting case: "}</span>
+                    <span className="text-foreground/80">{reply.supportingCase}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Devil's advocate — strongest opposing case */}
+              {reply.opposingCase && (
+                <div className="flex items-start gap-2 rounded-xl border border-warning/25 bg-warning/5 px-3 py-2 text-xs">
+                  <TrendingDown className="h-3.5 w-3.5 mt-0.5 shrink-0 text-warning/70" />
+                  <div>
+                    <span className="font-semibold text-warning/80">{ar ? "محامي الشيطان: " : "Devil's advocate: "}</span>
+                    <span className="text-foreground/80">{reply.opposingCase}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Uncertainty warning — explains WHY confidence is low (set by institutional brain) */}
           {reply.uncertaintyWarning && (
             <div className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/5 px-4 py-2.5 text-xs text-warning">
