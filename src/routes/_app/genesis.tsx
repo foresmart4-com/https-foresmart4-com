@@ -37,6 +37,7 @@ import {
   BookOpen, FileText, Layers, Clock, Network, FlaskConical, Gauge, ShieldAlert,
 } from "lucide-react";
 import { evaluateReply, scoreToQuality, type MetaReasoningResult } from "@/services/reasoning/metaReasoning";
+import { coordinateIntelligence, type CoordinationResult } from "@/services/intelligence/coordinatorEngine";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -134,6 +135,7 @@ function GenesisPage() {
   const [memorySummary, setMemorySummary] = useState(() => genesisMemory.weightedSummary());
   const [thesisCount, setThesisCount] = useState(() => thesisMemory.all().length);
   const [continuityScore, setContinuityScore] = useState(() => memoryIntelligence.snapshot().continuityScore);
+  const [coordinationResult, setCoordinationResult] = useState<CoordinationResult | null>(null);
   const [profileVersion, setProfileVersion] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
@@ -251,25 +253,38 @@ function GenesisPage() {
       const metaResult = evaluateReply(lastExchangeReply);
       const metaCtx = metaResult?.compactHint ?? "";
 
-      // Prune context layers to stay within budget (2800 chars max).
-      const fullContext = pruneContext([
-        { key: "mem",        content: memCtx,                       weight: 0.95 },
-        { key: "decision",   content: decisionCtx,                  weight: 0.9  },
-        { key: "research",   content: researchHint,                 weight: 0.88 },
-        { key: "watchlist",  content: watchlistCtx,                 weight: 0.85 },
-        { key: "thesis",     content: thesisCtx,                    weight: 0.85 },
-        { key: "session",    content: sessionCtx,                   weight: 0.8  },
-        { key: "portfolio",  content: portfolioIntelCtx,            weight: 0.78 },
-        { key: "bus",        content: sessionBusCtx,                weight: 0.75 },
-        { key: "signal",     content: signalCtx,                    weight: 0.65 },
-        { key: "marketIntel",content: marketIntel.compactContext,   weight: 0.62 },
-        { key: "scenario",   content: scenarioCtx,                  weight: 0.58 },
-        { key: "graph",      content: graphCtx,                     weight: 0.56 },
-        { key: "meta",       content: metaCtx,                      weight: 0.53 },
-        { key: "top3",       content: opportunityCtx,               weight: 0.5  },
-        { key: "bot3",       content: riskCtx,                      weight: 0.5  },
-        { key: "market",     content: marketContext,                 weight: 0.4  },
-      ], 2800);
+      // Intelligence Coordination Layer — Phase 11: dynamic weight routing and conflict arbitration.
+      const coordResult = coordinateIntelligence(
+        trimmed,
+        {
+          mem:         memCtx,
+          decision:    decisionCtx,
+          research:    researchHint ?? "",
+          watchlist:   watchlistCtx,
+          thesis:      thesisCtx,
+          session:     sessionCtx,
+          portfolio:   portfolioIntelCtx,
+          bus:         sessionBusCtx,
+          signal:      signalCtx,
+          marketIntel: marketIntel.compactContext,
+          scenario:    scenarioCtx,
+          graph:       graphCtx,
+          meta:        metaCtx,
+          top3:        opportunityCtx,
+          bot3:        riskCtx,
+          market:      marketContext,
+        },
+        metaResult,
+        marketIntel,
+        portfolioIntel,
+        researchMode || !!intent.compactHint,
+        thesisCount,
+        watchlistItems.length,
+      );
+      setCoordinationResult(coordResult);
+
+      // Prune context with coordinator-adjusted weights (2800 chars max).
+      const fullContext = pruneContext(coordResult.layers, 2800);
 
       const res = await ask({ data: { question: trimmed, language: lang, marketContext: fullContext, responseStyle: p.responseStyle ?? "brief" } });
 
@@ -742,6 +757,11 @@ function GenesisPage() {
       {/* ─── Macro Scenario Panel ───────────────────────────────────────── */}
       {marketScenarios.hasMeaningfulData && (
         <ScenarioSimPanel sim={marketScenarios} ar={ar} />
+      )}
+
+      {/* ─── Coordination Panel — Phase 11 ─────────────────────────────── */}
+      {coordinationResult && (
+        <CoordinationPanel result={coordinationResult} ar={ar} />
       )}
 
       {/* ─── Exchanges ──────────────────────────────────────────────────── */}
@@ -1578,6 +1598,79 @@ function ActionCard({ action, ar, onConfirm, onDismiss, onDefer }: {
           ? "لن يُنفَّذ هذا الإجراء إلا بعد الضغط على «تأكيد»."
           : "This action will only execute after you press Confirm."}
       </p>
+    </div>
+  );
+}
+
+// ─── Coordination Panel — Phase 11 ──────────────────────────────────────────
+
+const PRIORITY_COLOR: Record<string, string> = {
+  safety:             "text-destructive",
+  contradiction:      "text-destructive",
+  confidence_warning: "text-warning",
+  thesis:             "text-primary",
+  portfolio:          "text-primary",
+  regime:             "text-warning",
+  standard:           "text-muted-foreground",
+};
+
+function CoordinationPanel({ result, ar }: { result: CoordinationResult; ar: boolean }) {
+  const boosted    = Object.entries(result.routingDecision).filter(([, v]) => v === "boosted").map(([k]) => k);
+  const suppressed = Object.entries(result.routingDecision).filter(([, v]) => v === "suppressed").map(([k]) => k);
+  const hasActivity = result.prioritySignal !== "standard" || result.conflicts.length > 0 || boosted.length > 0;
+  if (!hasActivity) return null;
+
+  const priorityColor = PRIORITY_COLOR[result.prioritySignal] ?? "text-muted-foreground";
+
+  return (
+    <div className="mb-4 rounded-xl border border-border/40 bg-card/30 px-4 py-2.5">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px]">
+        <div className="flex items-center gap-1.5 font-semibold uppercase tracking-wider text-muted-foreground">
+          <Layers className="h-3 w-3 shrink-0" />
+          {ar ? "تنسيق الاستخبارات" : "Intelligence Coord"}
+        </div>
+
+        <span className={cn("font-semibold", priorityColor)}>
+          {result.prioritySignal.replace(/_/g, "-")}
+        </span>
+
+        {result.conflicts.length > 0 && (
+          <>
+            <span className="text-border/80">|</span>
+            <span className="flex items-center gap-1 text-warning">
+              <AlertTriangle className="h-3 w-3 shrink-0" />
+              {result.conflicts.length} {ar
+                ? "تعارض"
+                : `conflict${result.conflicts.length > 1 ? "s" : ""}`}
+            </span>
+          </>
+        )}
+
+        {boosted.length > 0 && (
+          <>
+            <span className="text-border/80">|</span>
+            <span className="text-success font-medium">
+              {ar ? "مُعزَّز:" : "boosted:"} {boosted.slice(0, 3).join(", ")}
+            </span>
+          </>
+        )}
+
+        {suppressed.length > 0 && (
+          <>
+            <span className="text-border/80">|</span>
+            <span className="text-muted-foreground/60">
+              {ar ? "مخفَّض:" : "suppressed:"} {suppressed.slice(0, 2).join(", ")}
+            </span>
+          </>
+        )}
+      </div>
+
+      {result.coordinationNote && (
+        <div className="mt-1.5 flex items-start gap-1.5 text-[10px] text-muted-foreground/80 italic">
+          <Brain className="h-3 w-3 mt-0.5 shrink-0 text-muted-foreground/50" />
+          <span>{result.coordinationNote}</span>
+        </div>
+      )}
     </div>
   );
 }
