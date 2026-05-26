@@ -11,11 +11,12 @@ export interface GenesisScenario {
 }
 
 export interface GenesisSuggestedAction {
-  type: "add_watchlist" | "open_alert_form" | "analyze_asset" | "navigate" | "none";
+  type: "add_watchlist" | "create_alert" | "analyze_asset" | "navigate" | "none";
   label: string;
   symbol?: string;
   route?: string;
   price?: number;
+  condition?: "above" | "below";
 }
 
 export interface GenesisReply {
@@ -86,11 +87,12 @@ Return ONLY valid JSON matching this exact schema:
   ],
   "risks": ["string"],
   "suggestedAction": {
-    "type": <"add_watchlist" | "open_alert_form" | "analyze_asset" | "navigate" | "none">,
+    "type": <"add_watchlist" | "create_alert" | "analyze_asset" | "navigate" | "none">,
     "label": "string — concise action label",
     "symbol": "TICKER (optional)",
     "route": "/path (optional, one of: /signals /watchlist /market-intelligence /advisor /portfolio-ai /markets)",
-    "price": <number optional, for alert suggestions>
+    "price": <number optional, required for create_alert>,
+    "condition": <"above" | "below" optional, required for create_alert — above if bullish target, below if risk stop>
   } | null,
   "disclaimer": "string"
 }

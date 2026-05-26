@@ -3,9 +3,11 @@ import { useState, useRef, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { askGenesis, type GenesisReply, type GenesisSuggestedAction } from "@/lib/genesis.functions";
+import { createAlert } from "@/lib/alerts.functions";
 import { getMarketData } from "@/lib/market-data";
 import { useI18n } from "@/lib/i18n";
 import { addToWatchlist } from "@/lib/watchlistStore";
+import { memoryAgent } from "@/services/agents/memoryAgent";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
@@ -57,11 +59,18 @@ const SUGGESTED_AR = [
   "اقترح استراتيجية محفظة دفاعية",
 ];
 
+const RISK_LABEL: Record<string, { en: string; ar: string }> = {
+  conservative: { en: "Conservative", ar: "محافظ" },
+  balanced: { en: "Balanced", ar: "متوازن" },
+  aggressive: { en: "Aggressive", ar: "عدواني" },
+};
+
 function GenesisPage() {
   const { lang } = useI18n();
   const ar = lang === "ar";
   const navigate = useNavigate();
   const ask = useServerFn(askGenesis);
+  const alertFn = useServerFn(createAlert);
   const marketFn = useServerFn(getMarketData);
   const { data: market } = useQuery({ queryKey: ["market"], queryFn: () => marketFn() });
 
@@ -69,6 +78,7 @@ function GenesisPage() {
   const [busy, setBusy] = useState(false);
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const profile = memoryAgent.getProfile();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -85,7 +95,14 @@ function GenesisPage() {
     setBusy(true);
     setQuestion("");
     try {
-      const res = await ask({ data: { question: trimmed, language: lang, marketContext } });
+      const p = memoryAgent.getProfile();
+      const memCtx = [
+        `User risk profile: ${p.riskAppetite}`,
+        p.preferredAssets.length ? `Preferred assets: ${p.preferredAssets.slice(0, 5).join(", ")}` : "",
+        p.interactions > 0 ? `Total interactions: ${p.interactions}` : "",
+      ].filter(Boolean).join(" | ");
+      const fullContext = [memCtx, marketContext].filter(Boolean).join("\n");
+      const res = await ask({ data: { question: trimmed, language: lang, marketContext: fullContext } });
       if (res.error === "rate_limited") {
         toast.error(ar ? "تم تجاوز الحد، حاول لاحقاً" : "Rate limit exceeded, try again shortly");
         return;
@@ -112,7 +129,7 @@ function GenesisPage() {
     }
   };
 
-  const executeAction = (exId: string, action: GenesisSuggestedAction) => {
+  const executeAction = async (exId: string, action: GenesisSuggestedAction) => {
     setExchanges((prev) => prev.map((e) => e.id === exId ? { ...e, actionState: "confirmed" } : e));
 
     if (action.type === "add_watchlist" && action.symbol) {
@@ -127,7 +144,28 @@ function GenesisPage() {
       else toast.info(ar ? `${action.symbol} موجود بالفعل في المراقبة` : `${action.symbol} already in watchlist`);
       return;
     }
-    if (action.type === "open_alert_form" && action.symbol) {
+    if (action.type === "create_alert" && action.symbol && action.price != null && action.condition) {
+      try {
+        await alertFn({
+          data: {
+            symbol: action.symbol.toUpperCase(),
+            asset_name: action.symbol,
+            condition: action.condition,
+            target_price: action.price,
+          },
+        });
+        toast.success(
+          ar
+            ? `تم إنشاء تنبيه لـ ${action.symbol} ${action.condition === "above" ? "فوق" : "تحت"} ${action.price}`
+            : `Alert created: ${action.symbol} ${action.condition} ${action.price}`,
+        );
+      } catch {
+        toast.error(ar ? "تعذّر إنشاء التنبيه" : "Could not create alert");
+        setExchanges((prev) => prev.map((e) => e.id === exId ? { ...e, actionState: "pending" } : e));
+      }
+      return;
+    }
+    if (action.type === "create_alert") {
       void navigate({ to: "/alerts" as any });
       return;
     }
@@ -181,7 +219,13 @@ function GenesisPage() {
             {ar
               ? "تحليل تعليمي فقط — Genesis لا ينفذ أوامر شراء أو بيع حقيقية."
               : "Educational analysis only — Genesis cannot and does not execute real buy or sell orders."}
-            <DataStatusBadge status="simulation" className="ms-auto" />
+            <span className="ms-auto flex items-center gap-1.5">
+              <span className="text-muted-foreground/60">{ar ? "ملف المخاطر:" : "Risk profile:"}</span>
+              <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 font-semibold text-primary">
+                {ar ? (RISK_LABEL[profile.riskAppetite]?.ar ?? profile.riskAppetite) : (RISK_LABEL[profile.riskAppetite]?.en ?? profile.riskAppetite)}
+              </span>
+            </span>
+            <DataStatusBadge status="simulation" />
           </div>
         </div>
       </div>
@@ -440,7 +484,7 @@ function ScenarioCard({ scenario, index, ar }: { scenario: { label: string; prob
 
 const ACTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   add_watchlist: Eye,
-  open_alert_form: Bell,
+  create_alert: Bell,
   analyze_asset: Brain,
   navigate: Navigation,
   none: ChevronRight,
