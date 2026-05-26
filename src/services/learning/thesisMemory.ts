@@ -15,6 +15,15 @@ export interface ThesisEntry {
   uncertainty: string | null;  // uncertainty note if low confidence
   invalidation: string | null; // condition that would invalidate the thesis
   catalyst: string | null;     // primary near-term catalyst to watch
+  outcome?: "correct" | "incorrect" | "mixed" | "pending"; // user-resolved outcome
+  resolvedAt?: number;         // timestamp when outcome was recorded
+}
+
+export interface ThesisOutcomeStats {
+  total: number;
+  resolved: number;
+  accuracy: number;            // 0-100: % of resolved theses that were "correct"
+  breakdown: Partial<Record<NonNullable<ThesisEntry["outcome"]>, number>>;
 }
 
 function read(): ThesisEntry[] {
@@ -47,11 +56,37 @@ export const thesisMemory = {
 
   clear(): void { persist([]); },
 
+  /** Mark a thesis outcome. Idempotent — re-resolving updates the record. */
+  resolveThesis(id: string, outcome: NonNullable<ThesisEntry["outcome"]>): void {
+    const entries = read();
+    const idx = entries.findIndex((e) => e.id === id);
+    if (idx < 0) return;
+    entries[idx] = { ...entries[idx], outcome, resolvedAt: Date.now() };
+    persist(entries);
+  },
+
+  /** Aggregate outcome accuracy across all resolved theses. */
+  outcomeStats(): ThesisOutcomeStats {
+    const entries = read();
+    const resolved = entries.filter((e) => e.outcome && e.outcome !== "pending");
+    const correct = resolved.filter((e) => e.outcome === "correct").length;
+    const breakdown: ThesisOutcomeStats["breakdown"] = {};
+    for (const e of resolved) {
+      if (e.outcome) breakdown[e.outcome] = (breakdown[e.outcome] ?? 0) + 1;
+    }
+    return {
+      total: entries.length,
+      resolved: resolved.length,
+      accuracy: resolved.length > 0 ? Math.round((correct / resolved.length) * 100) : 0,
+      breakdown,
+    };
+  },
+
   /** Compact string for AI context injection — truncated per entry to save tokens. */
   compressedContext(n: number): string {
     const entries = this.getRecent(n);
     if (!entries.length) return "";
     return `Prior theses (${entries.length}): ` +
-      entries.map((t) => `${t.asset} ${t.direction} ${t.confidence}% — "${t.thesis.slice(0, 50)}"`).join(" | ");
+      entries.map((t) => `${t.asset} ${t.direction} ${t.confidence}%${t.outcome ? ` [${t.outcome}]` : ""} — "${t.thesis.slice(0, 45)}"`).join(" | ");
   },
 };

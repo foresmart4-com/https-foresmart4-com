@@ -193,8 +193,12 @@ function GenesisPage() {
       // Portfolio brain context — exposure, concentration, regime alignment, thesis matches.
       const portfolioIntelCtx = portfolioIntel.compactContext;
 
-      // Thesis memory context — compact compressed string.
-      const thesisCtx = thesisMemory.compressedContext(3);
+      // Thesis memory context — compressed entries + outcome accuracy for confidence calibration.
+      const outcomeStats = thesisMemory.outcomeStats();
+      const outcomeHint = outcomeStats.resolved > 0
+        ? ` | Thesis accuracy: ${outcomeStats.accuracy}% (${outcomeStats.resolved} resolved)`
+        : "";
+      const thesisCtx = thesisMemory.compressedContext(3) + outcomeHint;
 
       // Signal history context — compact win-rate and dominant regime from learning layer.
       const sigMem = getMemory();
