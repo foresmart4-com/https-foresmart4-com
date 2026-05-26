@@ -11,7 +11,7 @@ import { memoryAgent } from "@/services/agents/memoryAgent";
 import { genesisMemory } from "@/services/learning/genesisMemory";
 import { aiMemory } from "@/services/learning/aiMemory";
 import { clearMemory as clearSignalMemory } from "@/services/learning/signalMemory";
-import { ece, driftReport, strategyScores, metaTuneThreshold } from "@/services/learning/selfLearningEngine";
+import { ece, driftReport, strategyScores } from "@/services/learning/selfLearningEngine";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
