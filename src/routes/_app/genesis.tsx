@@ -324,7 +324,7 @@ function EmptyState({ ar, suggestions, onSelect }: { ar: boolean; suggestions: s
           : "Ask any investment question for scenario analysis with calibrated confidence scores."}
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-2">
-        {suggestions.slice(0, 4).map((s) => (
+        {suggestions.slice(0, 5).map((s) => (
           <button
             key={s}
             onClick={() => onSelect(s)}
@@ -393,8 +393,18 @@ function ExchangeCard({ exchange, ar, onConfirm, onDismiss }: {
         </div>
 
         <div className="p-5 space-y-5">
-          {/* Confidence bar */}
-          <div className="space-y-1">
+          {/* Confidence bar + label */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">{ar ? "مستوى الثقة" : "Confidence level"}</span>
+              <span className={cn("font-semibold", confidenceColor)}>
+                {reply.confidenceLabel === "high"
+                  ? (ar ? "مرتفعة" : "High")
+                  : reply.confidenceLabel === "moderate"
+                    ? (ar ? "متوسطة" : "Moderate")
+                    : (ar ? "منخفضة" : "Low")}
+              </span>
+            </div>
             <Progress value={reply.confidence} className="h-1.5" />
           </div>
 
@@ -455,6 +465,13 @@ function ExchangeCard({ exchange, ar, onConfirm, onDismiss }: {
             <div className="flex items-center gap-2 rounded-xl border border-success/30 bg-success/5 px-4 py-2.5 text-sm text-success">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
               {ar ? "تم تنفيذ الإجراء بنجاح" : "Action executed successfully"}
+            </div>
+          )}
+
+          {actionState === "dismissed" && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
+              <ChevronRight className="h-3 w-3 shrink-0" />
+              {ar ? "تم تجاهل الاقتراح" : "Suggestion dismissed"}
             </div>
           )}
 
