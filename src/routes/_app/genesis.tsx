@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { askGenesis, type GenesisReply, type GenesisSuggestedAction } from "@/lib/genesis.functions";
 import { createAlert } from "@/lib/alerts.functions";
-import { getMarketData } from "@/lib/market-data";
+import { getMarketData, type AssetQuote } from "@/lib/market-data";
 import { useI18n } from "@/lib/i18n";
 import { addToWatchlist, useWatchlist } from "@/lib/watchlistStore";
 import { memoryAgent } from "@/services/agents/memoryAgent";
@@ -81,6 +81,27 @@ const GENESIS_ALLOWED_ROUTES = new Set([
   "/ai-dashboard", "/genesis", "/growth-plan", "/backtest-lab",
   "/stocks-portfolio", "/paper-trading",
 ]);
+
+// Lightweight market consensus adapter — derives regime and bias from available
+// AssetQuote[] without requiring the full MarketIntel pipeline.
+function buildMarketConsensus(assets: AssetQuote[]): string {
+  if (assets.length < 3) return "";
+  const CAT_WEIGHTS: Record<string, number> = { crypto: 0.35, metals: 0.3, oil: 0.2, stocks: 0.15, currencies: 0.15, bonds: 0.1 };
+  let wTotal = 0, wScore = 0, bullN = 0, bearN = 0;
+  for (const a of assets) {
+    const w = CAT_WEIGHTS[a.category] ?? 0.15;
+    wTotal += w; wScore += a.changePct * w;
+    if (a.changePct > 0.5) bullN++; else if (a.changePct < -0.5) bearN++;
+  }
+  const score = wTotal > 0 ? wScore / wTotal : 0;
+  const bias = score > 0.4 ? "bullish" : score < -0.4 ? "bearish" : "neutral";
+  const highVolN = assets.filter((a) => Math.abs(a.changePct) > 2).length;
+  const regime =
+    highVolN >= 3 ? "high_vol_risk-off" :
+    bias === "bullish" && bullN >= assets.length * 0.55 ? "bull_trending" :
+    bias === "bearish" && bearN >= assets.length * 0.55 ? "bear_ranging" : "mixed";
+  return `Market consensus: ${bias} (weighted score ${score.toFixed(2)}) | Regime estimate: ${regime} | Breadth: ${bullN}↑ ${bearN}↓ of ${assets.length} assets`;
+}
 
 function sanitizeGenesisAction(action: GenesisSuggestedAction): GenesisSuggestedAction | null {
   const safe: GenesisSuggestedAction = { ...action };
@@ -164,10 +185,15 @@ function GenesisPage() {
         `Confidence modifier: ${confModifier.toFixed(2)}x (${confModifier >= 1 ? "above" : "below"} baseline)`,
       ].filter(Boolean).join(" | ");
 
-      // Recent session context for follow-up continuity (last 3 headlines, excluding current question).
-      const recentHistory = genesisMemory.list().slice(-3);
+      // Multi-turn session context — last 6 exchanges; most recent 2 include full Q+A for follow-up continuity.
+      const recentHistory = genesisMemory.list().slice(-6);
       const sessionCtx = recentHistory.length
-        ? `Recent session context: ${recentHistory.map((e) => e.headline.slice(0, 50)).join(" → ")}`
+        ? `Conversation history (${recentHistory.length} exchanges): ` +
+          recentHistory.map((e, i, arr) =>
+            i >= arr.length - 2
+              ? `[${e.engineUsed.toUpperCase()}] Q:"${e.question.slice(0, 55)}" → "${e.headline.slice(0, 55)}"`
+              : `"${e.headline.slice(0, 45)}"`
+          ).join(" | ")
         : "";
 
       // Watchlist context — exposes user's tracked symbols for portfolio-aware reasoning.
@@ -186,7 +212,10 @@ function GenesisPage() {
         ? `Signal history: ${sigMem.length} signals${sigWinRate !== null ? `, ${sigWinRate}% win-rate` : ""}${topRegime ? `, dominant regime: ${topRegime}` : ""}`
         : "";
 
-      const fullContext = [memCtx, decisionCtx, watchlistCtx, signalCtx, opportunityCtx, riskCtx, marketContext, sessionCtx].filter(Boolean).join("\n");
+      // Lightweight decision consensus — regime estimate from live market breadth.
+      const consensusCtx = buildMarketConsensus(assets);
+
+      const fullContext = [memCtx, decisionCtx, watchlistCtx, signalCtx, consensusCtx, opportunityCtx, riskCtx, marketContext, sessionCtx].filter(Boolean).join("\n");
       const res = await ask({ data: { question: trimmed, language: lang, marketContext: fullContext } });
 
       if (res.error === "rate_limited") {

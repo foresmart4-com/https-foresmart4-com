@@ -128,7 +128,8 @@ export type AISurface =
   | "market_analyst" | "news_analyst" | "signal_explainer"
   | "market_insights" | "decision_engine" | "global_macro"
   | "opportunity_scanner" | "notification" | "portfolio_analyst"
-  | "economic_briefing" | "advisor" | "asset_verdict";
+  | "economic_briefing" | "advisor" | "asset_verdict"
+  | "genesis_copilot";
 
 const ROLE_AR: Record<AISurface, string> = {
   market_analyst: "أنت كبير المحللين في مكتب تداول مؤسسي.",
@@ -143,6 +144,7 @@ const ROLE_AR: Record<AISurface, string> = {
   economic_briefing: "أنت كبير الاقتصاديين تكتب موجزاً اقتصادياً يومياً.",
   advisor: 'أنت "ForeSmart Advisor" — مستشار استثماري كبير لأصحاب رؤوس الأموال الصغيرة والمتوسطة.',
   asset_verdict: "أنت محلل أسواق شامل يصدر حكماً مؤسسياً على أصل واحد.",
+  genesis_copilot: 'أنت "Genesis" — محرّك الاستخبارات المؤسسية لمنصة ForeSmart. تُحلّل الأسواق بعمق، وتستدلّ على النظام السوقي، وتُنتج سيناريوهات موزونة باحتمالات معايرة بأسلوب مكتب بحوث مؤسسي متخصص.',
 };
 
 const ROLE_EN: Record<AISurface, string> = {
@@ -158,6 +160,7 @@ const ROLE_EN: Record<AISurface, string> = {
   economic_briefing: "You are a chief economist writing the daily economic briefing.",
   advisor: "You are 'ForeSmart Advisor' — a senior advisor for small and mid-capital investors.",
   asset_verdict: "You are a comprehensive markets analyst issuing an institutional verdict on a single asset.",
+  genesis_copilot: "You are \"Genesis\" — the ForeSmart institutional intelligence engine. You analyse markets in depth, detect the market regime, and produce probability-weighted scenarios with calibrated confidence at the level of a senior institutional research desk.",
 };
 
 // ---------- Prompt builder ----------

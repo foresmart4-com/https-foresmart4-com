@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { callAIGateway, safeParseJson } from "@/lib/ai-gateway.server";
+import { buildLocaleSystemPrompt, wrapUserContext } from "@/lib/ai/locale";
 import type { Lang } from "@/lib/ai/locale";
 
 export interface GenesisScenario {
@@ -90,22 +91,8 @@ function heuristicReply(lang: Lang): GenesisReply {
   };
 }
 
-const SYSTEM_PROMPT = `You are Genesis, the ForeSmart institutional investment intelligence engine. Your role is to provide forward-looking, scenario-based investment intelligence with the analytical depth of an institutional research desk.
-
-Rules you must NEVER break:
-- Never suggest, confirm, or describe real buy/sell order execution, broker actions, or money movement.
-- Never claim certainty — always express confidence as a calibrated percentage.
-- Always include a disclaimer.
-- All analysis is educational and simulative only.
-
-Institutional reasoning framework — apply each layer when context supports it:
-1. REGIME — Identify the market regime: bull_trending, bear_ranging, high_vol_risk-off, low_vol_accumulation, or macro_transition. Only set "regime" when the available context clearly supports the classification.
-2. EVIDENCE — Cite 2-4 specific macro, technical, or structural factors that directly drive your conclusion. Only set "evidence" when confidence ≥ 50 and supporting data exists in context.
-3. PORTFOLIO IMPACT — If the user's watchlist symbols appear in context, state how this analysis directly affects those holdings. Only set "portfolioImpact" when watchlist symbols are explicitly in context.
-4. UNCERTAINTY — When confidence < 50, describe the specific sources of uncertainty and what information or conditions would resolve them. Only set "uncertaintyWarning" when confidence < 50.
-
-Return ONLY valid JSON matching this exact schema:
-{
+// JSON schema shape — same for both languages; JSON field names are always English.
+const GENESIS_SCHEMA = `{
   "headline": "string — one concise forward-looking sentence",
   "outlook": "string — 2-3 paragraphs of deep analytical reasoning with macro, technical, and structural context",
   "confidence": <integer 0-100>,
@@ -114,30 +101,54 @@ Return ONLY valid JSON matching this exact schema:
   "evidence": ["string — specific supporting factor"] (optional — 2-4 bullets when confidence ≥ 50; omit otherwise),
   "portfolioImpact": "string (optional — only include when user watchlist symbols appear in context)",
   "uncertaintyWarning": "string (optional — only include when confidence < 50)",
-  "scenarios": [
-    { "label": "string", "probability": "string e.g. 35%", "impact": "string — one sentence" }
-  ],
+  "scenarios": [{ "label": "string", "probability": "string e.g. 35%", "impact": "string — one sentence" }],
   "risks": ["string"],
   "suggestedAction": {
-    "type": <"add_watchlist" | "create_alert" | "analyze_asset" | "compare_assets" | "summarize_portfolio" | "navigate" | "none">,
-    "label": "string — concise action label",
-    "symbol": "TICKER (optional, primary asset)",
-    "assets": ["TICKER1", "TICKER2"] (optional array, use for compare_assets with 2-3 tickers),
+    "type": "add_watchlist"|"create_alert"|"analyze_asset"|"compare_assets"|"summarize_portfolio"|"navigate"|"none",
+    "label": "string",
+    "symbol": "TICKER (optional)",
+    "assets": ["TICKER"] (optional, for compare_assets with 2-3 tickers),
     "route": "/path (optional, one of: /signals /watchlist /market-intelligence /advisor /portfolio-ai /portfolios /markets /scanner)",
-    "price": <number optional, required for create_alert>,
-    "condition": <"above" | "below" optional, required for create_alert — above if bullish target, below if risk stop>
+    "price": number (optional, required for create_alert),
+    "condition": "above"|"below" (optional, required for create_alert — above if bullish, below if risk stop)
   } | null,
-Action type guide:
-  add_watchlist       → add symbol to user watchlist (requires symbol)
-  create_alert        → create price alert (requires symbol, price, condition)
-  analyze_asset       → open asset deep analysis (requires symbol) → /market-intelligence
-  compare_assets      → compare 2-3 assets side-by-side (requires assets[]) → /market-intelligence or /scanner
-  summarize_portfolio → summarize portfolio risk/exposure → /portfolio-ai or /portfolios
-  navigate            → open any route (requires route)
-  none                → no action suggested
   "disclaimer": "string"
+}`;
+
+function buildGenesisSystemPrompt(lang: Lang): string {
+  const ar = lang === "ar";
+  const extra = ar
+    ? `القواعد التي يجب ألا تُكسر أبداً:
+- لا تقترح أبداً أوامر شراء أو بيع حقيقية أو إجراءات وسيط أو تحركات مالية.
+- لا تجزم أبداً — اعبّر دائماً عن الثقة بنسبة مئوية معايرة.
+- أدرج دائماً إخلاء المسؤولية في كل رد.
+- جميع التحليلات تعليمية ومحاكاتية فقط.
+
+إطار الاستدلال المؤسسي — طبّق كل طبقة عندما يدعم السياق ذلك:
+1. النظام السوقي — حدّد النظام: bull_trending أو bear_ranging أو high_vol_risk-off أو low_vol_accumulation أو macro_transition. اضبط "regime" فقط عندما يدعمه السياق بوضوح.
+2. الأدلة — استشهد بـ 2-4 عوامل محددة كلية أو تقنية أو هيكلية. اضبط "evidence" فقط عند الثقة ≥ 50.
+3. أثر المحفظة — اضبط "portfolioImpact" فقط عند ظهور رموز قائمة مراقبة المستخدم صراحةً في السياق.
+4. عدم اليقين — اضبط "uncertaintyWarning" فقط عند الثقة < 50 مع تفسير الأسباب.
+
+أنتج 3 سيناريوهات بالضبط. أنتج 2-4 مخاطر.
+دليل نوع الإجراء: add_watchlist (يتطلب symbol) | create_alert (يتطلب symbol وprice وcondition) | analyze_asset (يتطلب symbol) | compare_assets (يتطلب assets[]) | summarize_portfolio | navigate (يتطلب route) | none`
+    : `Rules you must NEVER break:
+- Never suggest, confirm, or describe real buy/sell order execution, broker actions, or money movement.
+- Never claim certainty — always express confidence as a calibrated percentage.
+- Always include a disclaimer in every reply.
+- All analysis is educational and simulative only.
+
+Institutional reasoning framework — apply each layer when context supports it:
+1. REGIME — Identify the market regime: bull_trending, bear_ranging, high_vol_risk-off, low_vol_accumulation, or macro_transition. Only set "regime" when context clearly supports the classification.
+2. EVIDENCE — Cite 2-4 specific macro, technical, or structural factors. Only set "evidence" when confidence ≥ 50.
+3. PORTFOLIO IMPACT — Only set "portfolioImpact" when user watchlist symbols appear explicitly in context.
+4. UNCERTAINTY — Only set "uncertaintyWarning" when confidence < 50, and explain the specific sources.
+
+Produce exactly 3 scenarios. Produce 2-4 risks.
+Action type guide: add_watchlist (requires symbol) | create_alert (requires symbol, price, condition) | analyze_asset (requires symbol) | compare_assets (requires assets[]) | summarize_portfolio | navigate (requires route) | none`;
+
+  return buildLocaleSystemPrompt({ lang, surface: "genesis_copilot", schema: GENESIS_SCHEMA, extra });
 }
-Produce exactly 3 scenarios. Produce 2-4 risks.`;
 
 export const askGenesis = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -156,13 +167,13 @@ export const askGenesis = createServerFn({ method: "POST" })
       return { reply: null, error: "rate_limited" as const, engine: "heuristic" as const };
     }
 
-    const user = [
+    const user = wrapUserContext(lang, [
       `User question: ${data.question}`,
       data.marketContext ? `\nLive market context:\n${data.marketContext}` : "",
-    ].join("");
+    ].join(""));
 
     const result = await callAIGateway<GenesisReply>({
-      system: SYSTEM_PROMPT,
+      system: buildGenesisSystemPrompt(lang),
       user,
       language: lang,
       jsonObject: true,
