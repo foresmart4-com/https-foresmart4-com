@@ -37,6 +37,22 @@ const AskInput = z.object({
   marketContext: z.string().max(3000).default(""),
 });
 
+// Server-side per-user rate limit: 20 requests per 5 minutes (per Worker isolate).
+// Best-effort in a stateless Worker environment — not globally accurate but effective
+// against accidental hammering from a single authenticated user.
+const AI_RATE_WINDOW_MS = 5 * 60 * 1000;
+const AI_RATE_MAX = 20;
+const _aiRateBuckets = new Map<string, { count: number; windowStart: number }>();
+
+function checkAiRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const b = _aiRateBuckets.get(userId) ?? { count: 0, windowStart: now };
+  if (now - b.windowStart > AI_RATE_WINDOW_MS) { b.count = 0; b.windowStart = now; }
+  b.count++;
+  _aiRateBuckets.set(userId, b);
+  return b.count <= AI_RATE_MAX;
+}
+
 function heuristicReply(lang: Lang): GenesisReply {
   const ar = lang === "ar";
   return {
@@ -111,8 +127,19 @@ Produce exactly 3 scenarios. Produce 2-4 risks.`;
 export const askGenesis = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => AskInput.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const lang = data.language as Lang;
+    const userId = (context as { userId?: string }).userId ?? "anon";
+
+    // Server-side emergency kill switch — set AI_DISABLED=true in Railway secrets to disable AI.
+    if (process.env.AI_DISABLED === "true") {
+      return { reply: heuristicReply(lang), error: null as null, engine: "heuristic" as const };
+    }
+
+    // Server-side rate limit (per user, per isolate).
+    if (!checkAiRateLimit(userId)) {
+      return { reply: null, error: "rate_limited" as const, engine: "heuristic" as const };
+    }
 
     const user = [
       `User question: ${data.question}`,

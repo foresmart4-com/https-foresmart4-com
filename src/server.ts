@@ -36,6 +36,24 @@ function brandedErrorResponse(): Response {
   });
 }
 
+const CSP = [
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "form-action 'self' https://*.stripe.com https://*.paypal.com https://api.moyasar.com",
+].join("; ");
+
+function injectSecurityHeaders(response: Response): Response {
+  const h = new Headers(response.headers);
+  if (!h.has("x-frame-options"))       h.set("x-frame-options", "DENY");
+  if (!h.has("x-content-type-options")) h.set("x-content-type-options", "nosniff");
+  if (!h.has("referrer-policy"))        h.set("referrer-policy", "strict-origin-when-cross-origin");
+  if (!h.has("permissions-policy"))     h.set("permissions-policy", "camera=(), microphone=(), geolocation=(), payment=()");
+  if (!h.has("content-security-policy")) h.set("content-security-policy", CSP);
+  if (!h.has("cross-origin-opener-policy")) h.set("cross-origin-opener-policy", "same-origin");
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers: h });
+}
+
 function isCatastrophicSsrErrorBody(body: string, responseStatus: number): boolean {
   let payload: unknown;
   try {
@@ -80,13 +98,15 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     warnIfVaultMissing();
+    let response: Response;
     try {
       const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      response = await handler.fetch(request, env, ctx);
+      response = await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
       console.error(error);
-      return brandedErrorResponse();
+      response = brandedErrorResponse();
     }
+    return injectSecurityHeaders(response);
   },
 };

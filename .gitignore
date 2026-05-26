@@ -31,7 +31,12 @@ dist-ssr
 *.sln
 *.sw?
 
-# Secrets and environment backups — never commit these
+# Secrets and environment files — never commit these
+# NOTE: .env and .env.development were historically tracked (pre-existing).
+# Keys in those files should be rotated via Railway secrets. See KEY_ROTATION.md.
+.env
+.env.*
+!.env.example
 .env.backup
 .env.backup.*
 .env.save
