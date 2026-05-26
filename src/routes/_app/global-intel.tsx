@@ -4,6 +4,12 @@ import { GdeltIntelPanel } from "@/components/dashboard/GdeltIntelPanel";
 
 export const Route = createFileRoute("/_app/global-intel")({
   component: GlobalIntelPage,
+  head: () => ({
+    meta: [
+      { title: "Global Intelligence — ForeSmart" },
+      { name: "description", content: "Global geopolitical and macroeconomic intelligence for institutional-grade analysis." },
+    ],
+  }),
 });
 
 function GlobalIntelPage() {

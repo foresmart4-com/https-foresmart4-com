@@ -36,6 +36,12 @@ interface SelectedAsset {
 
 export const Route = createFileRoute("/_app/markets")({
   component: MarketsPage,
+  head: () => ({
+    meta: [
+      { title: "Markets — ForeSmart" },
+      { name: "description", content: "Live global markets: stocks, crypto, FX, commodities and macro signals." },
+    ],
+  }),
 });
 
 const REGION_ORDER: StockRegion[] = ["us", "eu", "uk", "japan", "china", "uae", "saudi", "qatar"];

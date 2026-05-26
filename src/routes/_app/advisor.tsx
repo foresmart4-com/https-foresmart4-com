@@ -21,6 +21,12 @@ import { AutoTradingModeBar, BacktestingPanel, TradingJournalPanel } from "@/com
 
 export const Route = createFileRoute("/_app/advisor")({
   component: AdvisorPage,
+  head: () => ({
+    meta: [
+      { title: "AI Advisor — ForeSmart" },
+      { name: "description", content: "Personal AI investment advisor with deep timeline analysis and scenario planning." },
+    ],
+  }),
 });
 
 function AdvisorPage() {

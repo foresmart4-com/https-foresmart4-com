@@ -7,7 +7,15 @@ import { Flame } from "lucide-react";
 import { getMarketData } from "@/lib/market-data";
 import { getStocksData } from "@/lib/stocks-data";
 
-export const Route = createFileRoute("/_app/heatmap")({ component: HeatmapPage });
+export const Route = createFileRoute("/_app/heatmap")({
+  component: HeatmapPage,
+  head: () => ({
+    meta: [
+      { title: "Market Heatmap — ForeSmart" },
+      { name: "description", content: "Visual heatmap of asset performance across global markets." },
+    ],
+  }),
+});
 
 interface Cell { symbol: string; name: string; group: string; price: number; changePct: number; weight: number; }
 

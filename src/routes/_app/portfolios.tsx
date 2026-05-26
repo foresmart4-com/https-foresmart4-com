@@ -14,6 +14,12 @@ import { DataStatusBadge } from "@/components/DataStatusBadge";
 
 export const Route = createFileRoute("/_app/portfolios")({
   component: PortfoliosPage,
+  head: () => ({
+    meta: [
+      { title: "Portfolios — ForeSmart" },
+      { name: "description", content: "Manage and track your investment portfolios and watchlists." },
+    ],
+  }),
 });
 
 const GROWTH_HOLDINGS = [

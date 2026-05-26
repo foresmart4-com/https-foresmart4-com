@@ -13,7 +13,15 @@ import { getStocksData } from "@/lib/stocks-data";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_app/scanner")({ component: ScannerPage });
+export const Route = createFileRoute("/_app/scanner")({
+  component: ScannerPage,
+  head: () => ({
+    meta: [
+      { title: "Opportunity Scanner — ForeSmart" },
+      { name: "description", content: "Scan for real-time investment opportunities across global assets." },
+    ],
+  }),
+});
 
 interface Row {
   symbol: string; name: string; category: string;
