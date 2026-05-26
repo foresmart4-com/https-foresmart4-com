@@ -219,7 +219,7 @@ interface ConsensusResult {
 function regimeToBias(regime: string): "bullish" | "bearish" | "neutral" {
   const r = regime.toLowerCase();
   if (r.includes("bull") || r.includes("risk_on") || r.includes("accumulation")) return "bullish";
-  if (r.includes("bear") || r.includes("risk_off") || r.includes("selloff") || r.includes("ranging")) return "bearish";
+  if (r.includes("bear") || r.includes("risk_off") || r.includes("risk-off") || r.includes("selloff") || r.includes("ranging")) return "bearish";
   return "neutral";
 }
 
