@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { askGenesis, type GenesisReply, type GenesisSuggestedAction } from "@/lib/genesis.functions";
@@ -113,9 +113,11 @@ function GenesisPage() {
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [memorySummary, setMemorySummary] = useState(() => genesisMemory.summary());
+  const [profileVersion, setProfileVersion] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const profile = memoryAgent.getProfile();
-  const confModifier = memoryAgent.confidenceModifier();
+  // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
+  const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+  const confModifier = useMemo(() => memoryAgent.confidenceModifier(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
   const eceVal = ece();
   const drift = driftReport();
   const topStrategy = strategyScores()[0] ?? null;
@@ -151,6 +153,8 @@ function GenesisPage() {
         `User risk profile: ${p.riskAppetite}`,
         p.preferredAssets.length ? `Preferred assets: ${p.preferredAssets.slice(0, 5).join(", ")}` : "",
         p.interactions > 0 ? `Total interactions: ${p.interactions}` : "",
+        p.responseStyle ? `Response style preference: ${p.responseStyle} — ${p.responseStyle === "brief" ? "keep answers concise" : "provide detailed explanations"}` : "",
+        p.preferredMarkets?.length ? `Preferred markets: ${p.preferredMarkets.join(", ")}` : "",
       ].filter(Boolean).join(" | ");
 
       const decisionCtx = [
@@ -159,7 +163,13 @@ function GenesisPage() {
         `Confidence modifier: ${confModifier.toFixed(2)}x (${confModifier >= 1 ? "above" : "below"} baseline)`,
       ].filter(Boolean).join(" | ");
 
-      const fullContext = [memCtx, decisionCtx, opportunityCtx, riskCtx, marketContext].filter(Boolean).join("\n");
+      // Recent session context for follow-up continuity (last 3 headlines, excluding current question).
+      const recentHistory = genesisMemory.list().slice(-3);
+      const sessionCtx = recentHistory.length
+        ? `Recent session context: ${recentHistory.map((e) => e.headline.slice(0, 50)).join(" → ")}`
+        : "";
+
+      const fullContext = [memCtx, decisionCtx, opportunityCtx, riskCtx, marketContext, sessionCtx].filter(Boolean).join("\n");
       const res = await ask({ data: { question: trimmed, language: lang, marketContext: fullContext } });
 
       if (res.error === "rate_limited") {
@@ -174,6 +184,11 @@ function GenesisPage() {
 
       // Track interaction
       memoryAgent.trackGenesisQuestion();
+
+      // Adaptive preference: track which asset Genesis discussed so it surfaces in preferred assets.
+      if (res.reply.suggestedAction?.symbol) {
+        memoryAgent.trackAssetInteraction(res.reply.suggestedAction.symbol);
+      }
 
       // Persist to history
       genesisMemory.append({
@@ -401,6 +416,34 @@ function GenesisPage() {
                 </div>
               </div>
             )}
+
+            {/* Response style preference */}
+            <div>
+              <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                {ar ? "أسلوب الردود" : "Response style"}
+              </div>
+              <div className="flex gap-2">
+                {(["brief", "detailed"] as const).map((style) => (
+                  <button
+                    key={style}
+                    onClick={() => {
+                      memoryAgent.setResponseStyle(style);
+                      setProfileVersion((v) => v + 1);
+                    }}
+                    className={cn(
+                      "rounded-md border px-3 py-1 text-xs font-semibold transition-colors",
+                      profile.responseStyle === style
+                        ? "border-primary/50 bg-primary/15 text-primary"
+                        : "border-border/60 bg-muted/30 text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {style === "brief"
+                      ? (ar ? "مختصر" : "Brief")
+                      : (ar ? "مفصّل" : "Detailed")}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {drift.isDrifting && (
               <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning">
