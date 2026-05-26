@@ -47,6 +47,11 @@ export interface GenesisReply {
   disagreementNote?: string;   // surfaces when agents disagree significantly
   supportingCase?: string;     // strongest corroborating argument
   opposingCase?: string;       // devil's advocate counter-argument
+  // Phase 7: scenario simulation fields
+  simulatedScenario?: string;  // "If X occurs..." trigger condition being explored
+  expectedImpact?: string;     // cross-asset directional impact under the scenario
+  watchlistSensitivity?: string; // how user's watched assets respond
+  thesisSensitivity?: string;  // whether scenario validates or conflicts with active theses
 }
 
 const AskInput = z.object({
@@ -122,6 +127,10 @@ const GENESIS_SCHEMA = `{
   "disagreementNote": "string — 1 sentence on what agents disagree about; set only when conflicted or weak consensus" (optional),
   "supportingCase": "string — 1 sentence: strongest corroborating argument from parallel agent analysis" (optional),
   "opposingCase": "string — 1 sentence: strongest counter-argument from devil's advocate" (optional),
+  "simulatedScenario": "string (optional — 'If X occurs...' — include when question involves a hypothetical or scenario context is provided)",
+  "expectedImpact": "string — 1-2 sentences on cross-asset directional effects under the simulated scenario" (optional),
+  "watchlistSensitivity": "string — 1 sentence on how user's watched assets would respond; only when watchlist appears in context" (optional),
+  "thesisSensitivity": "string — 1 sentence on whether scenario aligns or conflicts with active theses; only when thesis context appears" (optional),
   "scenarios": [{ "label": "string", "probability": "string e.g. 35%", "impact": "string — one sentence" }],
   "risks": ["string"],
   "suggestedAction": {
@@ -158,7 +167,13 @@ function buildGenesisSystemPrompt(lang: Lang): string {
 7. المحفزات — اضبط "catalysts" مع "thesis". 2-3 أحداث أو بيانات محددة قريبة الأجل.
 8. الإلغاء — اضبط "invalidation" مع "thesis". جملة واحدة: الحدث المحدد الذي يكسر الأطروحة.
 9. محركات الثقة — اضبط "confidenceDrivers" عند الثقة ≥ 50. 2-3 عوامل تدعم مستوى الثقة.
-10. تغيير الرأي — اضبط "viewChange" مع "thesis". جملة واحدة: التطور الذي يُحوّل التوقعات جوهرياً.`
+10. تغيير الرأي — اضبط "viewChange" مع "thesis". جملة واحدة: التطور الذي يُحوّل التوقعات جوهرياً.
+11. محاكاة السيناريو — عند توفّر سياق محاكاة أو عند طرح السؤال بصيغة افتراضية ("إذا حدث X"، "ماذا لو"، "أثر"):
+    اضبط "simulatedScenario": صِغ شرط "إذا حدث..." المدروس.
+    اضبط "expectedImpact": جملة أو جملتان على الآثار الاتجاهية متعددة الأصول. تعليمي فقط.
+    اضبط "watchlistSensitivity": كيف تستجيب الأصول المراقبة. فقط عند ورود قائمة المراقبة في السياق.
+    اضبط "thesisSensitivity": هل السيناريو يؤيد أم يتعارض مع الأطروحات النشطة. فقط عند ورود الأطروحات في السياق.
+    جميع مخرجات السيناريو استشارية وتعليمية حصراً.`
     : `Rules you must NEVER break:
 - Never suggest, confirm, or describe real buy/sell order execution, broker actions, or money movement.
 - Never claim certainty — always express confidence as a calibrated percentage.
@@ -178,7 +193,13 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
 7. CATALYSTS — Set "catalysts" with thesis. List 2-3 specific, near-term events or data points that would validate it.
 8. INVALIDATION — Set "invalidation" with thesis. One sentence: the specific trigger that breaks the thesis.
 9. CONFIDENCE DRIVERS — Set "confidenceDrivers" when confidence ≥ 50. List 2-3 factors that specifically support the confidence level.
-10. VIEW CHANGE — Set "viewChange" with thesis. One sentence: the development that would materially shift the outlook.`;
+10. VIEW CHANGE — Set "viewChange" with thesis. One sentence: the development that would materially shift the outlook.
+11. SCENARIO SIMULATION — When scenario simulation context is provided OR the question involves a hypothetical ("if X happens", "what if", "scenario", "impact of"):
+    Set "simulatedScenario": state the 'If X occurs...' trigger being explored.
+    Set "expectedImpact": 1-2 sentences on directional cross-asset effects. Educational only — no execution.
+    Set "watchlistSensitivity": how user's watched assets respond. Only set when watchlist appears in context.
+    Set "thesisSensitivity": whether scenario validates or conflicts with active theses. Only set when thesis context appears.
+    All scenario output is advisory and simulative only.`;
 
   return buildLocaleSystemPrompt({ lang, surface: "genesis_copilot", schema: GENESIS_SCHEMA, extra });
 }

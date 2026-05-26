@@ -9,6 +9,7 @@ import { useI18n } from "@/lib/i18n";
 import { addToWatchlist, useWatchlist } from "@/lib/watchlistStore";
 import { computeMarketIntel, type MarketIntelSummary } from "@/services/market/marketIntelEngine";
 import { computePortfolioIntel, type PortfolioIntelSummary } from "@/services/portfolio/portfolioIntelEngine";
+import { computeScenarioSim, type ScenarioSimResult } from "@/services/scenarios/scenarioEngine";
 import { memoryAgent } from "@/services/agents/memoryAgent";
 import { genesisMemory } from "@/services/learning/genesisMemory";
 import { memoryIntelligence } from "@/services/learning/memoryIntelligence";
@@ -146,6 +147,11 @@ function GenesisPage() {
     () => computePortfolioIntel(watchlistItems, marketIntel, thesisMemory.all()),
     [watchlistItems, marketIntel], // eslint-disable-line react-hooks/exhaustive-deps
   );
+  // Pre-submission scenario panel — regime-based, no question (keyword score = 0 → pure regime/stress signals)
+  const marketScenarios = useMemo(
+    () => computeScenarioSim("", marketIntel, watchlistItems, []),
+    [marketIntel, watchlistItems], // eslint-disable-line react-hooks/exhaustive-deps
+  );
   const marketContext = assets
     .slice(0, 10)
     .map((a) => `${a.symbol}: ${a.price} (${a.changePct >= 0 ? "+" : ""}${a.changePct.toFixed(2)}%)`)
@@ -217,6 +223,10 @@ function GenesisPage() {
         ? `Session regime (cross-surface): ${sessionBus.regime} at ${sessionBus.confidence}% confidence`
         : "";
 
+      // Scenario simulation context — question-aware keyword + regime matching.
+      const scenarioSim = computeScenarioSim(trimmed, marketIntel, watchlistItems, thesisMemory.all());
+      const scenarioCtx = scenarioSim.compactContext;
+
       // Prune context layers to stay within budget (2800 chars max).
       const fullContext = pruneContext([
         { key: "mem",        content: memCtx,                       weight: 0.95 },
@@ -228,6 +238,7 @@ function GenesisPage() {
         { key: "bus",        content: sessionBusCtx,                weight: 0.75 },
         { key: "signal",     content: signalCtx,                    weight: 0.65 },
         { key: "marketIntel",content: marketIntel.compactContext,   weight: 0.62 },
+        { key: "scenario",   content: scenarioCtx,                  weight: 0.58 },
         { key: "top3",       content: opportunityCtx,               weight: 0.5  },
         { key: "bot3",       content: riskCtx,                      weight: 0.5  },
         { key: "market",     content: marketContext,                 weight: 0.4  },
@@ -597,6 +608,11 @@ function GenesisPage() {
         <PortfolioBrainPanel intel={portfolioIntel} ar={ar} />
       )}
 
+      {/* ─── Macro Scenario Panel ───────────────────────────────────────── */}
+      {marketScenarios.hasMeaningfulData && (
+        <ScenarioSimPanel sim={marketScenarios} ar={ar} />
+      )}
+
       {/* ─── Exchanges ──────────────────────────────────────────────────── */}
       <div className="space-y-6">
         {exchanges.length === 0 && !busy && (
@@ -940,6 +956,37 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
             </div>
           )}
 
+          {/* Phase 7: Scenario simulation output */}
+          {reply.simulatedScenario && (
+            <div className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Zap className="h-3.5 w-3.5 text-primary/70" />
+                <div className="text-[10px] uppercase tracking-wider text-primary font-semibold">
+                  {ar ? "محاكاة السيناريو" : "Scenario Simulation"}
+                </div>
+                <span className="ms-1 rounded-md border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold text-warning">
+                  {ar ? "تعليمي" : "Advisory"}
+                </span>
+              </div>
+              <p className="text-sm font-semibold text-foreground/90">{reply.simulatedScenario}</p>
+              {reply.expectedImpact && (
+                <p className="text-sm text-foreground/80 leading-relaxed">{reply.expectedImpact}</p>
+              )}
+              {reply.watchlistSensitivity && (
+                <div className="flex items-start gap-2 text-xs text-foreground/80">
+                  <PieChart className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/60" />
+                  <span><span className="font-semibold text-primary/80">{ar ? "محفظتك: " : "Your watchlist: "}</span>{reply.watchlistSensitivity}</span>
+                </div>
+              )}
+              {reply.thesisSensitivity && (
+                <div className="flex items-start gap-2 text-xs text-foreground/80">
+                  <Brain className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/60" />
+                  <span><span className="font-semibold text-primary/80">{ar ? "الأطروحات: " : "Theses: "}</span>{reply.thesisSensitivity}</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Phase 6: Multi-agent synthesis — supporting / opposing / consensus */}
           {(reply.supportingCase || reply.opposingCase || reply.consensusStrength) && (
             <div className="space-y-2">
@@ -1223,6 +1270,69 @@ const STRESS_COLOR: Record<string, string> = {
   elevated: "text-warning",
   high:     "text-destructive",
 };
+
+// ─── Scenario Simulation Panel (pre-submission, regime-based) ─────────────────
+
+const PROB_COLOR: Record<string, string> = {
+  low:      "text-muted-foreground",
+  moderate: "text-warning",
+  high:     "text-destructive",
+};
+
+function ScenarioSimPanel({ sim, ar }: { sim: ScenarioSimResult; ar: boolean }) {
+  const top = sim.topScenarios.slice(0, 2);
+  if (!top.length) return null;
+
+  return (
+    <div className="mb-4 rounded-xl border border-border/40 bg-card/30 px-4 py-2.5">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px]">
+        {/* Label */}
+        <div className="flex items-center gap-1.5 font-semibold uppercase tracking-wider text-muted-foreground">
+          <Zap className="h-3 w-3 shrink-0" />
+          {ar ? "سيناريوهات الماكرو" : "Macro Scenarios"}
+        </div>
+
+        {top.map((scenario, i) => (
+          <span key={scenario.id} className="flex items-center gap-1">
+            {i > 0 && <span className="text-border/80">|</span>}
+            <span className="font-medium text-foreground/80">{scenario.label}</span>
+            <span className={cn("font-normal", PROB_COLOR[scenario.probability] ?? "text-muted-foreground")}>
+              ({scenario.probability})
+            </span>
+            <span className="ms-0.5 font-normal text-muted-foreground/70 font-mono text-[10px]">
+              {scenario.impactSummary}
+            </span>
+          </span>
+        ))}
+
+        {/* Top scenario watchlist sensitivity */}
+        {top[0]?.watchlistImpacts.some((w) => w.impact !== 0) && (
+          <>
+            <span className="text-border/80">|</span>
+            <span className="flex items-center gap-1 text-muted-foreground/80">
+              <PieChart className="h-3 w-3 shrink-0" />
+              {top[0].watchlistImpacts
+                .filter((w) => w.impact !== 0)
+                .slice(0, 4)
+                .map((w) => (
+                  <span
+                    key={w.symbol}
+                    className={cn(
+                      "font-medium",
+                      w.direction === "positive" ? "text-success" :
+                      w.direction === "negative" ? "text-destructive" : "text-muted-foreground",
+                    )}
+                  >
+                    {w.symbol}
+                  </span>
+                ))}
+            </span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ─── Portfolio Brain Panel ────────────────────────────────────────────────────
 
