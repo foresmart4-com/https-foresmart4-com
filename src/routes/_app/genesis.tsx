@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import {
   Sparkles, Send, Activity, AlertTriangle, Brain, CheckCircle2,
   TrendingUp, TrendingDown, Minus, Navigation, Eye, Bell,
-  ChevronRight, RefreshCw,
+  ChevronRight, RefreshCw, Scale, PieChart,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/genesis")({
@@ -47,16 +47,18 @@ const CONFIDENCE_COLOR = {
 const SUGGESTED_EN = [
   "What is the market outlook for gold this quarter?",
   "Analyze the risk/reward of Bitcoin at current levels",
-  "Compare Saudi Aramco vs major oil majors",
+  "Compare gold vs Bitcoin vs S&P 500 risk-adjusted returns",
   "What macro risks should I monitor this month?",
   "Suggest a defensive portfolio strategy",
+  "Summarize my portfolio's current risk profile and top exposures",
 ];
 const SUGGESTED_AR = [
   "ما توقعات السوق للذهب هذا الربع؟",
   "حلّل مخاطر ومكافآت البيتكوين عند مستوياته الحالية",
-  "قارن بين أرامكو السعودية وكبار شركات النفط",
+  "قارن بين الذهب والبيتكوين وS&P 500 من حيث العوائد المعدّلة بالمخاطر",
   "ما أبرز المخاطر الكلية التي يجب مراقبتها هذا الشهر؟",
   "اقترح استراتيجية محفظة دفاعية",
+  "لخّص ملف مخاطر محفظتي الحالية وأبرز التعرضات",
 ];
 
 const RISK_LABEL: Record<string, { en: string; ar: string }> = {
@@ -171,6 +173,14 @@ function GenesisPage() {
     }
     if (action.type === "analyze_asset" && action.symbol) {
       void navigate({ to: "/market-intelligence" as any });
+      return;
+    }
+    if (action.type === "compare_assets") {
+      void navigate({ to: (action.route as any) ?? "/market-intelligence" });
+      return;
+    }
+    if (action.type === "summarize_portfolio") {
+      void navigate({ to: (action.route as any) ?? "/portfolio-ai" });
       return;
     }
     if (action.type === "navigate" && action.route) {
@@ -486,6 +496,8 @@ const ACTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   add_watchlist: Eye,
   create_alert: Bell,
   analyze_asset: Brain,
+  compare_assets: Scale,
+  summarize_portfolio: PieChart,
   navigate: Navigation,
   none: ChevronRight,
 };
@@ -503,14 +515,19 @@ function ActionCard({ action, ar, onConfirm, onDismiss }: {
         {ar ? "إجراء مقترح من Genesis" : "Genesis suggested action"}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
           <Icon className="h-4 w-4 text-primary shrink-0" />
           <span className="font-medium">{action.label}</span>
-          {action.symbol && (
+          {action.symbol && !action.assets?.length && (
             <span className="rounded-md border border-border/60 bg-muted/40 px-2 py-0.5 text-xs font-mono">
               {action.symbol}
             </span>
           )}
+          {action.assets?.map((a) => (
+            <span key={a} className="rounded-md border border-border/60 bg-muted/40 px-2 py-0.5 text-xs font-mono">
+              {a}
+            </span>
+          ))}
         </div>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onDismiss}>

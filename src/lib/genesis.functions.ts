@@ -11,9 +11,10 @@ export interface GenesisScenario {
 }
 
 export interface GenesisSuggestedAction {
-  type: "add_watchlist" | "create_alert" | "analyze_asset" | "navigate" | "none";
+  type: "add_watchlist" | "create_alert" | "analyze_asset" | "compare_assets" | "summarize_portfolio" | "navigate" | "none";
   label: string;
   symbol?: string;
+  assets?: string[];
   route?: string;
   price?: number;
   condition?: "above" | "below";
@@ -87,13 +88,22 @@ Return ONLY valid JSON matching this exact schema:
   ],
   "risks": ["string"],
   "suggestedAction": {
-    "type": <"add_watchlist" | "create_alert" | "analyze_asset" | "navigate" | "none">,
+    "type": <"add_watchlist" | "create_alert" | "analyze_asset" | "compare_assets" | "summarize_portfolio" | "navigate" | "none">,
     "label": "string — concise action label",
-    "symbol": "TICKER (optional)",
-    "route": "/path (optional, one of: /signals /watchlist /market-intelligence /advisor /portfolio-ai /markets)",
+    "symbol": "TICKER (optional, primary asset)",
+    "assets": ["TICKER1", "TICKER2"] (optional array, use for compare_assets with 2-3 tickers),
+    "route": "/path (optional, one of: /signals /watchlist /market-intelligence /advisor /portfolio-ai /portfolios /markets /scanner)",
     "price": <number optional, required for create_alert>,
     "condition": <"above" | "below" optional, required for create_alert — above if bullish target, below if risk stop>
   } | null,
+Action type guide:
+  add_watchlist       → add symbol to user watchlist (requires symbol)
+  create_alert        → create price alert (requires symbol, price, condition)
+  analyze_asset       → open asset deep analysis (requires symbol) → /market-intelligence
+  compare_assets      → compare 2-3 assets side-by-side (requires assets[]) → /market-intelligence or /scanner
+  summarize_portfolio → summarize portfolio risk/exposure → /portfolio-ai or /portfolios
+  navigate            → open any route (requires route)
+  none                → no action suggested
   "disclaimer": "string"
 }
 Produce exactly 3 scenarios. Produce 2-4 risks.`;
