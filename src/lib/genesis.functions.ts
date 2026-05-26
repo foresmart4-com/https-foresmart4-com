@@ -62,6 +62,11 @@ export interface GenesisReply {
     b: string;
   }>;
   researchType?: "asset" | "comparison" | "sector" | "thesis" | "market";
+  // Phase 10: Meta-reasoning / Strategic AI fields
+  reasoningQuality?: "strong" | "adequate" | "weak";  // self-evaluated logic quality
+  confidenceCalibration?: string;  // 1 sentence: why confidence is at this level
+  uncertaintyLevel?: "likely" | "possible" | "uncertain" | "conflicting";
+  caveats?: string[];  // 1-3 specific logical tensions or contradictions in own reasoning
 }
 
 const AskInput = z.object({
@@ -146,6 +151,10 @@ const GENESIS_SCHEMA = `{
   "watchItems": ["string — specific data point, event, or price level to monitor"] (optional — 2-4 items; include ONLY when research mode context appears),
   "comparisonTable": [{"metric": "string — dimension being compared", "a": "string — asset/sector A value", "b": "string — asset/sector B value"}] (optional — 3-5 rows; include ONLY when comparing two assets or sectors in research mode),
   "researchType": <"asset"|"comparison"|"sector"|"thesis"|"market"> (optional — set when research mode context appears),
+  "reasoningQuality": <"strong"|"adequate"|"weak"> (optional — self-evaluated logic quality; always set for AI replies),
+  "confidenceCalibration": "string — 1 sentence explaining why confidence is at this level" (optional — always set for AI replies),
+  "uncertaintyLevel": <"likely"|"possible"|"uncertain"|"conflicting"> (optional — always set for AI replies),
+  "caveats": ["string — specific logical tension, contradiction, or weak assumption in own reasoning"] (optional — 1-3 items; omit when reasoning is internally consistent),
   "scenarios": [{ "label": "string", "probability": "string e.g. 35%", "impact": "string — one sentence" }],
   "risks": ["string"],
   "suggestedAction": {
@@ -196,7 +205,13 @@ function buildGenesisSystemPrompt(lang: Lang): string {
     اضبط "watchItems": 2-4 نقاط بيانات أو أحداث أو مستويات سعرية محددة يجب مراقبتها. كل عنصر محدد وقابل للقياس.
     للمقارنات: اضبط "comparisonTable" بـ 3-5 صفوف. كل صف: metric (مثل "التذبذب"، "السيولة")، a (قيمة الأصل A)، b (قيمة الأصل B).
     لا تختلق بيانات. استند فقط لما يدعمه السياق. صرّح بعدم اليقين في executiveSummary عند قصور البيانات.
-    جميع مخرجات البحث تعليمية واستشارية حصراً — لا تنفيذ ولا وساطة مالية.`
+    جميع مخرجات البحث تعليمية واستشارية حصراً — لا تنفيذ ولا وساطة مالية.
+13. الاستدلال الميتا — قيّم تحليلك الخاص قبل إتمام الرد:
+    اضبط "reasoningQuality": "strong" إذا كانت الأطروحة والأدلة والمحفزات وشرط الإلغاء متسقة وتدعم مستوى الثقة؛ "adequate" إذا كان التوجه الاتجاهي صحيحاً لكن ثمة ثغرات في الأدلة أو عناصر تخمينية؛ "weak" إذا استند التحليل إلى افتراضات ضعيفة أو بيانات ناقصة أو توترات داخلية.
+    اضبط "confidenceCalibration": جملة واحدة بالضبط توضّح ما يرفع مستوى الثقة وما يحدّ من ارتفاعه.
+    اضبط "uncertaintyLevel": "likely" (ثقة ≥70% مع أدلة متسقة)، "possible" (40-69%)، "uncertain" (ثقة <40% أو تحذير عدم يقين موجود)، "conflicting" (عند تعارض consensusStrength أو تناقض الأطروحة مع النظام السوقي أو خلاف ملحوظ بين الوكلاء).
+    اضبط "caveats": 1-3 توترات منطقية أو تناقضات أو افتراضات ضعيفة رصدتها في تحليلك. أدرج فقط التحفظات الجوهرية التي يلاحظها قارئ مؤسسي ناقد. أغفل الحقل تماماً عند الاتساق الداخلي.
+    الاستدلال الميتا تقييم ذاتي فقط — استشاري وتعليمي. لا تستخدمه للادعاء باليقين.`
     : `Rules you must NEVER break:
 - Never suggest, confirm, or describe real buy/sell order execution, broker actions, or money movement.
 - Never claim certainty — always express confidence as a calibrated percentage.
@@ -230,7 +245,13 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
     Set "watchItems": 2-4 specific data points, events, price levels, or policy decisions to monitor. Each item is a concrete watchable trigger.
     For comparisons: set "comparisonTable" with 3-5 rows. Each row: metric (e.g. "Volatility", "Liquidity", "Macro sensitivity"), a (value for asset A), b (value for asset B).
     Never fabricate data. Use only what the context supports. State uncertainty explicitly in executiveSummary when data is insufficient.
-    All research output is educational and advisory only — no execution, no broker logic.`;
+    All research output is educational and advisory only — no execution, no broker logic.
+13. META-REASONING — Self-evaluate your own analysis before finalising the response:
+    Set "reasoningQuality": "strong" if thesis, evidence, catalysts, and invalidation all align and confidence is well-supported by specific factors; "adequate" if the directional view holds but some evidence gaps or speculative elements exist; "weak" if the reasoning relies on thin assumptions, missing data, or internal tensions.
+    Set "confidenceCalibration": exactly 1 sentence explaining what drives the confidence number — what pushes it upward and what limits it from being higher.
+    Set "uncertaintyLevel": "likely" (confidence ≥70% with consistent evidence), "possible" (confidence 40-69%), "uncertain" (confidence <40% or uncertaintyWarning present), "conflicting" (when consensusStrength is "conflicted" or thesis contradicts the regime or agents significantly disagree).
+    Set "caveats": 1-3 specific logical tensions, contradictions, or weak assumptions you have identified in your own analysis. Only include genuine, non-trivial caveats a critical institutional reader would flag. Omit entirely when the reasoning is internally consistent.
+    Meta-reasoning is self-evaluation only — advisory and educational. Never use it to claim certainty.`;
 
   return buildLocaleSystemPrompt({ lang, surface: "genesis_copilot", schema: GENESIS_SCHEMA, extra });
 }

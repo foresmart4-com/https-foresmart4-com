@@ -34,8 +34,9 @@ import {
   TrendingUp, TrendingDown, Minus, Navigation, Eye, Bell,
   ChevronRight, RefreshCw, Scale, PieChart,
   ThumbsUp, ThumbsDown, ChevronDown, Trash2, Database, Zap, XCircle,
-  BookOpen, FileText, Layers, Clock, Network,
+  BookOpen, FileText, Layers, Clock, Network, FlaskConical, Gauge, ShieldAlert,
 } from "lucide-react";
+import { evaluateReply, scoreToQuality, type MetaReasoningResult } from "@/services/reasoning/metaReasoning";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -245,6 +246,11 @@ function GenesisPage() {
       // Intelligence Graph recall — Phase 9: historical asset/thesis/risk context from prior sessions.
       const graphCtx = intelligenceGraph.compactContext(trimmed, watchlistItems);
 
+      // Meta-reasoning hint — Phase 10: evaluate last reply's reasoning quality to guide next query.
+      const lastExchangeReply = exchanges[exchanges.length - 1]?.reply ?? null;
+      const metaResult = evaluateReply(lastExchangeReply);
+      const metaCtx = metaResult?.compactHint ?? "";
+
       // Prune context layers to stay within budget (2800 chars max).
       const fullContext = pruneContext([
         { key: "mem",        content: memCtx,                       weight: 0.95 },
@@ -259,6 +265,7 @@ function GenesisPage() {
         { key: "marketIntel",content: marketIntel.compactContext,   weight: 0.62 },
         { key: "scenario",   content: scenarioCtx,                  weight: 0.58 },
         { key: "graph",      content: graphCtx,                     weight: 0.56 },
+        { key: "meta",       content: metaCtx,                      weight: 0.53 },
         { key: "top3",       content: opportunityCtx,               weight: 0.5  },
         { key: "bot3",       content: riskCtx,                      weight: 0.5  },
         { key: "market",     content: marketContext,                 weight: 0.4  },
@@ -892,6 +899,14 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
     displayConfidence >= 70 ? "high" : displayConfidence >= 45 ? "moderate" : "low";
   const confidenceColor = CONFIDENCE_COLOR[effectiveLabel] ?? "text-primary";
 
+  // Phase 10: Meta-reasoning evaluation — pure client-side, only for AI replies.
+  const metaResult: MetaReasoningResult | null = engine === "ai" ? evaluateReply(reply) : null;
+  const qualityLabel = reply.reasoningQuality ?? (metaResult ? scoreToQuality(metaResult.reasoningScore) : null);
+  const uncertaintyTier = reply.uncertaintyLevel ?? metaResult?.uncertaintyTier ?? null;
+  const caveatsToShow: string[] = reply.caveats?.length
+    ? reply.caveats
+    : (metaResult?.contradiction.details.slice(0, 2) ?? []);
+
   return (
     <div className="space-y-4">
       {/* Question bubble */}
@@ -926,6 +941,19 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
                 {ar ? "بحث" : "Research"}
               </span>
             )}
+            {qualityLabel && engine === "ai" && (
+              <span className={cn(
+                "flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold ring-1",
+                qualityLabel === "strong"   ? "bg-success/10 text-success ring-success/25" :
+                qualityLabel === "adequate" ? "bg-primary/10 text-primary ring-primary/25" :
+                                              "bg-warning/10 text-warning ring-warning/30",
+              )}>
+                <FlaskConical className="h-2.5 w-2.5" />
+                {ar
+                  ? qualityLabel === "strong" ? "استدلال قوي" : qualityLabel === "adequate" ? "استدلال كافٍ" : "استدلال ضعيف"
+                  : qualityLabel}
+              </span>
+            )}
           </div>
         </div>
 
@@ -934,15 +962,37 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">{ar ? "مستوى الثقة" : "Confidence level"}</span>
-              <span className={cn("font-semibold", confidenceColor)}>
-                {effectiveLabel === "high"
-                  ? (ar ? "مرتفعة" : "High")
-                  : effectiveLabel === "moderate"
-                    ? (ar ? "متوسطة" : "Moderate")
-                    : (ar ? "منخفضة" : "Low")}
-              </span>
+              <div className="flex items-center gap-2">
+                {uncertaintyTier && engine === "ai" && (
+                  <span className={cn(
+                    "rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ring-1",
+                    uncertaintyTier === "likely"      ? "bg-success/10 text-success ring-success/25" :
+                    uncertaintyTier === "possible"    ? "bg-primary/10 text-primary ring-primary/25" :
+                    uncertaintyTier === "uncertain"   ? "bg-warning/10 text-warning ring-warning/30" :
+                                                        "bg-destructive/10 text-destructive ring-destructive/30",
+                  )}>
+                    {ar
+                      ? uncertaintyTier === "likely" ? "مرجّح" : uncertaintyTier === "possible" ? "محتمل" : uncertaintyTier === "uncertain" ? "غير محدد" : "متعارض"
+                      : uncertaintyTier}
+                  </span>
+                )}
+                <span className={cn("font-semibold", confidenceColor)}>
+                  {effectiveLabel === "high"
+                    ? (ar ? "مرتفعة" : "High")
+                    : effectiveLabel === "moderate"
+                      ? (ar ? "متوسطة" : "Moderate")
+                      : (ar ? "منخفضة" : "Low")}
+                </span>
+              </div>
             </div>
             <Progress value={displayConfidence} className="h-1.5" />
+            {/* Phase 10: Confidence calibration explanation */}
+            {reply.confidenceCalibration && engine === "ai" && (
+              <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground/80 italic">
+                <Gauge className="h-3 w-3 mt-0.5 shrink-0 text-muted-foreground/50" />
+                <span>{reply.confidenceCalibration}</span>
+              </div>
+            )}
           </div>
 
           {/* Regime badge */}
@@ -1291,6 +1341,41 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
             <div className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/5 px-4 py-2.5 text-xs text-warning">
               <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
               <span>{reply.uncertaintyWarning}</span>
+            </div>
+          )}
+
+          {/* Phase 10: Caveats / contradiction detection — logical tensions in own reasoning */}
+          {caveatsToShow.length > 0 && engine === "ai" && (
+            <div className="rounded-xl border border-warning/25 bg-warning/5 px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-2">
+                <ShieldAlert className="h-3.5 w-3.5 text-warning/70" />
+                <div className="text-[10px] uppercase tracking-wider text-warning font-semibold">
+                  {ar ? "تحفظات منطقية" : "Reasoning Caveats"}
+                </div>
+                {metaResult?.overconfidenceRisk && (
+                  <span className="ms-auto rounded-md border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[9px] font-bold text-warning uppercase tracking-wide">
+                    {ar ? "خطر الثقة المبالغ فيها" : "Overconfidence risk"}
+                  </span>
+                )}
+              </div>
+              <ul className="space-y-1.5">
+                {caveatsToShow.map((c, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-foreground/80">
+                    <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0 text-warning/60" />
+                    <span>{c}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Phase 10: Overconfidence flag without caveats (stand-alone warning) */}
+          {metaResult?.overconfidenceRisk && caveatsToShow.length === 0 && engine === "ai" && (
+            <div className="flex items-center gap-2 rounded-xl border border-warning/25 bg-warning/5 px-4 py-2 text-xs text-warning">
+              <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+              {ar
+                ? `مراجعة الثقة: ${displayConfidence}% قد يعكس ثقة مبالغاً فيها نسبة للأدلة المتاحة`
+                : `Confidence review: ${displayConfidence}% may reflect overconfidence relative to available evidence`}
             </div>
           )}
 
