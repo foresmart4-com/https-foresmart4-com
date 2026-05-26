@@ -75,6 +75,9 @@ export interface MarketAnalystOutput {
   riskAnalysis: string;
   capitalRotation: string;
   confidence: number; // 0-100
+  // Phase 4 enrichment — optional; omit when context is insufficient
+  sectorRotation?: string;   // capital flow narrative across sectors
+  correlationAlert?: string; // cross-asset divergence warning
 }
 
 export interface NewsAnalysisOutput {
@@ -105,7 +108,7 @@ export const aiMarketAnalyst = createServerFn({ method: "POST" })
   .inputValidator((input) => MarketContext.parse(input))
   .handler(async ({ data }) => {
     const lang = resolveLang(data);
-    const schema = `{ "outlook": string, "bullishShifts": string[], "bearishShifts": string[], "macroInterpretation": string, "riskAnalysis": string, "capitalRotation": string, "confidence": number }`;
+    const schema = `{ "outlook": string, "bullishShifts": string[], "bearishShifts": string[], "macroInterpretation": string, "riskAnalysis": string, "capitalRotation": string, "confidence": number, "sectorRotation": "string (optional — capital flow narrative; omit if context insufficient)", "correlationAlert": "string (optional — cross-asset divergence warning; omit if no significant divergence)" }`;
     const sys = buildLocaleSystemPrompt({
       lang, surface: "market_analyst", schema,
       extra: lang === "ar"

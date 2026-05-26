@@ -12,7 +12,9 @@ import { genesisMemory } from "@/services/learning/genesisMemory";
 import { aiMemory } from "@/services/learning/aiMemory";
 import { clearMemory as clearSignalMemory, getMemory } from "@/services/learning/signalMemory";
 import { thesisMemory, type ThesisEntry } from "@/services/learning/thesisMemory";
+import { sessionIntelStore } from "@/services/learning/sessionIntelStore";
 import { ece, driftReport, strategyScores } from "@/services/learning/selfLearningEngine";
+import { pruneContext } from "@/lib/ai/pruneContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
@@ -203,12 +205,8 @@ function GenesisPage() {
         ? `User watchlist (${watchlistItems.length} assets): ${watchlistItems.slice(0, 5).map((a) => a.symbol).join(", ")}`
         : "";
 
-      // Thesis memory context — recent directional theses for continuity.
-      const recentTheses = thesisMemory.getRecent(3);
-      const thesisCtx = recentTheses.length > 0
-        ? `Prior theses (${recentTheses.length}): ` +
-          recentTheses.map((t) => `${t.asset} ${t.direction} ${t.confidence}% — "${t.thesis.slice(0, 60)}"`).join(" | ")
-        : "";
+      // Thesis memory context — compact compressed string.
+      const thesisCtx = thesisMemory.compressedContext(3);
 
       // Signal history context — compact win-rate and dominant regime from learning layer.
       const sigMem = getMemory();
@@ -221,11 +219,31 @@ function GenesisPage() {
         ? `Signal history: ${sigMem.length} signals${sigWinRate !== null ? `, ${sigWinRate}% win-rate` : ""}${topRegime ? `, dominant regime: ${topRegime}` : ""}`
         : "";
 
+      // Cross-surface session bus — prior regime from this session if fresh.
+      const sessionBus = sessionIntelStore.read();
+      const sessionBusCtx = sessionBus
+        ? `Session regime (cross-surface): ${sessionBus.regime} at ${sessionBus.confidence}% confidence`
+        : "";
+
       // Lightweight decision consensus — regime estimate from live market breadth.
       const consensusCtx = buildMarketConsensus(assets);
 
-      const fullContext = [memCtx, decisionCtx, watchlistCtx, thesisCtx, signalCtx, consensusCtx, opportunityCtx, riskCtx, marketContext, sessionCtx].filter(Boolean).join("\n");
-      const res = await ask({ data: { question: trimmed, language: lang, marketContext: fullContext } });
+      // Prune context layers to stay within budget (2800 chars max).
+      const fullContext = pruneContext([
+        { key: "mem",       content: memCtx,        weight: 0.95 },
+        { key: "decision",  content: decisionCtx,   weight: 0.9  },
+        { key: "watchlist", content: watchlistCtx,  weight: 0.85 },
+        { key: "thesis",    content: thesisCtx,     weight: 0.85 },
+        { key: "session",   content: sessionCtx,    weight: 0.8  },
+        { key: "bus",       content: sessionBusCtx, weight: 0.75 },
+        { key: "signal",    content: signalCtx,     weight: 0.65 },
+        { key: "consensus", content: consensusCtx,  weight: 0.6  },
+        { key: "top3",      content: opportunityCtx,weight: 0.5  },
+        { key: "bot3",      content: riskCtx,       weight: 0.5  },
+        { key: "market",    content: marketContext,  weight: 0.4  },
+      ], 2800);
+
+      const res = await ask({ data: { question: trimmed, language: lang, marketContext: fullContext, responseStyle: p.responseStyle ?? "brief" } });
 
       if (res.error === "rate_limited") {
         toast.error(ar ? "تم تجاوز الحد، حاول لاحقاً" : "Rate limit exceeded, try again shortly");
@@ -239,6 +257,11 @@ function GenesisPage() {
 
       // Track interaction
       memoryAgent.trackGenesisQuestion();
+
+      // Cross-surface session bus — write regime + confidence so other surfaces can read it.
+      if (res.reply.regime && res.reply.confidence > 0) {
+        sessionIntelStore.write({ regime: res.reply.regime, confidence: res.reply.confidence });
+      }
 
       // Adaptive preference: track which asset Genesis discussed so it surfaces in preferred assets.
       if (res.reply.suggestedAction?.symbol) {
@@ -385,6 +408,7 @@ function GenesisPage() {
     memoryAgent.clear();
     genesisMemory.clear();
     thesisMemory.clear();
+    sessionIntelStore.clear();
     setMemorySummary(genesisMemory.summary());
     setThesisCount(0);
     toast.success(ar ? "تم مسح الذاكرة بالكامل" : "All memory cleared");
@@ -579,6 +603,7 @@ function GenesisPage() {
             exchange={ex}
             ar={ar}
             confModifier={confModifier}
+            eceVal={eceVal}
             onConfirm={(action) => executeAction(ex.id, action)}
             onDismiss={() => dismissAction(ex.id)}
             onDefer={() => deferAction(ex.id)}
@@ -682,17 +707,21 @@ function ThinkingState({ ar }: { ar: boolean }) {
   );
 }
 
-function ExchangeCard({ exchange, ar, confModifier, onConfirm, onDismiss, onDefer, onFeedback }: {
+function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss, onDefer, onFeedback }: {
   exchange: Exchange;
   ar: boolean;
   confModifier: number;
+  eceVal: number;
   onConfirm: (a: GenesisSuggestedAction) => void;
   onDismiss: () => void;
   onDefer: () => void;
   onFeedback: (rating: "helpful" | "unhelpful") => void;
 }) {
   const { reply, engine, actionState } = exchange;
-  const displayConfidence = Math.round(Math.min(99, Math.max(1, reply.confidence * confModifier)));
+  // ECE feedback: compress confidence toward reality when calibration error is high.
+  // eceFactor ranges from 0.85 (ECE=0.3+) to 1.0 (perfectly calibrated).
+  const eceFactor = eceVal > 0 ? Math.max(0.85, 1 - eceVal * 0.5) : 1;
+  const displayConfidence = Math.round(Math.min(99, Math.max(1, reply.confidence * confModifier * eceFactor)));
   const effectiveLabel: "low" | "moderate" | "high" =
     displayConfidence >= 70 ? "high" : displayConfidence >= 45 ? "moderate" : "low";
   const confidenceColor = CONFIDENCE_COLOR[effectiveLabel] ?? "text-primary";

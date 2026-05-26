@@ -3,7 +3,7 @@
  * and thesis tracking. Client-side only — never sent to server as PII.
  */
 const KEY = "foresmart.genesis.theses.v1";
-const MAX = 20;
+const MAX = 50;
 
 export interface ThesisEntry {
   id: string;
@@ -46,4 +46,12 @@ export const thesisMemory = {
   },
 
   clear(): void { persist([]); },
+
+  /** Compact string for AI context injection — truncated per entry to save tokens. */
+  compressedContext(n: number): string {
+    const entries = this.getRecent(n);
+    if (!entries.length) return "";
+    return `Prior theses (${entries.length}): ` +
+      entries.map((t) => `${t.asset} ${t.direction} ${t.confidence}% — "${t.thesis.slice(0, 50)}"`).join(" | ");
+  },
 };

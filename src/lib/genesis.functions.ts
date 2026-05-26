@@ -48,11 +48,10 @@ const AskInput = z.object({
   question: z.string().trim().min(1).max(2000),
   language: z.enum(["ar", "en"]).default("en"),
   marketContext: z.string().max(3000).default(""),
+  responseStyle: z.enum(["brief", "detailed"]).default("brief"),
 });
 
 // Server-side per-user rate limit: 20 requests per 5 minutes (per Worker isolate).
-// Best-effort in a stateless Worker environment — not globally accurate but effective
-// against accidental hammering from a single authenticated user.
 const AI_RATE_WINDOW_MS = 5 * 60 * 1000;
 const AI_RATE_MAX = 20;
 const _aiRateBuckets = new Map<string, { count: number; windowStart: number }>();
@@ -175,6 +174,112 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
   return buildLocaleSystemPrompt({ lang, surface: "genesis_copilot", schema: GENESIS_SCHEMA, extra });
 }
 
+// ─── Phase 4: Parallel Reasoning Tracks ───────────────────────────────────
+
+interface TrackA {
+  regime: string;
+  macroSummary: string;
+  regimeConf: number;
+}
+
+interface TrackB {
+  technicalBias: "bullish" | "bearish" | "neutral";
+  momentumStrength: number;
+  technicalNote: string;
+}
+
+interface TrackC {
+  sentimentBias: "bullish" | "bearish" | "neutral";
+  catalysts: string[];
+  nearTermRisk: string;
+}
+
+/** Races a promise against a timeout; returns null on timeout. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
+}
+
+async function runTrackA(lang: Lang, question: string, ctx: string): Promise<TrackA | null> {
+  const schema = `{"regime":"string","macroSummary":"string — 1-2 sentences","regimeConf":<integer 0-100>}`;
+  const extra = lang === "ar"
+    ? "حدّد نظام السوق والسياق الكلي فقط. جملة واحدة أو جملتان بحد أقصى."
+    : "Identify the market regime and macro environment ONLY. One to two sentences max.";
+  const sys = buildLocaleSystemPrompt({ lang, surface: "genesis_copilot", schema, extra });
+  const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}`);
+  const res = await withTimeout(
+    callAIGateway<TrackA>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 400, temperature: 0.3 }),
+    8000,
+  );
+  return res?.data ?? null;
+}
+
+async function runTrackB(lang: Lang, question: string, ctx: string): Promise<TrackB | null> {
+  const schema = `{"technicalBias":"bullish"|"bearish"|"neutral","momentumStrength":<integer 0-100>,"technicalNote":"string — 1 sentence"}`;
+  const extra = lang === "ar"
+    ? "قيّم التحيز الفني وقوة الزخم فقط. جملة واحدة."
+    : "Assess technical bias and momentum strength ONLY. One sentence max.";
+  const sys = buildLocaleSystemPrompt({ lang, surface: "market_analyst", schema, extra });
+  const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}`);
+  const res = await withTimeout(
+    callAIGateway<TrackB>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 300, temperature: 0.3 }),
+    8000,
+  );
+  return res?.data ?? null;
+}
+
+async function runTrackC(lang: Lang, question: string, ctx: string): Promise<TrackC | null> {
+  const schema = `{"sentimentBias":"bullish"|"bearish"|"neutral","catalysts":["string"],"nearTermRisk":"string — 1 sentence"}`;
+  const extra = lang === "ar"
+    ? "حدّد المحفزات القريبة والمشاعر فقط. 2-3 محفزات محددة."
+    : "Identify near-term catalysts and market sentiment ONLY. List 2-3 specific catalysts.";
+  const sys = buildLocaleSystemPrompt({ lang, surface: "news_analyst", schema, extra });
+  const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}`);
+  const res = await withTimeout(
+    callAIGateway<TrackC>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 300, temperature: 0.3 }),
+    8000,
+  );
+  return res?.data ?? null;
+}
+
+async function runFusion(
+  lang: Lang,
+  question: string,
+  ctx: string,
+  trackA: TrackA | null,
+  trackB: TrackB | null,
+  trackC: TrackC | null,
+): Promise<GenesisReply | null> {
+  const trackLines = [
+    trackA ? `MACRO TRACK: regime=${trackA.regime} (conf ${trackA.regimeConf}%) — ${trackA.macroSummary}` : null,
+    trackB ? `TECHNICAL TRACK: ${trackB.technicalBias} bias, momentum ${trackB.momentumStrength}/100 — ${trackB.technicalNote}` : null,
+    trackC ? `SENTIMENT TRACK: ${trackC.sentimentBias}, catalysts: ${trackC.catalysts.slice(0, 2).join("; ")} — near-term risk: ${trackC.nearTermRisk}` : null,
+  ].filter(Boolean).join("\n");
+
+  const fusionDirective = lang === "ar"
+    ? `نتائج المسارات التحليلية المتوازية:\n${trackLines}\n\nادمج هذه المسارات في تحليل مؤسسي شامل ومتكامل. جميع القواعد الإلزامية سارية.`
+    : `Parallel analysis track inputs:\n${trackLines}\n\nSynthesize these tracks into a unified, comprehensive institutional analysis. All mandatory rules remain in force.`;
+
+  const sys = buildGenesisSystemPrompt(lang);
+  const userBody = [
+    `User question: ${question}`,
+    ctx ? `\nLive market context:\n${ctx}` : "",
+    `\n\n${fusionDirective}`,
+  ].join("");
+  const user = wrapUserContext(lang, userBody);
+
+  const res = await withTimeout(
+    callAIGateway<GenesisReply>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 2000, temperature: 0.4 }),
+    12000,
+  );
+  if (!res || res.error || !res.data?.headline) return null;
+  return res.data;
+}
+
+// ─── Server function ───────────────────────────────────────────────────────
+
 export const askGenesis = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => AskInput.parse(d))
@@ -187,11 +292,35 @@ export const askGenesis = createServerFn({ method: "POST" })
       return { reply: heuristicReply(lang), error: null as null, engine: "heuristic" as const };
     }
 
-    // Server-side rate limit (per user, per isolate).
+    // Server-side rate limit (per user, per isolate). One check covers all tracks.
     if (!checkAiRateLimit(userId)) {
       return { reply: null, error: "rate_limited" as const, engine: "heuristic" as const };
     }
 
+    // ── Parallel track path (detailed mode only) ─────────────────────────
+    if (data.responseStyle === "detailed") {
+      const [settledA, settledB, settledC] = await Promise.allSettled([
+        runTrackA(lang, data.question, data.marketContext),
+        runTrackB(lang, data.question, data.marketContext),
+        runTrackC(lang, data.question, data.marketContext),
+      ]);
+
+      const trackA = settledA.status === "fulfilled" ? settledA.value : null;
+      const trackB = settledB.status === "fulfilled" ? settledB.value : null;
+      const trackC = settledC.status === "fulfilled" ? settledC.value : null;
+      const tracksUsed = [trackA, trackB, trackC].filter(Boolean).length;
+
+      // Attempt fusion when at least one track succeeded.
+      if (tracksUsed >= 1) {
+        const fused = await runFusion(lang, data.question, data.marketContext, trackA, trackB, trackC);
+        if (fused?.headline) {
+          return { reply: fused, error: null as null, engine: "ai" as const, tracksUsed };
+        }
+      }
+      // Fall through to single-call if all tracks failed or fusion failed.
+    }
+
+    // ── Standard single-call path (brief mode or detailed fallback) ───────
     const user = wrapUserContext(lang, [
       `User question: ${data.question}`,
       data.marketContext ? `\nLive market context:\n${data.marketContext}` : "",
