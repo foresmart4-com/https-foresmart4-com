@@ -45,3 +45,7 @@ dist-ssr
 
 # npm lockfile — Bun (bun.lock) is the canonical package manager for this project
 package-lock.json
+
+# PM2 process config
+ecosystem.config.cjs
+ecosystem.config.js
