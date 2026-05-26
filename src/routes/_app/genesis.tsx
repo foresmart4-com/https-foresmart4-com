@@ -8,6 +8,10 @@ import { getMarketData } from "@/lib/market-data";
 import { useI18n } from "@/lib/i18n";
 import { addToWatchlist } from "@/lib/watchlistStore";
 import { memoryAgent } from "@/services/agents/memoryAgent";
+import { genesisMemory } from "@/services/learning/genesisMemory";
+import { aiMemory } from "@/services/learning/aiMemory";
+import { clearMemory as clearSignalMemory } from "@/services/learning/signalMemory";
+import { ece, driftReport, strategyScores, metaTuneThreshold } from "@/services/learning/selfLearningEngine";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
@@ -18,6 +22,7 @@ import {
   Sparkles, Send, Activity, AlertTriangle, Brain, CheckCircle2,
   TrendingUp, TrendingDown, Minus, Navigation, Eye, Bell,
   ChevronRight, RefreshCw, Scale, PieChart,
+  ThumbsUp, ThumbsDown, ChevronDown, Trash2, Database,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/genesis")({
@@ -36,6 +41,7 @@ interface Exchange {
   reply: GenesisReply;
   engine: "ai" | "heuristic";
   actionState: "pending" | "confirmed" | "dismissed" | null;
+  feedback: "helpful" | "unhelpful" | null;
 }
 
 const CONFIDENCE_COLOR = {
@@ -79,8 +85,14 @@ function GenesisPage() {
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
+  const [memoryOpen, setMemoryOpen] = useState(false);
+  const [memorySummary, setMemorySummary] = useState(() => genesisMemory.summary());
   const bottomRef = useRef<HTMLDivElement>(null);
   const profile = memoryAgent.getProfile();
+  const confModifier = memoryAgent.confidenceModifier();
+  const eceVal = ece();
+  const drift = driftReport();
+  const topStrategy = strategyScores()[0] ?? null;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -103,8 +115,16 @@ function GenesisPage() {
         p.preferredAssets.length ? `Preferred assets: ${p.preferredAssets.slice(0, 5).join(", ")}` : "",
         p.interactions > 0 ? `Total interactions: ${p.interactions}` : "",
       ].filter(Boolean).join(" | ");
-      const fullContext = [memCtx, marketContext].filter(Boolean).join("\n");
+
+      const decisionCtx = [
+        `System calibration: ECE=${eceVal.toFixed(3)}${drift.isDrifting ? " ⚠ performance drift detected" : ""}`,
+        topStrategy ? `Top strategy: ${topStrategy.strategy} win-rate ${(topStrategy.winRate * 100).toFixed(0)}% (${topStrategy.bestRegime ?? "any"} regime)` : "",
+        `Confidence modifier: ${confModifier.toFixed(2)}x (${confModifier >= 1 ? "above" : "below"} baseline)`,
+      ].filter(Boolean).join(" | ");
+
+      const fullContext = [memCtx, decisionCtx, marketContext].filter(Boolean).join("\n");
       const res = await ask({ data: { question: trimmed, language: lang, marketContext: fullContext } });
+
       if (res.error === "rate_limited") {
         toast.error(ar ? "تم تجاوز الحد، حاول لاحقاً" : "Rate limit exceeded, try again shortly");
         return;
@@ -114,6 +134,21 @@ function GenesisPage() {
         return;
       }
       if (!res.reply) return;
+
+      // Track interaction
+      memoryAgent.trackGenesisQuestion();
+
+      // Persist to history
+      genesisMemory.append({
+        ts: Date.now(),
+        question: trimmed,
+        headline: res.reply.headline.slice(0, 80),
+        confidence: res.reply.confidence,
+        engineUsed: res.engine,
+        actionType: res.reply.suggestedAction?.type ?? null,
+      });
+      setMemorySummary(genesisMemory.summary());
+
       setExchanges((prev) => [
         ...prev,
         {
@@ -122,6 +157,7 @@ function GenesisPage() {
           reply: res.reply!,
           engine: res.engine,
           actionState: res.reply?.suggestedAction?.type && res.reply.suggestedAction.type !== "none" ? "pending" : null,
+          feedback: null,
         },
       ]);
     } catch {
@@ -193,6 +229,28 @@ function GenesisPage() {
     setExchanges((prev) => prev.map((e) => e.id === exId ? { ...e, actionState: "dismissed" } : e));
   };
 
+  const recordFeedback = (exId: string, rating: "helpful" | "unhelpful") => {
+    const ex = exchanges.find((e) => e.id === exId);
+    if (!ex || ex.feedback) return;
+    setExchanges((prev) => prev.map((e) => e.id === exId ? { ...e, feedback: rating } : e));
+    memoryAgent.recordRecommendation({
+      asset: ex.reply.suggestedAction?.symbol ?? "MARKET",
+      bias: ex.reply.confidenceLabel === "high" ? "bullish" : ex.reply.confidenceLabel === "low" ? "bearish" : "neutral",
+      confidence: ex.reply.confidence / 100,
+      hit: rating === "helpful",
+    });
+    toast.success(ar ? "شكراً على ملاحظاتك" : "Feedback recorded");
+  };
+
+  const handleClearMemory = () => {
+    aiMemory.clear();
+    clearSignalMemory();
+    memoryAgent.clear();
+    genesisMemory.clear();
+    setMemorySummary(genesisMemory.summary());
+    toast.success(ar ? "تم مسح الذاكرة بالكامل" : "All memory cleared");
+  };
+
   const suggestions = ar ? SUGGESTED_AR : SUGGESTED_EN;
 
   return (
@@ -240,6 +298,83 @@ function GenesisPage() {
         </div>
       </div>
 
+      {/* ─── Memory Panel ───────────────────────────────────────────────── */}
+      <div className="mb-4 rounded-xl border border-border/40 bg-card/50">
+        <button
+          onClick={() => setMemoryOpen((v) => !v)}
+          className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <div className="flex items-center gap-2">
+            <Database className="h-3.5 w-3.5 shrink-0" />
+            <span className="font-semibold uppercase tracking-wider">
+              {ar ? "ذاكرة Genesis" : "Genesis Memory"}
+            </span>
+            {memorySummary.total > 0 && (
+              <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                {memorySummary.total}
+              </span>
+            )}
+          </div>
+          <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", memoryOpen && "rotate-180")} />
+        </button>
+
+        {memoryOpen && (
+          <div className="border-t border-border/40 px-4 pb-4 pt-3 space-y-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <MemoryStat
+                label={ar ? "الأسئلة" : "Questions"}
+                value={String(memorySummary.total || 0)}
+              />
+              <MemoryStat
+                label={ar ? "متوسط الثقة" : "Avg confidence"}
+                value={memorySummary.total ? `${memorySummary.avgConfidence}%` : "—"}
+              />
+              <MemoryStat
+                label={ar ? "نسبة AI" : "AI ratio"}
+                value={memorySummary.total ? `${memorySummary.aiRatio}%` : "—"}
+              />
+              <MemoryStat
+                label={ar ? "المعايرة ECE" : "Calibration ECE"}
+                value={eceVal > 0 ? eceVal.toFixed(3) : "—"}
+                highlight={drift.isDrifting ? "warning" : undefined}
+              />
+            </div>
+
+            {profile.preferredAssets.length > 0 && (
+              <div>
+                <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  {ar ? "الأصول المفضلة" : "Preferred assets"}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.preferredAssets.slice(0, 8).map((a) => (
+                    <span key={a} className="rounded-md border border-border/60 bg-muted/40 px-2 py-0.5 text-xs font-mono">
+                      {a}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {drift.isDrifting && (
+              <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                {ar
+                  ? `انحراف في الأداء: ${(drift.recentWinRate * 100).toFixed(0)}% مقابل ${(drift.baselineWinRate * 100).toFixed(0)}% خط الأساس`
+                  : `Performance drift: ${(drift.recentWinRate * 100).toFixed(0)}% vs ${(drift.baselineWinRate * 100).toFixed(0)}% baseline`}
+              </div>
+            )}
+
+            <button
+              onClick={handleClearMemory}
+              className="flex items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              <Trash2 className="h-3 w-3" />
+              {ar ? "مسح كل الذاكرة" : "Clear all memory"}
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* ─── Exchanges ──────────────────────────────────────────────────── */}
       <div className="space-y-6">
         {exchanges.length === 0 && !busy && (
@@ -251,8 +386,10 @@ function GenesisPage() {
             key={ex.id}
             exchange={ex}
             ar={ar}
+            confModifier={confModifier}
             onConfirm={(action) => executeAction(ex.id, action)}
             onDismiss={() => dismissAction(ex.id)}
+            onFeedback={(rating) => recordFeedback(ex.id, rating)}
           />
         ))}
 
@@ -352,14 +489,19 @@ function ThinkingState({ ar }: { ar: boolean }) {
   );
 }
 
-function ExchangeCard({ exchange, ar, onConfirm, onDismiss }: {
+function ExchangeCard({ exchange, ar, confModifier, onConfirm, onDismiss, onFeedback }: {
   exchange: Exchange;
   ar: boolean;
+  confModifier: number;
   onConfirm: (a: GenesisSuggestedAction) => void;
   onDismiss: () => void;
+  onFeedback: (rating: "helpful" | "unhelpful") => void;
 }) {
   const { reply, engine, actionState } = exchange;
-  const confidenceColor = CONFIDENCE_COLOR[reply.confidenceLabel] ?? "text-primary";
+  const displayConfidence = Math.round(Math.min(99, Math.max(1, reply.confidence * confModifier)));
+  const effectiveLabel: "low" | "moderate" | "high" =
+    displayConfidence >= 70 ? "high" : displayConfidence >= 45 ? "moderate" : "low";
+  const confidenceColor = CONFIDENCE_COLOR[effectiveLabel] ?? "text-primary";
 
   return (
     <div className="space-y-4">
@@ -380,7 +522,7 @@ function ExchangeCard({ exchange, ar, onConfirm, onDismiss }: {
           </div>
           <div className="flex items-center gap-2">
             <span className={cn("text-xs font-semibold", confidenceColor)}>
-              {ar ? "الثقة" : "Confidence"}: {reply.confidence}%
+              {ar ? "الثقة" : "Confidence"}: {displayConfidence}%
             </span>
             <span className={cn("rounded-md px-2 py-0.5 text-[10px] font-semibold ring-1",
               engine === "ai"
@@ -398,14 +540,14 @@ function ExchangeCard({ exchange, ar, onConfirm, onDismiss }: {
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">{ar ? "مستوى الثقة" : "Confidence level"}</span>
               <span className={cn("font-semibold", confidenceColor)}>
-                {reply.confidenceLabel === "high"
+                {effectiveLabel === "high"
                   ? (ar ? "مرتفعة" : "High")
-                  : reply.confidenceLabel === "moderate"
+                  : effectiveLabel === "moderate"
                     ? (ar ? "متوسطة" : "Moderate")
                     : (ar ? "منخفضة" : "Low")}
               </span>
             </div>
-            <Progress value={reply.confidence} className="h-1.5" />
+            <Progress value={displayConfidence} className="h-1.5" />
           </div>
 
           {/* Headline */}
@@ -477,6 +619,35 @@ function ExchangeCard({ exchange, ar, onConfirm, onDismiss }: {
 
           {/* Disclaimer */}
           <p className="text-center text-[11px] italic text-muted-foreground">{reply.disclaimer}</p>
+
+          {/* Feedback row */}
+          <div className="flex items-center justify-center gap-3 pt-1">
+            {exchange.feedback ? (
+              <span className="text-[11px] text-muted-foreground/60">
+                {exchange.feedback === "helpful"
+                  ? (ar ? "شكراً — تم تسجيل ملاحظتك الإيجابية" : "Thanks — positive feedback recorded")
+                  : (ar ? "شكراً — سيساعدنا ذلك على التحسين" : "Thanks — will help us improve")}
+              </span>
+            ) : (
+              <>
+                <span className="text-[11px] text-muted-foreground/60">{ar ? "هل كان هذا مفيداً؟" : "Was this helpful?"}</span>
+                <button
+                  onClick={() => onFeedback("helpful")}
+                  className="flex items-center gap-1 rounded-md border border-border/50 bg-muted/20 px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-success/40 hover:bg-success/10 hover:text-success"
+                >
+                  <ThumbsUp className="h-3 w-3" />
+                  {ar ? "نعم" : "Yes"}
+                </button>
+                <button
+                  onClick={() => onFeedback("unhelpful")}
+                  className="flex items-center gap-1 rounded-md border border-border/50 bg-muted/20 px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <ThumbsDown className="h-3 w-3" />
+                  {ar ? "لا" : "No"}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -518,6 +689,20 @@ const ACTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   navigate: Navigation,
   none: ChevronRight,
 };
+
+function MemoryStat({ label, value, highlight }: { label: string; value: string; highlight?: "warning" }) {
+  return (
+    <div className={cn(
+      "rounded-lg border p-2.5 text-center",
+      highlight === "warning" ? "border-warning/30 bg-warning/5" : "border-border/40 bg-muted/20",
+    )}>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</div>
+      <div className={cn("mt-0.5 text-sm font-bold", highlight === "warning" ? "text-warning" : "text-foreground")}>
+        {value}
+      </div>
+    </div>
+  );
+}
 
 function ActionCard({ action, ar, onConfirm, onDismiss }: {
   action: GenesisSuggestedAction;

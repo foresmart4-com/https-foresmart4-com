@@ -2,6 +2,10 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { logAuthEvent } from "@/lib/auth-events.functions";
+import { aiMemory } from "@/services/learning/aiMemory";
+import { clearMemory as clearSignalMemory } from "@/services/learning/signalMemory";
+import { memoryAgent } from "@/services/agents/memoryAgent";
+import { genesisMemory } from "@/services/learning/genesisMemory";
 
 interface AuthCtx {
   user: User | null;
@@ -83,6 +87,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     const uid = user?.id ?? null;
     const em = user?.email ?? null;
+    // Clear all client-side AI memory before signing out (shared-device privacy)
+    aiMemory.clear();
+    clearSignalMemory();
+    memoryAgent.clear();
+    genesisMemory.clear();
     await supabase.auth.signOut();
     fireLog({ event_type: "signout", status: "ok", user_id: uid, email: em });
   };

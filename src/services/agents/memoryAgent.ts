@@ -12,6 +12,10 @@ export interface UserProfile {
   avgHoldingMinutes: number;
   interactions: number;
   lastSeen: number;
+  genesisQuestionsAsked?: number;
+  lastGenesisTs?: number;
+  preferredMarkets?: string[];   // e.g. ["crypto","metals","stocks"]
+  responseStyle?: "brief" | "detailed";
 }
 
 export interface RecommendationOutcome {
@@ -77,5 +81,30 @@ export const memoryAgent = {
     const { winRate, trades } = this.performance();
     if (trades < 5) return 1;
     return Math.max(0.7, Math.min(1.15, 0.85 + winRate * 0.4));
+  },
+
+  trackGenesisQuestion() {
+    const p = this.getProfile();
+    p.genesisQuestionsAsked = (p.genesisQuestionsAsked ?? 0) + 1;
+    p.lastGenesisTs = Date.now();
+    p.lastSeen = Date.now();
+    safeWrite(K_PROFILE, p);
+  },
+
+  setResponseStyle(style: "brief" | "detailed") {
+    const p = this.getProfile();
+    p.responseStyle = style;
+    safeWrite(K_PROFILE, p);
+  },
+
+  setPreferredMarkets(markets: string[]) {
+    const p = this.getProfile();
+    p.preferredMarkets = markets.slice(0, 6);
+    safeWrite(K_PROFILE, p);
+  },
+
+  clear() {
+    safeWrite(K_PROFILE, DEFAULT_PROFILE);
+    safeWrite(K_HISTORY, []);
   },
 };
