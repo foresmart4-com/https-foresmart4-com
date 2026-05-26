@@ -29,6 +29,11 @@ export interface GenesisReply {
   risks: string[];
   suggestedAction: GenesisSuggestedAction | null;
   disclaimer: string;
+  // Institutional brain fields — AI may omit when context is insufficient
+  regime?: string;
+  evidence?: string[];
+  portfolioImpact?: string;
+  uncertaintyWarning?: string;
 }
 
 const AskInput = z.object({
@@ -85,7 +90,7 @@ function heuristicReply(lang: Lang): GenesisReply {
   };
 }
 
-const SYSTEM_PROMPT = `You are Genesis, the ForeSmart AI investment copilot. Your role is to provide forward-looking, scenario-based investment intelligence in an institutional analytical style.
+const SYSTEM_PROMPT = `You are Genesis, the ForeSmart institutional investment intelligence engine. Your role is to provide forward-looking, scenario-based investment intelligence with the analytical depth of an institutional research desk.
 
 Rules you must NEVER break:
 - Never suggest, confirm, or describe real buy/sell order execution, broker actions, or money movement.
@@ -93,12 +98,22 @@ Rules you must NEVER break:
 - Always include a disclaimer.
 - All analysis is educational and simulative only.
 
+Institutional reasoning framework — apply each layer when context supports it:
+1. REGIME — Identify the market regime: bull_trending, bear_ranging, high_vol_risk-off, low_vol_accumulation, or macro_transition. Only set "regime" when the available context clearly supports the classification.
+2. EVIDENCE — Cite 2-4 specific macro, technical, or structural factors that directly drive your conclusion. Only set "evidence" when confidence ≥ 50 and supporting data exists in context.
+3. PORTFOLIO IMPACT — If the user's watchlist symbols appear in context, state how this analysis directly affects those holdings. Only set "portfolioImpact" when watchlist symbols are explicitly in context.
+4. UNCERTAINTY — When confidence < 50, describe the specific sources of uncertainty and what information or conditions would resolve them. Only set "uncertaintyWarning" when confidence < 50.
+
 Return ONLY valid JSON matching this exact schema:
 {
   "headline": "string — one concise forward-looking sentence",
-  "outlook": "string — 2-3 paragraphs of analytical reasoning with macro context",
+  "outlook": "string — 2-3 paragraphs of deep analytical reasoning with macro, technical, and structural context",
   "confidence": <integer 0-100>,
   "confidenceLabel": <"low" | "moderate" | "high">,
+  "regime": "string (optional — market regime label; omit if context insufficient)",
+  "evidence": ["string — specific supporting factor"] (optional — 2-4 bullets when confidence ≥ 50; omit otherwise),
+  "portfolioImpact": "string (optional — only include when user watchlist symbols appear in context)",
+  "uncertaintyWarning": "string (optional — only include when confidence < 50)",
   "scenarios": [
     { "label": "string", "probability": "string e.g. 35%", "impact": "string — one sentence" }
   ],
@@ -151,7 +166,7 @@ export const askGenesis = createServerFn({ method: "POST" })
       user,
       language: lang,
       jsonObject: true,
-      maxTokens: 1400,
+      maxTokens: 1600,
       temperature: 0.4,
     });
 

@@ -6,11 +6,11 @@ import { askGenesis, type GenesisReply, type GenesisSuggestedAction } from "@/li
 import { createAlert } from "@/lib/alerts.functions";
 import { getMarketData } from "@/lib/market-data";
 import { useI18n } from "@/lib/i18n";
-import { addToWatchlist } from "@/lib/watchlistStore";
+import { addToWatchlist, useWatchlist } from "@/lib/watchlistStore";
 import { memoryAgent } from "@/services/agents/memoryAgent";
 import { genesisMemory } from "@/services/learning/genesisMemory";
 import { aiMemory } from "@/services/learning/aiMemory";
-import { clearMemory as clearSignalMemory } from "@/services/learning/signalMemory";
+import { clearMemory as clearSignalMemory, getMemory } from "@/services/learning/signalMemory";
 import { ece, driftReport, strategyScores } from "@/services/learning/selfLearningEngine";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -107,6 +107,7 @@ function GenesisPage() {
   const alertFn = useServerFn(createAlert);
   const marketFn = useServerFn(getMarketData);
   const { data: market } = useQuery({ queryKey: ["market"], queryFn: () => marketFn() });
+  const { items: watchlistItems } = useWatchlist();
 
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
@@ -169,7 +170,23 @@ function GenesisPage() {
         ? `Recent session context: ${recentHistory.map((e) => e.headline.slice(0, 50)).join(" → ")}`
         : "";
 
-      const fullContext = [memCtx, decisionCtx, opportunityCtx, riskCtx, marketContext, sessionCtx].filter(Boolean).join("\n");
+      // Watchlist context — exposes user's tracked symbols for portfolio-aware reasoning.
+      const watchlistCtx = watchlistItems.length
+        ? `User watchlist (${watchlistItems.length} assets): ${watchlistItems.slice(0, 5).map((a) => a.symbol).join(", ")}`
+        : "";
+
+      // Signal history context — compact win-rate and dominant regime from learning layer.
+      const sigMem = getMemory();
+      const resolved = sigMem.filter((s) => s.outcome && s.outcome !== "pending");
+      const sigWinRate = resolved.length > 0 ? Math.round((resolved.filter((s) => s.outcome === "success").length / resolved.length) * 100) : null;
+      const regimeCounts = new Map<string, number>();
+      for (const s of sigMem) regimeCounts.set(s.regime, (regimeCounts.get(s.regime) ?? 0) + 1);
+      const topRegime = [...regimeCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+      const signalCtx = sigMem.length > 5
+        ? `Signal history: ${sigMem.length} signals${sigWinRate !== null ? `, ${sigWinRate}% win-rate` : ""}${topRegime ? `, dominant regime: ${topRegime}` : ""}`
+        : "";
+
+      const fullContext = [memCtx, decisionCtx, watchlistCtx, signalCtx, opportunityCtx, riskCtx, marketContext, sessionCtx].filter(Boolean).join("\n");
       const res = await ask({ data: { question: trimmed, language: lang, marketContext: fullContext } });
 
       if (res.error === "rate_limited") {
@@ -642,6 +659,19 @@ function ExchangeCard({ exchange, ar, confModifier, onConfirm, onDismiss, onDefe
             <Progress value={displayConfidence} className="h-1.5" />
           </div>
 
+          {/* Regime badge */}
+          {reply.regime && (
+            <div className="flex items-center gap-1.5">
+              <Activity className="h-3 w-3 text-primary/60" />
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                {ar ? "النظام السوقي:" : "Regime:"}
+              </span>
+              <span className="rounded-md border border-primary/25 bg-primary/8 px-2 py-0.5 text-[10px] font-bold text-primary">
+                {reply.regime.replace(/_/g, " ")}
+              </span>
+            </div>
+          )}
+
           {/* Headline */}
           <div className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
             <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-1">
@@ -650,6 +680,23 @@ function ExchangeCard({ exchange, ar, confModifier, onConfirm, onDismiss, onDefe
             <p className="text-sm font-semibold leading-snug">{reply.headline}</p>
           </div>
 
+          {/* Institutional evidence */}
+          {reply.evidence && reply.evidence.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+                {ar ? "الأدلة المؤسسية" : "Institutional Evidence"}
+              </div>
+              <ul className="space-y-1.5">
+                {reply.evidence.map((e, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-foreground/90">
+                    <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/60" />
+                    <span>{e}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* Outlook */}
           <div>
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
@@ -657,6 +704,19 @@ function ExchangeCard({ exchange, ar, confModifier, onConfirm, onDismiss, onDefe
             </div>
             <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-line">{reply.outlook}</p>
           </div>
+
+          {/* Portfolio impact */}
+          {reply.portfolioImpact && (
+            <div className="rounded-xl border border-success/25 bg-success/5 px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <PieChart className="h-3.5 w-3.5 text-success/70" />
+                <div className="text-[10px] uppercase tracking-wider text-success font-semibold">
+                  {ar ? "الأثر على محفظتك" : "Portfolio Impact"}
+                </div>
+              </div>
+              <p className="text-sm leading-relaxed text-foreground/90">{reply.portfolioImpact}</p>
+            </div>
+          )}
 
           {/* Scenarios */}
           {reply.scenarios?.length > 0 && (
@@ -682,6 +742,14 @@ function ExchangeCard({ exchange, ar, confModifier, onConfirm, onDismiss, onDefe
               <ul className="space-y-1 ps-4 text-sm text-foreground/90">
                 {reply.risks.map((r, i) => <li key={i} className="list-disc">{r}</li>)}
               </ul>
+            </div>
+          )}
+
+          {/* Uncertainty warning — explains WHY confidence is low (set by institutional brain) */}
+          {reply.uncertaintyWarning && (
+            <div className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/5 px-4 py-2.5 text-xs text-warning">
+              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span>{reply.uncertaintyWarning}</span>
             </div>
           )}
 
