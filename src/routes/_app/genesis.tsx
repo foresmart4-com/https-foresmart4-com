@@ -7,6 +7,7 @@ import { createAlert } from "@/lib/alerts.functions";
 import { getMarketData, type AssetQuote } from "@/lib/market-data";
 import { useI18n } from "@/lib/i18n";
 import { addToWatchlist, useWatchlist } from "@/lib/watchlistStore";
+import { computeMarketIntel, type MarketIntelSummary } from "@/services/market/marketIntelEngine";
 import { memoryAgent } from "@/services/agents/memoryAgent";
 import { genesisMemory } from "@/services/learning/genesisMemory";
 import { memoryIntelligence } from "@/services/learning/memoryIntelligence";
@@ -86,26 +87,6 @@ const GENESIS_ALLOWED_ROUTES = new Set([
   "/stocks-portfolio", "/paper-trading",
 ]);
 
-// Lightweight market consensus adapter — derives regime and bias from available
-// AssetQuote[] without requiring the full MarketIntel pipeline.
-function buildMarketConsensus(assets: AssetQuote[]): string {
-  if (assets.length < 3) return "";
-  const CAT_WEIGHTS: Record<string, number> = { crypto: 0.35, metals: 0.3, oil: 0.2, stocks: 0.15, currencies: 0.15, bonds: 0.1 };
-  let wTotal = 0, wScore = 0, bullN = 0, bearN = 0;
-  for (const a of assets) {
-    const w = CAT_WEIGHTS[a.category] ?? 0.15;
-    wTotal += w; wScore += a.changePct * w;
-    if (a.changePct > 0.5) bullN++; else if (a.changePct < -0.5) bearN++;
-  }
-  const score = wTotal > 0 ? wScore / wTotal : 0;
-  const bias = score > 0.4 ? "bullish" : score < -0.4 ? "bearish" : "neutral";
-  const highVolN = assets.filter((a) => Math.abs(a.changePct) > 2).length;
-  const regime =
-    highVolN >= 3 ? "high_vol_risk-off" :
-    bias === "bullish" && bullN >= assets.length * 0.55 ? "bull_trending" :
-    bias === "bearish" && bearN >= assets.length * 0.55 ? "bear_ranging" : "mixed";
-  return `Market consensus: ${bias} (weighted score ${score.toFixed(2)}) | Regime estimate: ${regime} | Breadth: ${bullN}↑ ${bearN}↓ of ${assets.length} assets`;
-}
 
 function sanitizeGenesisAction(action: GenesisSuggestedAction): GenesisSuggestedAction | null {
   const safe: GenesisSuggestedAction = { ...action };
@@ -159,6 +140,7 @@ function GenesisPage() {
   }, []);
 
   const assets = market?.assets ?? [];
+  const marketIntel = useMemo(() => computeMarketIntel(assets), [assets]); // eslint-disable-line react-hooks/exhaustive-deps
   const marketContext = assets
     .slice(0, 10)
     .map((a) => `${a.symbol}: ${a.price} (${a.changePct >= 0 ? "+" : ""}${a.changePct.toFixed(2)}%)`)
@@ -223,22 +205,19 @@ function GenesisPage() {
         ? `Session regime (cross-surface): ${sessionBus.regime} at ${sessionBus.confidence}% confidence`
         : "";
 
-      // Lightweight decision consensus — regime estimate from live market breadth.
-      const consensusCtx = buildMarketConsensus(assets);
-
       // Prune context layers to stay within budget (2800 chars max).
       const fullContext = pruneContext([
-        { key: "mem",       content: memCtx,        weight: 0.95 },
-        { key: "decision",  content: decisionCtx,   weight: 0.9  },
-        { key: "watchlist", content: watchlistCtx,  weight: 0.85 },
-        { key: "thesis",    content: thesisCtx,     weight: 0.85 },
-        { key: "session",   content: sessionCtx,    weight: 0.8  },
-        { key: "bus",       content: sessionBusCtx, weight: 0.75 },
-        { key: "signal",    content: signalCtx,     weight: 0.65 },
-        { key: "consensus", content: consensusCtx,  weight: 0.6  },
-        { key: "top3",      content: opportunityCtx,weight: 0.5  },
-        { key: "bot3",      content: riskCtx,       weight: 0.5  },
-        { key: "market",    content: marketContext,  weight: 0.4  },
+        { key: "mem",        content: memCtx,                       weight: 0.95 },
+        { key: "decision",   content: decisionCtx,                  weight: 0.9  },
+        { key: "watchlist",  content: watchlistCtx,                 weight: 0.85 },
+        { key: "thesis",     content: thesisCtx,                    weight: 0.85 },
+        { key: "session",    content: sessionCtx,                   weight: 0.8  },
+        { key: "bus",        content: sessionBusCtx,                weight: 0.75 },
+        { key: "signal",     content: signalCtx,                    weight: 0.65 },
+        { key: "marketIntel",content: marketIntel.compactContext,   weight: 0.62 },
+        { key: "top3",       content: opportunityCtx,               weight: 0.5  },
+        { key: "bot3",       content: riskCtx,                      weight: 0.5  },
+        { key: "market",     content: marketContext,                 weight: 0.4  },
       ], 2800);
 
       const res = await ask({ data: { question: trimmed, language: lang, marketContext: fullContext, responseStyle: p.responseStyle ?? "brief" } });
@@ -594,6 +573,11 @@ function GenesisPage() {
           </div>
         )}
       </div>
+
+      {/* ─── Market Intelligence Panel ──────────────────────────────────── */}
+      {marketIntel.compactContext && (
+        <MarketIntelPanel intel={marketIntel} ar={ar} />
+      )}
 
       {/* ─── Exchanges ──────────────────────────────────────────────────── */}
       <div className="space-y-6">
@@ -1145,6 +1129,105 @@ function ActionCard({ action, ar, onConfirm, onDismiss, onDefer }: {
           ? "لن يُنفَّذ هذا الإجراء إلا بعد الضغط على «تأكيد»."
           : "This action will only execute after you press Confirm."}
       </p>
+    </div>
+  );
+}
+
+// ─── Market Intelligence Panel ───────────────────────────────────────────────
+
+const REGIME_COLOR: Record<string, string> = {
+  risk_on:  "text-success",
+  risk_off: "text-destructive",
+  volatile: "text-warning",
+  mixed:    "text-warning",
+  neutral:  "text-muted-foreground",
+};
+
+const STRESS_COLOR: Record<string, string> = {
+  low:      "text-success",
+  moderate: "text-primary",
+  elevated: "text-warning",
+  high:     "text-destructive",
+};
+
+function MarketIntelPanel({ intel, ar }: { intel: MarketIntelSummary; ar: boolean }) {
+  const regimeColor = REGIME_COLOR[intel.regime] ?? "text-muted-foreground";
+  const stressColor = STRESS_COLOR[intel.stressLevel] ?? "text-muted-foreground";
+  const riskDir =
+    intel.riskOnScore > 15 ? "risk-on" :
+    intel.riskOnScore < -15 ? "risk-off" : "neutral";
+
+  return (
+    <div className="mb-4 rounded-xl border border-border/40 bg-card/30 px-4 py-2.5">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px]">
+        {/* Label */}
+        <div className="flex items-center gap-1.5 font-semibold uppercase tracking-wider text-muted-foreground">
+          <Activity className="h-3 w-3 shrink-0" />
+          {ar ? "استخبارات السوق" : "Market Intel"}
+        </div>
+
+        {/* Regime */}
+        <span className={cn("font-semibold", regimeColor)}>
+          {intel.regime.replace(/_/g, "-")}
+          <span className="ms-1 font-normal text-muted-foreground/70">{intel.regimeConf}%</span>
+        </span>
+
+        {/* Regime transition warning */}
+        {intel.regimeTransition && (
+          <span className="flex items-center gap-1 text-warning">
+            <AlertTriangle className="h-3 w-3 shrink-0" />
+            {ar ? "تحول نظام" : "regime shift"}
+          </span>
+        )}
+
+        <span className="text-border/80">|</span>
+
+        {/* Stress */}
+        <span className={cn("font-medium", stressColor)}>
+          {ar ? "ضغط" : "stress"} {intel.stressScore}/100
+        </span>
+
+        {/* Risk-on/off badge */}
+        <span className={cn(
+          "rounded-md px-1.5 py-0.5 text-[10px] font-semibold",
+          riskDir === "risk-on"  ? "bg-success/10 text-success ring-1 ring-success/20" :
+          riskDir === "risk-off" ? "bg-destructive/10 text-destructive ring-1 ring-destructive/20" :
+          "bg-muted/40 text-muted-foreground ring-1 ring-border/40",
+        )}>
+          {riskDir}
+        </span>
+
+        {/* Breadth */}
+        <span className="text-muted-foreground">
+          {intel.breadth.bullN}↑ {intel.breadth.bearN}↓ / {intel.breadth.total}
+        </span>
+
+        {/* Rotation signal */}
+        {intel.rotation.signal !== "none" && (
+          <>
+            <span className="text-border/80">|</span>
+            <span className="text-primary font-medium">
+              {intel.rotation.signal.replace(/_/g, " ")}
+              {intel.rotation.leading.length > 0 && (
+                <span className="ms-1 font-normal text-muted-foreground/70">
+                  ({intel.rotation.leading.join(", ")})
+                </span>
+              )}
+            </span>
+          </>
+        )}
+
+        {/* Divergence warning */}
+        {intel.divergence.detected && (
+          <>
+            <span className="text-border/80">|</span>
+            <span className="flex items-center gap-1 text-warning">
+              <AlertTriangle className="h-3 w-3 shrink-0" />
+              {intel.divergence.description}
+            </span>
+          </>
+        )}
+      </div>
     </div>
   );
 }
