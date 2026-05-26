@@ -11,7 +11,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
   LayoutDashboard, LineChart, Bell, Archive, User as UserIcon,
-  Brain, LogOut, Globe2, Menu, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap, Eye, Search, Flame, CalendarDays, GraduationCap, Layers, Cpu, Activity, HelpCircle, Compass,
+  Brain, LogOut, Globe2, Menu, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap, Eye, Search, Flame, CalendarDays, GraduationCap, Layers, Cpu, Activity, HelpCircle, Compass, Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
@@ -57,6 +57,7 @@ function AppLayout() {
     { to: "/portfolios", icon: Briefcase, label: t("nav.watchlists"), hint: hint("المحافظ والمراقبة", "Portfolios & watchlists") },
     { to: "/external-accounts", icon: Link2, label: t("nav.external"), hint: hint("ربط Alpaca, IBKR, محافظ كريبتو", "Link Alpaca, IBKR, crypto wallets") },
     { to: "/bank-accounts", icon: Building, label: t("nav.banks"), hint: hint("الحسابات البنكية", "Bank accounts") },
+    { to: "/genesis", icon: Bot, label: hint("Genesis Copilot", "Genesis Copilot"), hint: hint("مساعد الاستثمار الذكي التفاعلي", "Interactive AI investment copilot") },
     { to: "/advisor", icon: Brain, label: t("nav.advisor"), hint: hint("مستشار AI شخصي", "Personal AI advisor") },
     { to: "/signals", icon: Zap, label: t("nav.signals"), hint: hint("إشارات التداول", "Trade signals") },
     { to: "/scanner", icon: Search, label: t("nav.scanner"), hint: hint("ماسح الفرص اللحظي", "Real-time opportunity scanner") },

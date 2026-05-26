@@ -42,6 +42,7 @@ import { Route as AppHelpRouteImport } from './routes/_app/help'
 import { Route as AppHeatmapRouteImport } from './routes/_app/heatmap'
 import { Route as AppGrowthPlanRouteImport } from './routes/_app/growth-plan'
 import { Route as AppGlobalIntelRouteImport } from './routes/_app/global-intel'
+import { Route as AppGenesisRouteImport } from './routes/_app/genesis'
 import { Route as AppExternalAccountsRouteImport } from './routes/_app/external-accounts'
 import { Route as AppErrorLogsRouteImport } from './routes/_app/error-logs'
 import { Route as AppEmailMonitorRouteImport } from './routes/_app/email-monitor'
@@ -241,6 +242,11 @@ const AppGrowthPlanRoute = AppGrowthPlanRouteImport.update({
 const AppGlobalIntelRoute = AppGlobalIntelRouteImport.update({
   id: '/global-intel',
   path: '/global-intel',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGenesisRoute = AppGenesisRouteImport.update({
+  id: '/genesis',
+  path: '/genesis',
   getParentRoute: () => AppRoute,
 } as any)
 const AppExternalAccountsRoute = AppExternalAccountsRouteImport.update({
@@ -461,6 +467,7 @@ export interface FileRoutesByFullPath {
   '/email-monitor': typeof AppEmailMonitorRoute
   '/error-logs': typeof AppErrorLogsRoute
   '/external-accounts': typeof AppExternalAccountsRoute
+  '/genesis': typeof AppGenesisRoute
   '/global-intel': typeof AppGlobalIntelRoute
   '/growth-plan': typeof AppGrowthPlanRoute
   '/heatmap': typeof AppHeatmapRoute
@@ -531,6 +538,7 @@ export interface FileRoutesByTo {
   '/email-monitor': typeof AppEmailMonitorRoute
   '/error-logs': typeof AppErrorLogsRoute
   '/external-accounts': typeof AppExternalAccountsRoute
+  '/genesis': typeof AppGenesisRoute
   '/global-intel': typeof AppGlobalIntelRoute
   '/growth-plan': typeof AppGrowthPlanRoute
   '/heatmap': typeof AppHeatmapRoute
@@ -603,6 +611,7 @@ export interface FileRoutesById {
   '/_app/email-monitor': typeof AppEmailMonitorRoute
   '/_app/error-logs': typeof AppErrorLogsRoute
   '/_app/external-accounts': typeof AppExternalAccountsRoute
+  '/_app/genesis': typeof AppGenesisRoute
   '/_app/global-intel': typeof AppGlobalIntelRoute
   '/_app/growth-plan': typeof AppGrowthPlanRoute
   '/_app/heatmap': typeof AppHeatmapRoute
@@ -675,6 +684,7 @@ export interface FileRouteTypes {
     | '/email-monitor'
     | '/error-logs'
     | '/external-accounts'
+    | '/genesis'
     | '/global-intel'
     | '/growth-plan'
     | '/heatmap'
@@ -745,6 +755,7 @@ export interface FileRouteTypes {
     | '/email-monitor'
     | '/error-logs'
     | '/external-accounts'
+    | '/genesis'
     | '/global-intel'
     | '/growth-plan'
     | '/heatmap'
@@ -816,6 +827,7 @@ export interface FileRouteTypes {
     | '/_app/email-monitor'
     | '/_app/error-logs'
     | '/_app/external-accounts'
+    | '/_app/genesis'
     | '/_app/global-intel'
     | '/_app/growth-plan'
     | '/_app/heatmap'
@@ -1113,6 +1125,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGlobalIntelRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/genesis': {
+      id: '/_app/genesis'
+      path: '/genesis'
+      fullPath: '/genesis'
+      preLoaderRoute: typeof AppGenesisRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/external-accounts': {
       id: '/_app/external-accounts'
       path: '/external-accounts'
@@ -1392,6 +1411,7 @@ interface AppRouteChildren {
   AppEmailMonitorRoute: typeof AppEmailMonitorRoute
   AppErrorLogsRoute: typeof AppErrorLogsRoute
   AppExternalAccountsRoute: typeof AppExternalAccountsRoute
+  AppGenesisRoute: typeof AppGenesisRoute
   AppGlobalIntelRoute: typeof AppGlobalIntelRoute
   AppGrowthPlanRoute: typeof AppGrowthPlanRoute
   AppHeatmapRoute: typeof AppHeatmapRoute
@@ -1441,6 +1461,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppEmailMonitorRoute: AppEmailMonitorRoute,
   AppErrorLogsRoute: AppErrorLogsRoute,
   AppExternalAccountsRoute: AppExternalAccountsRoute,
+  AppGenesisRoute: AppGenesisRoute,
   AppGlobalIntelRoute: AppGlobalIntelRoute,
   AppGrowthPlanRoute: AppGrowthPlanRoute,
   AppHeatmapRoute: AppHeatmapRoute,

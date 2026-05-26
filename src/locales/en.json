@@ -127,7 +127,8 @@
     "globalIntel": "Global Intelligence",
     "alertCenter": "Alert Center",
     "portfolioAI": "AI Portfolio",
-    "aiLearning": "AI Learning"
+    "aiLearning": "AI Learning",
+    "genesis": "Genesis Copilot"
   },
   "backtest": {
     "title": "AI Backtest & Simulation Lab",

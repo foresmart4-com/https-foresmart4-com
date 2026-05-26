@@ -1,0 +1,487 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState, useRef, useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { askGenesis, type GenesisReply, type GenesisSuggestedAction } from "@/lib/genesis.functions";
+import { getMarketData } from "@/lib/market-data";
+import { useI18n } from "@/lib/i18n";
+import { addToWatchlist } from "@/lib/watchlistStore";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
+import { DataStatusBadge } from "@/components/DataStatusBadge";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import {
+  Sparkles, Send, Activity, AlertTriangle, Brain, CheckCircle2,
+  TrendingUp, TrendingDown, Minus, Navigation, Eye, Bell,
+  ChevronRight, RefreshCw,
+} from "lucide-react";
+
+export const Route = createFileRoute("/_app/genesis")({
+  component: GenesisPage,
+  head: () => ({
+    meta: [
+      { title: "Genesis AI Copilot — ForeSmart" },
+      { name: "description", content: "Genesis — ForeSmart's interactive AI investment copilot with scenario analysis and safe internal actions." },
+    ],
+  }),
+});
+
+interface Exchange {
+  id: string;
+  question: string;
+  reply: GenesisReply;
+  engine: "ai" | "heuristic";
+  actionState: "pending" | "confirmed" | "dismissed" | null;
+}
+
+const CONFIDENCE_COLOR = {
+  low: "text-warning",
+  moderate: "text-primary",
+  high: "text-success",
+};
+
+const SUGGESTED_EN = [
+  "What is the market outlook for gold this quarter?",
+  "Analyze the risk/reward of Bitcoin at current levels",
+  "Compare Saudi Aramco vs major oil majors",
+  "What macro risks should I monitor this month?",
+  "Suggest a defensive portfolio strategy",
+];
+const SUGGESTED_AR = [
+  "ما توقعات السوق للذهب هذا الربع؟",
+  "حلّل مخاطر ومكافآت البيتكوين عند مستوياته الحالية",
+  "قارن بين أرامكو السعودية وكبار شركات النفط",
+  "ما أبرز المخاطر الكلية التي يجب مراقبتها هذا الشهر؟",
+  "اقترح استراتيجية محفظة دفاعية",
+];
+
+function GenesisPage() {
+  const { lang } = useI18n();
+  const ar = lang === "ar";
+  const navigate = useNavigate();
+  const ask = useServerFn(askGenesis);
+  const marketFn = useServerFn(getMarketData);
+  const { data: market } = useQuery({ queryKey: ["market"], queryFn: () => marketFn() });
+
+  const [question, setQuestion] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [exchanges, setExchanges] = useState<Exchange[]>([]);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [exchanges, busy]);
+
+  const marketContext = (market?.assets ?? [])
+    .slice(0, 10)
+    .map((a) => `${a.symbol}: ${a.price} (${a.changePct >= 0 ? "+" : ""}${a.changePct.toFixed(2)}%)`)
+    .join("\n");
+
+  const send = async (q: string) => {
+    const trimmed = q.trim();
+    if (!trimmed || busy) return;
+    setBusy(true);
+    setQuestion("");
+    try {
+      const res = await ask({ data: { question: trimmed, language: lang, marketContext } });
+      if (res.error === "rate_limited") {
+        toast.error(ar ? "تم تجاوز الحد، حاول لاحقاً" : "Rate limit exceeded, try again shortly");
+        return;
+      }
+      if (res.error === "payment_required") {
+        toast.error(ar ? "أضف رصيداً في إعدادات Lovable AI" : "Add credits in Lovable AI settings");
+        return;
+      }
+      if (!res.reply) return;
+      setExchanges((prev) => [
+        ...prev,
+        {
+          id: `ex_${Date.now()}`,
+          question: trimmed,
+          reply: res.reply!,
+          engine: res.engine,
+          actionState: res.reply?.suggestedAction?.type && res.reply.suggestedAction.type !== "none" ? "pending" : null,
+        },
+      ]);
+    } catch {
+      toast.error(ar ? "تعذر الاتصال بـ Genesis" : "Could not reach Genesis");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const executeAction = (exId: string, action: GenesisSuggestedAction) => {
+    setExchanges((prev) => prev.map((e) => e.id === exId ? { ...e, actionState: "confirmed" } : e));
+
+    if (action.type === "add_watchlist" && action.symbol) {
+      const added = addToWatchlist({
+        symbol: action.symbol.toUpperCase(),
+        name: action.symbol,
+        category: "other",
+        price: 0,
+        change24h: 0,
+      });
+      if (added) toast.success(ar ? `تمت إضافة ${action.symbol} إلى المراقبة` : `${action.symbol} added to watchlist`);
+      else toast.info(ar ? `${action.symbol} موجود بالفعل في المراقبة` : `${action.symbol} already in watchlist`);
+      return;
+    }
+    if (action.type === "open_alert_form" && action.symbol) {
+      void navigate({ to: "/alerts" as any });
+      return;
+    }
+    if (action.type === "analyze_asset" && action.symbol) {
+      void navigate({ to: "/market-intelligence" as any });
+      return;
+    }
+    if (action.type === "navigate" && action.route) {
+      void navigate({ to: action.route as any });
+      return;
+    }
+  };
+
+  const dismissAction = (exId: string) => {
+    setExchanges((prev) => prev.map((e) => e.id === exId ? { ...e, actionState: "dismissed" } : e));
+  };
+
+  const suggestions = ar ? SUGGESTED_AR : SUGGESTED_EN;
+
+  return (
+    <div className="container mx-auto max-w-4xl p-4 sm:p-6">
+
+      {/* ─── Hero ─────────────────────────────────────────────────────── */}
+      <div className="ornament-border relative mb-6 overflow-hidden rounded-2xl shadow-elegant">
+        <div className="gradient-hero absolute inset-0 pointer-events-none" />
+        <div className="relative z-10 p-5 sm:p-6">
+          <div className="flex items-start gap-4">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl gradient-primary shadow-glow">
+              <Sparkles className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
+                <Brain className="h-3.5 w-3.5" />
+                {ar ? "مساعد الاستثمار الذكي" : "Interactive Investment Copilot"}
+              </div>
+              <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">
+                <span className="text-gradient">Genesis</span>
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+                {ar
+                  ? "تحليل سيناريوهات استثمارية مستقبلية مع نسب ثقة معايرة — يقترح Genesis الإجراء المناسب ويطلب موافقتك قبل تنفيذه."
+                  : "Forward-looking scenario analysis with calibrated confidence — Genesis proposes an action and waits for your confirmation before executing."}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="relative z-10 border-t border-border/40 bg-card/30 px-5 py-2.5 sm:px-6">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <AlertTriangle className="h-3 w-3 shrink-0 text-warning" />
+            <span className="font-semibold text-warning">{ar ? "تحذير:" : "Disclaimer:"}</span>
+            {ar
+              ? "تحليل تعليمي فقط — Genesis لا ينفذ أوامر شراء أو بيع حقيقية."
+              : "Educational analysis only — Genesis cannot and does not execute real buy or sell orders."}
+            <DataStatusBadge status="simulation" className="ms-auto" />
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Exchanges ──────────────────────────────────────────────────── */}
+      <div className="space-y-6">
+        {exchanges.length === 0 && !busy && (
+          <EmptyState ar={ar} suggestions={suggestions} onSelect={(s) => send(s)} />
+        )}
+
+        {exchanges.map((ex) => (
+          <ExchangeCard
+            key={ex.id}
+            exchange={ex}
+            ar={ar}
+            onConfirm={(action) => executeAction(ex.id, action)}
+            onDismiss={() => dismissAction(ex.id)}
+          />
+        ))}
+
+        {busy && <ThinkingState ar={ar} />}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* ─── Composer ───────────────────────────────────────────────────── */}
+      <div className="mt-6 rounded-2xl border border-border gradient-card p-4 shadow-card">
+        <Textarea
+          rows={3}
+          placeholder={ar ? "اسأل Genesis عن أي موضوع استثماري..." : "Ask Genesis about any investment topic…"}
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(question); } }}
+          className="resize-none border-border/60 bg-background/40 text-sm"
+        />
+        {exchanges.length === 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                onClick={() => setQuestion(s)}
+                className="rounded-full border border-border/70 bg-muted/30 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-foreground"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="mt-3 flex items-center justify-between gap-2">
+          {exchanges.length > 0 && (
+            <button
+              onClick={() => setExchanges([])}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <RefreshCw className="h-3 w-3" />
+              {ar ? "محادثة جديدة" : "New conversation"}
+            </button>
+          )}
+          <div className="ms-auto">
+            <Button onClick={() => void send(question)} disabled={busy || !question.trim()} className="gradient-primary text-primary-foreground shadow-glow">
+              <Send className="me-2 h-4 w-4" />
+              {busy ? (ar ? "جارٍ التحليل..." : "Analysing…") : (ar ? "إرسال" : "Send")}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <p className="mt-4 text-center text-[11px] italic text-muted-foreground">
+        {ar
+          ? "Genesis لا ينفذ أي أوامر تداول حقيقية ولا يتصل بأي وسيط مالي. جميع التحليلات تعليمية ومحاكاتية فقط."
+          : "Genesis does not execute real trades and has no connection to any broker or financial execution system. All analysis is educational and simulative only."}
+      </p>
+    </div>
+  );
+}
+
+function EmptyState({ ar, suggestions, onSelect }: { ar: boolean; suggestions: string[]; onSelect: (s: string) => void }) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-muted/10 p-8 text-center">
+      <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl gradient-primary shadow-glow">
+        <Sparkles className="h-7 w-7 text-primary-foreground" />
+      </div>
+      <h2 className="font-display text-xl font-bold">{ar ? "مرحباً بك في Genesis" : "Welcome to Genesis"}</h2>
+      <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+        {ar
+          ? "اطرح أي سؤال استثماري للحصول على تحليل سيناريوهات بنسب ثقة معايرة."
+          : "Ask any investment question for scenario analysis with calibrated confidence scores."}
+      </p>
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
+        {suggestions.slice(0, 4).map((s) => (
+          <button
+            key={s}
+            onClick={() => onSelect(s)}
+            className="rounded-full border border-border/70 bg-muted/30 px-4 py-2 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-foreground"
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ThinkingState({ ar }: { ar: boolean }) {
+  return (
+    <div className="rounded-2xl border border-border gradient-card p-5 shadow-card">
+      <div className="flex items-center gap-2 text-sm text-primary">
+        <Activity className="h-4 w-4 animate-pulse" />
+        {ar ? "Genesis يحلل الأسواق والعوامل الكلية..." : "Genesis is analysing markets and macro factors…"}
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        {[0, 1, 2].map((i) => <div key={i} className="h-20 animate-pulse rounded-xl bg-muted/40" />)}
+      </div>
+    </div>
+  );
+}
+
+function ExchangeCard({ exchange, ar, onConfirm, onDismiss }: {
+  exchange: Exchange;
+  ar: boolean;
+  onConfirm: (a: GenesisSuggestedAction) => void;
+  onDismiss: () => void;
+}) {
+  const { reply, engine, actionState } = exchange;
+  const confidenceColor = CONFIDENCE_COLOR[reply.confidenceLabel] ?? "text-primary";
+
+  return (
+    <div className="space-y-4">
+      {/* Question bubble */}
+      <div className={cn("flex", ar ? "justify-start" : "justify-end")}>
+        <div className="max-w-lg rounded-2xl border border-border/60 bg-muted/30 px-4 py-2.5 text-sm">
+          {exchange.question}
+        </div>
+      </div>
+
+      {/* Genesis response card */}
+      <div className="rounded-2xl border border-border gradient-card shadow-card overflow-hidden">
+        {/* Response header */}
+        <div className="flex items-center justify-between gap-3 border-b border-border/40 px-5 py-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold">Genesis</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={cn("text-xs font-semibold", confidenceColor)}>
+              {ar ? "الثقة" : "Confidence"}: {reply.confidence}%
+            </span>
+            <span className={cn("rounded-md px-2 py-0.5 text-[10px] font-semibold ring-1",
+              engine === "ai"
+                ? "bg-primary/10 text-primary ring-primary/30"
+                : "bg-muted/40 text-muted-foreground ring-border"
+            )}>
+              {engine === "ai" ? "AI" : (ar ? "محلي" : "Heuristic")}
+            </span>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {/* Confidence bar */}
+          <div className="space-y-1">
+            <Progress value={reply.confidence} className="h-1.5" />
+          </div>
+
+          {/* Headline */}
+          <div className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
+            <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-1">
+              {ar ? "الخلاصة" : "Headline"}
+            </div>
+            <p className="text-sm font-semibold leading-snug">{reply.headline}</p>
+          </div>
+
+          {/* Outlook */}
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+              {ar ? "النظرة التحليلية" : "Analytical Outlook"}
+            </div>
+            <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-line">{reply.outlook}</p>
+          </div>
+
+          {/* Scenarios */}
+          {reply.scenarios?.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+                {ar ? "السيناريوهات" : "Scenarios"}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {reply.scenarios.map((s, i) => (
+                  <ScenarioCard key={i} scenario={s} index={i} ar={ar} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Risks */}
+          {reply.risks?.length > 0 && (
+            <div className="rounded-xl border border-warning/30 bg-warning/5 px-4 py-3">
+              <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-warning">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                {ar ? "المخاطر التي تستدعي المراقبة" : "Risks to monitor"}
+              </div>
+              <ul className="space-y-1 ps-4 text-sm text-foreground/90">
+                {reply.risks.map((r, i) => <li key={i} className="list-disc">{r}</li>)}
+              </ul>
+            </div>
+          )}
+
+          {/* Action card */}
+          {reply.suggestedAction && reply.suggestedAction.type !== "none" && actionState === "pending" && (
+            <ActionCard
+              action={reply.suggestedAction}
+              ar={ar}
+              onConfirm={() => onConfirm(reply.suggestedAction!)}
+              onDismiss={onDismiss}
+            />
+          )}
+
+          {actionState === "confirmed" && (
+            <div className="flex items-center gap-2 rounded-xl border border-success/30 bg-success/5 px-4 py-2.5 text-sm text-success">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              {ar ? "تم تنفيذ الإجراء بنجاح" : "Action executed successfully"}
+            </div>
+          )}
+
+          {/* Disclaimer */}
+          <p className="text-center text-[11px] italic text-muted-foreground">{reply.disclaimer}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const SCENARIO_STYLES = [
+  "border-success/30 bg-success/5",
+  "border-primary/30 bg-primary/5",
+  "border-warning/30 bg-warning/5",
+];
+const SCENARIO_ICONS = [TrendingUp, Minus, TrendingDown];
+const SCENARIO_LABEL_COLORS = ["text-success", "text-primary", "text-warning"];
+
+function ScenarioCard({ scenario, index, ar }: { scenario: { label: string; probability: string; impact: string }; index: number; ar: boolean }) {
+  const Icon = SCENARIO_ICONS[index % 3] ?? Minus;
+  const border = SCENARIO_STYLES[index % 3];
+  const labelColor = SCENARIO_LABEL_COLORS[index % 3];
+  return (
+    <div className={cn("rounded-xl border p-3", border)}>
+      <div className="flex items-center gap-2 mb-1.5">
+        <Icon className={cn("h-3.5 w-3.5", labelColor)} />
+        <span className={cn("text-xs font-semibold", labelColor)}>{scenario.label}</span>
+      </div>
+      <div className="text-xs text-muted-foreground mb-1">
+        {ar ? "الاحتمال:" : "Probability:"} <span className="font-medium text-foreground">{scenario.probability}</span>
+      </div>
+      <p className="text-xs leading-relaxed text-foreground/80">{scenario.impact}</p>
+    </div>
+  );
+}
+
+const ACTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  add_watchlist: Eye,
+  open_alert_form: Bell,
+  analyze_asset: Brain,
+  navigate: Navigation,
+  none: ChevronRight,
+};
+
+function ActionCard({ action, ar, onConfirm, onDismiss }: {
+  action: GenesisSuggestedAction;
+  ar: boolean;
+  onConfirm: () => void;
+  onDismiss: () => void;
+}) {
+  const Icon = ACTION_ICONS[action.type] ?? ChevronRight;
+  return (
+    <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+      <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-2">
+        {ar ? "إجراء مقترح من Genesis" : "Genesis suggested action"}
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm">
+          <Icon className="h-4 w-4 text-primary shrink-0" />
+          <span className="font-medium">{action.label}</span>
+          {action.symbol && (
+            <span className="rounded-md border border-border/60 bg-muted/40 px-2 py-0.5 text-xs font-mono">
+              {action.symbol}
+            </span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onDismiss}>
+            {ar ? "تجاهل" : "Dismiss"}
+          </Button>
+          <Button size="sm" className="h-7 text-xs gradient-primary text-primary-foreground shadow-glow" onClick={onConfirm}>
+            {ar ? "تأكيد" : "Confirm"}
+          </Button>
+        </div>
+      </div>
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        {ar
+          ? "لن يُنفَّذ هذا الإجراء إلا بعد الضغط على «تأكيد»."
+          : "This action will only execute after you press Confirm."}
+      </p>
+    </div>
+  );
+}
