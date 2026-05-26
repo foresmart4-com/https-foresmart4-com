@@ -35,6 +35,13 @@ export interface GenesisReply {
   evidence?: string[];
   portfolioImpact?: string;
   uncertaintyWarning?: string;
+  // Research intelligence fields
+  thesis?: string;
+  reasoning?: string;
+  catalysts?: string[];
+  invalidation?: string;
+  confidenceDrivers?: string[];
+  viewChange?: string;
 }
 
 const AskInput = z.object({
@@ -101,6 +108,12 @@ const GENESIS_SCHEMA = `{
   "evidence": ["string — specific supporting factor"] (optional — 2-4 bullets when confidence ≥ 50; omit otherwise),
   "portfolioImpact": "string (optional — only include when user watchlist symbols appear in context)",
   "uncertaintyWarning": "string (optional — only include when confidence < 50)",
+  "thesis": "string (optional — one-sentence directional investment thesis; include direction and instrument; omit only if context insufficient)",
+  "reasoning": "string (optional — 1-2 sentence inference summary; set only when thesis is set; no step-by-step narration)",
+  "catalysts": ["string — specific near-term catalyst or data event"] (optional — 2-3 items; set only when thesis is set),
+  "invalidation": "string (optional — one sentence: the specific trigger that would break the thesis; set only when thesis is set)",
+  "confidenceDrivers": ["string — factor supporting confidence level"] (optional — 2-3 items; set only when confidence ≥ 50),
+  "viewChange": "string (optional — one sentence: the development that would materially shift the outlook; set only when thesis is set)",
   "scenarios": [{ "label": "string", "probability": "string e.g. 35%", "impact": "string — one sentence" }],
   "risks": ["string"],
   "suggestedAction": {
@@ -131,7 +144,13 @@ function buildGenesisSystemPrompt(lang: Lang): string {
 4. عدم اليقين — اضبط "uncertaintyWarning" فقط عند الثقة < 50 مع تفسير الأسباب.
 
 أنتج 3 سيناريوهات بالضبط. أنتج 2-4 مخاطر.
-دليل نوع الإجراء: add_watchlist (يتطلب symbol) | create_alert (يتطلب symbol وprice وcondition) | analyze_asset (يتطلب symbol) | compare_assets (يتطلب assets[]) | summarize_portfolio | navigate (يتطلب route) | none`
+دليل نوع الإجراء: add_watchlist (يتطلب symbol) | create_alert (يتطلب symbol وprice وcondition) | analyze_asset (يتطلب symbol) | compare_assets (يتطلب assets[]) | summarize_portfolio | navigate (يتطلب route) | none
+5. أطروحة — اضبط "thesis" عند توافر وجهة نظر اتجاهية. جملة واحدة تصريحية تتضمن الاتجاه والأداة.
+6. التفكير — اضبط "reasoning" مع "thesis" فقط. جملتان بحد أقصى. لخّص مسار الاستدلال دون سرد تفصيلي.
+7. المحفزات — اضبط "catalysts" مع "thesis". 2-3 أحداث أو بيانات محددة قريبة الأجل.
+8. الإلغاء — اضبط "invalidation" مع "thesis". جملة واحدة: الحدث المحدد الذي يكسر الأطروحة.
+9. محركات الثقة — اضبط "confidenceDrivers" عند الثقة ≥ 50. 2-3 عوامل تدعم مستوى الثقة.
+10. تغيير الرأي — اضبط "viewChange" مع "thesis". جملة واحدة: التطور الذي يُحوّل التوقعات جوهرياً.`
     : `Rules you must NEVER break:
 - Never suggest, confirm, or describe real buy/sell order execution, broker actions, or money movement.
 - Never claim certainty — always express confidence as a calibrated percentage.
@@ -145,7 +164,13 @@ Institutional reasoning framework — apply each layer when context supports it:
 4. UNCERTAINTY — Only set "uncertaintyWarning" when confidence < 50, and explain the specific sources.
 
 Produce exactly 3 scenarios. Produce 2-4 risks.
-Action type guide: add_watchlist (requires symbol) | create_alert (requires symbol, price, condition) | analyze_asset (requires symbol) | compare_assets (requires assets[]) | summarize_portfolio | navigate (requires route) | none`;
+Action type guide: add_watchlist (requires symbol) | create_alert (requires symbol, price, condition) | analyze_asset (requires symbol) | compare_assets (requires assets[]) | summarize_portfolio | navigate (requires route) | none
+5. THESIS — Set "thesis" when you can form a directional view. One sentence, declarative, includes direction and instrument.
+6. REASONING — Set "reasoning" only with thesis. Max 2 sentences. Summarise the inference chain without step-by-step narration.
+7. CATALYSTS — Set "catalysts" with thesis. List 2-3 specific, near-term events or data points that would validate it.
+8. INVALIDATION — Set "invalidation" with thesis. One sentence: the specific trigger that breaks the thesis.
+9. CONFIDENCE DRIVERS — Set "confidenceDrivers" when confidence ≥ 50. List 2-3 factors that specifically support the confidence level.
+10. VIEW CHANGE — Set "viewChange" with thesis. One sentence: the development that would materially shift the outlook.`;
 
   return buildLocaleSystemPrompt({ lang, surface: "genesis_copilot", schema: GENESIS_SCHEMA, extra });
 }
@@ -177,7 +202,7 @@ export const askGenesis = createServerFn({ method: "POST" })
       user,
       language: lang,
       jsonObject: true,
-      maxTokens: 1600,
+      maxTokens: 2000,
       temperature: 0.4,
     });
 

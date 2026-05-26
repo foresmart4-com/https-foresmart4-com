@@ -11,6 +11,7 @@ import { memoryAgent } from "@/services/agents/memoryAgent";
 import { genesisMemory } from "@/services/learning/genesisMemory";
 import { aiMemory } from "@/services/learning/aiMemory";
 import { clearMemory as clearSignalMemory, getMemory } from "@/services/learning/signalMemory";
+import { thesisMemory, type ThesisEntry } from "@/services/learning/thesisMemory";
 import { ece, driftReport, strategyScores } from "@/services/learning/selfLearningEngine";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,7 +23,7 @@ import {
   Sparkles, Send, Activity, AlertTriangle, Brain, CheckCircle2,
   TrendingUp, TrendingDown, Minus, Navigation, Eye, Bell,
   ChevronRight, RefreshCw, Scale, PieChart,
-  ThumbsUp, ThumbsDown, ChevronDown, Trash2, Database,
+  ThumbsUp, ThumbsDown, ChevronDown, Trash2, Database, Zap, XCircle,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/genesis")({
@@ -135,6 +136,7 @@ function GenesisPage() {
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [memorySummary, setMemorySummary] = useState(() => genesisMemory.summary());
+  const [thesisCount, setThesisCount] = useState(() => thesisMemory.all().length);
   const [profileVersion, setProfileVersion] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
@@ -201,6 +203,13 @@ function GenesisPage() {
         ? `User watchlist (${watchlistItems.length} assets): ${watchlistItems.slice(0, 5).map((a) => a.symbol).join(", ")}`
         : "";
 
+      // Thesis memory context — recent directional theses for continuity.
+      const recentTheses = thesisMemory.getRecent(3);
+      const thesisCtx = recentTheses.length > 0
+        ? `Prior theses (${recentTheses.length}): ` +
+          recentTheses.map((t) => `${t.asset} ${t.direction} ${t.confidence}% — "${t.thesis.slice(0, 60)}"`).join(" | ")
+        : "";
+
       // Signal history context — compact win-rate and dominant regime from learning layer.
       const sigMem = getMemory();
       const resolved = sigMem.filter((s) => s.outcome && s.outcome !== "pending");
@@ -215,7 +224,7 @@ function GenesisPage() {
       // Lightweight decision consensus — regime estimate from live market breadth.
       const consensusCtx = buildMarketConsensus(assets);
 
-      const fullContext = [memCtx, decisionCtx, watchlistCtx, signalCtx, consensusCtx, opportunityCtx, riskCtx, marketContext, sessionCtx].filter(Boolean).join("\n");
+      const fullContext = [memCtx, decisionCtx, watchlistCtx, thesisCtx, signalCtx, consensusCtx, opportunityCtx, riskCtx, marketContext, sessionCtx].filter(Boolean).join("\n");
       const res = await ask({ data: { question: trimmed, language: lang, marketContext: fullContext } });
 
       if (res.error === "rate_limited") {
@@ -246,6 +255,26 @@ function GenesisPage() {
         actionType: res.reply.suggestedAction?.type ?? null,
       });
       setMemorySummary(genesisMemory.summary());
+
+      // Save thesis to thesis memory if AI produced a directional view.
+      if (res.reply.thesis && res.engine === "ai") {
+        const regime = res.reply.regime ?? "";
+        const direction: ThesisEntry["direction"] =
+          regime.includes("bull") ? "bullish" :
+          regime.includes("bear") ? "bearish" : "neutral";
+        thesisMemory.save({
+          id: `th_${Date.now()}`,
+          ts: Date.now(),
+          asset: res.reply.suggestedAction?.symbol ?? "MARKET",
+          direction,
+          thesis: res.reply.thesis,
+          confidence: res.reply.confidence,
+          uncertainty: res.reply.uncertaintyWarning ?? null,
+          invalidation: res.reply.invalidation ?? null,
+          catalyst: res.reply.catalysts?.[0] ?? null,
+        });
+        setThesisCount(thesisMemory.all().length);
+      }
 
       setExchanges((prev) => [
         ...prev,
@@ -355,7 +384,9 @@ function GenesisPage() {
     clearSignalMemory();
     memoryAgent.clear();
     genesisMemory.clear();
+    thesisMemory.clear();
     setMemorySummary(genesisMemory.summary());
+    setThesisCount(0);
     toast.success(ar ? "تم مسح الذاكرة بالكامل" : "All memory cleared");
   };
 
@@ -457,6 +488,31 @@ function GenesisPage() {
                   {profile.preferredAssets.slice(0, 8).map((a) => (
                     <span key={a} className="rounded-md border border-border/60 bg-muted/40 px-2 py-0.5 text-xs font-mono">
                       {a}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Saved theses */}
+            {thesisCount > 0 && (
+              <div>
+                <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  {ar ? `الأطروحات المحفوظة (${thesisCount})` : `Saved theses (${thesisCount})`}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {thesisMemory.getRecent(6).map((t) => (
+                    <span
+                      key={t.id}
+                      title={t.thesis}
+                      className={cn(
+                        "rounded-md border px-2 py-0.5 text-xs font-mono cursor-default",
+                        t.direction === "bullish" ? "border-success/40 bg-success/10 text-success" :
+                        t.direction === "bearish" ? "border-destructive/40 bg-destructive/10 text-destructive" :
+                        "border-border/60 bg-muted/40 text-muted-foreground",
+                      )}
+                    >
+                      {t.asset} {t.direction === "bullish" ? "↑" : t.direction === "bearish" ? "↓" : "→"} {t.confidence}%
                     </span>
                   ))}
                 </div>
@@ -701,6 +757,22 @@ function ExchangeCard({ exchange, ar, confModifier, onConfirm, onDismiss, onDefe
             </div>
           )}
 
+          {/* Investment thesis + reasoning */}
+          {reply.thesis && (
+            <div className="rounded-xl border border-primary/30 bg-primary/8 px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Brain className="h-3.5 w-3.5 text-primary/70" />
+                <div className="text-[10px] uppercase tracking-wider text-primary font-semibold">
+                  {ar ? "الأطروحة الاستثمارية" : "Investment Thesis"}
+                </div>
+              </div>
+              <p className="text-sm font-semibold leading-snug">{reply.thesis}</p>
+              {reply.reasoning && (
+                <p className="mt-1.5 text-xs italic text-foreground/70 leading-relaxed">{reply.reasoning}</p>
+              )}
+            </div>
+          )}
+
           {/* Headline */}
           <div className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
             <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-1">
@@ -733,6 +805,24 @@ function ExchangeCard({ exchange, ar, confModifier, onConfirm, onDismiss, onDefe
             </div>
             <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-line">{reply.outlook}</p>
           </div>
+
+          {/* Catalysts to watch */}
+          {reply.catalysts && reply.catalysts.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center gap-1.5">
+                <Zap className="h-3 w-3" />
+                {ar ? "المحفزات المرتقبة" : "Catalysts to Watch"}
+              </div>
+              <ul className="space-y-1.5">
+                {reply.catalysts.map((c, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-foreground/90">
+                    <Zap className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/60" />
+                    <span>{c}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Portfolio impact */}
           {reply.portfolioImpact && (
@@ -771,6 +861,47 @@ function ExchangeCard({ exchange, ar, confModifier, onConfirm, onDismiss, onDefe
               <ul className="space-y-1 ps-4 text-sm text-foreground/90">
                 {reply.risks.map((r, i) => <li key={i} className="list-disc">{r}</li>)}
               </ul>
+            </div>
+          )}
+
+          {/* Thesis invalidation condition */}
+          {reply.invalidation && (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <XCircle className="h-3.5 w-3.5 text-destructive/70" />
+                <div className="text-[10px] uppercase tracking-wider text-destructive font-semibold">
+                  {ar ? "شرط إلغاء الأطروحة" : "Thesis Invalidation"}
+                </div>
+              </div>
+              <p className="text-sm text-foreground/90">{reply.invalidation}</p>
+            </div>
+          )}
+
+          {/* Confidence drivers */}
+          {reply.confidenceDrivers && reply.confidenceDrivers.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+                {ar ? "محركات الثقة" : "Confidence Drivers"}
+              </div>
+              <ul className="space-y-1.5">
+                {reply.confidenceDrivers.map((d, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-foreground/80">
+                    <CheckCircle2 className="h-3 w-3 mt-0.5 shrink-0 text-success/60" />
+                    <span>{d}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* View change condition */}
+          {reply.viewChange && (
+            <div className="flex items-start gap-2 rounded-xl border border-border/50 bg-muted/20 px-4 py-2.5 text-xs">
+              <RefreshCw className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
+              <div>
+                <span className="font-semibold text-muted-foreground">{ar ? "تغيير الرأي: " : "View change: "}</span>
+                <span className="text-foreground/80">{reply.viewChange}</span>
+              </div>
             </div>
           )}
 
