@@ -779,16 +779,41 @@ function ActionCard({ action, ar, onConfirm, onDismiss, onDefer }: {
   onDefer: () => void;
 }) {
   const Icon = ACTION_ICONS[action.type] ?? ChevronRight;
+  const isConditionalAlert = action.type === "create_alert" && action.symbol && action.price != null && action.condition;
   return (
     <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
-      <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-2">
-        {ar ? "إجراء مقترح من Genesis" : "Genesis suggested action"}
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-[10px] uppercase tracking-wider text-primary font-semibold">
+          {ar ? "إجراء مقترح من Genesis" : "Genesis suggested action"}
+        </span>
+        <span className="rounded-md border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold text-warning">
+          {ar ? "مسودة" : "Draft"}
+        </span>
       </div>
+
+      {/* Conditional preview for price-triggered alerts */}
+      {isConditionalAlert && (
+        <div className="mb-3 flex items-center gap-1.5 rounded-lg border border-border/50 bg-muted/30 px-3 py-1.5 text-xs font-mono">
+          <span className="text-muted-foreground">{ar ? "إذا" : "IF"}</span>
+          <span className="font-semibold text-foreground">{action.symbol}</span>
+          <span className={cn(
+            "font-semibold",
+            action.condition === "above" ? "text-success" : "text-destructive",
+          )}>
+            {action.condition === "above" ? (ar ? "تجاوز" : ">") : (ar ? "انخفض عن" : "<")}
+          </span>
+          <span className="font-semibold text-foreground">{action.price!.toLocaleString()}</span>
+          <span className="mx-1 text-muted-foreground">→</span>
+          <Bell className="h-3 w-3 text-primary" />
+          <span className="text-primary">{ar ? "إنشاء تنبيه" : "Create alert"}</span>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <Icon className="h-4 w-4 text-primary shrink-0" />
           <span className="font-medium">{action.label}</span>
-          {action.symbol && !action.assets?.length && (
+          {action.symbol && !action.assets?.length && !isConditionalAlert && (
             <span className="rounded-md border border-border/60 bg-muted/40 px-2 py-0.5 text-xs font-mono">
               {action.symbol}
             </span>
