@@ -73,6 +73,32 @@ const RISK_LABEL: Record<string, { en: string; ar: string }> = {
   aggressive: { en: "Aggressive", ar: "عدواني" },
 };
 
+// Allowlist of internal routes Genesis may navigate to. Admin / ops routes are excluded.
+const GENESIS_ALLOWED_ROUTES = new Set([
+  "/alerts", "/watchlist", "/markets", "/market-intelligence", "/market-universe",
+  "/portfolio-ai", "/portfolios", "/signals", "/global-intel", "/advisor",
+  "/opportunity-scanner", "/scanner", "/heatmap", "/calendar",
+  "/ai-dashboard", "/genesis", "/growth-plan", "/backtest-lab",
+  "/stocks-portfolio", "/paper-trading",
+]);
+
+function sanitizeGenesisAction(action: GenesisSuggestedAction): GenesisSuggestedAction | null {
+  const safe: GenesisSuggestedAction = { ...action };
+  if (safe.route !== undefined) {
+    // Strip query/hash, validate against allowlist.
+    const path = safe.route.split("?")[0].split("#")[0].replace(/\/$/, "") || "/";
+    if (!GENESIS_ALLOWED_ROUTES.has(path)) return null;
+    safe.route = path;
+  }
+  if (safe.symbol !== undefined) {
+    safe.symbol = safe.symbol.trim().toUpperCase().slice(0, 20).replace(/[^A-Z0-9._-]/g, "");
+    if (!safe.symbol) return null;
+  }
+  if (safe.price !== undefined && (typeof safe.price !== "number" || !isFinite(safe.price) || safe.price <= 0 || safe.price > 1e12)) return null;
+  if (safe.condition !== undefined && safe.condition !== "above" && safe.condition !== "below") return null;
+  return safe;
+}
+
 function GenesisPage() {
   const { lang } = useI18n();
   const ar = lang === "ar";
@@ -178,7 +204,12 @@ function GenesisPage() {
     }
   };
 
-  const executeAction = async (exId: string, action: GenesisSuggestedAction) => {
+  const executeAction = async (exId: string, rawAction: GenesisSuggestedAction) => {
+    const action = sanitizeGenesisAction(rawAction);
+    if (!action) {
+      toast.error(ar ? "إجراء غير مسموح به" : "Action not permitted");
+      return;
+    }
     setExchanges((prev) => prev.map((e) => e.id === exId ? { ...e, actionState: "confirmed" } : e));
 
     if (action.type === "add_watchlist" && action.symbol) {
