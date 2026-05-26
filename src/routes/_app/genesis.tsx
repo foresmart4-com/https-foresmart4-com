@@ -40,7 +40,7 @@ interface Exchange {
   question: string;
   reply: GenesisReply;
   engine: "ai" | "heuristic";
-  actionState: "pending" | "confirmed" | "dismissed" | null;
+  actionState: "pending" | "confirmed" | "dismissed" | "deferred" | null;
   feedback: "helpful" | "unhelpful" | null;
 }
 
@@ -98,10 +98,19 @@ function GenesisPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [exchanges, busy]);
 
-  const marketContext = (market?.assets ?? [])
+  const assets = market?.assets ?? [];
+  const marketContext = assets
     .slice(0, 10)
     .map((a) => `${a.symbol}: ${a.price} (${a.changePct >= 0 ? "+" : ""}${a.changePct.toFixed(2)}%)`)
     .join("\n");
+
+  const sorted = [...assets].sort((a, b) => b.changePct - a.changePct);
+  const opportunityCtx = sorted.slice(0, 3).length
+    ? "Top opportunities (24h): " + sorted.slice(0, 3).map((a) => `${a.symbol} +${a.changePct.toFixed(2)}%`).join(", ")
+    : "";
+  const riskCtx = sorted.slice(-3).length
+    ? "Risk signals (24h worst): " + [...sorted].slice(-3).reverse().map((a) => `${a.symbol} ${a.changePct.toFixed(2)}%`).join(", ")
+    : "";
 
   const send = async (q: string) => {
     const trimmed = q.trim();
@@ -122,7 +131,7 @@ function GenesisPage() {
         `Confidence modifier: ${confModifier.toFixed(2)}x (${confModifier >= 1 ? "above" : "below"} baseline)`,
       ].filter(Boolean).join(" | ");
 
-      const fullContext = [memCtx, decisionCtx, marketContext].filter(Boolean).join("\n");
+      const fullContext = [memCtx, decisionCtx, opportunityCtx, riskCtx, marketContext].filter(Boolean).join("\n");
       const res = await ask({ data: { question: trimmed, language: lang, marketContext: fullContext } });
 
       if (res.error === "rate_limited") {
@@ -227,6 +236,11 @@ function GenesisPage() {
 
   const dismissAction = (exId: string) => {
     setExchanges((prev) => prev.map((e) => e.id === exId ? { ...e, actionState: "dismissed" } : e));
+  };
+
+  const deferAction = (exId: string) => {
+    setExchanges((prev) => prev.map((e) => e.id === exId ? { ...e, actionState: "deferred" } : e));
+    toast(ar ? "تم حفظ الاقتراح — يمكنك مراجعته لاحقاً" : "Suggestion saved — review it when ready");
   };
 
   const recordFeedback = (exId: string, rating: "helpful" | "unhelpful") => {
@@ -389,6 +403,7 @@ function GenesisPage() {
             confModifier={confModifier}
             onConfirm={(action) => executeAction(ex.id, action)}
             onDismiss={() => dismissAction(ex.id)}
+            onDefer={() => deferAction(ex.id)}
             onFeedback={(rating) => recordFeedback(ex.id, rating)}
           />
         ))}
@@ -489,12 +504,13 @@ function ThinkingState({ ar }: { ar: boolean }) {
   );
 }
 
-function ExchangeCard({ exchange, ar, confModifier, onConfirm, onDismiss, onFeedback }: {
+function ExchangeCard({ exchange, ar, confModifier, onConfirm, onDismiss, onDefer, onFeedback }: {
   exchange: Exchange;
   ar: boolean;
   confModifier: number;
   onConfirm: (a: GenesisSuggestedAction) => void;
   onDismiss: () => void;
+  onDefer: () => void;
   onFeedback: (rating: "helpful" | "unhelpful") => void;
 }) {
   const { reply, engine, actionState } = exchange;
@@ -593,13 +609,24 @@ function ExchangeCard({ exchange, ar, confModifier, onConfirm, onDismiss, onFeed
             </div>
           )}
 
-          {/* Action card */}
-          {reply.suggestedAction && reply.suggestedAction.type !== "none" && actionState === "pending" && (
+          {/* Confidence gate — advisory-only warning when confidence is very low */}
+          {displayConfidence < 40 && reply.suggestedAction && reply.suggestedAction.type !== "none" && actionState === "pending" && (
+            <div className="flex items-center gap-2 rounded-xl border border-warning/30 bg-warning/5 px-4 py-2 text-xs text-warning">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              {ar
+                ? `ثقة منخفضة (${displayConfidence}%) — هذا الاقتراح استشاري فقط`
+                : `Low confidence (${displayConfidence}%) — this suggestion is advisory only`}
+            </div>
+          )}
+
+          {/* Action card — hidden when confidence too low to be actionable */}
+          {reply.suggestedAction && reply.suggestedAction.type !== "none" && actionState === "pending" && displayConfidence >= 25 && (
             <ActionCard
               action={reply.suggestedAction}
               ar={ar}
               onConfirm={() => onConfirm(reply.suggestedAction!)}
               onDismiss={onDismiss}
+              onDefer={onDefer}
             />
           )}
 
@@ -614,6 +641,13 @@ function ExchangeCard({ exchange, ar, confModifier, onConfirm, onDismiss, onFeed
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
               <ChevronRight className="h-3 w-3 shrink-0" />
               {ar ? "تم تجاهل الاقتراح" : "Suggestion dismissed"}
+            </div>
+          )}
+
+          {actionState === "deferred" && (
+            <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2 text-xs text-primary/80">
+              <Brain className="h-3.5 w-3.5 shrink-0" />
+              {ar ? "تم حفظ الاقتراح — راجعه عندما تكون مستعداً" : "Suggestion saved — review when ready"}
             </div>
           )}
 
@@ -704,11 +738,12 @@ function MemoryStat({ label, value, highlight }: { label: string; value: string;
   );
 }
 
-function ActionCard({ action, ar, onConfirm, onDismiss }: {
+function ActionCard({ action, ar, onConfirm, onDismiss, onDefer }: {
   action: GenesisSuggestedAction;
   ar: boolean;
   onConfirm: () => void;
   onDismiss: () => void;
+  onDefer: () => void;
 }) {
   const Icon = ACTION_ICONS[action.type] ?? ChevronRight;
   return (
@@ -734,6 +769,9 @@ function ActionCard({ action, ar, onConfirm, onDismiss }: {
         <div className="flex gap-2">
           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onDismiss}>
             {ar ? "تجاهل" : "Dismiss"}
+          </Button>
+          <Button size="sm" variant="outline" className="h-7 text-xs text-primary border-primary/30" onClick={onDefer}>
+            {ar ? "لاحقاً" : "Later"}
           </Button>
           <Button size="sm" className="h-7 text-xs gradient-primary text-primary-foreground shadow-glow" onClick={onConfirm}>
             {ar ? "تأكيد" : "Confirm"}
