@@ -905,7 +905,7 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
 
           {/* Phase 8: Executive Summary — top of research report */}
           {reply.executiveSummary && (
-            <div className="rounded-xl border border-primary/40 bg-primary/6 px-4 py-3">
+            <div className="rounded-xl border border-primary/40 bg-primary/8 px-4 py-3">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <FileText className="h-3.5 w-3.5 text-primary/70" />
                 <div className="text-[10px] uppercase tracking-wider text-primary font-semibold">

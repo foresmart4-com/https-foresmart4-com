@@ -72,11 +72,13 @@ function extractComparisonPair(q: string, watchlistItems: WatchlistAsset[]): [st
       .replace(/[^A-Za-z0-9؀-ۿ]/g, "")
       .toUpperCase()
       .slice(0, 12);
-    if (left && right && left !== right) {
+    // Reject common English stopwords that cannot be asset identifiers
+    const STOPWORDS = new Set(["THE", "A", "AN", "OF", "TO", "AND", "OR", "IN", "AT", "FOR", "BY", "ON", "AS", "IT", "IS", "MY"]);
+    if (left && right && left !== right && !STOPWORDS.has(left) && !STOPWORDS.has(right)) {
       // Normalize well-known aliases
       const norm = (s: string) => {
-        if (s === "GOLD" || s === "XAU") return "GOLD";
-        if (s === "SP500" || s === "SPX") return "SPX";
+        if (s === "XAU") return "GOLD";
+        if (s === "SP500") return "SPX";
         return s;
       };
       return [norm(left), norm(right)];
