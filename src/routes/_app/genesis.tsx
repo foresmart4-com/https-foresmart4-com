@@ -12,6 +12,8 @@ import { computePortfolioIntel, type PortfolioIntelSummary } from "@/services/po
 import { computeScenarioSim, type ScenarioSimResult } from "@/services/scenarios/scenarioEngine";
 import { detectResearchIntent } from "@/services/research/researchEngine";
 import { researchMemory } from "@/services/learning/researchMemory";
+import { intelligenceGraph, type GraphSummary } from "@/services/learning/intelligenceGraph";
+import { extractGraphFromReply } from "@/services/learning/graphExtractor";
 import { memoryAgent } from "@/services/agents/memoryAgent";
 import { genesisMemory } from "@/services/learning/genesisMemory";
 import { memoryIntelligence } from "@/services/learning/memoryIntelligence";
@@ -32,7 +34,7 @@ import {
   TrendingUp, TrendingDown, Minus, Navigation, Eye, Bell,
   ChevronRight, RefreshCw, Scale, PieChart,
   ThumbsUp, ThumbsDown, ChevronDown, Trash2, Database, Zap, XCircle,
-  BookOpen, FileText, Layers, Clock,
+  BookOpen, FileText, Layers, Clock, Network,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/genesis")({
@@ -127,6 +129,7 @@ function GenesisPage() {
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [researchMode, setResearchMode] = useState(false);
   const [researchCount, setResearchCount] = useState(() => researchMemory.count());
+  const [graphSummary, setGraphSummary] = useState<GraphSummary>(() => intelligenceGraph.summary());
   const [memorySummary, setMemorySummary] = useState(() => genesisMemory.weightedSummary());
   const [thesisCount, setThesisCount] = useState(() => thesisMemory.all().length);
   const [continuityScore, setContinuityScore] = useState(() => memoryIntelligence.snapshot().continuityScore);
@@ -239,6 +242,9 @@ function GenesisPage() {
         ? (intent.compactHint || `Research mode (market): produce full institutional research report. Populate executiveSummary, keyDrivers, watchItems. Set researchType="market".`)
         : intent.compactHint;
 
+      // Intelligence Graph recall — Phase 9: historical asset/thesis/risk context from prior sessions.
+      const graphCtx = intelligenceGraph.compactContext(trimmed, watchlistItems);
+
       // Prune context layers to stay within budget (2800 chars max).
       const fullContext = pruneContext([
         { key: "mem",        content: memCtx,                       weight: 0.95 },
@@ -252,6 +258,7 @@ function GenesisPage() {
         { key: "signal",     content: signalCtx,                    weight: 0.65 },
         { key: "marketIntel",content: marketIntel.compactContext,   weight: 0.62 },
         { key: "scenario",   content: scenarioCtx,                  weight: 0.58 },
+        { key: "graph",      content: graphCtx,                     weight: 0.56 },
         { key: "top3",       content: opportunityCtx,               weight: 0.5  },
         { key: "bot3",       content: riskCtx,                      weight: 0.5  },
         { key: "market",     content: marketContext,                 weight: 0.4  },
@@ -351,6 +358,10 @@ function GenesisPage() {
         });
         setResearchCount(researchMemory.count());
       }
+
+      // Extract intelligence graph nodes from this reply — Phase 9
+      extractGraphFromReply(res.reply, trimmed, res.engine, watchlistItems);
+      setGraphSummary(intelligenceGraph.summary());
     } catch {
       toast.error(ar ? "تعذر الاتصال بـ Genesis" : "Could not reach Genesis");
     } finally {
@@ -451,10 +462,12 @@ function GenesisPage() {
     thesisMemory.clear();
     sessionIntelStore.clear();
     researchMemory.clear();
+    intelligenceGraph.clear();
     setMemorySummary(genesisMemory.weightedSummary());
     setThesisCount(0);
     setContinuityScore(0);
     setResearchCount(0);
+    setGraphSummary(intelligenceGraph.summary());
     toast.success(ar ? "تم مسح الذاكرة بالكامل" : "All memory cleared");
   };
 
@@ -615,6 +628,48 @@ function GenesisPage() {
                       <span className="shrink-0 text-muted-foreground/60">{r.confidence}%</span>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Intelligence Graph — Phase 9 */}
+            {graphSummary.nodeCount > 0 && (
+              <div>
+                <div className="mb-1.5 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <Network className="h-3 w-3" />
+                    {ar
+                      ? `الرسم البياني الذكي (${graphSummary.nodeCount} عقدة · ${graphSummary.edgeCount} رابط)`
+                      : `Intelligence Graph (${graphSummary.nodeCount} nodes · ${graphSummary.edgeCount} edges)`}
+                  </span>
+                  <button
+                    onClick={() => {
+                      intelligenceGraph.clear();
+                      setGraphSummary(intelligenceGraph.summary());
+                      toast.success(ar ? "تم مسح الرسم البياني" : "Intelligence graph cleared");
+                    }}
+                    className="text-destructive/60 hover:text-destructive transition-colors normal-case tracking-normal"
+                  >
+                    {ar ? "مسح" : "Clear"}
+                  </button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {graphSummary.topAssets.map((asset) => (
+                    <span
+                      key={asset}
+                      className="rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-mono text-primary"
+                    >
+                      {asset}
+                    </span>
+                  ))}
+                  <span className="text-[11px] text-muted-foreground/70">
+                    {graphSummary.activeTheses > 0 && `${graphSummary.activeTheses} ${ar ? "أطروحة" : "thes"}`}
+                    {graphSummary.activeTheses > 0 && graphSummary.activeRisks > 0 && " · "}
+                    {graphSummary.activeRisks > 0 && `${graphSummary.activeRisks} ${ar ? "مخاطر" : "risks"}`}
+                    {graphSummary.hasContradictions && (
+                      <span className="text-warning"> · ⚠ {ar ? "تعارضات" : "contradictions"}</span>
+                    )}
+                  </span>
                 </div>
               </div>
             )}
