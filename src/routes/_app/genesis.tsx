@@ -9,6 +9,7 @@ import { useI18n } from "@/lib/i18n";
 import { addToWatchlist, useWatchlist } from "@/lib/watchlistStore";
 import { memoryAgent } from "@/services/agents/memoryAgent";
 import { genesisMemory } from "@/services/learning/genesisMemory";
+import { memoryIntelligence } from "@/services/learning/memoryIntelligence";
 import { aiMemory } from "@/services/learning/aiMemory";
 import { clearMemory as clearSignalMemory, getMemory } from "@/services/learning/signalMemory";
 import { thesisMemory, type ThesisEntry } from "@/services/learning/thesisMemory";
@@ -137,8 +138,9 @@ function GenesisPage() {
   const [busy, setBusy] = useState(false);
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const [memoryOpen, setMemoryOpen] = useState(false);
-  const [memorySummary, setMemorySummary] = useState(() => genesisMemory.summary());
+  const [memorySummary, setMemorySummary] = useState(() => genesisMemory.weightedSummary());
   const [thesisCount, setThesisCount] = useState(() => thesisMemory.all().length);
+  const [continuityScore, setContinuityScore] = useState(() => memoryIntelligence.snapshot().continuityScore);
   const [profileVersion, setProfileVersion] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
@@ -151,6 +153,10 @@ function GenesisPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [exchanges, busy]);
+
+  useEffect(() => {
+    memoryIntelligence.compress();
+  }, []);
 
   const assets = market?.assets ?? [];
   const marketContext = assets
@@ -189,16 +195,8 @@ function GenesisPage() {
         `Confidence modifier: ${confModifier.toFixed(2)}x (${confModifier >= 1 ? "above" : "below"} baseline)`,
       ].filter(Boolean).join(" | ");
 
-      // Multi-turn session context — last 6 exchanges; most recent 2 include full Q+A for follow-up continuity.
-      const recentHistory = genesisMemory.list().slice(-6);
-      const sessionCtx = recentHistory.length
-        ? `Conversation history (${recentHistory.length} exchanges): ` +
-          recentHistory.map((e, i, arr) =>
-            i >= arr.length - 2
-              ? `[${e.engineUsed.toUpperCase()}] Q:"${e.question.slice(0, 55)}" → "${e.headline.slice(0, 55)}"`
-              : `"${e.headline.slice(0, 45)}"`
-          ).join(" | ")
-        : "";
+      // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
+      const sessionCtx = memoryIntelligence.buildIntelContext();
 
       // Watchlist context — exposes user's tracked symbols for portfolio-aware reasoning.
       const watchlistCtx = watchlistItems.length
@@ -277,7 +275,8 @@ function GenesisPage() {
         engineUsed: res.engine,
         actionType: res.reply.suggestedAction?.type ?? null,
       });
-      setMemorySummary(genesisMemory.summary());
+      setMemorySummary(genesisMemory.weightedSummary());
+      setContinuityScore(memoryIntelligence.snapshot().continuityScore);
 
       // Save thesis to thesis memory if AI produced a directional view.
       if (res.reply.thesis && res.engine === "ai") {
@@ -406,11 +405,12 @@ function GenesisPage() {
     aiMemory.clear();
     clearSignalMemory();
     memoryAgent.clear();
-    genesisMemory.clear();
+    genesisMemory.clearAll();
     thesisMemory.clear();
     sessionIntelStore.clear();
-    setMemorySummary(genesisMemory.summary());
+    setMemorySummary(genesisMemory.weightedSummary());
     setThesisCount(0);
+    setContinuityScore(0);
     toast.success(ar ? "تم مسح الذاكرة بالكامل" : "All memory cleared");
   };
 
@@ -483,13 +483,17 @@ function GenesisPage() {
 
         {memoryOpen && (
           <div className="border-t border-border/40 px-4 pb-4 pt-3 space-y-3">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               <MemoryStat
                 label={ar ? "الأسئلة" : "Questions"}
                 value={String(memorySummary.total || 0)}
               />
               <MemoryStat
-                label={ar ? "متوسط الثقة" : "Avg confidence"}
+                label={ar ? "الاستمرارية" : "Continuity"}
+                value={memorySummary.total ? `${continuityScore}%` : "—"}
+              />
+              <MemoryStat
+                label={ar ? "ثقة مرجّحة" : "Wtd. confidence"}
                 value={memorySummary.total ? `${memorySummary.avgConfidence}%` : "—"}
               />
               <MemoryStat
