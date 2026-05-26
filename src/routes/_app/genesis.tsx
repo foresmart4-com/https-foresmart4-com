@@ -10,6 +10,8 @@ import { addToWatchlist, useWatchlist } from "@/lib/watchlistStore";
 import { computeMarketIntel, type MarketIntelSummary } from "@/services/market/marketIntelEngine";
 import { computePortfolioIntel, type PortfolioIntelSummary } from "@/services/portfolio/portfolioIntelEngine";
 import { computeScenarioSim, type ScenarioSimResult } from "@/services/scenarios/scenarioEngine";
+import { detectResearchIntent } from "@/services/research/researchEngine";
+import { researchMemory } from "@/services/learning/researchMemory";
 import { memoryAgent } from "@/services/agents/memoryAgent";
 import { genesisMemory } from "@/services/learning/genesisMemory";
 import { memoryIntelligence } from "@/services/learning/memoryIntelligence";
@@ -30,6 +32,7 @@ import {
   TrendingUp, TrendingDown, Minus, Navigation, Eye, Bell,
   ChevronRight, RefreshCw, Scale, PieChart,
   ThumbsUp, ThumbsDown, ChevronDown, Trash2, Database, Zap, XCircle,
+  BookOpen, FileText, Layers, Clock,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/genesis")({
@@ -49,6 +52,7 @@ interface Exchange {
   engine: "ai" | "heuristic";
   actionState: "pending" | "confirmed" | "dismissed" | "deferred" | null;
   feedback: "helpful" | "unhelpful" | null;
+  comparisonPair: [string, string] | null;
 }
 
 const CONFIDENCE_COLOR = {
@@ -121,6 +125,8 @@ function GenesisPage() {
   const [busy, setBusy] = useState(false);
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const [memoryOpen, setMemoryOpen] = useState(false);
+  const [researchMode, setResearchMode] = useState(false);
+  const [researchCount, setResearchCount] = useState(() => researchMemory.count());
   const [memorySummary, setMemorySummary] = useState(() => genesisMemory.weightedSummary());
   const [thesisCount, setThesisCount] = useState(() => thesisMemory.all().length);
   const [continuityScore, setContinuityScore] = useState(() => memoryIntelligence.snapshot().continuityScore);
@@ -227,10 +233,17 @@ function GenesisPage() {
       const scenarioSim = computeScenarioSim(trimmed, marketIntel, watchlistItems, thesisMemory.all());
       const scenarioCtx = scenarioSim.compactContext;
 
+      // Research Terminal context — Phase 8.
+      const intent = detectResearchIntent(trimmed, watchlistItems, thesisMemory.all());
+      const researchHint = researchMode
+        ? (intent.compactHint || `Research mode (market): produce full institutional research report. Populate executiveSummary, keyDrivers, watchItems. Set researchType="market".`)
+        : intent.compactHint;
+
       // Prune context layers to stay within budget (2800 chars max).
       const fullContext = pruneContext([
         { key: "mem",        content: memCtx,                       weight: 0.95 },
         { key: "decision",   content: decisionCtx,                  weight: 0.9  },
+        { key: "research",   content: researchHint,                 weight: 0.88 },
         { key: "watchlist",  content: watchlistCtx,                 weight: 0.85 },
         { key: "thesis",     content: thesisCtx,                    weight: 0.85 },
         { key: "session",    content: sessionCtx,                   weight: 0.8  },
@@ -310,8 +323,34 @@ function GenesisPage() {
           engine: res.engine,
           actionState: res.reply?.suggestedAction?.type && res.reply.suggestedAction.type !== "none" ? "pending" : null,
           feedback: null,
+          comparisonPair: intent.comparisonPair,
         },
       ]);
+
+      // Save to research memory when AI produced a research report.
+      if (res.reply.researchType && res.engine === "ai") {
+        const sectionsPresent: string[] = [];
+        if (res.reply.executiveSummary) sectionsPresent.push("executive_summary");
+        if (res.reply.keyDrivers?.length) sectionsPresent.push("key_drivers");
+        if (res.reply.catalysts?.length) sectionsPresent.push("catalysts");
+        if (res.reply.risks?.length) sectionsPresent.push("risks");
+        if (res.reply.invalidation) sectionsPresent.push("invalidation");
+        if (res.reply.scenarios?.length) sectionsPresent.push("scenarios");
+        if (res.reply.portfolioImpact) sectionsPresent.push("portfolio_relevance");
+        if (res.reply.confidenceDrivers?.length) sectionsPresent.push("confidence_drivers");
+        if (res.reply.watchItems?.length) sectionsPresent.push("watch_items");
+        if (res.reply.comparisonTable?.length) sectionsPresent.push("comparison_table");
+        researchMemory.save({
+          id: `res_${Date.now()}`,
+          ts: Date.now(),
+          question: trimmed.slice(0, 100),
+          topic: intent.primaryTopic,
+          type: res.reply.researchType,
+          confidence: res.reply.confidence,
+          sectionsPresent,
+        });
+        setResearchCount(researchMemory.count());
+      }
     } catch {
       toast.error(ar ? "تعذر الاتصال بـ Genesis" : "Could not reach Genesis");
     } finally {
@@ -411,9 +450,11 @@ function GenesisPage() {
     genesisMemory.clearAll();
     thesisMemory.clear();
     sessionIntelStore.clear();
+    researchMemory.clear();
     setMemorySummary(genesisMemory.weightedSummary());
     setThesisCount(0);
     setContinuityScore(0);
+    setResearchCount(0);
     toast.success(ar ? "تم مسح الذاكرة بالكامل" : "All memory cleared");
   };
 
@@ -550,6 +591,34 @@ function GenesisPage() {
               </div>
             )}
 
+            {/* Research reports */}
+            {researchCount > 0 && (
+              <div>
+                <div className="mb-1.5 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <BookOpen className="h-3 w-3" />
+                    {ar ? `تقارير البحث (${researchCount})` : `Research reports (${researchCount})`}
+                  </span>
+                  <button
+                    onClick={() => { researchMemory.clear(); setResearchCount(0); toast.success(ar ? "تم مسح تقارير البحث" : "Research reports cleared"); }}
+                    className="text-destructive/60 hover:text-destructive transition-colors normal-case tracking-normal"
+                  >
+                    {ar ? "مسح" : "Clear"}
+                  </button>
+                </div>
+                <div className="space-y-1.5">
+                  {researchMemory.getRecent(4).map((r) => (
+                    <div key={r.id} className="flex items-center gap-2 rounded-md border border-border/40 bg-muted/20 px-2.5 py-1.5 text-[11px]">
+                      <FileText className="h-3 w-3 shrink-0 text-primary/60" />
+                      <span className="font-medium text-foreground/80 truncate flex-1">{r.topic}</span>
+                      <span className="shrink-0 rounded-md border border-border/40 bg-muted/30 px-1.5 py-0.5 text-[10px] text-muted-foreground">{r.type}</span>
+                      <span className="shrink-0 text-muted-foreground/60">{r.confidence}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Response style preference */}
             <div>
               <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
@@ -630,6 +699,7 @@ function GenesisPage() {
             onDismiss={() => dismissAction(ex.id)}
             onDefer={() => deferAction(ex.id)}
             onFeedback={(rating) => recordFeedback(ex.id, rating)}
+            comparisonPair={ex.comparisonPair}
           />
         ))}
 
@@ -661,15 +731,33 @@ function GenesisPage() {
           </div>
         )}
         <div className="mt-3 flex items-center justify-between gap-2">
-          {exchanges.length > 0 && (
+          <div className="flex items-center gap-2">
+            {exchanges.length > 0 && (
+              <button
+                onClick={() => setExchanges([])}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <RefreshCw className="h-3 w-3" />
+                {ar ? "محادثة جديدة" : "New conversation"}
+              </button>
+            )}
             <button
-              onClick={() => setExchanges([])}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setResearchMode((v) => !v)}
+              title={ar ? "وضع البحث المؤسسي" : "Institutional research mode"}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors",
+                researchMode
+                  ? "border-primary/50 bg-primary/15 text-primary"
+                  : "border-border/60 bg-muted/30 text-muted-foreground hover:border-primary/30 hover:text-foreground",
+              )}
             >
-              <RefreshCw className="h-3 w-3" />
-              {ar ? "محادثة جديدة" : "New conversation"}
+              <BookOpen className="h-3 w-3" />
+              {ar ? "بحث" : "Research"}
+              {researchMode && (
+                <span className="rounded-full bg-primary/30 px-1 text-[9px] font-bold">{ar ? "مفعّل" : "ON"}</span>
+              )}
             </button>
-          )}
+          </div>
           <div className="ms-auto">
             <Button onClick={() => void send(question)} disabled={busy || !question.trim()} className="gradient-primary text-primary-foreground shadow-glow">
               <Send className="me-2 h-4 w-4" />
@@ -729,7 +817,7 @@ function ThinkingState({ ar }: { ar: boolean }) {
   );
 }
 
-function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss, onDefer, onFeedback }: {
+function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss, onDefer, onFeedback, comparisonPair }: {
   exchange: Exchange;
   ar: boolean;
   confModifier: number;
@@ -738,6 +826,7 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
   onDismiss: () => void;
   onDefer: () => void;
   onFeedback: (rating: "helpful" | "unhelpful") => void;
+  comparisonPair: [string, string] | null;
 }) {
   const { reply, engine, actionState } = exchange;
   // ECE feedback: compress confidence toward reality when calibration error is high.
@@ -776,6 +865,12 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
             )}>
               {engine === "ai" ? "AI" : (ar ? "محلي" : "Heuristic")}
             </span>
+            {reply.researchType && (
+              <span className="flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary ring-1 ring-primary/20">
+                <BookOpen className="h-2.5 w-2.5" />
+                {ar ? "بحث" : "Research"}
+              </span>
+            )}
           </div>
         </div>
 
@@ -805,6 +900,22 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
               <span className="rounded-md border border-primary/25 bg-primary/8 px-2 py-0.5 text-[10px] font-bold text-primary">
                 {reply.regime.replace(/_/g, " ")}
               </span>
+            </div>
+          )}
+
+          {/* Phase 8: Executive Summary — top of research report */}
+          {reply.executiveSummary && (
+            <div className="rounded-xl border border-primary/40 bg-primary/6 px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <FileText className="h-3.5 w-3.5 text-primary/70" />
+                <div className="text-[10px] uppercase tracking-wider text-primary font-semibold">
+                  {ar ? "الملخص التنفيذي" : "Executive Summary"}
+                </div>
+                <span className="ms-1 rounded-md border border-border/50 bg-muted/30 px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold text-muted-foreground">
+                  {ar ? "تعليمي" : "Advisory"}
+                </span>
+              </div>
+              <p className="text-sm font-medium leading-relaxed text-foreground/90">{reply.executiveSummary}</p>
             </div>
           )}
 
@@ -843,6 +954,24 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
                   <li key={i} className="flex items-start gap-2 text-sm text-foreground/90">
                     <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/60" />
                     <span>{e}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Phase 8: Key Drivers */}
+          {reply.keyDrivers && reply.keyDrivers.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center gap-1.5">
+                <Layers className="h-3 w-3" />
+                {ar ? "المحركات الرئيسية" : "Key Drivers"}
+              </div>
+              <ul className="space-y-1.5">
+                {reply.keyDrivers.map((d, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-foreground/90">
+                    <TrendingUp className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
+                    <span>{d}</span>
                   </li>
                 ))}
               </ul>
@@ -942,6 +1071,65 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {/* Phase 8: Watch Items */}
+          {reply.watchItems && reply.watchItems.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center gap-1.5">
+                <Clock className="h-3 w-3" />
+                {ar ? "عناصر المراقبة" : "Watch Items"}
+              </div>
+              <ul className="space-y-1.5">
+                {reply.watchItems.map((w, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-foreground/80">
+                    <Eye className="h-3.5 w-3.5 mt-0.5 shrink-0 text-warning/60" />
+                    <span>{w}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Phase 8: Comparison Table */}
+          {reply.comparisonTable && reply.comparisonTable.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center gap-1.5">
+                <Scale className="h-3 w-3" />
+                {ar ? "جدول المقارنة" : "Comparison Table"}
+                {comparisonPair && (
+                  <span className="ms-1 font-mono text-[10px] text-primary/70">
+                    {comparisonPair[0]} vs {comparisonPair[1]}
+                  </span>
+                )}
+              </div>
+              <div className="rounded-xl border border-border/40 overflow-hidden">
+                {comparisonPair && (
+                  <div className="grid grid-cols-3 border-b border-border/40 bg-muted/30 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <div className="px-3 py-1.5">{ar ? "المقياس" : "Metric"}</div>
+                    <div className="px-3 py-1.5 border-l border-border/30 text-primary/80">{comparisonPair[0]}</div>
+                    <div className="px-3 py-1.5 border-l border-border/30 text-primary/80">{comparisonPair[1]}</div>
+                  </div>
+                )}
+                {reply.comparisonTable.map((row, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "grid grid-cols-3 text-xs",
+                      i > 0 && "border-t border-border/30",
+                      i % 2 === 0 ? "bg-background/40" : "bg-muted/10",
+                    )}
+                  >
+                    <div className="px-3 py-2 font-medium text-muted-foreground">{row.metric}</div>
+                    <div className="px-3 py-2 text-foreground/90 border-l border-border/30">{row.a}</div>
+                    <div className="px-3 py-2 text-foreground/90 border-l border-border/30">{row.b}</div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-1.5 text-[10px] italic text-muted-foreground/60">
+                {ar ? "للأغراض التعليمية — لا يُعتمد كأساس للتداول." : "Educational comparison only — not a basis for trading decisions."}
+              </p>
             </div>
           )}
 

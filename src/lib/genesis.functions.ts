@@ -52,6 +52,16 @@ export interface GenesisReply {
   expectedImpact?: string;     // cross-asset directional impact under the scenario
   watchlistSensitivity?: string; // how user's watched assets respond
   thesisSensitivity?: string;  // whether scenario validates or conflicts with active theses
+  // Phase 8: Institutional Research Terminal fields
+  executiveSummary?: string;   // 2-3 sentence research conclusion (research mode only)
+  keyDrivers?: string[];        // 3-5 key structural/macro/technical drivers
+  watchItems?: string[];        // 2-4 specific items to monitor going forward
+  comparisonTable?: Array<{    // 3-5 metric rows for asset vs asset / sector vs sector
+    metric: string;
+    a: string;
+    b: string;
+  }>;
+  researchType?: "asset" | "comparison" | "sector" | "thesis" | "market";
 }
 
 const AskInput = z.object({
@@ -131,6 +141,11 @@ const GENESIS_SCHEMA = `{
   "expectedImpact": "string — 1-2 sentences on cross-asset directional effects under the simulated scenario" (optional),
   "watchlistSensitivity": "string — 1 sentence on how user's watched assets would respond; only when watchlist appears in context" (optional),
   "thesisSensitivity": "string — 1 sentence on whether scenario aligns or conflicts with active theses; only when thesis context appears" (optional),
+  "executiveSummary": "string (optional — 2-3 sentence institutional research conclusion; include ONLY when research mode context appears in the prompt)",
+  "keyDrivers": ["string — specific structural/macro/technical driver"] (optional — 3-5 items; include ONLY when research mode context appears),
+  "watchItems": ["string — specific data point, event, or price level to monitor"] (optional — 2-4 items; include ONLY when research mode context appears),
+  "comparisonTable": [{"metric": "string — dimension being compared", "a": "string — asset/sector A value", "b": "string — asset/sector B value"}] (optional — 3-5 rows; include ONLY when comparing two assets or sectors in research mode),
+  "researchType": <"asset"|"comparison"|"sector"|"thesis"|"market"> (optional — set when research mode context appears),
   "scenarios": [{ "label": "string", "probability": "string e.g. 35%", "impact": "string — one sentence" }],
   "risks": ["string"],
   "suggestedAction": {
@@ -173,7 +188,15 @@ function buildGenesisSystemPrompt(lang: Lang): string {
     اضبط "expectedImpact": جملة أو جملتان على الآثار الاتجاهية متعددة الأصول. تعليمي فقط.
     اضبط "watchlistSensitivity": كيف تستجيب الأصول المراقبة. فقط عند ورود قائمة المراقبة في السياق.
     اضبط "thesisSensitivity": هل السيناريو يؤيد أم يتعارض مع الأطروحات النشطة. فقط عند ورود الأطروحات في السياق.
-    جميع مخرجات السيناريو استشارية وتعليمية حصراً.`
+    جميع مخرجات السيناريو استشارية وتعليمية حصراً.
+12. المحطة البحثية المؤسسية — عند ظهور "Research mode" في السياق:
+    اضبط "researchType" حسب النوع الوارد في السياق (asset أو comparison أو sector أو thesis أو market).
+    اضبط "executiveSummary": 2-3 جمل تلخّص الاستنتاج البحثي الجوهري. أسلوب مؤسسي مباشر.
+    اضبط "keyDrivers": 3-5 عوامل هيكلية أو كلية أو تقنية محددة تقود الأصل أو الموقف. كل عنصر عبارة اسمية موجزة.
+    اضبط "watchItems": 2-4 نقاط بيانات أو أحداث أو مستويات سعرية محددة يجب مراقبتها. كل عنصر محدد وقابل للقياس.
+    للمقارنات: اضبط "comparisonTable" بـ 3-5 صفوف. كل صف: metric (مثل "التذبذب"، "السيولة")، a (قيمة الأصل A)، b (قيمة الأصل B).
+    لا تختلق بيانات. استند فقط لما يدعمه السياق. صرّح بعدم اليقين في executiveSummary عند قصور البيانات.
+    جميع مخرجات البحث تعليمية واستشارية حصراً — لا تنفيذ ولا وساطة مالية.`
     : `Rules you must NEVER break:
 - Never suggest, confirm, or describe real buy/sell order execution, broker actions, or money movement.
 - Never claim certainty — always express confidence as a calibrated percentage.
@@ -199,7 +222,15 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
     Set "expectedImpact": 1-2 sentences on directional cross-asset effects. Educational only — no execution.
     Set "watchlistSensitivity": how user's watched assets respond. Only set when watchlist appears in context.
     Set "thesisSensitivity": whether scenario validates or conflicts with active theses. Only set when thesis context appears.
-    All scenario output is advisory and simulative only.`;
+    All scenario output is advisory and simulative only.
+12. RESEARCH TERMINAL — When "Research mode" appears in the context:
+    Set "researchType" to the type stated in context (asset, comparison, sector, thesis, or market).
+    Set "executiveSummary": 2-3 sentences with the core research conclusion. Direct, institutional tone. No hedging filler.
+    Set "keyDrivers": 3-5 specific structural, macro, or technical forces driving the asset or situation. Each item is a crisp noun phrase.
+    Set "watchItems": 2-4 specific data points, events, price levels, or policy decisions to monitor. Each item is a concrete watchable trigger.
+    For comparisons: set "comparisonTable" with 3-5 rows. Each row: metric (e.g. "Volatility", "Liquidity", "Macro sensitivity"), a (value for asset A), b (value for asset B).
+    Never fabricate data. Use only what the context supports. State uncertainty explicitly in executiveSummary when data is insufficient.
+    All research output is educational and advisory only — no execution, no broker logic.`;
 
   return buildLocaleSystemPrompt({ lang, surface: "genesis_copilot", schema: GENESIS_SCHEMA, extra });
 }
