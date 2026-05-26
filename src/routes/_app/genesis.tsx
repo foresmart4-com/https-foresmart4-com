@@ -8,6 +8,7 @@ import { getMarketData, type AssetQuote } from "@/lib/market-data";
 import { useI18n } from "@/lib/i18n";
 import { addToWatchlist, useWatchlist } from "@/lib/watchlistStore";
 import { computeMarketIntel, type MarketIntelSummary } from "@/services/market/marketIntelEngine";
+import { computePortfolioIntel, type PortfolioIntelSummary } from "@/services/portfolio/portfolioIntelEngine";
 import { memoryAgent } from "@/services/agents/memoryAgent";
 import { genesisMemory } from "@/services/learning/genesisMemory";
 import { memoryIntelligence } from "@/services/learning/memoryIntelligence";
@@ -141,6 +142,10 @@ function GenesisPage() {
 
   const assets = market?.assets ?? [];
   const marketIntel = useMemo(() => computeMarketIntel(assets), [assets]); // eslint-disable-line react-hooks/exhaustive-deps
+  const portfolioIntel = useMemo(
+    () => computePortfolioIntel(watchlistItems, marketIntel, thesisMemory.all()),
+    [watchlistItems, marketIntel], // eslint-disable-line react-hooks/exhaustive-deps
+  );
   const marketContext = assets
     .slice(0, 10)
     .map((a) => `${a.symbol}: ${a.price} (${a.changePct >= 0 ? "+" : ""}${a.changePct.toFixed(2)}%)`)
@@ -180,10 +185,13 @@ function GenesisPage() {
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
       const sessionCtx = memoryIntelligence.buildIntelContext();
 
-      // Watchlist context — exposes user's tracked symbols for portfolio-aware reasoning.
+      // Watchlist context — category-aware, feeds portfolio-aware reasoning.
       const watchlistCtx = watchlistItems.length
-        ? `User watchlist (${watchlistItems.length} assets): ${watchlistItems.slice(0, 5).map((a) => a.symbol).join(", ")}`
+        ? `User watchlist (${watchlistItems.length}): ${watchlistItems.slice(0, 6).map((a) => `${a.symbol}(${a.category})`).join(", ")}`
         : "";
+
+      // Portfolio brain context — exposure, concentration, regime alignment, thesis matches.
+      const portfolioIntelCtx = portfolioIntel.compactContext;
 
       // Thesis memory context — compact compressed string.
       const thesisCtx = thesisMemory.compressedContext(3);
@@ -212,6 +220,7 @@ function GenesisPage() {
         { key: "watchlist",  content: watchlistCtx,                 weight: 0.85 },
         { key: "thesis",     content: thesisCtx,                    weight: 0.85 },
         { key: "session",    content: sessionCtx,                   weight: 0.8  },
+        { key: "portfolio",  content: portfolioIntelCtx,            weight: 0.78 },
         { key: "bus",        content: sessionBusCtx,                weight: 0.75 },
         { key: "signal",     content: signalCtx,                    weight: 0.65 },
         { key: "marketIntel",content: marketIntel.compactContext,   weight: 0.62 },
@@ -577,6 +586,11 @@ function GenesisPage() {
       {/* ─── Market Intelligence Panel ──────────────────────────────────── */}
       {marketIntel.compactContext && (
         <MarketIntelPanel intel={marketIntel} ar={ar} />
+      )}
+
+      {/* ─── Portfolio Brain Panel ──────────────────────────────────────── */}
+      {portfolioIntel.compactContext && (
+        <PortfolioBrainPanel intel={portfolioIntel} ar={ar} />
       )}
 
       {/* ─── Exchanges ──────────────────────────────────────────────────── */}
@@ -1149,6 +1163,94 @@ const STRESS_COLOR: Record<string, string> = {
   elevated: "text-warning",
   high:     "text-destructive",
 };
+
+// ─── Portfolio Brain Panel ────────────────────────────────────────────────────
+
+function PortfolioBrainPanel({ intel, ar }: { intel: PortfolioIntelSummary; ar: boolean }) {
+  const hasWarning = intel.riskOverlap.detected || !intel.regimeAlignment.aligned;
+  const topCats = intel.categoryExposure.slice(0, 3);
+
+  return (
+    <div className="mb-4 rounded-xl border border-border/40 bg-card/30 px-4 py-2.5">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px]">
+        {/* Label */}
+        <div className="flex items-center gap-1.5 font-semibold uppercase tracking-wider text-muted-foreground">
+          <PieChart className="h-3 w-3 shrink-0" />
+          {ar ? "دماغ المحفظة" : "Portfolio Brain"}
+        </div>
+
+        {/* Category breakdown */}
+        {topCats.map((e) => (
+          <span key={e.category} className="text-foreground/80 font-medium">
+            {e.category}
+            <span className="ms-0.5 font-normal text-muted-foreground/70">{e.weightPct}%</span>
+          </span>
+        ))}
+
+        {/* Concentration badge */}
+        {intel.concentrationScore > 50 && (
+          <>
+            <span className="text-border/80">|</span>
+            <span className={cn(
+              "rounded-md px-1.5 py-0.5 text-[10px] font-semibold",
+              intel.concentrationScore > 75
+                ? "bg-destructive/10 text-destructive ring-1 ring-destructive/20"
+                : "bg-warning/10 text-warning ring-1 ring-warning/20",
+            )}>
+              {ar ? "تركيز" : "conc"} {intel.concentrationScore}/100
+            </span>
+          </>
+        )}
+
+        {/* Risk overlap warning */}
+        {intel.riskOverlap.detected && (
+          <>
+            <span className="text-border/80">|</span>
+            <span className="flex items-center gap-1 text-warning">
+              <AlertTriangle className="h-3 w-3 shrink-0" />
+              {intel.riskOverlap.description}
+            </span>
+          </>
+        )}
+
+        {/* Regime alignment */}
+        {intel.regimeAlignment.note && (
+          <>
+            <span className="text-border/80">|</span>
+            <span className={cn(
+              "flex items-center gap-1",
+              intel.regimeAlignment.aligned ? "text-success" : "text-warning",
+            )}>
+              {!intel.regimeAlignment.aligned && <AlertTriangle className="h-3 w-3 shrink-0" />}
+              {intel.regimeAlignment.note}
+            </span>
+          </>
+        )}
+
+        {/* Thesis match count */}
+        {intel.relevantThesisCount > 0 && (
+          <>
+            <span className="text-border/80">|</span>
+            <span className="flex items-center gap-1 text-primary font-medium">
+              <Brain className="h-3 w-3 shrink-0" />
+              {intel.relevantThesisCount} {ar ? "أطروحة" : `thesis match${intel.relevantThesisCount > 1 ? "es" : ""}`}
+            </span>
+          </>
+        )}
+
+        {/* All-clear when no warnings */}
+        {!hasWarning && !intel.regimeAlignment.note && (
+          <>
+            <span className="text-border/80">|</span>
+            <span className="text-success text-[10px] font-medium">
+              {ar ? "تنويع جيد" : "diversified"}
+            </span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function MarketIntelPanel({ intel, ar }: { intel: MarketIntelSummary; ar: boolean }) {
   const regimeColor = REGIME_COLOR[intel.regime] ?? "text-muted-foreground";
