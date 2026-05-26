@@ -105,11 +105,13 @@ function GenesisPage() {
     .join("\n");
 
   const sorted = [...assets].sort((a, b) => b.changePct - a.changePct);
-  const opportunityCtx = sorted.slice(0, 3).length
-    ? "Top opportunities (24h): " + sorted.slice(0, 3).map((a) => `${a.symbol} +${a.changePct.toFixed(2)}%`).join(", ")
+  const top3 = sorted.slice(0, 3);
+  const bot3 = sorted.slice(-3).reverse();
+  const opportunityCtx = top3.length
+    ? "Top opportunities (24h): " + top3.map((a) => `${a.symbol} ${a.changePct >= 0 ? "+" : ""}${a.changePct.toFixed(2)}%`).join(", ")
     : "";
-  const riskCtx = sorted.slice(-3).length
-    ? "Risk signals (24h worst): " + [...sorted].slice(-3).reverse().map((a) => `${a.symbol} ${a.changePct.toFixed(2)}%`).join(", ")
+  const riskCtx = bot3.length
+    ? "Risk signals (24h worst): " + bot3.map((a) => `${a.symbol} ${a.changePct.toFixed(2)}%`).join(", ")
     : "";
 
   const send = async (q: string) => {
