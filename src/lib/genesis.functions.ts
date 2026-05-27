@@ -71,6 +71,14 @@ export interface GenesisReply {
   crossAssetConfirmation?: string;  // Track C: gold/BTC/DXY confirms or contradicts macro thesis
   positioningSignal?: string;       // Track E: positioning/sentiment timing signal
   marketStateQuality?: "live" | "partial" | "inferred";  // quality of live market data used
+  // Phase 12: Visible Agent Arbitration fields
+  trackViewMacro?: string;       // Track A: macro strategist — 1-sentence directional view
+  trackViewTechnical?: string;   // Track B: technical analyst — 1-sentence view
+  trackViewCrossAsset?: string;  // Track C: cross-asset strategist — 1-sentence view
+  trackViewRisk?: string;        // Track D: risk officer — 1-sentence primary concern
+  trackViewPositioning?: string; // Track E: positioning analyst — 1-sentence view
+  arbitrationReason?: string;    // Why base thesis wins over opposing case — 1-2 sentences
+  disagreementMap?: string[];    // Track pairs with directional disagreement
 }
 
 const AskInput = z.object({
@@ -280,6 +288,14 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
     uncertaintyLevel,
     comparisonTable,
     marketStateQuality,
+    // Phase 12: Visible Agent Arbitration fields
+    trackViewMacro: cleanStr(obj.trackViewMacro),
+    trackViewTechnical: cleanStr(obj.trackViewTechnical),
+    trackViewCrossAsset: cleanStr(obj.trackViewCrossAsset),
+    trackViewRisk: cleanStr(obj.trackViewRisk),
+    trackViewPositioning: cleanStr(obj.trackViewPositioning),
+    arbitrationReason: cleanStr(obj.arbitrationReason),
+    disagreementMap: cleanStrArr(obj.disagreementMap),
   };
 }
 
@@ -411,6 +427,13 @@ const GENESIS_SCHEMA = `{
   "crossAssetConfirmation": "string — 1 sentence: do gold/BTC/DXY signals CONFIRM or CONTRADICT the dominant macro thesis? State direction explicitly." (optional — set when Track C cross-asset context is present),
   "positioningSignal": "string — 1 sentence: what does the positioning/sentiment signal imply for timing and near-term risk?" (optional — set when Track E context is present),
   "marketStateQuality": <"live"|"partial"|"inferred"> (optional — set from the LIVE MARKET STATE QUALITY line in track context; always set when track fusion context is present),
+  "trackViewMacro": "string — 1 sentence: Track A macro strategist directional view and regime implication" (optional — set when Track A context is present),
+  "trackViewTechnical": "string — 1 sentence: Track B technical analyst directional view on trend and momentum" (optional — set when Track B context is present),
+  "trackViewCrossAsset": "string — 1 sentence: Track C cross-asset strategist directional view on gold/BTC/DXY" (optional — set when Track C context is present),
+  "trackViewRisk": "string — 1 sentence: Track D risk officer primary concern that most limits the base thesis" (optional — set when Track D context is present),
+  "trackViewPositioning": "string — 1 sentence: Track E positioning analyst view on timing and near-term directional risk" (optional — set when Track E context is present),
+  "arbitrationReason": "string — 1-2 sentences: WHY the base thesis wins over the opposing case — name the specific deciding factor, not just restate the thesis" (optional — set when multi-track fusion context is present),
+  "disagreementMap": ["string — e.g. 'Track A (bullish macro) vs Track B (bearish technical)'"] (optional — one entry per track pair with directional conflict; only when 2+ tracks explicitly disagree),
   "scenarios": [{ "label": "string", "probability": "string e.g. 35%", "impact": "string — one sentence" }],
   "risks": ["string"],
   "suggestedAction": {
@@ -481,7 +504,14 @@ function buildGenesisSystemPrompt(lang: Lang): string {
     اضبط "thesis" متى توفّر سياق المسارين A وB — ليس اختيارياً في وضع الدمج.
     اضبط "opposingCase" من counterCase في المسار D + counterThesis في المسار E. اذكر أقوى حجة مضادة ثم بيّن في الجملة ذاتها لماذا تخسر أمام الحالة الأساسية.
     اضبط "invalidation" من invalidationTrigger في المسار D — يجب أن يكون حدثاً قابلاً للملاحظة، لا مفهوماً مبهماً.
-    إذا كان marketStateQuality = "inferred": أشر في confidenceCalibration إلى غياب البيانات الحية وخفّض الثقة 5 نقاط على الأقل.`
+    إذا كان marketStateQuality = "inferred": أشر في confidenceCalibration إلى غياب البيانات الحية وخفّض الثقة 5 نقاط على الأقل.
+    اضبط "trackViewMacro": وجهة نظر المسار A في جملة واحدة — النظام الكلي وتضمينه الاتجاهي.
+    اضبط "trackViewTechnical": وجهة نظر المسار B في جملة واحدة — بنية الاتجاه وقناعة الزخم.
+    اضبط "trackViewCrossAsset": وجهة نظر المسار C في جملة واحدة — ما تشير إليه إشارات الذهب/BTC/DXY اتجاهياً.
+    اضبط "trackViewRisk": القلق الأساسي للمسار D في جملة واحدة — المخاطرة أو عدم اليقين الذي يُقيّد الأطروحة الأساسية أكثر من غيره.
+    اضبط "trackViewPositioning": وجهة نظر المسار E في جملة واحدة — ما يُشير إليه التموضع والمشاعر بشأن المسار الاتجاهي قريب الأجل.
+    اضبط "arbitrationReason": جملة أو جملتان — لماذا تتفوق الأطروحة الأساسية على الحالة المضادة؟ سمّ العامل المحدد الحاسم. لا تُعد صياغة الأطروحة — بل اشرح ما الذي يُرجّح الكفة.
+    اضبط "disagreementMap": قيد واحد لكل زوج من المسارات ذات التعارض الاتجاهي الصريح، مثال: "المسار A (صاعد — كلي) vs المسار B (هابط — تقني)". أدرج فقط الأزواج التي يختلف فيها التصنيف الاتجاهي.`
     : `Rules you must NEVER break:
 - Never suggest, confirm, or describe real buy/sell order execution, broker actions, or money movement.
 - Never claim certainty — always express confidence as a calibrated percentage.
@@ -537,7 +567,14 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
     Set "opposingCase" from Track D counterCase + Track E counterThesis. State the strongest counter-argument, then explain in the same sentence WHY it loses to the base case.
     Set "invalidation" from Track D's invalidationTrigger — must be a specific observable event, never a vague concept.
     Set "supportingCase" from the single most compelling cross-track evidence alignment supporting the base thesis.
-    If marketStateQuality is "inferred": note in "confidenceCalibration" that live market data was unavailable and reduce confidence by at least 5 points from the anchor.`;
+    If marketStateQuality is "inferred": note in "confidenceCalibration" that live market data was unavailable and reduce confidence by at least 5 points from the anchor.
+    Set "trackViewMacro": Track A's directional view in 1 sentence — the macro regime and its directional implication for the asset/market.
+    Set "trackViewTechnical": Track B's directional view in 1 sentence — trend structure, momentum conviction, and volatility context.
+    Set "trackViewCrossAsset": Track C's directional view in 1 sentence — what the gold/BTC/DXY signals imply directionally.
+    Set "trackViewRisk": Track D's primary concern in 1 sentence — the specific risk or uncertainty that most constrains the base thesis.
+    Set "trackViewPositioning": Track E's view in 1 sentence — what positioning and sentiment imply for the near-term directional path.
+    Set "arbitrationReason": 1-2 sentences — WHY the base thesis wins over the opposing case. Name the specific deciding factor (e.g. "Track A and Track C both confirm X, which outweighs Track B's Y because Z"). Do not restate the thesis — explain what breaks the tie.
+    Set "disagreementMap": one string per track pair with explicit directional conflict, e.g. "Track A (bullish macro) vs Track B (bearish technical)". Only include pairs where the directional labels differ.`;
 
   const base = buildLocaleSystemPrompt({ lang, surface: "genesis_copilot", schema: GENESIS_SCHEMA, extra });
   // Prepend a hard JSON-only directive so Gemini never emits text outside the object.
@@ -981,7 +1018,7 @@ async function runFusion(
 
   const fusionDirective = lang === "ar"
     ? `نتائج خمسة وكلاء متخصصين:\n${trackLines}\n\nمتطلبات الدمج المؤسسي الإلزامية:\n1. يجب أن يدمج حقل "outlook" جميع المسارات المتاحة صراحةً: النظام الكلي (A)، البنية التقنية (B)، تأكيد أو تناقض الأصول المتقاطعة (C)، مسار المخاطر الرئيسي (D)، وإشارة التموضع (E). الاكتفاء بالماكرو فشل.\n2. اضبط crossAssetConfirmation من المسار C: هل تؤكد بيانات الذهب/BTC/DXY أم تتناقض مع الأطروحة الغالبة؟\n3. اضبط positioningSignal من sentimentSignal في المسار E.\n4. اضبط marketStateQuality من سطر LIVE MARKET STATE QUALITY أعلاه.\n5. إذا كان consensus agreement < 70: disagreementNote إلزامي — سمّ المسارات المتعارضة.\n6. اضبط thesis من A+B، opposingCase من D+E، invalidation من invalidationTrigger في D.\n7. supportingCase: بيّن لماذا الحالة الأساسية أقوى من الأطروحة المضادة. جميع القواعد الإلزامية سارية.`
-    : `Five specialist agent outputs:\n${trackLines}\n\nMARKET-STATE-AWARE INSTITUTIONAL SYNTHESIS — all requirements are mandatory:\n\n1. MULTI-TRACK OUTLOOK: The "outlook" field MUST synthesize ALL available tracks — macro regime and rates from Track A, technical trend structure and volatility from Track B, cross-asset confirmation or contradiction from Track C, primary risk path and weakest assumption from Track D, and positioning/sentiment timing signal from Track E. A macro-only outlook is a failure.\n\n2. REQUIRED VISIBILITY FIELDS:\n   - Set "crossAssetConfirmation": does the gold/BTC/DXY evidence from Track C CONFIRM or CONTRADICT the dominant thesis from Tracks A+B? State the specific direction. 1 sentence required.\n   - Set "positioningSignal": from Track E's sentimentSignal — what does positioning imply for timing and near-term risk? 1 sentence required.\n   - Set "marketStateQuality" from the LIVE MARKET STATE QUALITY line above.\n\n3. CONSENSUS HANDLING:\n   - consensus agreement=${consensus.agreementScore}%, strength=${consensus.strength}. ${consensus.agreementScore < 70 ? `Agreement is below 70% — "disagreementNote" is MANDATORY. State which specific tracks disagree and what the directional conflict is.` : `Agreement is strong — supportingCase must name the specific cross-track evidence alignment that drives the dominant view.`}\n   - Set "consensusStrength" = "${consensus.strength}".\n\n4. THESIS CONSTRUCTION (all required when track context is present):\n   - Set "thesis": integrate macro regime (Track A) + technical bias (Track B). Directional, declarative, 1 sentence.\n   - Set "opposingCase": synthesize Track D counterCase + Track E counterThesis into the strongest possible counter-argument. In the SAME sentence, explain WHY this opposing case ultimately loses to the base case. Do not simply restate the counter — explain why it fails.\n   - Set "invalidation": use Track D's invalidationTrigger verbatim or refine it. Must be a specific observable event, never a vague concept.\n   - Set "supportingCase": name the single most compelling cross-track evidence alignment (e.g., A+B+C all agree, or A+C align against B) that makes the base case more probable than the opposing case.\n\n5. CONFIDENCE: anchor=${confAnchor}%. ${live?.marketStateQuality === "inferred" ? "LIVE DATA UNAVAILABLE — reduce confidence by ≥5 pts from anchor and note in confidenceCalibration." : ""} Track D uncertainty=${trackD?.uncertaintyLevel ?? "n/a"}${trackD?.uncertaintyLevel === "high" || trackD?.uncertaintyLevel === "extreme" ? " — confidence must be ≤65%." : "."}\n\nAll mandatory system rules remain in force. No specific quarters or years. No generic filler.`;
+    : `Five specialist agent outputs:\n${trackLines}\n\nMARKET-STATE-AWARE INSTITUTIONAL SYNTHESIS — all requirements are mandatory:\n\n1. MULTI-TRACK OUTLOOK: The "outlook" field MUST synthesize ALL available tracks — macro regime and rates from Track A, technical trend structure and volatility from Track B, cross-asset confirmation or contradiction from Track C, primary risk path and weakest assumption from Track D, and positioning/sentiment timing signal from Track E. A macro-only outlook is a failure.\n\n2. REQUIRED VISIBILITY FIELDS:\n   - Set "crossAssetConfirmation": does the gold/BTC/DXY evidence from Track C CONFIRM or CONTRADICT the dominant thesis from Tracks A+B? State the specific direction. 1 sentence required.\n   - Set "positioningSignal": from Track E's sentimentSignal — what does positioning imply for timing and near-term risk? 1 sentence required.\n   - Set "marketStateQuality" from the LIVE MARKET STATE QUALITY line above.\n\n3. CONSENSUS HANDLING:\n   - consensus agreement=${consensus.agreementScore}%, strength=${consensus.strength}. ${consensus.agreementScore < 70 ? `Agreement is below 70% — "disagreementNote" is MANDATORY. State which specific tracks disagree and what the directional conflict is.` : `Agreement is strong — supportingCase must name the specific cross-track evidence alignment that drives the dominant view.`}\n   - Set "consensusStrength" = "${consensus.strength}".\n\n4. THESIS CONSTRUCTION (all required when track context is present):\n   - Set "thesis": integrate macro regime (Track A) + technical bias (Track B). Directional, declarative, 1 sentence.\n   - Set "opposingCase": synthesize Track D counterCase + Track E counterThesis into the strongest possible counter-argument. In the SAME sentence, explain WHY this opposing case ultimately loses to the base case. Do not simply restate the counter — explain why it fails.\n   - Set "invalidation": use Track D's invalidationTrigger verbatim or refine it. Must be a specific observable event, never a vague concept.\n   - Set "supportingCase": name the single most compelling cross-track evidence alignment (e.g., A+B+C all agree, or A+C align against B) that makes the base case more probable than the opposing case.\n\n5. CONFIDENCE: anchor=${confAnchor}%. ${live?.marketStateQuality === "inferred" ? "LIVE DATA UNAVAILABLE — reduce confidence by ≥5 pts from anchor and note in confidenceCalibration." : ""} Track D uncertainty=${trackD?.uncertaintyLevel ?? "n/a"}${trackD?.uncertaintyLevel === "high" || trackD?.uncertaintyLevel === "extreme" ? " — confidence must be ≤65%." : "."}\n\n6. AGENT ARBITRATION FIELDS — required when 2+ tracks are present:\n   - "trackViewMacro": Track A directional view in 1 sentence (regime + implication). Use Track A data above.\n   - "trackViewTechnical": Track B directional view in 1 sentence (trend + momentum). Use Track B data above.\n   - "trackViewCrossAsset": Track C directional view in 1 sentence (what gold/BTC/DXY imply). Use Track C data above.\n   - "trackViewRisk": Track D primary concern in 1 sentence (the specific constraint on the base thesis). Use Track D data above.\n   - "trackViewPositioning": Track E view in 1 sentence (what positioning implies for timing). Use Track E data above.\n   - "arbitrationReason": 1-2 sentences — WHY the base thesis wins. Name the deciding factor explicitly. Example: "Track A and Track C both confirm [X], which overrides Track B's [Y] because [Z]." Do NOT restate the thesis — explain what breaks the tie.\n   - "disagreementMap": array — one entry per track pair with directional conflict, e.g. "Track A (bullish macro) vs Track B (bearish technical)". Derive from the bias fields above. Empty array if all tracks agree.\n\nFUSION DISCIPLINE — enforced before finalising:\n   - No generic macro summary is acceptable. Every field must contain a specific, conditional, or quantified claim.\n   - "outlook" is rejected if it omits any of the 5 tracks (A/B/C/D/E) that have data.\n   - "thesis", "opposingCase", "invalidation", "crossAssetConfirmation" are all required when track context is present — not optional.\n   - "arbitrationReason" must name a specific cross-track factor, not restate the thesis or say "the evidence supports".\n   - If "disagreementMap" is empty but consensusStrength is "conflicted" or "weak", reconsider and populate it.\n\nAll mandatory system rules remain in force. No specific quarters or years. No generic filler.`;
 
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [

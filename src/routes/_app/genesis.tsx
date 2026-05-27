@@ -978,6 +978,19 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
                   : qualityLabel}
               </span>
             )}
+            {reply.marketStateQuality && engine === "ai" && (
+              <span className={cn(
+                "flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold ring-1",
+                reply.marketStateQuality === "live"    ? "bg-success/10 text-success ring-success/25" :
+                reply.marketStateQuality === "partial" ? "bg-primary/10 text-primary ring-primary/25" :
+                                                          "bg-muted/40 text-muted-foreground ring-border",
+              )}>
+                <Database className="h-2.5 w-2.5" />
+                {ar
+                  ? reply.marketStateQuality === "live" ? "بيانات حية" : reply.marketStateQuality === "partial" ? "جزئي" : "مستنتج"
+                  : reply.marketStateQuality}
+              </span>
+            )}
           </div>
         </div>
 
@@ -1060,6 +1073,82 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
               <p className="text-sm font-semibold leading-snug">{reply.thesis}</p>
               {reply.reasoning && (
                 <p className="mt-1.5 text-xs italic text-foreground/70 leading-relaxed">{reply.reasoning}</p>
+              )}
+            </div>
+          )}
+
+          {/* Phase 12: Agent Arbitration Panel — per-track views + why base thesis wins */}
+          {(reply.trackViewMacro || reply.trackViewTechnical || reply.trackViewCrossAsset || reply.trackViewRisk || reply.trackViewPositioning) && engine === "ai" && (
+            <div className="rounded-xl border border-border/40 bg-muted/20 px-4 py-3 space-y-2.5">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Network className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  {ar ? "رأي كل وكيل" : "Agent Views"}
+                </div>
+              </div>
+              {reply.trackViewMacro && (
+                <div className="flex items-start gap-2 text-xs">
+                  <TrendingUp className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
+                  <div>
+                    <span className="font-semibold text-primary/70">{ar ? "الكلي (A): " : "Macro (A): "}</span>
+                    <span className="text-foreground/80">{reply.trackViewMacro}</span>
+                  </div>
+                </div>
+              )}
+              {reply.trackViewTechnical && (
+                <div className="flex items-start gap-2 text-xs">
+                  <Activity className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
+                  <div>
+                    <span className="font-semibold text-primary/70">{ar ? "التقني (B): " : "Technical (B): "}</span>
+                    <span className="text-foreground/80">{reply.trackViewTechnical}</span>
+                  </div>
+                </div>
+              )}
+              {reply.trackViewCrossAsset && (
+                <div className="flex items-start gap-2 text-xs">
+                  <Layers className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
+                  <div>
+                    <span className="font-semibold text-primary/70">{ar ? "متعدد الأصول (C): " : "Cross-Asset (C): "}</span>
+                    <span className="text-foreground/80">{reply.trackViewCrossAsset}</span>
+                  </div>
+                </div>
+              )}
+              {reply.trackViewRisk && (
+                <div className="flex items-start gap-2 text-xs">
+                  <ShieldAlert className="h-3.5 w-3.5 mt-0.5 shrink-0 text-warning/60" />
+                  <div>
+                    <span className="font-semibold text-warning/70">{ar ? "المخاطر (D): " : "Risk (D): "}</span>
+                    <span className="text-foreground/80">{reply.trackViewRisk}</span>
+                  </div>
+                </div>
+              )}
+              {reply.trackViewPositioning && (
+                <div className="flex items-start gap-2 text-xs">
+                  <Scale className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
+                  <div>
+                    <span className="font-semibold text-primary/70">{ar ? "التموضع (E): " : "Positioning (E): "}</span>
+                    <span className="text-foreground/80">{reply.trackViewPositioning}</span>
+                  </div>
+                </div>
+              )}
+              {reply.arbitrationReason && (
+                <div className="flex items-start gap-2 rounded-lg border border-success/25 bg-success/5 px-3 py-2 text-xs mt-1">
+                  <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/70" />
+                  <div>
+                    <span className="font-semibold text-success/80">{ar ? "لماذا تتفوق هذه الأطروحة: " : "Why this thesis wins: "}</span>
+                    <span className="text-foreground/80">{reply.arbitrationReason}</span>
+                  </div>
+                </div>
+              )}
+              {reply.disagreementMap && reply.disagreementMap.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <AlertTriangle className="h-3 w-3 text-warning/60 shrink-0" />
+                  {reply.disagreementMap.map((d, i) => (
+                    <span key={i} className="rounded-md border border-warning/30 bg-warning/8 px-2 py-0.5 text-[10px] text-warning font-medium">
+                      {d}
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
           )}
@@ -1354,6 +1443,28 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
                   <div>
                     <span className="font-semibold text-warning/80">{ar ? "محامي الشيطان: " : "Devil's advocate: "}</span>
                     <span className="text-foreground/80">{reply.opposingCase}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Phase 11: Cross-asset confirmation (Track C) */}
+              {reply.crossAssetConfirmation && (
+                <div className="flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs">
+                  <Layers className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/60" />
+                  <div>
+                    <span className="font-semibold text-primary/80">{ar ? "تأكيد الأصول المتقاطعة: " : "Cross-asset confirmation: "}</span>
+                    <span className="text-foreground/80">{reply.crossAssetConfirmation}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Phase 11: Positioning signal (Track E) */}
+              {reply.positioningSignal && (
+                <div className="flex items-start gap-2 rounded-xl border border-muted/50 bg-muted/20 px-3 py-2 text-xs">
+                  <Scale className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground/60" />
+                  <div>
+                    <span className="font-semibold text-muted-foreground">{ar ? "إشارة التموضع: " : "Positioning signal: "}</span>
+                    <span className="text-foreground/80">{reply.positioningSignal}</span>
                   </div>
                 </div>
               )}
