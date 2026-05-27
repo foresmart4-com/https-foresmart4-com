@@ -417,6 +417,10 @@ function buildGenesisSystemPrompt(lang: Lang): string {
 - لا تجزم أبداً — اعبّر دائماً عن الثقة بنسبة مئوية معايرة.
 - أدرج دائماً إخلاء المسؤولية في كل رد.
 - جميع التحليلات تعليمية ومحاكاتية فقط.
+- لا تُشر أبداً إلى أرباع تقويمية أو سنوات أو تواريخ محددة. استخدم فقط مراجع زمنية نسبية: "قريب الأجل"، "الحالي"، "الأخير"، "في الدورة الراهنة".
+- تجنب الصياغات العامة تماماً: لا "فرصة مثيرة"، لا "يتعين على المستثمرين المراقبة"، لا "يبدو أن الزخم يشير"، لا "من المهم الإشارة". كل جملة تُدلي بادعاء محدد أو شرطي أو قابل للقياس.
+- الثقة مكتسبة من توافق الأدلة — لا مُدَّعاة. إذا كانت الأطروحة والأدلة والمحفزات ونظام السوق متسقة جميعاً، فالثقة 60-80%. عند تعارض الإشارات: 40-60%. عند ضعف الأساس أو التخمين: أقل من 45%.
+- فضّل الادعاءات الشرطية ("إذا X فإن Y") على الجزم. استند دائماً إلى عامل محدد يدعم كل ادعاء.
 
 إطار الاستدلال المؤسسي — طبّق كل طبقة عندما يدعم السياق ذلك:
 1. النظام السوقي — حدّد النظام: bull_trending أو bear_ranging أو high_vol_risk-off أو low_vol_accumulation أو macro_transition. اضبط "regime" فقط عندما يدعمه السياق بوضوح.
@@ -457,6 +461,11 @@ function buildGenesisSystemPrompt(lang: Lang): string {
 - Never claim certainty — always express confidence as a calibrated percentage.
 - Always include a disclaimer in every reply.
 - All analysis is educational and simulative only.
+- Never reference specific calendar quarters, years, or dates. Use only relative time references: "near-term", "current", "recent", "over the coming weeks", "in the current cycle". Never fabricate historical data points with specific dates.
+- Eliminate generic language entirely: no "significant uncertainty", "exciting opportunity", "important to note", "investors should watch closely", "as we know", "momentum suggests upside", or similar filler. Every sentence must state a specific, conditional, or quantifiable claim.
+- Confidence is earned from evidence alignment — not asserted. Thesis + evidence + catalysts + regime all aligned = 60-80%. Conflicting signals = 40-60%. Thin or speculative basis = below 45%. Justify the number in confidenceCalibration.
+- Prefer conditional claims ("IF X then Y") over absolute statements. Always cite the specific factor driving each claim.
+- Always set thesis, evidence (when confidence ≥ 50), opposingCase, and invalidation when the context is sufficient. These are not optional extras — they are required institutional outputs.
 
 Institutional reasoning framework — apply each layer when context supports it:
 1. REGIME — Identify the market regime: bull_trending, bear_ranging, high_vol_risk-off, low_vol_accumulation, or macro_transition. Only set "regime" when context clearly supports the classification.
@@ -501,26 +510,31 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
   return `${jsonOnlyPrefix}\n\n${base}`;
 }
 
-// ─── Phase 4: Parallel Reasoning Tracks ───────────────────────────────────
+// ─── Institutional Reasoning Tracks ───────────────────────────────────────
 
 interface TrackA {
   regime: string;
   macroSummary: string;
+  ratesEnv: string;      // rates / CB policy stance — 1 sentence
+  oilLiquidity: string;  // oil direction + global liquidity signal — 1 sentence
   regimeConf: number;
-  macroBias?: "bullish" | "bearish" | "neutral"; // Phase 6: explicit bias for consensus engine
+  macroBias: "bullish" | "bearish" | "neutral";
 }
 
-// Phase 6 specialist agents
 interface TrackD {
   uncertaintyLevel: "low" | "moderate" | "high" | "extreme";
-  primaryRisk: string;         // main downside risk — 1 sentence
-  thesisWeakness: string;      // weakest link in the dominant case — 1 sentence
-  confidenceChallenge: string; // what should lower confidence — 1 sentence
+  primaryRisk: string;
+  thesisWeakness: string;
+  counterCase: string;         // strongest counter-argument — 1 sentence
+  invalidationTrigger: string; // specific event that breaks the dominant thesis
+  confidenceChallenge: string;
 }
 
 interface TrackE {
-  counterThesis: string;  // opposing 1-sentence thesis
-  missingEvidence: string; // what the dominant view ignores — 1 sentence
+  sentimentSignal: string;  // positioning/sentiment indicators — 1 sentence
+  uncertaintyNote: string;  // key sources of uncertainty — 1 sentence
+  counterThesis: string;
+  missingEvidence: string;
   opposingBias: "bullish" | "bearish" | "neutral";
 }
 
@@ -555,7 +569,7 @@ function computeConsensus(
   const votes: { bias: "bullish" | "bearish" | "neutral"; weight: number }[] = [];
   if (trackA) votes.push({ bias: trackA.macroBias ?? regimeToBias(trackA.regime), weight: 0.35 });
   if (trackB) votes.push({ bias: trackB.technicalBias, weight: 0.30 });
-  if (trackC) votes.push({ bias: trackC.sentimentBias, weight: 0.20 });
+  if (trackC) votes.push({ bias: trackC.crossAssetBias, weight: 0.20 });
   // Devil's advocate casts an opposing vote at reduced weight
   if (trackE) votes.push({ bias: trackE.opposingBias, weight: 0.15 });
 
@@ -577,7 +591,13 @@ function computeConsensus(
   let conflictNote = "";
   if (isConflicted) {
     strength = "conflicted";
-    conflictNote = "Macro and technical agents diverge on directional bias";
+    const conflictors: string[] = [];
+    if (trackA && trackB && trackA.macroBias !== trackB.technicalBias) conflictors.push("macro vs technical");
+    if (trackA && trackC && trackA.macroBias !== trackC.crossAssetBias) conflictors.push("macro vs cross-asset");
+    if (trackB && trackC && trackB.technicalBias !== trackC.crossAssetBias) conflictors.push("technical vs cross-asset");
+    conflictNote = conflictors.length > 0
+      ? `Divergent signals: ${conflictors.join("; ")}`
+      : "Agents diverge on directional bias";
   } else if (agreementScore >= 70) {
     strength = "strong";
   } else if (agreementScore >= 50) {
@@ -589,14 +609,57 @@ function computeConsensus(
   return { biasVotes, dominantBias, agreementScore, strength, conflictNote };
 }
 
+// Confidence earned from evidence alignment across tracks — not model-asserted.
+// Returns a suggested integer (1-99) injected into the fusion directive as a calibration anchor.
+function computeConfidenceFromTracks(
+  trackA: TrackA | null,
+  trackB: TrackB | null,
+  trackD: TrackD | null,
+  consensus: ConsensusResult,
+): number {
+  let score = 50;
+  // Macro regime conviction
+  if (trackA) {
+    if (trackA.regimeConf >= 75) score += 8;
+    else if (trackA.regimeConf >= 55) score += 4;
+    else if (trackA.regimeConf < 40) score -= 5;
+  }
+  // Technical momentum
+  if (trackB) {
+    if (trackB.momentumStrength >= 75) score += 7;
+    else if (trackB.momentumStrength >= 55) score += 3;
+    // Volatility regime penalty
+    if (trackB.volatilityRegime === "extreme") score -= 8;
+    else if (trackB.volatilityRegime === "elevated") score -= 4;
+  }
+  // Cross-agent consensus
+  if (consensus.strength === "strong") score += 10;
+  else if (consensus.strength === "moderate") score += 4;
+  else if (consensus.strength === "weak") score -= 5;
+  else if (consensus.strength === "conflicted") score -= 12;
+  // Risk officer uncertainty
+  if (trackD) {
+    if (trackD.uncertaintyLevel === "extreme") score -= 14;
+    else if (trackD.uncertaintyLevel === "high") score -= 8;
+    else if (trackD.uncertaintyLevel === "low") score += 6;
+  }
+  return Math.max(10, Math.min(90, score));
+}
+
 interface TrackB {
   technicalBias: "bullish" | "bearish" | "neutral";
+  trendStrength: number;        // 0-100 trend conviction
+  volatilityRegime: "low" | "normal" | "elevated" | "extreme";
   momentumStrength: number;
   technicalNote: string;
 }
 
 interface TrackC {
-  sentimentBias: "bullish" | "bearish" | "neutral";
+  crossAssetBias: "bullish" | "bearish" | "neutral";
+  goldSignal: string;        // gold directional signal — 1 sentence
+  btcSignal: string;         // crypto / risk appetite signal — 1 sentence
+  dxyPressure: string;       // dollar strength + cross-asset impact — 1 sentence
+  correlationNote: string;   // cross-asset correlation regime — 1 sentence
   catalysts: string[];
   nearTermRisk: string;
 }
@@ -609,42 +672,42 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
 }
 
 async function runTrackA(lang: Lang, question: string, ctx: string): Promise<TrackA | null> {
-  const schema = `{"regime":"string","macroSummary":"string — 1-2 sentences","regimeConf":<integer 0-100>,"macroBias":"bullish"|"bearish"|"neutral"}`;
+  const schema = `{"regime":"string — classify as: bull_trending|bear_ranging|high_vol_risk-off|low_vol_accumulation|macro_transition","macroSummary":"string — 2 sentences: CB policy stance + credit/liquidity condition","ratesEnv":"string — 1 sentence: yield curve shape, rate trajectory, and CB policy implication","oilLiquidity":"string — 1 sentence: oil price direction as a global liquidity and risk-appetite signal","regimeConf":<integer 0-100>,"macroBias":"bullish"|"bearish"|"neutral"}`;
   const extra = lang === "ar"
-    ? "حدّد نظام السوق والسياق الكلي فقط. أضف macroBias: bullish/bearish/neutral. جملة واحدة أو جملتان بحد أقصى."
-    : "Identify the market regime and macro environment ONLY. Include macroBias as bullish, bearish, or neutral. One to two sentences max.";
-  const sys = buildLocaleSystemPrompt({ lang, surface: "genesis_copilot", schema, extra });
+    ? `أنت كبير استراتيجيي الماكرو. ركّز فقط على: (1) موقف البنوك المركزية ومسار أسعار الفائدة، (2) شكل منحنى العائد وظروف الائتمان، (3) النفط كإشارة سيولة عالمية، (4) قوة الدولار وبيئة السيولة. لا تعليق عام. كل جملة تحمل ادعاءً محدداً وقابلاً للقياس. لا تشر إلى أرباع تقويمية أو سنوات محددة.`
+    : `You are the macro strategist on an institutional research desk. Focus ONLY on: (1) central bank policy stance and rate trajectory, (2) yield curve shape and credit conditions, (3) oil as a global liquidity signal, (4) dollar environment and liquidity regime. No generic commentary. Every sentence must state a specific, conditional, or measurable claim. Do not reference specific calendar quarters or years.`;
+  const sys = buildLocaleSystemPrompt({ lang, surface: "global_macro", schema, extra });
   const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}`);
   const res = await withTimeout(
-    callAIGateway<TrackA>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 400, temperature: 0.3 }),
+    callAIGateway<TrackA>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 600, temperature: 0.3 }),
     8000,
   );
   return res?.data ?? null;
 }
 
 async function runTrackB(lang: Lang, question: string, ctx: string): Promise<TrackB | null> {
-  const schema = `{"technicalBias":"bullish"|"bearish"|"neutral","momentumStrength":<integer 0-100>,"technicalNote":"string — 1 sentence"}`;
+  const schema = `{"technicalBias":"bullish"|"bearish"|"neutral","trendStrength":<integer 0-100>,"volatilityRegime":"low"|"normal"|"elevated"|"extreme","momentumStrength":<integer 0-100>,"technicalNote":"string — 1-2 sentences on trend structure and volatility regime"}`;
   const extra = lang === "ar"
-    ? "قيّم التحيز الفني وقوة الزخم فقط. جملة واحدة."
-    : "Assess technical bias and momentum strength ONLY. One sentence max.";
+    ? `أنت المحلل الفني المؤسسي. ركّز فقط على: (1) قوة الاتجاه الأساسي واتجاهه، (2) نظام التقلب (VIX / التقلب المحقق)، (3) قوة الزخم، (4) المستويات البنيوية الرئيسية. جمل قصيرة بدون تعليق عام. لا تذكر أرباعاً أو سنوات محددة.`
+    : `You are the technical analyst on an institutional trading desk. Focus ONLY on: (1) primary trend direction and structural strength, (2) volatility regime (VIX level / realized vol environment), (3) momentum conviction, (4) key structural price levels. Short declarative sentences, no generic commentary. Do not reference specific quarters or years.`;
   const sys = buildLocaleSystemPrompt({ lang, surface: "market_analyst", schema, extra });
   const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}`);
   const res = await withTimeout(
-    callAIGateway<TrackB>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 300, temperature: 0.3 }),
+    callAIGateway<TrackB>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 400, temperature: 0.3 }),
     8000,
   );
   return res?.data ?? null;
 }
 
 async function runTrackC(lang: Lang, question: string, ctx: string): Promise<TrackC | null> {
-  const schema = `{"sentimentBias":"bullish"|"bearish"|"neutral","catalysts":["string"],"nearTermRisk":"string — 1 sentence"}`;
+  const schema = `{"crossAssetBias":"bullish"|"bearish"|"neutral","goldSignal":"string — 1 sentence on gold directional signal and what it implies","btcSignal":"string — 1 sentence on BTC/crypto as risk-appetite indicator","dxyPressure":"string — 1 sentence on dollar strength and its cross-asset impact","correlationNote":"string — 1 sentence on the prevailing cross-asset correlation regime","catalysts":["string — specific near-term catalyst"],"nearTermRisk":"string — 1 sentence"}`;
   const extra = lang === "ar"
-    ? "حدّد المحفزات القريبة والمشاعر فقط. 2-3 محفزات محددة."
-    : "Identify near-term catalysts and market sentiment ONLY. List 2-3 specific catalysts.";
-  const sys = buildLocaleSystemPrompt({ lang, surface: "news_analyst", schema, extra });
+    ? `أنت استراتيجي متعدد الأصول. ركّز فقط على: (1) الذهب كإشارة مخاطر، (2) BTC/كريبتو كمقياس لشهية المخاطرة، (3) مؤشر الدولار DXY وتأثيره على الأصول المرتبطة، (4) نظام الارتباط بين الأصول. إشارات اتجاهية واضحة فقط — لا تعليق عام.`
+    : `You are the cross-asset strategist. Focus ONLY on: (1) gold as a risk/haven signal, (2) BTC/crypto as a risk-appetite indicator, (3) DXY pressure and its directional cross-asset implications, (4) the prevailing inter-market correlation regime. Directional signals only — no general commentary. Do not reference specific quarters or years.`;
+  const sys = buildLocaleSystemPrompt({ lang, surface: "global_macro", schema, extra });
   const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}`);
   const res = await withTimeout(
-    callAIGateway<TrackC>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 300, temperature: 0.3 }),
+    callAIGateway<TrackC>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 500, temperature: 0.3 }),
     8000,
   );
   return res?.data ?? null;
@@ -653,14 +716,14 @@ async function runTrackC(lang: Lang, question: string, ctx: string): Promise<Tra
 // ─── Phase 6: Risk Officer (TrackD) ───────────────────────────────────────────
 
 async function runTrackD(lang: Lang, question: string, ctx: string): Promise<TrackD | null> {
-  const schema = `{"uncertaintyLevel":"low"|"moderate"|"high"|"extreme","primaryRisk":"string — 1 sentence","thesisWeakness":"string — 1 sentence","confidenceChallenge":"string — 1 sentence"}`;
+  const schema = `{"uncertaintyLevel":"low"|"moderate"|"high"|"extreme","primaryRisk":"string — 1 sentence: the specific, most probable downside path","thesisWeakness":"string — 1 sentence: the weakest assumption in the dominant bull or bear case","counterCase":"string — 1 sentence: the strongest argument against the prevailing directional view","invalidationTrigger":"string — 1 sentence: the specific observable event that would break the dominant thesis","confidenceChallenge":"string — 1 sentence: what specific factor should prevent confidence from being higher"}`;
   const extra = lang === "ar"
-    ? "أنت مسؤول المخاطر المؤسسي. حدّد مستوى عدم اليقين والمخاطر الرئيسية وأوجه الضعف في الأطروحة. جملة واحدة لكل حقل فقط."
-    : "You are the institutional risk officer. Identify uncertainty level, primary downside risk, thesis weakness, and what should challenge the confidence level. One sentence per field only.";
+    ? `أنت مسؤول المخاطر المؤسسي ومحلل الأطروحة المضادة. مهمتك: (1) تحديد المخاطر الهبوطية المحددة، (2) تحديد الافتراض الأضعف في الرأي السائد، (3) صياغة أقوى حجة مضادة، (4) تحديد الحدث المحدد الذي يُلغي الأطروحة السائدة. كن صريحاً ومعارضاً. جملة واحدة لكل حقل.`
+    : `You are the institutional risk officer and counter-thesis analyst. Your mandate: (1) identify the most specific probable downside path, (2) find the weakest assumption in the dominant view, (3) state the strongest counter-argument, (4) name the precise observable event that invalidates the thesis. Be adversarial and specific. One sentence per field.`;
   const sys = buildLocaleSystemPrompt({ lang, surface: "decision_engine", schema, extra });
   const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}`);
   const res = await withTimeout(
-    callAIGateway<TrackD>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 300, temperature: 0.3 }),
+    callAIGateway<TrackD>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 450, temperature: 0.3 }),
     8000,
   );
   return res?.data ?? null;
@@ -669,14 +732,14 @@ async function runTrackD(lang: Lang, question: string, ctx: string): Promise<Tra
 // ─── Phase 6: Devil's Advocate (TrackE) ───────────────────────────────────────
 
 async function runTrackE(lang: Lang, question: string, ctx: string): Promise<TrackE | null> {
-  const schema = `{"counterThesis":"string — 1 sentence opposing view","missingEvidence":"string — 1 sentence","opposingBias":"bullish"|"bearish"|"neutral"}`;
+  const schema = `{"sentimentSignal":"string — 1 sentence on positioning or sentiment indicators (crowded trades, fund flows, fear/greed extremes)","uncertaintyNote":"string — 1 sentence: the most consequential unresolved variable","counterThesis":"string — 1 sentence opposing the dominant directional view","missingEvidence":"string — 1 sentence: what the dominant view ignores or underweights","opposingBias":"bullish"|"bearish"|"neutral"}`;
   const extra = lang === "ar"
-    ? "أنت محامي الشيطان. قدّم الأطروحة المضادة وما يتجاهله التحليل السائد. جملة واحدة لكل حقل. خذ الجانب المعاكس للرأي الغالب."
-    : "You are the devil's advocate. Present the strongest counter-thesis and what the dominant view ignores. One sentence per field. Deliberately take the opposing side.";
+    ? `أنت محلل المراكز والمشاعر ومحامي الشيطان. ركّز على: (1) مؤشرات تمركز المتداولين وتدفقات الصناديق وإشارات الخوف/الطمع، (2) المتغير الرئيسي غير المحسوم، (3) الأطروحة المضادة للرأي الغالب، (4) ما يتجاهله التحليل السائد. كن نقدياً ومعارضاً. جملة واحدة لكل حقل.`
+    : `You are the positioning, sentiment, and devil's advocate analyst. Focus on: (1) positioning signals — crowded trades, fund flow direction, fear/greed extremes, (2) the most consequential unresolved variable creating uncertainty, (3) the strongest counter-thesis against the dominant view, (4) what the dominant analysis ignores or underweights. Be critical and adversarial. One sentence per field.`;
   const sys = buildLocaleSystemPrompt({ lang, surface: "market_analyst", schema, extra });
   const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}`);
   const res = await withTimeout(
-    callAIGateway<TrackE>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 300, temperature: 0.45 }),
+    callAIGateway<TrackE>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 400, temperature: 0.45 }),
     8000,
   );
   return res?.data ?? null;
@@ -693,18 +756,20 @@ async function runFusion(
   trackE: TrackE | null,
   consensus: ConsensusResult,
 ): Promise<GenesisReply | null> {
+  const confAnchor = computeConfidenceFromTracks(trackA, trackB, trackD, consensus);
   const trackLines = [
-    trackA ? `MACRO ANALYST: regime=${trackA.regime} (${trackA.regimeConf}% conf) bias=${trackA.macroBias ?? "?"} — ${trackA.macroSummary}` : null,
-    trackB ? `TECHNICAL ANALYST: ${trackB.technicalBias} bias, momentum ${trackB.momentumStrength}/100 — ${trackB.technicalNote}` : null,
-    trackC ? `SENTIMENT ANALYST: ${trackC.sentimentBias}, catalysts: ${trackC.catalysts.slice(0, 2).join("; ")} — near-term risk: ${trackC.nearTermRisk}` : null,
-    trackD ? `RISK OFFICER: uncertainty=${trackD.uncertaintyLevel} | primary_risk: ${trackD.primaryRisk} | weakness: ${trackD.thesisWeakness}` : null,
-    trackE ? `DEVIL'S ADVOCATE: counter="${trackE.counterThesis}" | missing: ${trackE.missingEvidence}` : null,
-    `CONSENSUS (${[trackA, trackB, trackC, trackD, trackE].filter(Boolean).length} agents): dominant=${consensus.dominantBias}, agreement=${consensus.agreementScore}%, strength=${consensus.strength}${consensus.conflictNote ? ` — ${consensus.conflictNote}` : ""}`,
+    trackA ? `MACRO (Track A): regime=${trackA.regime} conf=${trackA.regimeConf}% bias=${trackA.macroBias} | rates: ${trackA.ratesEnv} | oil/liquidity: ${trackA.oilLiquidity} | ${trackA.macroSummary}` : null,
+    trackB ? `TECHNICAL (Track B): ${trackB.technicalBias} bias | trend_strength=${trackB.trendStrength}/100 | momentum=${trackB.momentumStrength}/100 | vol_regime=${trackB.volatilityRegime} | ${trackB.technicalNote}` : null,
+    trackC ? `CROSS-ASSET (Track C): ${trackC.crossAssetBias} bias | gold: ${trackC.goldSignal} | BTC/risk-appetite: ${trackC.btcSignal} | DXY: ${trackC.dxyPressure} | correlation: ${trackC.correlationNote}` : null,
+    trackD ? `RISK/COUNTER (Track D): uncertainty=${trackD.uncertaintyLevel} | primary_risk: ${trackD.primaryRisk} | weakness: ${trackD.thesisWeakness} | counter: ${trackD.counterCase} | invalidation: ${trackD.invalidationTrigger}` : null,
+    trackE ? `POSITIONING/SENTIMENT (Track E): ${trackE.sentimentSignal} | uncertainty: ${trackE.uncertaintyNote} | counter_thesis: ${trackE.counterThesis} | missing: ${trackE.missingEvidence}` : null,
+    `CONSENSUS (${[trackA, trackB, trackC, trackD, trackE].filter(Boolean).length}/5 agents): dominant=${consensus.dominantBias}, agreement=${consensus.agreementScore}%, strength=${consensus.strength}${consensus.conflictNote ? ` — ${consensus.conflictNote}` : ""}`,
+    `EVIDENCE-CALIBRATED CONFIDENCE ANCHOR: ${confAnchor}% — derived from track evidence alignment. Use this as a calibration reference; adjust up or down based on additional context in the question, but justify any deviation in confidenceCalibration.`,
   ].filter(Boolean).join("\n");
 
   const fusionDirective = lang === "ar"
-    ? `نتائج وكلاء التحليل المتخصصين (Phase 6 — خمسة وكلاء):\n${trackLines}\n\nادمج هذه المسارات في تحليل مؤسسي شامل. اضبط consensusStrength من نتيجة الإجماع. اضبط supportingCase من أقوى الحجج الداعمة. اضبط opposingCase من حجة محامي الشيطان. اضبط disagreementNote فقط عند التعارض أو ضعف الإجماع. جميع القواعد الإلزامية سارية.`
-    : `Specialist agent analysis (Phase 6 — five agents):\n${trackLines}\n\nSynthesize into a unified institutional analysis. Set consensusStrength from the consensus result above. Set supportingCase from the strongest corroborating argument. Set opposingCase from the devil's advocate counter-thesis. Set disagreementNote only when conflicted or weak consensus. All mandatory rules remain in force.`;
+    ? `نتائج خمسة وكلاء متخصصين:\n${trackLines}\n\nادمج هذه المسارات في تحليل مؤسسي شامل. يجب أن تكون الثقة مكتسبة من توافق الأدلة — لا تُجزم بالنتائج. اضبط consensusStrength من نتيجة الإجماع. اضبط supportingCase من أقوى الحجج الداعمة. اضبط opposingCase وinvalidation من نتائج المسارين D وE. اضبط disagreementNote فقط عند التعارض أو ضعف الإجماع. لا تُشر إلى أرباع أو سنوات تقويمية محددة. تجنب الصياغات العامة — كل جملة تحمل ادعاءً محدداً أو شرطياً. جميع القواعد الإلزامية سارية.`
+    : `Five specialist agent outputs:\n${trackLines}\n\nSynthesize into a unified institutional analysis. Confidence must be earned from evidence alignment — do not assert it. Set consensusStrength from the consensus result. Set supportingCase from the strongest corroborating signal. Set opposingCase and invalidation using Track D and E outputs. Set disagreementNote only when conflicted or weak consensus. Do not reference specific calendar quarters or years. Avoid generic phrasing — every sentence must carry a specific, conditional, or quantifiable claim. All mandatory rules remain in force.`;
 
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
