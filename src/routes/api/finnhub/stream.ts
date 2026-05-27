@@ -8,19 +8,31 @@
  *  - FINNHUB_API_KEY is read from process.env (server only) and never sent to the client
  *  - This route lives under /api/ (not /api/public/) so it's behind app auth on prod;
  *    we additionally enforce auth via Supabase claims here.
+ *  - JWT verification uses the publishable key (no service role required for claim reads).
  */
 import { createFileRoute } from "@tanstack/react-router";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { createClient } from "@supabase/supabase-js";
+
+// JWT verification only — publishable key is sufficient for getClaims().
+// The service role key is NOT required for this read-only auth check.
+function getPublishableClient() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) throw new Error("Missing SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY");
+  return createClient(url, key, {
+    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+  });
+}
 
 export const Route = createFileRoute("/api/finnhub/stream")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        // Auth check
+        // Auth check — uses publishable key; no service role key needed for getClaims().
         const authHeader = request.headers.get("authorization") ?? "";
         const token = authHeader.replace(/^Bearer\s+/i, "");
         if (!token) return new Response("Unauthorized", { status: 401 });
-        const { data: claims, error } = await supabaseAdmin.auth.getClaims(token);
+        const { data: claims, error } = await getPublishableClient().auth.getClaims(token);
         if (error || !claims) return new Response("Unauthorized", { status: 401 });
 
         const key = process.env.FINNHUB_API_KEY;
