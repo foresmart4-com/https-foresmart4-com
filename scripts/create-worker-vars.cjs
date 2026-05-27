@@ -83,6 +83,14 @@ for (const key of SERVER_VARS) {
   lines.push(`${key}="${escaped}"`);
 }
 
+const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY?.trim());
+const hasLovableKey = Boolean(process.env.LOVABLE_API_KEY?.trim());
+console.log(`[create-worker-vars] AI env at build time: hasGeminiKey=${hasGeminiKey} hasLovableKey=${hasLovableKey}`);
+
+if (!hasGeminiKey && !hasLovableKey) {
+  console.warn("[create-worker-vars] WARNING: Neither GEMINI_API_KEY nor LOVABLE_API_KEY found in build env — Miniflare/preview will have no AI provider.");
+}
+
 if (lines.length === 0) {
   console.log("[create-worker-vars] No server env vars found — .dev.vars not written");
   console.log("[create-worker-vars] AI runtime will be unavailable until GEMINI_API_KEY (primary) or LOVABLE_API_KEY (fallback) is set in Railway");

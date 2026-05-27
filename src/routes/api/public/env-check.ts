@@ -103,6 +103,8 @@ export const Route = createFileRoute("/api/public/env-check")({
           liveTradingEnabled: liveTrading,
           aiProvider,
           aiRuntime,
+          hasGeminiKey: keys.GEMINI_API_KEY,
+          hasLovableKey: keys.LOVABLE_API_KEY,
           keys,
           aliases: ALIASES,
           missingRequiredForMarketData: missingRequired,

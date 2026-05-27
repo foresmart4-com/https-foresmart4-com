@@ -22,6 +22,8 @@ export interface ProviderConfig {
  */
 export function resolveAIProvider(): ProviderConfig | null {
   const geminiKey = process.env.GEMINI_API_KEY?.trim();
+  const lovableKey = process.env.LOVABLE_API_KEY?.trim();
+  console.info("[ai-gateway] resolveAIProvider hasGeminiKey=%s hasLovableKey=%s", Boolean(geminiKey), Boolean(lovableKey));
   if (geminiKey) {
     return {
       provider: "gemini",
@@ -32,7 +34,6 @@ export function resolveAIProvider(): ProviderConfig | null {
       normalizeModel: (m: string) => m.replace(/^google\//, ""),
     };
   }
-  const lovableKey = process.env.LOVABLE_API_KEY?.trim();
   if (lovableKey) {
     return {
       provider: "lovable",
@@ -95,7 +96,11 @@ export interface AICallOptions {
 export async function callAIGateway<T>(opts: AICallOptions): Promise<AICallResult<T>> {
   const providerCfg = resolveAIProvider();
   if (!providerCfg) {
-    console.warn("[ai-gateway] No AI provider configured — set GEMINI_API_KEY (primary) or LOVABLE_API_KEY (fallback).");
+    console.warn(
+      "[ai-gateway] No AI provider configured — set GEMINI_API_KEY (primary) or LOVABLE_API_KEY (fallback). hasGeminiKey=%s hasLovableKey=%s",
+      Boolean(process.env.GEMINI_API_KEY?.trim()),
+      Boolean(process.env.LOVABLE_API_KEY?.trim()),
+    );
     return { data: null, raw: "", error: "missing_key" };
   }
 
