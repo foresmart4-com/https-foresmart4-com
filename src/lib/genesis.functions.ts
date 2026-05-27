@@ -987,6 +987,113 @@ async function runTrackE(lang: Lang, question: string, ctx: string, live: LiveMa
   return res?.data ?? null;
 }
 
+// ─── Phase 12: Deterministic Arbitration Field Derivation ─────────────────────
+// Always populates Phase-12 fields from raw track outputs when Gemini omits them.
+// Root cause: Gemini compliance with new schema fields is inconsistent; this makes
+// the arbitration panel unconditional whenever the multi-agent path runs.
+
+function biasTr(b: "bullish" | "bearish" | "neutral", ar: boolean): string {
+  if (!ar) return b.charAt(0).toUpperCase() + b.slice(1);
+  return b === "bullish" ? "صاعد" : b === "bearish" ? "هابط" : "محايد";
+}
+
+function fillArbitrationFields(
+  reply: GenesisReply,
+  trackA: TrackA | null,
+  trackB: TrackB | null,
+  trackC: TrackC | null,
+  trackD: TrackD | null,
+  trackE: TrackE | null,
+  consensus: ConsensusResult,
+  lang: Lang,
+): void {
+  const ar = lang === "ar";
+
+  if (!reply.trackViewMacro && trackA) {
+    const regime = trackA.regime.replace(/_/g, " ");
+    reply.trackViewMacro = ar
+      ? `${biasTr(trackA.macroBias, ar)} — نظام ${regime} بثقة ${trackA.regimeConf}%؛ ${trackA.ratesEnv}`
+      : `${biasTr(trackA.macroBias, ar)} — ${regime} regime at ${trackA.regimeConf}% conviction; ${trackA.ratesEnv}`;
+  }
+
+  if (!reply.trackViewTechnical && trackB) {
+    reply.trackViewTechnical = ar
+      ? `${biasTr(trackB.technicalBias, ar)} — قوة الاتجاه ${trackB.trendStrength}/100، زخم ${trackB.momentumStrength}/100، تقلب ${trackB.volatilityRegime}؛ ${trackB.technicalNote}`
+      : `${biasTr(trackB.technicalBias, ar)} — trend ${trackB.trendStrength}/100, momentum ${trackB.momentumStrength}/100, ${trackB.volatilityRegime} vol; ${trackB.technicalNote}`;
+  }
+
+  if (!reply.trackViewCrossAsset && trackC) {
+    reply.trackViewCrossAsset = ar
+      ? `${biasTr(trackC.crossAssetBias, ar)} — ${trackC.correlationNote}`
+      : `${biasTr(trackC.crossAssetBias, ar)} cross-asset — ${trackC.correlationNote}`;
+  }
+
+  if (!reply.trackViewRisk && trackD) {
+    const uncTr = ar
+      ? ({ low: "منخفض", moderate: "معتدل", high: "مرتفع", extreme: "حرج" }[trackD.uncertaintyLevel] ?? trackD.uncertaintyLevel)
+      : (trackD.uncertaintyLevel.charAt(0).toUpperCase() + trackD.uncertaintyLevel.slice(1));
+    reply.trackViewRisk = ar
+      ? `عدم يقين ${uncTr} — ${trackD.primaryRisk}`
+      : `${uncTr} uncertainty — ${trackD.primaryRisk}`;
+  }
+
+  if (!reply.trackViewPositioning && trackE) {
+    reply.trackViewPositioning = trackE.sentimentSignal;
+  }
+
+  // arbitrationReason: explain why dominant bias wins by naming the aligning tracks
+  if (!reply.arbitrationReason) {
+    const dom = consensus.dominantBias;
+    const agreeing: string[] = [];
+    if (trackA?.macroBias === dom) agreeing.push(ar ? "الكلي A" : "macro (A)");
+    if (trackB?.technicalBias === dom) agreeing.push(ar ? "التقني B" : "technical (B)");
+    if (trackC?.crossAssetBias === dom) agreeing.push(ar ? "متعدد الأصول C" : "cross-asset (C)");
+
+    const dissenting: string[] = [];
+    if (trackA && trackA.macroBias !== dom) dissenting.push(ar ? "الكلي A" : "macro (A)");
+    if (trackB && trackB.technicalBias !== dom) dissenting.push(ar ? "التقني B" : "technical (B)");
+    if (trackC && trackC.crossAssetBias !== dom) dissenting.push(ar ? "متعدد الأصول C" : "cross-asset (C)");
+
+    const inv = trackD?.invalidationTrigger;
+    if (agreeing.length > 0) {
+      if (ar) {
+        const agreeStr = agreeing.join(" و");
+        const disStr = dissenting.length > 0 ? `؛ ${dissenting.join(" و")} تختلف` : "";
+        reply.arbitrationReason = `الأطروحة الأساسية تتفوق لأن ${agreeStr} تشير إلى توجه ${biasTr(dom, ar)}${disStr}.${inv ? ` محفز الإلغاء (${inv}) لم يُفعَّل بعد.` : ""}`.trim();
+      } else {
+        const agreeStr = agreeing.join(", ");
+        const disStr = dissenting.length > 0 ? `; ${dissenting.join(", ")} dissent` : "";
+        reply.arbitrationReason = `The base case wins because ${agreeStr} all point ${dom}${disStr}.${inv ? ` Invalidation trigger ("${inv}") has not been breached.` : " Consensus weight outweighs the counter-thesis."}`.trim();
+      }
+    } else {
+      reply.arbitrationReason = ar
+        ? `الأطروحة الأساسية تعتمد على الإجماع المرجّح (${consensus.agreementScore}%) رغم التباين بين المسارات.`
+        : `The base case rests on weighted consensus (${consensus.agreementScore}% agreement) despite track divergence.`;
+    }
+  }
+
+  // disagreementMap: one string per track pair with explicit directional conflict
+  if (!reply.disagreementMap || reply.disagreementMap.length === 0) {
+    const map: string[] = [];
+    if (trackA && trackB && trackA.macroBias !== trackB.technicalBias) {
+      map.push(ar
+        ? `الكلي A (${biasTr(trackA.macroBias, ar)}) vs التقني B (${biasTr(trackB.technicalBias, ar)})`
+        : `Track A (${trackA.macroBias} macro) vs Track B (${trackB.technicalBias} technical)`);
+    }
+    if (trackA && trackC && trackA.macroBias !== trackC.crossAssetBias) {
+      map.push(ar
+        ? `الكلي A (${biasTr(trackA.macroBias, ar)}) vs متعدد الأصول C (${biasTr(trackC.crossAssetBias, ar)})`
+        : `Track A (${trackA.macroBias} macro) vs Track C (${trackC.crossAssetBias} cross-asset)`);
+    }
+    if (trackB && trackC && trackB.technicalBias !== trackC.crossAssetBias) {
+      map.push(ar
+        ? `التقني B (${biasTr(trackB.technicalBias, ar)}) vs متعدد الأصول C (${biasTr(trackC.crossAssetBias, ar)})`
+        : `Track B (${trackB.technicalBias} technical) vs Track C (${trackC.crossAssetBias} cross-asset)`);
+    }
+    if (map.length > 0) reply.disagreementMap = map;
+  }
+}
+
 async function runFusion(
   lang: Lang,
   question: string,
@@ -1033,7 +1140,25 @@ async function runFusion(
     12000,
   );
   if (!res || res.error || !res.data) return null;
-  return sanitizeReply(res.data, lang);
+
+  // Safe debug: log Phase-12 field coverage before and after sanitize (no secrets)
+  const _p12 = ["trackViewMacro","trackViewTechnical","trackViewCrossAsset","trackViewRisk","trackViewPositioning","arbitrationReason","disagreementMap","marketStateQuality"] as const;
+  const _preSet = _p12.filter(k => { const v = (res.data as Record<string,unknown>)[k]; return v != null && v !== "" && !(Array.isArray(v) && (v as unknown[]).length === 0); });
+  console.log(`[genesis:p12] Gemini populated: ${_preSet.join(",")||"none"}`);
+
+  const sanitized = sanitizeReply(res.data, lang);
+  if (!sanitized) return null;
+
+  const _postSet = _p12.filter(k => { const v = (sanitized as Record<string,unknown>)[k]; return v != null && v !== "" && !(Array.isArray(v) && (v as unknown[]).length === 0); });
+  console.log(`[genesis:p12] post-sanitize: ${_postSet.join(",")||"none"}`);
+
+  // Deterministic backfill — fills every missing Phase-12 field from raw track outputs
+  fillArbitrationFields(sanitized, trackA, trackB, trackC, trackD, trackE, consensus, lang);
+
+  const _finalSet = _p12.filter(k => { const v = (sanitized as Record<string,unknown>)[k]; return v != null && v !== "" && !(Array.isArray(v) && (v as unknown[]).length === 0); });
+  console.log(`[genesis:p12] post-fill: ${_finalSet.join(",")||"none"}`);
+
+  return sanitized;
 }
 
 // ─── Server function ───────────────────────────────────────────────────────
@@ -1085,7 +1210,8 @@ export const askGenesis = createServerFn({ method: "POST" })
         const fused = await runFusion(lang, data.question, data.marketContext, trackA, trackB, trackC, trackD, trackE, consensus, live);
         if (fused?.headline) {
           // Stamp marketStateQuality from live state (authoritative — not AI-guessed)
-          if (live) fused.marketStateQuality = live.marketStateQuality;
+          // Always set so the header badge is visible for every AI reply.
+          fused.marketStateQuality = live?.marketStateQuality ?? fused.marketStateQuality ?? "inferred";
           return { reply: fused, error: null as null, engine: "ai" as const, tracksUsed, provider };
         }
       }
@@ -1124,14 +1250,21 @@ export const askGenesis = createServerFn({ method: "POST" })
     // (empty headline, raw object in outlook) never reach the UI renderer.
     const rawParsed = result.data ?? (result.raw ? safeParseJson<GenesisReply>(result.raw) : null);
     const direct = rawParsed ? sanitizeReply(rawParsed, lang) : null;
-    if (direct) return { reply: direct, error: null as null, engine: "ai" as const, provider };
+    if (direct) {
+      // Badge always visible: brief-mode has no live data so always "inferred"
+      if (!direct.marketStateQuality) direct.marketStateQuality = "inferred";
+      return { reply: direct, error: null as null, engine: "ai" as const, provider };
+    }
 
     // Sanitize rejected the parsed object (headline missing / JSON-like) — log it
     // and try the brace-counting extractor + plain-text mapper before giving up.
     if (result.raw) {
       console.warn(`[genesis] provider=${provider} sanitize rejected or parse failed — raw_preview="${result.raw.slice(0, 400)}"`);
       const recovered = recoverGenesisReply(result.raw, lang);
-      if (recovered) return { reply: recovered, error: null as null, engine: "ai" as const, provider };
+      if (recovered) {
+        if (!recovered.marketStateQuality) recovered.marketStateQuality = "inferred";
+        return { reply: recovered, error: null as null, engine: "ai" as const, provider };
+      }
     }
 
     // Full recovery failed — show heuristic labelled appropriately.
