@@ -126,6 +126,65 @@ function heuristicReply(lang: Lang, reason: "missing_key" | "ai_unavailable" = "
   };
 }
 
+// Validates and sanitises a parsed-but-unverified Gemini object before it
+// reaches the UI. Rejects JSON-looking strings in rendered fields so the user
+// never sees raw `{"headline":...}` blocks. Returns null when headline is
+// missing or JSON-like, which lets the caller fall through to recoverGenesisReply.
+function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | null {
+  const isJson = (s: unknown): boolean =>
+    typeof s === "string" && /^\s*[{[]/.test(s);
+  const cleanStr = (s: unknown): string | undefined =>
+    typeof s === "string" && s.trim() && !isJson(s) ? s.trim() : undefined;
+
+  const headline = cleanStr(obj.headline) ?? null;
+  if (!headline) return null;
+
+  const ar = lang === "ar";
+  const outlook = cleanStr(obj.outlook) ?? (ar
+    ? "راجع الملخص والسيناريوهات أدناه للتحليل الكامل."
+    : "See headline, scenarios, and risks below for the full analysis.");
+
+  const confidence = typeof obj.confidence === "number" && Number.isFinite(obj.confidence)
+    ? Math.max(1, Math.min(99, Math.round(obj.confidence)))
+    : 55;
+
+  const confidenceLabel: "low" | "moderate" | "high" =
+    obj.confidenceLabel === "low" || obj.confidenceLabel === "moderate" || obj.confidenceLabel === "high"
+      ? obj.confidenceLabel
+      : confidence >= 70 ? "high" : confidence >= 45 ? "moderate" : "low";
+
+  const scenarios: GenesisScenario[] = Array.isArray(obj.scenarios)
+    ? (obj.scenarios as unknown[]).filter(
+        (s): s is GenesisScenario =>
+          typeof s === "object" && s !== null &&
+          typeof (s as GenesisScenario).label === "string" &&
+          (s as GenesisScenario).label.trim().length > 0 &&
+          typeof (s as GenesisScenario).probability === "string" &&
+          typeof (s as GenesisScenario).impact === "string",
+      )
+    : [];
+
+  const risks: string[] = Array.isArray(obj.risks)
+    ? (obj.risks as unknown[]).filter(
+        (r): r is string => typeof r === "string" && r.trim().length > 0 && !isJson(r),
+      )
+    : [];
+
+  const disclaimer = cleanStr(obj.disclaimer) ?? (ar ? "للأغراض التعليمية فقط." : "Educational only.");
+
+  return {
+    ...obj,
+    headline,
+    outlook,
+    confidence,
+    confidenceLabel,
+    scenarios,
+    risks,
+    suggestedAction: obj.suggestedAction ?? null,
+    disclaimer,
+  } as GenesisReply;
+}
+
 // Attempts to extract a GenesisReply from a raw Gemini response that failed
 // standard JSON parsing. Uses brace-counting extraction (more robust than greedy
 // regex) and falls back to wrapping plain text in a minimal schema so the UI
@@ -148,16 +207,48 @@ function recoverGenesisReply(raw: string, lang: Lang): GenesisReply | null {
         if (depth === 0) {
           try {
             const obj = JSON.parse(raw.slice(start, i + 1)) as Partial<GenesisReply>;
-            if (obj?.headline) return obj as GenesisReply;
+            const cleaned = sanitizeReply(obj, lang);
+            if (cleaned) return cleaned;
           } catch { break; }
         }
       }
     }
   }
-  // Gemini returned plain text — map it into a minimal GenesisReply so the UI
-  // shows the actual AI reasoning rather than the hardcoded heuristic fallback.
   const text = raw.trim().slice(0, 2000);
   const ar = lang === "ar";
+
+  // If the text looks like JSON (truncated or unextractable), never use it as
+  // prose — render a safe user-facing message instead of `{"headline": ...}` blocks.
+  if (/^\s*[{[]/.test(text)) {
+    return {
+      headline: ar
+        ? "تحليل Gemini AI — استجابة JSON غير مكتملة"
+        : "Gemini AI Analysis — JSON response incomplete",
+      outlook: ar
+        ? "استلمت Genesis استجابة من Gemini لكن لم يتمكن المحلل من استخراجها. أعد إرسال سؤالك للحصول على التحليل الكامل."
+        : "Genesis received a Gemini response but could not extract the structured JSON. Please resend your question for a complete analysis.",
+      confidence: 45,
+      confidenceLabel: "moderate" as const,
+      scenarios: ar
+        ? [
+            { label: "سيناريو صاعد",    probability: "~40%", impact: "تحسن ظروف السوق" },
+            { label: "سيناريو أساسي",   probability: "~35%", impact: "استقرار نسبي" },
+            { label: "سيناريو هابط",    probability: "~25%", impact: "ضغط على المخاطرة" },
+          ]
+        : [
+            { label: "Upside",   probability: "~40%", impact: "Improving macro conditions" },
+            { label: "Base",     probability: "~35%", impact: "Range-bound stability" },
+            { label: "Downside", probability: "~25%", impact: "Risk-off pressure" },
+          ],
+      risks: ar
+        ? ["استجابة Gemini بصيغة JSON — تعذّر استخراجها، أعد المحاولة للتحليل الكامل"]
+        : ["Gemini JSON response could not be extracted — retry for full structured analysis"],
+      suggestedAction: null,
+      disclaimer: ar ? "للأغراض التعليمية فقط." : "Educational only.",
+    };
+  }
+
+  // Gemini returned genuine plain text — wrap in minimal schema.
   const breakAt = text.search(/[.\n!?]/);
   const headline = (breakAt > 10 ? text.slice(0, breakAt + 1) : text.slice(0, 120)).trim();
   return {
@@ -177,12 +268,10 @@ function recoverGenesisReply(raw: string, lang: Lang): GenesisReply | null {
           { label: "Downside scenario",  probability: "~25%", impact: "Broad pressure on risk-sensitive assets" },
         ],
     risks: ar
-      ? ["استجابة Gemini AI بصيغة نصية — جارٍ العرض بتنسيق مبسّط"]
-      : ["Gemini AI responded as plain text — displaying in simplified layout"],
+      ? ["استجابة Gemini AI نصية — عرض مبسّط"]
+      : ["Gemini AI plain-text response — simplified layout"],
     suggestedAction: null,
-    disclaimer: ar
-      ? "للأغراض التعليمية فقط — لا يُعتبر توصية استثمارية مرخصة."
-      : "Educational only — not licensed investment advice.",
+    disclaimer: ar ? "للأغراض التعليمية فقط." : "Educational only.",
   };
 }
 
@@ -317,7 +406,12 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
     Set "caveats": 1-3 specific logical tensions, contradictions, or weak assumptions you have identified in your own analysis. Only include genuine, non-trivial caveats a critical institutional reader would flag. Omit entirely when the reasoning is internally consistent.
     Meta-reasoning is self-evaluation only — advisory and educational. Never use it to claim certainty.`;
 
-  return buildLocaleSystemPrompt({ lang, surface: "genesis_copilot", schema: GENESIS_SCHEMA, extra });
+  const base = buildLocaleSystemPrompt({ lang, surface: "genesis_copilot", schema: GENESIS_SCHEMA, extra });
+  // Prepend a hard JSON-only directive so Gemini never emits text outside the object.
+  const jsonOnlyPrefix = ar
+    ? "حرج: أنتج كائن JSON خالصاً ومكتملاً فقط. لا نص قبل JSON ولا نص بعده. لا markdown. JSON فقط."
+    : "CRITICAL: Output a single complete raw JSON object only — no text before it, no text after it, no markdown fences.";
+  return `${jsonOnlyPrefix}\n\n${base}`;
 }
 
 // ─── Phase 4: Parallel Reasoning Tracks ───────────────────────────────────
@@ -534,11 +628,11 @@ async function runFusion(
   const user = wrapUserContext(lang, userBody);
 
   const res = await withTimeout(
-    callAIGateway<GenesisReply>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 2000, temperature: 0.4 }),
+    callAIGateway<GenesisReply>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 4096, temperature: 0.4 }),
     12000,
   );
-  if (!res || res.error || !res.data?.headline) return null;
-  return res.data;
+  if (!res || res.error || !res.data) return null;
+  return sanitizeReply(res.data, lang);
 }
 
 // ─── Server function ───────────────────────────────────────────────────────
@@ -603,7 +697,7 @@ export const askGenesis = createServerFn({ method: "POST" })
       user,
       language: lang,
       jsonObject: true,
-      maxTokens: 2000,
+      maxTokens: 4096,
       temperature: 0.4,
     });
 
@@ -620,17 +714,18 @@ export const askGenesis = createServerFn({ method: "POST" })
     }
 
     // error is null or parse_error — result.data is set on success, raw always carries
-    // the original response string. Try the structured data first, then a second JSON
-    // parse in case callAIGateway missed something, then full text recovery.
-    const direct = result.data ?? (result.raw ? safeParseJson<GenesisReply>(result.raw) : null);
-    if (direct?.headline) return { reply: direct, error: null as null, engine: "ai" as const, provider };
+    // the original response string. Run sanitizeReply so JSON-looking string values
+    // (empty headline, raw object in outlook) never reach the UI renderer.
+    const rawParsed = result.data ?? (result.raw ? safeParseJson<GenesisReply>(result.raw) : null);
+    const direct = rawParsed ? sanitizeReply(rawParsed, lang) : null;
+    if (direct) return { reply: direct, error: null as null, engine: "ai" as const, provider };
 
-    // Gemini responded but the output couldn't be parsed — log a safe preview and
-    // try the brace-counting extractor + plain-text mapper before giving up.
+    // Sanitize rejected the parsed object (headline missing / JSON-like) — log it
+    // and try the brace-counting extractor + plain-text mapper before giving up.
     if (result.raw) {
-      console.warn(`[genesis] provider=${provider} no valid reply — raw_preview="${result.raw.slice(0, 400)}"`);
+      console.warn(`[genesis] provider=${provider} sanitize rejected or parse failed — raw_preview="${result.raw.slice(0, 400)}"`);
       const recovered = recoverGenesisReply(result.raw, lang);
-      if (recovered?.headline) return { reply: recovered, error: null as null, engine: "ai" as const, provider };
+      if (recovered) return { reply: recovered, error: null as null, engine: "ai" as const, provider };
     }
 
     // Full recovery failed — show heuristic labelled appropriately.
