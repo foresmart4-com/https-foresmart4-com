@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { localeGuardrails, rtlNumberHint, resolveLang } from "@/lib/ai/locale";
-import { safeParseJson } from "@/lib/ai-gateway.server";
+import { rtlNumberHint, resolveLang } from "@/lib/ai/locale";
+import { callAIGateway, safeParseJson } from "@/lib/ai-gateway.server";
 
 const InputSchema = z.object({
   question: z.string().min(1).max(2000),
@@ -98,58 +98,67 @@ Quality rules:
 - entry, stopLoss, targets: concrete price levels, never percentages.
 - risks: 4-5 items ordered from highest to lowest severity.`;
 
+// Heuristic fallback text shown when the AI gateway is unavailable.
+// Keeps the advisor usable without blocking the user on a config error.
+function heuristicAdvisorRaw(lang: "ar" | "en"): string {
+  return lang === "ar"
+    ? "⚠️ التحليل الذكي غير متاح مؤقتاً. يُنصح بمراجعة أسواق النفط والعملات والأسهم الخليجية ومتابعة قرارات الفيدرالي وأوبك+. (Heuristic — لا يُعدّ توصية مالية)"
+    : "⚠️ AI analysis is temporarily unavailable. Consider reviewing oil markets, FX, Gulf equities, and tracking Fed/OPEC+ decisions. (Heuristic — not financial advice)";
+}
+
 export const askAdvisor = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => InputSchema.parse(input))
   .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) {
-      return { structured: null, raw: "", error: "ai_not_configured", engine: "heuristic" as const };
-    }
     const lang = resolveLang(data);
     const baseSys = lang === "ar" ? sysAr : sysEn;
-    const sys = `${baseSys}\n\n${localeGuardrails(lang)}\n\n${rtlNumberHint(lang)}`;
-    const langDirective = lang === "ar"
-      ? "أنتج الجواب بالعربية الفصحى المؤسسية حصراً، 100% عربي.\n\n"
-      : "Reply in native institutional English ONLY, 100% English.\n\n";
+    // callAIGateway appends localeGuardrails automatically; include rtlNumberHint explicitly.
+    const sys = `${baseSys}\n\n${rtlNumberHint(lang)}`;
     const today = new Date().toISOString().slice(0, 10);
     const dateLine = lang === "ar" ? `التاريخ: ${today}` : `Date: ${today}`;
-    const userMsg = langDirective + (data.context
+    // callAIGateway prepends the language directive; pass only the content body.
+    const userMsg = data.context
       ? `${data.question}\n\nMarket context:\n${data.context}\n\n${dateLine}`
-      : `${data.question}\n\n${dateLine}`);
+      : `${data.question}\n\n${dateLine}`;
 
-    const ctrl = new AbortController();
-    const timeout = setTimeout(() => ctrl.abort(), 22000);
-    try {
-      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        signal: ctrl.signal,
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: sys },
-            { role: "user", content: userMsg },
-          ],
-          response_format: { type: "json_object" },
-        }),
-      }).finally(() => clearTimeout(timeout));
-      if (r.status === 429) return { structured: null, raw: "", error: "rate_limited", engine: "heuristic" as const };
-      if (r.status === 402) return { structured: null, raw: "", error: "payment_required", engine: "heuristic" as const };
-      if (!r.ok) {
-        const t = await r.text();
-        console.error("AI gateway error", r.status, t);
-        return { structured: null, raw: "", error: "ai_error", engine: "heuristic" as const };
-      }
-      const d = await r.json();
-      const raw: string = d.choices?.[0]?.message?.content ?? "";
-      const structured = safeParseJson<AdvisorStructuredReply>(raw);
-      return { structured, raw, error: null as string | null, engine: "ai" as const };
-    } catch (e) {
-      console.error(e);
-      return { structured: null, raw: "", error: "network_error", engine: "heuristic" as const };
+    const result = await callAIGateway<AdvisorStructuredReply>({
+      system: sys,
+      user: userMsg,
+      language: lang,
+      jsonObject: true,
+      model: "google/gemini-2.5-flash",
+      maxTokens: 2000,
+      temperature: 0.4,
+    });
+
+    // Surface retriable/billing errors so the client can show a targeted message.
+    if (result.error === "rate_limited") {
+      return { structured: null, raw: "", error: "rate_limited", engine: "heuristic" as const };
     }
+    if (result.error === "payment_required") {
+      return { structured: null, raw: "", error: "payment_required", engine: "heuristic" as const };
+    }
+    // Any other failure (missing_key, ai_error, network_error, parse_error) → graceful
+    // heuristic fallback; never block the user with ai_not_configured.
+    if (result.error) {
+      console.warn("[advisor] gateway error, using heuristic fallback:", result.error);
+      return {
+        structured: null,
+        raw: heuristicAdvisorRaw(lang),
+        error: null as string | null,
+        engine: "heuristic" as const,
+      };
+    }
+
+    const structured = result.data ?? safeParseJson<AdvisorStructuredReply>(result.raw);
+    // If the gateway returned a response but JSON parsing failed, fall back gracefully.
+    if (!structured) {
+      return {
+        structured: null,
+        raw: result.raw || heuristicAdvisorRaw(lang),
+        error: null as string | null,
+        engine: result.raw ? "ai" as const : "heuristic" as const,
+      };
+    }
+    return { structured, raw: result.raw, error: null as string | null, engine: "ai" as const };
   });
