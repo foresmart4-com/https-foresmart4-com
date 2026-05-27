@@ -4,17 +4,31 @@ import { useAuth } from "./auth";
 
 export const DISCLAIMER_VERSION = "2026-05-08-v1";
 
+// localStorage key scoped to the disclaimer version so re-versioning clears the cache.
+const LS_KEY = `foresmart_disclaimer_accepted_${DISCLAIMER_VERSION}`;
+
+function readLocalCache(): boolean {
+  try { return localStorage.getItem(LS_KEY) === "1"; } catch { return false; }
+}
+function writeLocalCache(): void {
+  try { localStorage.setItem(LS_KEY, "1"); } catch { /* storage blocked */ }
+}
+
 export type AppRole = "admin" | "subscriber" | "pending";
 
 export function useAccess() {
   const { user } = useAuth();
   const [role, setRole] = useState<AppRole | null>(null);
-  const [accepted, setAccepted] = useState<boolean | null>(null);
+  // Fast-path: seed from localStorage so already-accepted users skip the blocking gate
+  // on every hard refresh while the Supabase round-trip completes in the background.
+  const [accepted, setAccepted] = useState<boolean | null>(() => readLocalCache() ? true : null);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     if (!user) { setLoading(false); return; }
-    setLoading(true);
+    // If localStorage says accepted, skip blocking; still validate in background.
+    const cachedAccepted = readLocalCache();
+    if (!cachedAccepted) setLoading(true);
     const [{ data: roles }, { data: acc }] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", user.id),
       supabase.rpc("has_accepted_disclaimer", { _version: DISCLAIMER_VERSION }),
@@ -22,7 +36,9 @@ export function useAccess() {
     const rs = (roles ?? []).map((r) => r.role as AppRole);
     const primary: AppRole = rs.includes("admin") ? "admin" : rs.includes("subscriber") ? "subscriber" : "pending";
     setRole(primary);
-    setAccepted(acc === true);
+    const serverAccepted = acc === true;
+    if (serverAccepted) writeLocalCache();
+    setAccepted(serverAccepted);
     setLoading(false);
   }, [user]);
 
@@ -35,7 +51,10 @@ export function useAccess() {
       version: DISCLAIMER_VERSION,
       user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
     });
-    if (!error) setAccepted(true);
+    if (!error) {
+      writeLocalCache();
+      setAccepted(true);
+    }
     return { error: error?.message ?? null };
   };
 

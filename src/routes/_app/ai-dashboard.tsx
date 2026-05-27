@@ -1,9 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   Activity, Bitcoin, DollarSign, TrendingUp, TrendingDown, Brain, Zap,
   Newspaper, Eye, Send, ShieldAlert, Sparkles, CircleDot, Gauge, Droplet,
-  BarChart3, Coins, LineChart as LineIcon, RefreshCw,
+  BarChart3, Coins, LineChart as LineIcon, RefreshCw, Bot,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -185,6 +185,29 @@ function AIDashboardPage() {
             </div>
           </div>
         </GlassCard>
+
+        {/* Genesis Copilot entry — conversational AI surface */}
+        <Link to="/genesis" className="block group">
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 transition-colors hover:border-primary/60 hover:bg-primary/10">
+            <div className="flex items-center gap-3">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg gradient-primary shadow-glow">
+                <Bot className="h-4.5 w-4.5 text-primary-foreground" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold leading-tight">
+                  {ar ? "Genesis Copilot — المساعد التفاعلي" : "Genesis Copilot — Interactive AI"}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {ar ? "اطرح أي سؤال استثماري وتلقَّ تحليلاً بنسب ثقة معايرة" : "Ask any investment question · calibrated confidence analysis"}
+                </div>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-colors group-hover:bg-primary/20">
+              <Sparkles className="h-3.5 w-3.5" />
+              {ar ? "افتح Genesis" : "Open Genesis"}
+            </div>
+          </div>
+        </Link>
 
         {/* Segmented institutional ticker ribbons (Crypto / Indices / Commodities / FX) */}
         <SegmentedTickerRibbons quotes={data?.quotes ?? []} ar={ar} />
