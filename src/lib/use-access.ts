@@ -46,14 +46,41 @@ export function useAccess() {
     // If localStorage says accepted, skip blocking; still validate in background.
     const cachedAccepted = readLocalCache();
     if (!cachedAccepted) setLoading(true);
-    // Use SECURITY DEFINER RPC to fetch role — bypasses RLS so admin is never
-    // silently downgraded to "pending" by a blocked or errored table SELECT.
+
+    // Step 1: Try SECURITY DEFINER RPC. May fail if EXECUTE was revoked from authenticated.
     const [{ data: roleData, error: roleError }, { data: acc }] = await Promise.all([
       supabase.rpc("current_role"),
       supabase.rpc("has_accepted_disclaimer", { _version: DISCLAIMER_VERSION }),
     ]);
-    if (roleError) console.error("[use-access] role fetch error:", roleError.message);
-    const primary: AppRole = (roleData as AppRole | null) ?? "pending";
+    if (roleError) console.warn("[use-access] current_role RPC unavailable, trying direct query:", roleError.message);
+
+    let resolvedRole: AppRole | null = roleData as AppRole | null;
+
+    // Step 2: If RPC returned nothing, fall back to direct user_roles query.
+    // The RLS policy "users see own roles" allows auth.uid() = user_id SELECT.
+    if (!resolvedRole) {
+      const { data: roleRows, error: fallbackError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+
+      if (fallbackError) {
+        console.error("[use-access] fallback role query failed:", fallbackError.message);
+        // Do NOT silently downgrade — keep resolvedRole null until final fallback below.
+      } else if (roleRows && roleRows.length > 0) {
+        // Prioritize: admin > subscriber > pending
+        const rows = roleRows as { role: AppRole }[];
+        const adminRow = rows.find(r => r.role === "admin");
+        const subscriberRow = rows.find(r => r.role === "subscriber");
+        resolvedRole = adminRow?.role ?? subscriberRow?.role ?? rows[0]?.role ?? null;
+        if (import.meta.env.DEV) {
+          console.info("[use-access] role resolved via direct query:", resolvedRole, "for user:", user.id);
+        }
+      }
+    }
+
+    // Step 3: Only fall back to "pending" when both checks returned no role.
+    const primary: AppRole = resolvedRole ?? "pending";
     setRole(primary);
     const serverAccepted = acc === true;
     if (serverAccepted) writeLocalCache();
