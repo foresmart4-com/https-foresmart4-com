@@ -46,12 +46,14 @@ export function useAccess() {
     // If localStorage says accepted, skip blocking; still validate in background.
     const cachedAccepted = readLocalCache();
     if (!cachedAccepted) setLoading(true);
-    const [{ data: roles }, { data: acc }] = await Promise.all([
-      supabase.from("user_roles").select("role").eq("user_id", user.id),
+    // Use SECURITY DEFINER RPC to fetch role — bypasses RLS so admin is never
+    // silently downgraded to "pending" by a blocked or errored table SELECT.
+    const [{ data: roleData, error: roleError }, { data: acc }] = await Promise.all([
+      supabase.rpc("current_role"),
       supabase.rpc("has_accepted_disclaimer", { _version: DISCLAIMER_VERSION }),
     ]);
-    const rs = (roles ?? []).map((r) => r.role as AppRole);
-    const primary: AppRole = rs.includes("admin") ? "admin" : rs.includes("subscriber") ? "subscriber" : "pending";
+    if (roleError) console.error("[use-access] role fetch error:", roleError.message);
+    const primary: AppRole = (roleData as AppRole | null) ?? "pending";
     setRole(primary);
     const serverAccepted = acc === true;
     if (serverAccepted) writeLocalCache();
