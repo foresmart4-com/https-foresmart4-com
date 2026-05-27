@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "postbuild": "node -e \"const fs=require('fs');fs.writeFileSync('dist/server/server.js',\\\"// shim: @tanstack/start-plugin-core preview expects server.js; cloudflare plugin outputs index.js\\nexport { default } from './index.js';\\n\\\")\"",
+    "postbuild": "node -e \"const fs=require('fs');fs.writeFileSync('dist/server/server.js',\\\"// shim: @tanstack/start-plugin-core preview expects server.js; cloudflare plugin outputs index.js\\nexport { default } from './index.js';\\n\\\")\" && node scripts/create-worker-vars.cjs",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
