@@ -41,6 +41,7 @@ function AppLayout() {
   const items: { to: string; icon: typeof LayoutDashboard; label: string; hint: string }[] = [
     { to: "/dashboard", icon: LayoutDashboard, label: t("nav.dashboard"), hint: hint("نظرة عامة شاملة على حسابك والأسواق", "Overview of your account and markets") },
     { to: "/ai-dashboard", icon: Brain, label: t("nav.aiDashboard"), hint: hint("لوحة الذكاء الاصطناعي والتحليلات اللحظية", "AI dashboard and real-time analytics") },
+    { to: "/genesis", icon: Bot, label: hint("Genesis Copilot", "Genesis Copilot"), hint: hint("مساعد الاستثمار الذكي التفاعلي", "Interactive AI investment copilot") },
     { to: "/market-universe", icon: Compass, label: hint("كون الأسهم", "Market Universe"), hint: hint("ابحث في S&P 500 و Nasdaq 100 مع أسعار حقيقية", "Search S&P 500 and Nasdaq 100 with live quotes") },
     { to: "/backtest-lab", icon: GraduationCap, label: t("nav.backtestLab"), hint: hint("اختبر استراتيجيات على بيانات تاريخية", "Test strategies against historical data") },
     { to: "/decision-engine", icon: Cpu, label: t("nav.decisionEngine"), hint: hint("محرك القرار الكمي", "Quantitative decision engine") },
@@ -57,7 +58,6 @@ function AppLayout() {
     { to: "/portfolios", icon: Briefcase, label: t("nav.watchlists"), hint: hint("المحافظ والمراقبة", "Portfolios & watchlists") },
     { to: "/external-accounts", icon: Link2, label: t("nav.external"), hint: hint("ربط Alpaca, IBKR, محافظ كريبتو", "Link Alpaca, IBKR, crypto wallets") },
     { to: "/bank-accounts", icon: Building, label: t("nav.banks"), hint: hint("الحسابات البنكية", "Bank accounts") },
-    { to: "/genesis", icon: Bot, label: hint("Genesis Copilot", "Genesis Copilot"), hint: hint("مساعد الاستثمار الذكي التفاعلي", "Interactive AI investment copilot") },
     { to: "/advisor", icon: Brain, label: t("nav.advisor"), hint: hint("مستشار AI شخصي", "Personal AI advisor") },
     { to: "/signals", icon: Zap, label: t("nav.signals"), hint: hint("إشارات التداول", "Trade signals") },
     { to: "/scanner", icon: Search, label: t("nav.scanner"), hint: hint("ماسح الفرص اللحظي", "Real-time opportunity scanner") },
