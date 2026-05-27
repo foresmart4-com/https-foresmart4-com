@@ -28,6 +28,7 @@ const ENV_KEYS = [
   "MARKETSTACK_API_KEY",
   "LIVE_TRADING_ENABLED",
   "RESEND_API_KEY",
+  "GEMINI_API_KEY",
   "LOVABLE_API_KEY",
   "SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY",
@@ -50,7 +51,8 @@ const ALIASES: Record<string, string[]> = {
   marketstack: ["MARKETSTACK_API_KEY"],
   broker: ["BROKER_PROVIDER", "LIVE_TRADING_ENABLED"],
   email: ["RESEND_API_KEY"],
-  ai: ["LOVABLE_API_KEY"],
+  // AI provider priority: GEMINI_API_KEY (primary) → LOVABLE_API_KEY (fallback)
+  ai: ["GEMINI_API_KEY", "LOVABLE_API_KEY"],
   supabase: ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY"],
 };
 
@@ -84,11 +86,23 @@ export const Route = createFileRoute("/api/public/env-check")({
           warnings.push("Both ALPACA_API_KEY and ALPACA_API_KEY_ID are set — code checks both");
         }
 
+        // Detect active AI provider (Gemini primary, Lovable fallback)
+        const aiProvider =
+          keys.GEMINI_API_KEY ? "gemini" :
+          keys.LOVABLE_API_KEY ? "lovable" :
+          "none";
+        const aiRuntime =
+          aiProvider === "gemini" ? "Gemini API (direct)" :
+          aiProvider === "lovable" ? "Lovable AI Gateway (fallback)" :
+          "heuristic (no AI key)";
+
         return new Response(JSON.stringify({
           ok: true,
           environment: process.env.RAILWAY_ENVIRONMENT ?? process.env.NODE_ENV ?? "development",
           secretsExposed: false,
           liveTradingEnabled: liveTrading,
+          aiProvider,
+          aiRuntime,
           keys,
           aliases: ALIASES,
           missingRequiredForMarketData: missingRequired,

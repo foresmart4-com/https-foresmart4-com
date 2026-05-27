@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getMarketData, calcRSI, calcSMA } from "./market-data";
+import { resolveAIProvider } from "@/lib/ai-gateway.server";
 
 export interface TradeSignal {
   id?: string;
@@ -133,7 +134,9 @@ function technicalScore(prices: number[]): Scored {
 }
 
 async function aiSentimentBatch(
-  apiKey: string,
+  providerKey: string,
+  gatewayUrl: string,
+  model: string,
   assets: { symbol: string; name: string; changePct: number }[],
 ): Promise<Record<string, { sentiment: number; note: string }>> {
   const list = assets.map((a) => `${a.symbol} (${a.name}, 24h: ${a.changePct.toFixed(2)}%)`).join("\n");
@@ -157,12 +160,12 @@ ${list}
   const ctrl = new AbortController();
   const timeout = setTimeout(() => ctrl.abort(), 15000);
   try {
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const r = await fetch(gatewayUrl, {
       method: "POST",
       signal: ctrl.signal,
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${providerKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model,
         messages: [
           { role: "system", content: "أنت محلل أسواق مالي كمي مؤسسي. حلّل بموضوعية عالية واستخدم لغة احتمالية. أعد JSON صحيحاً فقط بدون markdown." },
           { role: "user", content: prompt },
@@ -240,16 +243,20 @@ function buildSignal(
 export const generateSignals = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
-    const apiKey = process.env.LOVABLE_API_KEY;
+    const providerCfg = resolveAIProvider();
     const market = await getMarketData();
     // Use only assets with enough history
     const candidates = market.assets.filter((a) => a.history.length >= 14).slice(0, 18);
 
     let sentimentMap: Record<string, { sentiment: number; note: string }> = {};
     let usedAI = false;
-    if (apiKey) {
+    if (providerCfg) {
+      const { key, gatewayUrl, normalizeModel, provider } = providerCfg;
+      console.info(`[generateSignals] provider=${provider}`);
       sentimentMap = await aiSentimentBatch(
-        apiKey,
+        key,
+        gatewayUrl,
+        normalizeModel("google/gemini-2.5-flash"),
         candidates.map((a) => ({ symbol: a.symbol, name: a.name, changePct: a.changePct })),
       );
       usedAI = Object.keys(sentimentMap).length > 0;

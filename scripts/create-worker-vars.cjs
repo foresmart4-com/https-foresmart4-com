@@ -28,7 +28,9 @@ const path = require("path");
 // Keep this list in sync with actual process.env.* usages in src/lib/*.ts
 // and src/routes/**/*.ts.  Order does not matter.
 const SERVER_VARS = [
-  // AI gateway — primary key for all AI features
+  // AI provider — primary (direct Gemini API) takes priority over fallback gateway
+  "GEMINI_API_KEY",
+  // AI gateway — fallback when GEMINI_API_KEY is absent; also used for Lovable platform webhooks
   "LOVABLE_API_KEY",
 
   // Supabase server-side
@@ -83,7 +85,7 @@ for (const key of SERVER_VARS) {
 
 if (lines.length === 0) {
   console.log("[create-worker-vars] No server env vars found — .dev.vars not written");
-  console.log("[create-worker-vars] AI gateway will be unavailable until LOVABLE_API_KEY is set in Railway");
+  console.log("[create-worker-vars] AI runtime will be unavailable until GEMINI_API_KEY (primary) or LOVABLE_API_KEY (fallback) is set in Railway");
 } else {
   fs.writeFileSync(outFile, lines.join("\n") + "\n", "utf8");
   const listed = lines.map((l) => l.split("=")[0]);

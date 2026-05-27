@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { localeGuardrails, rtlNumberHint, resolveLang } from "@/lib/ai/locale";
+import { resolveAIProvider } from "@/lib/ai-gateway.server";
 
 export interface AssetVerdict {
   action: "buy" | "sell" | "hold" | "watch";
@@ -66,8 +67,9 @@ export const analyzeAsset = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => AssetInput.parse(d))
   .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) return { verdict: null as AssetVerdict | null, error: "ai_not_configured", engine: "heuristic" as const };
+    const providerCfg = resolveAIProvider();
+    if (!providerCfg) return { verdict: null as AssetVerdict | null, error: "ai_not_configured", engine: "heuristic" as const };
+    const { key: apiKey, gatewayUrl, normalizeModel, provider } = providerCfg;
 
     const lang = resolveLang(data);
     const baseSys = lang === "ar"
@@ -102,13 +104,14 @@ If uncertaintyLevel is "high", default to "watch" unless there is a very clear s
 
     const ctrl = new AbortController();
     const timeout = setTimeout(() => ctrl.abort(), 22000);
+    console.info(`[analyzeAsset] provider=${provider}`);
     try {
-      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const r = await fetch(gatewayUrl, {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         signal: ctrl.signal,
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: normalizeModel("google/gemini-2.5-flash"),
           messages: [
             { role: "system", content: sys },
             { role: "user", content: user },
@@ -120,7 +123,7 @@ If uncertaintyLevel is "high", default to "watch" unless there is a very clear s
       if (r.status === 429) return { verdict: null, error: "rate_limited", engine: "heuristic" as const };
       if (r.status === 402) return { verdict: null, error: "payment_required", engine: "heuristic" as const };
       if (!r.ok) {
-        console.error("analyzeAsset error", r.status, await r.text());
+        console.error(`[analyzeAsset] provider=${provider} error`, r.status, await r.text());
         return { verdict: null, error: "ai_error", engine: "heuristic" as const };
       }
       const d = await r.json();
@@ -129,7 +132,7 @@ If uncertaintyLevel is "high", default to "watch" unless there is a very clear s
       const verdict = JSON.parse(call.function.arguments) as AssetVerdict;
       return { verdict, error: null as string | null, engine: "ai" as const };
     } catch (e) {
-      console.error(e);
+      console.error(`[analyzeAsset] provider=${provider} network error`, e);
       return { verdict: null, error: "network_error", engine: "heuristic" as const };
     }
   });
@@ -218,10 +221,10 @@ const planTool = {
   },
 };
 
-async function callPlanModel(apiKey: string, model: string, messages: any[]) {
+async function callPlanModel(apiKey: string, gatewayUrl: string, model: string, messages: any[]) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 22000);
-  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const r = await fetch(gatewayUrl, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     signal: controller.signal,
@@ -282,8 +285,9 @@ export const microCapitalPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => PlanInput.parse(d))
   .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) return { plan: null as MicroCapitalPlan | null, error: "ai_not_configured", detail: "LOVABLE_API_KEY missing", engine: "heuristic" as const };
+    const providerCfg = resolveAIProvider();
+    if (!providerCfg) return { plan: null as MicroCapitalPlan | null, error: "ai_not_configured", detail: "No AI provider key configured (GEMINI_API_KEY or LOVABLE_API_KEY)", engine: "heuristic" as const };
+    const { key: apiKey, gatewayUrl, normalizeModel, provider } = providerCfg;
 
     const today = new Date().toISOString().slice(0, 10);
 
@@ -319,12 +323,13 @@ Build a comprehensive plan. Allocations percentages must sum to ~100% and reflec
       { role: "user", content: user },
     ];
 
+    console.info(`[microCapitalPlan] provider=${provider}`);
     let r: Response;
     try {
       // Primary model matches the gateway default; lite is the fast fallback on 429/503.
-      r = await callPlanModel(apiKey, "google/gemini-2.5-flash", messages);
+      r = await callPlanModel(apiKey, gatewayUrl, normalizeModel("google/gemini-2.5-flash"), messages);
       if (r.status === 429 || r.status === 503) {
-        r = await callPlanModel(apiKey, "google/gemini-2.5-flash-lite", messages);
+        r = await callPlanModel(apiKey, gatewayUrl, normalizeModel("google/gemini-2.5-flash-lite"), messages);
       }
     } catch (e) {
       console.error("microCapitalPlan timeout/network fallback", e);

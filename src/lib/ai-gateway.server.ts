@@ -1,8 +1,50 @@
-// Shared Lovable AI Gateway helper — server-only.
+// Shared AI Gateway helper — server-only.
+// Provider priority: GEMINI_API_KEY (direct Gemini API) → LOVABLE_API_KEY (Lovable gateway).
 // Centralizes model calls, JSON parsing, and error mapping so individual
 // AI server functions stay thin.
 
-const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+// ─── Provider resolution ───────────────────────────────────────────────────
+
+export type AIProvider = "gemini" | "lovable";
+
+export interface ProviderConfig {
+  provider: AIProvider;
+  key: string;
+  gatewayUrl: string;
+  /** Normalize model name for the target API surface. */
+  normalizeModel: (model: string) => string;
+}
+
+/**
+ * Resolves the active AI provider from environment variables.
+ * Priority: GEMINI_API_KEY (direct Gemini API) > LOVABLE_API_KEY (Lovable gateway).
+ * Returns null when neither key is present — callers must handle gracefully.
+ */
+export function resolveAIProvider(): ProviderConfig | null {
+  const geminiKey = process.env.GEMINI_API_KEY?.trim();
+  if (geminiKey) {
+    return {
+      provider: "gemini",
+      key: geminiKey,
+      // Gemini OpenAI-compatible endpoint — uses same chat/completions contract.
+      gatewayUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+      // Gemini native uses "gemini-2.5-flash", not the "google/gemini-2.5-flash" OpenRouter prefix.
+      normalizeModel: (m: string) => m.replace(/^google\//, ""),
+    };
+  }
+  const lovableKey = process.env.LOVABLE_API_KEY?.trim();
+  if (lovableKey) {
+    return {
+      provider: "lovable",
+      key: lovableKey,
+      gatewayUrl: "https://ai.gateway.lovable.dev/v1/chat/completions",
+      normalizeModel: (m: string) => m, // Lovable gateway uses "google/gemini-*" prefixed names
+    };
+  }
+  return null;
+}
+
+// ─── Types ─────────────────────────────────────────────────────────────────
 
 export type AIError = "missing_key" | "rate_limited" | "payment_required" | "ai_error" | "network_error" | "parse_error";
 
@@ -10,6 +52,8 @@ export interface AICallResult<T> {
   data: T | null;
   raw: string;
   error: AIError | null;
+  /** Which AI provider handled this call. Set on success; undefined on missing_key. */
+  provider?: AIProvider;
 }
 
 import { localeGuardrails, type Lang } from "@/lib/ai/locale";
@@ -49,8 +93,14 @@ export interface AICallOptions {
 }
 
 export async function callAIGateway<T>(opts: AICallOptions): Promise<AICallResult<T>> {
-  const apiKey = process.env.LOVABLE_API_KEY;
-  if (!apiKey) return { data: null, raw: "", error: "missing_key" };
+  const providerCfg = resolveAIProvider();
+  if (!providerCfg) {
+    console.warn("[ai-gateway] No AI provider configured — set GEMINI_API_KEY (primary) or LOVABLE_API_KEY (fallback).");
+    return { data: null, raw: "", error: "missing_key" };
+  }
+
+  const { provider, key, gatewayUrl, normalizeModel } = providerCfg;
+  const model = normalizeModel(opts.model ?? "google/gemini-2.5-flash");
 
   const lang: Lang = opts.language ?? "en";
   const guardrails = localeGuardrails(lang);
@@ -59,7 +109,7 @@ export async function callAIGateway<T>(opts: AICallOptions): Promise<AICallResul
     : "Reply in native institutional English ONLY, 100% English.\n\n";
 
   const body: Record<string, unknown> = {
-    model: opts.model ?? "google/gemini-2.5-flash",
+    model,
     messages: [
       { role: "system", content: `${opts.system}\n\n${guardrails}` },
       { role: "user", content: `${userDirective}${opts.user}` },
@@ -69,29 +119,31 @@ export async function callAIGateway<T>(opts: AICallOptions): Promise<AICallResul
   if (opts.temperature !== undefined) body.temperature = opts.temperature;
   if (opts.maxTokens !== undefined) body.max_tokens = opts.maxTokens;
 
+  console.info(`[ai-gateway] provider=${provider} model=${model}`);
+
   try {
-    const r = await fetch(GATEWAY_URL, {
+    const r = await fetch(gatewayUrl, {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     if (r.status === 429) {
       void import("./observability/log.server").then((m) =>
-        m.logEvent({ source: "ai", severity: "warn", eventType: "ai_rate_limited", context: { status: 429 } }),
+        m.logEvent({ source: "ai", severity: "warn", eventType: "ai_rate_limited", context: { status: 429, provider } }),
       );
-      return { data: null, raw: "", error: "rate_limited" };
+      return { data: null, raw: "", error: "rate_limited", provider };
     }
-    if (r.status === 402) return { data: null, raw: "", error: "payment_required" };
+    if (r.status === 402) return { data: null, raw: "", error: "payment_required", provider };
     if (!r.ok) {
       const t = await r.text();
-      console.error("[ai-gateway] error", r.status, t);
+      console.error(`[ai-gateway] provider=${provider} error`, r.status, t);
       void import("./observability/log.server").then((m) =>
         m.logEvent({
           source: "ai", severity: "error", eventType: "ai_error",
-          message: `status=${r.status}`, context: { body: t.slice(0, 500) },
+          message: `provider=${provider} status=${r.status}`, context: { body: t.slice(0, 500) },
         }),
       );
-      return { data: null, raw: "", error: "ai_error" };
+      return { data: null, raw: "", error: "ai_error", provider };
     }
     const d = await r.json();
     const raw: string = d.choices?.[0]?.message?.content ?? "";
@@ -107,7 +159,7 @@ export async function callAIGateway<T>(opts: AICallOptions): Promise<AICallResul
           void import("./observability/log.server").then((m) =>
             m.logEvent({
               source: "ai", severity: "warn", eventType: "ai_language_leakage",
-              message: `lang=${opts.language} ratio=${leak.ratio.toFixed(3)}`,
+              message: `provider=${provider} lang=${opts.language} ratio=${leak.ratio.toFixed(3)}`,
               context: { offenders: leak.offendingTokens },
             }),
           );
@@ -115,16 +167,16 @@ export async function callAIGateway<T>(opts: AICallOptions): Promise<AICallResul
       } catch { /* leakage detection is best-effort */ }
     }
 
-    if (!opts.jsonObject) return { data: raw as unknown as T, raw, error: null };
+    if (!opts.jsonObject) return { data: raw as unknown as T, raw, error: null, provider };
     const parsed = safeParseJson<T>(raw);
     return parsed
-      ? { data: parsed, raw, error: null }
-      : { data: null, raw, error: "parse_error" };
+      ? { data: parsed, raw, error: null, provider }
+      : { data: null, raw, error: "parse_error", provider };
   } catch (e) {
-    console.error("[ai-gateway] network error", e);
+    console.error(`[ai-gateway] provider=${provider} network error`, e);
     void import("./observability/log.server").then((m) =>
-      m.logEvent({ source: "ai", severity: "error", eventType: "ai_network_error", message: (e as Error).message }),
+      m.logEvent({ source: "ai", severity: "error", eventType: "ai_network_error", message: (e as Error).message, context: { provider } }),
     );
-    return { data: null, raw: "", error: "network_error" };
+    return { data: null, raw: "", error: "network_error", provider };
   }
 }
