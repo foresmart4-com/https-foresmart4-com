@@ -1,154 +1,167 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import { useAuth } from "@/lib/auth";
-import { useI18n } from "@/lib/i18n";
-import { listAlerts, createAlert, deleteAlert } from "@/lib/alerts.functions";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bell, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Bell, Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-
 
 export const Route = createFileRoute("/_app/alerts")({
-  component: AlertsPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل التنبيهات"><AlertsPage /></ErrorBoundary>,
   head: () => ({
     meta: [
-      { title: "Price Alerts — ForeSmart" },
-      { name: "description", content: "Create smart price alerts for stocks, crypto, FX and metals. Get notified when assets cross your target price." },
-      { property: "og:title", content: "Price Alerts — ForeSmart" },
-      { property: "og:description", content: "Smart price alerts across global markets." },
-      { property: "og:url", content: "https://foresmart4.store/alerts" },
+      { title: "التنبيهات الذكية — ForeSmart" },
+      { name: "description", content: "تنبيهات الأسعار للأسهم والكريبتو والمعادن." },
     ],
-    links: [{ rel: "canonical", href: "https://foresmart4.store/alerts" }],
   }),
 });
 
-interface Alert {
-  id: string; symbol: string; asset_name: string;
-  condition: string; target_price: number; active: boolean;
-  triggered_at: string | null; created_at: string;
+interface LocalAlert {
+  id: string;
+  symbol: string;
+  condition: "price_above" | "price_below" | "change_above" | "change_below";
+  value: number;
+  active: boolean;
+  createdAt: string;
+}
+
+const COND_LABEL: Record<string, string> = {
+  price_above: "السعر أعلى من",
+  price_below: "السعر أقل من",
+  change_above: "تغير ≥",
+  change_below: "تغير ≤",
+};
+
+const STORAGE_KEY = "foresmart_alerts";
+
+function loadAlerts(): LocalAlert[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveAlerts(alerts: LocalAlert[]) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(alerts)); } catch {}
 }
 
 function AlertsPage() {
-  const { user } = useAuth();
-  const { t, lang } = useI18n();
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [form, setForm] = useState({ symbol: "BTC", asset_name: "Bitcoin", condition: "above" as "above" | "below", target_price: "" });
-  const listFn = useServerFn(listAlerts);
-  const createFn = useServerFn(createAlert);
-  const deleteFn = useServerFn(deleteAlert);
+  const [alerts, setAlerts] = useState<LocalAlert[]>([]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState({ symbol: "", condition: "price_above" as LocalAlert["condition"], value: "" });
 
-  const load = async () => {
-    if (!user) return;
-    try {
-      const res = await listFn();
-      setAlerts((res.alerts ?? []) as Alert[]);
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
-  };
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { setAlerts(loadAlerts()); }, []);
 
-  const create = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    const price = parseFloat(form.target_price);
-    if (!price) return;
-    try {
-      await createFn({ data: {
-        symbol: form.symbol,
-        asset_name: form.asset_name,
-        condition: form.condition,
-        target_price: price,
-      }});
-      toast.success(t("saved"));
-      setForm({ ...form, target_price: "" });
-      load();
-    } catch (err) {
-      toast.error((err as Error).message);
-    }
+  const save = (next: LocalAlert[]) => { setAlerts(next); saveAlerts(next); };
+
+  const create = () => {
+    if (!form.symbol.trim() || !form.value) { toast.error("يرجى ملء جميع الحقول"); return; }
+    const alert: LocalAlert = {
+      id: `LA-${Date.now()}`,
+      symbol: form.symbol.trim().toUpperCase(),
+      condition: form.condition,
+      value: Number(form.value),
+      active: true,
+      createdAt: new Date().toISOString(),
+    };
+    save([alert, ...alerts]);
+    setForm({ symbol: "", condition: "price_above", value: "" });
+    setCreateOpen(false);
+    toast.success("تم إنشاء التنبيه");
   };
 
-  const remove = async (id: string) => {
-    try {
-      await deleteFn({ data: { id } });
-      load();
-    } catch (err) {
-      toast.error((err as Error).message);
-    }
+  const update = () => {
+    if (!editId || !form.symbol.trim() || !form.value) return;
+    save(alerts.map((a) => a.id === editId ? { ...a, symbol: form.symbol.trim().toUpperCase(), condition: form.condition, value: Number(form.value) } : a));
+    setEditId(null);
+    toast.success("تم التحديث");
   };
 
+  const remove = (id: string) => { save(alerts.filter((a) => a.id !== id)); toast.success("تم الحذف"); };
+  const toggle = (id: string) => { save(alerts.map((a) => a.id === id ? { ...a, active: !a.active } : a)); };
+
+  const startEdit = (a: LocalAlert) => {
+    setEditId(a.id);
+    setForm({ symbol: a.symbol, condition: a.condition, value: String(a.value) });
+  };
 
   return (
-    <div className="container mx-auto max-w-5xl p-6">
-      <h1 className="mb-6 font-display text-3xl font-bold flex items-center gap-2">
-        <Bell className="h-7 w-7 text-primary" /> {t("alerts")}
-      </h1>
+    <div dir="rtl" className="container mx-auto max-w-5xl space-y-4 p-4 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold flex items-center gap-2"><Bell className="h-5 w-5 text-primary" /> التنبيهات الذكية</h1>
+          <p className="text-xs text-muted-foreground mt-1">إشارات مراقبة وليست توصية تداول. التنبيهات محفوظة محلياً.</p>
+        </div>
+        <Button onClick={() => { setForm({ symbol: "", condition: "price_above", value: "" }); setCreateOpen(true); }}><Plus className="h-4 w-4 ml-1" /> تنبيه جديد</Button>
+      </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <form onSubmit={create} className="rounded-xl gradient-card border border-border p-5 shadow-card space-y-4">
-          <h2 className="font-display text-lg font-semibold">{t("createAlert")}</h2>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>{t("symbol")}</Label>
-              <Input value={form.symbol} onChange={(e) => setForm({ ...form, symbol: e.target.value.toUpperCase() })} required />
-            </div>
-            <div>
-              <Label>{t("asset")}</Label>
-              <Input value={form.asset_name} onChange={(e) => setForm({ ...form, asset_name: e.target.value })} required />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>{t("condition")}</Label>
-              <Select value={form.condition} onValueChange={(v) => setForm({ ...form, condition: v as "above" | "below" })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="above">{t("above")}</SelectItem>
-                  <SelectItem value="below">{t("below")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>{t("targetPrice")}</Label>
-              <Input type="number" step="any" value={form.target_price} onChange={(e) => setForm({ ...form, target_price: e.target.value })} required />
-            </div>
-          </div>
-          <Button type="submit" className="w-full gradient-primary text-primary-foreground">{t("save")}</Button>
-        </form>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">الإجمالي</p><p className="text-2xl font-bold">{alerts.length}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">نشط</p><p className="text-2xl font-bold text-emerald-500">{alerts.filter((a) => a.active).length}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">متوقف</p><p className="text-2xl font-bold text-muted-foreground">{alerts.filter((a) => !a.active).length}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">الوضع</p><p className="text-sm font-medium text-amber-500">مراقبة محلية</p></CardContent></Card>
+      </div>
 
-        <div className="rounded-xl gradient-card border border-border p-5 shadow-card">
-          <h2 className="mb-4 font-display text-lg font-semibold">{t("yourAlerts")}</h2>
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm">قائمة التنبيهات</CardTitle></CardHeader>
+        <CardContent>
           {alerts.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">{t("noAlerts")}</p>
+            <div className="text-center py-10 space-y-2">
+              <Bell className="h-10 w-10 mx-auto text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">لا توجد تنبيهات بعد — أنشئ تنبيهًا لمراقبة سعر أصل معين.</p>
+              <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4 ml-1" /> إنشاء أول تنبيه</Button>
+            </div>
           ) : (
-            <ul className="space-y-2">
+            <div className="space-y-2">
               {alerts.map((a) => (
-                <li key={a.id} className="flex items-center justify-between rounded-lg bg-muted/40 p-3">
-                  <div>
-                    <div className="font-semibold">{a.symbol} <span className="text-xs text-muted-foreground">— {a.asset_name}</span></div>
-                    <div className="text-xs text-muted-foreground">
-                      {t(a.condition === "above" ? "above" : "below")} {a.target_price.toLocaleString()}
+                <div key={a.id} className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="font-mono text-xs">{a.symbol}</Badge>
+                      <span className="text-sm">{COND_LABEL[a.condition]} {a.value}{a.condition.startsWith("change") ? "%" : ""}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={cn("rounded px-2 py-0.5 text-xs", a.active ? "bg-success/15 text-success" : "bg-muted text-muted-foreground")}>
-                      {a.active ? (lang === "ar" ? "نشط" : "active") : (lang === "ar" ? "خامل" : "inactive")}
-                    </span>
-                    <Button size="icon" variant="ghost" aria-label={lang === "ar" ? "حذف التنبيه" : "Delete alert"} onClick={() => remove(a.id)}>
-                      <Trash2 className="h-4 w-4 text-danger" />
-                    </Button>
+                    <Switch checked={a.active} onCheckedChange={() => toggle(a.id)} />
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(a)}><Pencil className="h-3.5 w-3.5" /></Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-rose-500" onClick={() => remove(a.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                   </div>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={createOpen || !!editId} onOpenChange={(o) => { if (!o) { setCreateOpen(false); setEditId(null); } }}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader><DialogTitle>{editId ? "تعديل التنبيه" : "تنبيه جديد"}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label className="text-xs">الرمز</Label><Input placeholder="AAPL, BTC, 2222.SR..." value={form.symbol} onChange={(e) => setForm({ ...form, symbol: e.target.value })} /></div>
+            <div>
+              <Label className="text-xs">الشرط</Label>
+              <Select value={form.condition} onValueChange={(v) => setForm({ ...form, condition: v as LocalAlert["condition"] })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(COND_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label className="text-xs">القيمة</Label><Input type="number" inputMode="decimal" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} /></div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => { setCreateOpen(false); setEditId(null); }}>إلغاء</Button>
+              <Button className="flex-1" onClick={editId ? update : create}>حفظ</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

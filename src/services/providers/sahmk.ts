@@ -248,3 +248,50 @@ export function providerHealth() {
     generatedAt: Date.now(),
   };
 }
+
+// ---------- Compatibility shim for router.ts ----------
+// router.ts (added in origin/main) expects getSahmkQuote with SahmkQuote | SahmkError interface.
+// We bridge our getQuote (SahmkQuoteResult) to that shape.
+
+export interface SahmkError {
+  ok: false;
+  reason: "missing_key" | "http_error" | "rate_limited" | "empty" | "network" | "not_implemented";
+  message: string;
+  httpStatus?: number;
+  latencyMs?: number;
+}
+
+export interface SahmkQuote {
+  symbol: string;
+  translatedSymbol: string;
+  price: number;
+  change: number | null;
+  changePercent: number | null;
+  volume: number | null;
+  liquidity: number | null;
+  updatedAt: number;
+  delayed: boolean;
+  latencyMs: number;
+}
+
+export async function getSahmkQuote(symbol: string): Promise<SahmkQuote | SahmkError> {
+  const r = await getQuote(symbol);
+  if (r.price === null) {
+    const reason = r.lastError?.includes("rate") ? "rate_limited" as const
+      : r.lastError?.includes("key") ? "missing_key" as const
+      : "network" as const;
+    return { ok: false, reason, message: r.lastError ?? "SAHMK unavailable" };
+  }
+  return {
+    symbol: r.symbol,
+    translatedSymbol: r.symbol,
+    price: r.price,
+    change: null,
+    changePercent: r.changePercent,
+    volume: r.volume,
+    liquidity: null,
+    updatedAt: r.timestamp,
+    delayed: r.delayed,
+    latencyMs: 0,
+  };
+}

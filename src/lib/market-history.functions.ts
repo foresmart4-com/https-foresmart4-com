@@ -15,9 +15,12 @@ export interface HistoryPoint {
 export interface AssetHistory {
   symbol: string;
   name: string;
-  category: "crypto" | "metals" | "currencies" | "stocks";
+  category: "crypto" | "metals" | "currencies" | "stocks" | "etf_bond" | "commodity";
   currency: string;
   points: HistoryPoint[];
+  source?: string;
+  supported?: boolean;
+  reason?: string;
 }
 
 type Category = AssetHistory["category"];
@@ -47,6 +50,29 @@ const YAHOO_MAP: Record<Category, Record<string, { ticker: string; name: string 
     "2222.SR": { ticker: "2222.SR", name: "Saudi Aramco" },
     "1120.SR": { ticker: "1120.SR", name: "Al Rajhi Bank" },
     "2010.SR": { ticker: "2010.SR", name: "SABIC" },
+  },
+  etf_bond: {
+    SPY: { ticker: "SPY", name: "S&P 500 ETF" },
+    QQQ: { ticker: "QQQ", name: "Nasdaq 100 ETF" },
+    VOO: { ticker: "VOO", name: "Vanguard S&P 500" },
+    VTI: { ticker: "VTI", name: "Total US Market ETF" },
+    VXUS: { ticker: "VXUS", name: "Total International ETF" },
+    TLT: { ticker: "TLT", name: "20+ Year Treasury Bond" },
+    IEF: { ticker: "IEF", name: "7-10 Year Treasury" },
+    SHY: { ticker: "SHY", name: "1-3 Year Treasury" },
+    AGG: { ticker: "AGG", name: "US Aggregate Bond" },
+    LQD: { ticker: "LQD", name: "Investment Grade Bonds" },
+    HYG: { ticker: "HYG", name: "High Yield Bonds" },
+    TIP: { ticker: "TIP", name: "TIPS Inflation Bonds" },
+  },
+  commodity: {
+    "WTI/USD": { ticker: "CL=F", name: "WTI Crude Oil" },
+    "BRENT/USD": { ticker: "BZ=F", name: "Brent Crude Oil" },
+    "NG/USD": { ticker: "NG=F", name: "Natural Gas" },
+    USO: { ticker: "USO", name: "US Oil Fund ETF" },
+    UNG: { ticker: "UNG", name: "US Natural Gas ETF" },
+    CORN: { ticker: "CORN", name: "Teucrium Corn" },
+    WEAT: { ticker: "WEAT", name: "Teucrium Wheat" },
   },
 };
 
@@ -96,9 +122,11 @@ async function fetchFxHistory(from: string, to: string, days: number): Promise<H
 }
 
 async function fetchYahooHistory(symbol: string, days: number): Promise<{ name: string; currency: string; points: HistoryPoint[] }> {
-  const range = days <= 7 ? "7d" : days <= 30 ? "1mo" : days <= 90 ? "3mo" : days <= 180 ? "6mo" : "1y";
+  const intraday = days <= 1;
+  const range = intraday ? "1d" : days <= 7 ? "7d" : days <= 30 ? "1mo" : days <= 90 ? "3mo" : days <= 180 ? "6mo" : days <= 365 ? "1y" : days <= 730 ? "2y" : "5y";
+  const interval = intraday ? "15m" : "1d";
   const r = await fetch(
-    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=${range}`,
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`,
     { headers: { "User-Agent": "Mozilla/5.0" } },
   );
   if (!r.ok) return { name: symbol, currency: "USD", points: [] };
@@ -117,7 +145,9 @@ async function fetchYahooHistory(symbol: string, days: number): Promise<{ name: 
   if (!res) return { name: symbol, currency: "USD", points: [] };
   const q = res.indicators.quote[0];
   const points: HistoryPoint[] = res.timestamp.map((t, i) => ({
-    date: new Date(t * 1000).toISOString().slice(0, 10),
+    date: intraday
+      ? new Date(t * 1000).toISOString().slice(0, 16).replace("T", " ")
+      : new Date(t * 1000).toISOString().slice(0, 10),
     open: q.open[i] ?? undefined,
     high: q.high[i] ?? undefined,
     low: q.low[i] ?? undefined,
@@ -241,8 +271,8 @@ export const getAssetHistory = createServerFn({ method: "GET" })
   .inputValidator((data) =>
     z.object({
       symbol: z.string().min(1),
-      category: z.enum(["crypto", "metals", "currencies", "stocks"]),
-      days: z.number().int().min(7).max(365).default(30),
+      category: z.enum(["crypto", "metals", "currencies", "stocks", "etf_bond", "commodity"]),
+      days: z.number().int().min(1).max(1095).default(30),
     }).parse(data),
   )
   .handler(async ({ data }): Promise<AssetHistory> => {
@@ -252,7 +282,7 @@ export const getAssetHistory = createServerFn({ method: "GET" })
       try {
         const yahoo = await fetchYahooHistory(yahooMeta.ticker, days);
         if (yahoo.points.length > 0) {
-          return { symbol, name: yahooMeta.name, category, currency: yahoo.currency, points: yahoo.points };
+          return { symbol, name: yahooMeta.name, category, currency: yahoo.currency, points: yahoo.points, source: "Yahoo Finance", supported: true };
         }
       } catch (error) {
         console.error("Yahoo history fallback failed", error);
@@ -261,26 +291,28 @@ export const getAssetHistory = createServerFn({ method: "GET" })
 
     if (category === "crypto" || category === "metals") {
       const meta = CRYPTO_MAP[symbol];
-      if (!meta) return { symbol, name: symbol, category, currency: "USD", points: [] };
+      if (!meta) return { symbol, name: symbol, category, currency: "USD", points: [], source: "—", supported: false, reason: "unmapped_symbol" };
       const points = await fetchCryptoHistory(meta.id, days).catch((error) => {
         console.error("CoinGecko history failed", error);
         return [];
       });
-      return { symbol, name: meta.name, category, currency: "USD", points };
+      return { symbol, name: meta.name, category, currency: "USD", points, source: "CoinGecko", supported: points.length > 0 };
     }
     if (category === "currencies") {
       const meta = FX_MAP[symbol];
-      if (!meta) return { symbol, name: symbol, category, currency: "USD", points: [] };
+      if (!meta) return { symbol, name: symbol, category, currency: "USD", points: [], source: "—", supported: false, reason: "unmapped_symbol" };
+      if (days <= 1) {
+        return { symbol, name: meta.name, category, currency: meta.to, points: [], source: "Frankfurter", supported: false, reason: "range_unsupported" };
+      }
       const points = await fetchFxHistory(meta.from, meta.to, days).catch((error) => {
         console.error("FX history failed", error);
         return [];
       });
-      return { symbol, name: meta.name, category, currency: meta.to, points };
+      return { symbol, name: meta.name, category, currency: meta.to, points, source: "Frankfurter", supported: points.length > 0 };
     }
-    // stocks
     const r = await fetchYahooHistory(symbol, days).catch((error) => {
       console.error("Stock history failed", error);
       return { name: symbol, currency: "USD", points: [] };
     });
-    return { symbol, name: r.name, category, currency: r.currency, points: r.points };
+    return { symbol, name: r.name, category, currency: r.currency, points: r.points, source: "Yahoo Finance", supported: r.points.length > 0 };
   });

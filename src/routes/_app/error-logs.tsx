@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/_app/error-logs")({
-  component: ErrorLogsPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><ErrorLogsPage /></ErrorBoundary>,
 });
 
 type Severity = "all" | "info" | "warn" | "error" | "critical";

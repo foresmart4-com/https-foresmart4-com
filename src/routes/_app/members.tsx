@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -10,7 +11,7 @@ import { toast } from "sonner";
 import { setUserRoleFn } from "@/lib/members.functions";
 
 export const Route = createFileRoute("/_app/members")({
-  component: MembersPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><MembersPage /></ErrorBoundary>,
 });
 
 interface Row { user_id: string; role: AppRole; display_name: string | null; created_at: string }

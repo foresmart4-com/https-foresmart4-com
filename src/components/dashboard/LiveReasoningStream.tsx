@@ -55,7 +55,7 @@ function timeAgo(ts: number, ar?: boolean) {
 }
 
 function StreamRow({ ev, ar }: { ev: ReasoningEvent; ar?: boolean }) {
-  const Icon = CAT_ICON[ev.category];
+  const Icon = CAT_ICON[ev.category] ?? Activity;
   const cat = CAT_LABEL[ev.category][ar ? "ar" : "en"];
   return (
     <div

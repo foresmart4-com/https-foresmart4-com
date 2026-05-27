@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Bell, AlertTriangle, Info, Zap, Filter } from "lucide-react";
 
 export const Route = createFileRoute("/_app/alert-center")({
-  component: AlertCenterPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><AlertCenterPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Alert Center — ForeSmart" },

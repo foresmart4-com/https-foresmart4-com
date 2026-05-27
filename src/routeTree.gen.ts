@@ -19,6 +19,8 @@ import { Route as DisclaimerRouteImport } from './routes/disclaimer'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiPingRouteImport } from './routes/api/ping'
+import { Route as AppWatchlistsRouteImport } from './routes/_app/watchlists'
 import { Route as AppWatchlistRouteImport } from './routes/_app/watchlist'
 import { Route as AppWalletRouteImport } from './routes/_app/wallet'
 import { Route as AppSystemHealthRouteImport } from './routes/_app/system-health'
@@ -37,11 +39,13 @@ import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppMarketsRouteImport } from './routes/_app/markets'
 import { Route as AppMarketUniverseRouteImport } from './routes/_app/market-universe'
 import { Route as AppMarketIntelligenceRouteImport } from './routes/_app/market-intelligence'
+import { Route as AppMarketHistoryRouteImport } from './routes/_app/market-history'
 import { Route as AppMarketDataMonitorRouteImport } from './routes/_app/market-data-monitor'
 import { Route as AppHelpRouteImport } from './routes/_app/help'
 import { Route as AppHeatmapRouteImport } from './routes/_app/heatmap'
 import { Route as AppGrowthPlanRouteImport } from './routes/_app/growth-plan'
 import { Route as AppGlobalIntelRouteImport } from './routes/_app/global-intel'
+import { Route as AppGenesis100RouteImport } from './routes/_app/genesis-100'
 import { Route as AppGenesisRouteImport } from './routes/_app/genesis'
 import { Route as AppExternalAccountsRouteImport } from './routes/_app/external-accounts'
 import { Route as AppErrorLogsRouteImport } from './routes/_app/error-logs'
@@ -54,31 +58,142 @@ import { Route as AppDbDiagnosticsRouteImport } from './routes/_app/db-diagnosti
 import { Route as AppDataFusionRouteImport } from './routes/_app/data-fusion'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCompanyTradingRouteImport } from './routes/_app/company-trading'
+import { Route as AppChangelogRouteImport } from './routes/_app/changelog'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppBillingMonitorRouteImport } from './routes/_app/billing-monitor'
 import { Route as AppBillingRouteImport } from './routes/_app/billing'
 import { Route as AppBankAccountsRouteImport } from './routes/_app/bank-accounts'
 import { Route as AppBacktestLabRouteImport } from './routes/_app/backtest-lab'
+import { Route as AppAssetsPortfolioRouteImport } from './routes/_app/assets-portfolio'
 import { Route as AppArchiveRouteImport } from './routes/_app/archive'
 import { Route as AppAlertsRouteImport } from './routes/_app/alerts'
 import { Route as AppAlertCenterRouteImport } from './routes/_app/alert-center'
 import { Route as AppAiValidationRouteImport } from './routes/_app/ai-validation'
 import { Route as AppAiLearningRouteImport } from './routes/_app/ai-learning'
 import { Route as AppAiDashboardRouteImport } from './routes/_app/ai-dashboard'
+import { Route as AppAiRouteImport } from './routes/_app/ai'
+import { Route as AppAgentConsoleRouteImport } from './routes/_app/agent-console'
 import { Route as AppAdvisorRouteImport } from './routes/_app/advisor'
 import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
 import { Route as ApiWebhooksPaddleRouteImport } from './routes/api/webhooks/paddle'
 import { Route as ApiWebhooksLemonsqueezyRouteImport } from './routes/api/webhooks/lemonsqueezy'
+import { Route as ApiPublicVersionRouteImport } from './routes/api/public/version'
 import { Route as ApiPublicVaultStatusRouteImport } from './routes/api/public/vault-status'
+import { Route as ApiPublicUiHealthRouteImport } from './routes/api/public/ui-health'
+import { Route as ApiPublicSupportedMarketsRouteImport } from './routes/api/public/supported-markets'
+import { Route as ApiPublicRouterTestRouteImport } from './routes/api/public/router-test'
+import { Route as ApiPublicRouterRegressionRouteImport } from './routes/api/public/router-regression'
+import { Route as ApiPublicQuoteRouteImport } from './routes/api/public/quote'
+import { Route as ApiPublicProviderHealthFullRouteImport } from './routes/api/public/provider-health-full'
 import { Route as ApiPublicMoyasarWebhookRouteImport } from './routes/api/public/moyasar-webhook'
+import { Route as ApiPublicMarketIntelligenceRouteImport } from './routes/api/public/market-intelligence'
+import { Route as ApiPublicMarketCoverageRouteImport } from './routes/api/public/market-coverage'
+import { Route as ApiPublicIntelligenceHealthRouteImport } from './routes/api/public/intelligence-health'
+import { Route as ApiPublicHistoryTestRouteImport } from './routes/api/public/history-test'
+import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
+import { Route as ApiPublicFullSiteHealthRouteImport } from './routes/api/public/full-site-health'
+import { Route as ApiPublicEnvCheckRouteImport } from './routes/api/public/env-check'
 import { Route as ApiPublicEmailConfigCheckRouteImport } from './routes/api/public/email-config-check'
+import { Route as ApiPublicDeployCheckRouteImport } from './routes/api/public/deploy-check'
+import { Route as ApiPublicAgentHealthRouteImport } from './routes/api/public/agent-health'
 import { Route as ApiFinnhubStreamRouteImport } from './routes/api/finnhub/stream'
+import { Route as ApiAiDebateRouteImport } from './routes/api/ai/debate'
+import { Route as ApiAiConsensusRouteImport } from './routes/api/ai/consensus'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicTreasuryStatusRouteImport } from './routes/api/public/treasury/status'
+import { Route as ApiPublicTreasuryHistoryRouteImport } from './routes/api/public/treasury/history'
+import { Route as ApiPublicTreasuryFundRouteImport } from './routes/api/public/treasury/fund'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicPaymentsPaypalWebhookRouteImport } from './routes/api/public/payments/paypal-webhook'
+import { Route as ApiPublicGenesis100UniverseRouteImport } from './routes/api/public/genesis100/universe'
+import { Route as ApiPublicGenesis100StatusRouteImport } from './routes/api/public/genesis100/status'
+import { Route as ApiPublicGenesis100SourceRegistryRouteImport } from './routes/api/public/genesis100/source-registry'
+import { Route as ApiPublicGenesis100SafetyRouteImport } from './routes/api/public/genesis100/safety'
+import { Route as ApiPublicGenesis100RunCycleRouteImport } from './routes/api/public/genesis100/run-cycle'
+import { Route as ApiPublicGenesis100ReportRouteImport } from './routes/api/public/genesis100/report'
+import { Route as ApiPublicGenesis100PositionSizingRouteImport } from './routes/api/public/genesis100/position-sizing'
+import { Route as ApiPublicGenesis100NotificationsRouteImport } from './routes/api/public/genesis100/notifications'
+import { Route as ApiPublicGenesis100MarketSentimentRouteImport } from './routes/api/public/genesis100/market-sentiment'
+import { Route as ApiPublicGenesis100IntelligenceRouteImport } from './routes/api/public/genesis100/intelligence'
+import { Route as ApiPublicGenesis100GovernanceRouteImport } from './routes/api/public/genesis100/governance'
+import { Route as ApiPublicGenesis100DecisionsRouteImport } from './routes/api/public/genesis100/decisions'
+import { Route as ApiPublicGenesis100DecisionFirewallRouteImport } from './routes/api/public/genesis100/decision-firewall'
+import { Route as ApiPublicGenesis100DebateRouteImport } from './routes/api/public/genesis100/debate'
+import { Route as ApiPublicGenesis100CredibilityRouteImport } from './routes/api/public/genesis100/credibility'
+import { Route as ApiPublicGenesis100ControlsRouteImport } from './routes/api/public/genesis100/controls'
+import { Route as ApiPublicGenesis100ConsensusRouteImport } from './routes/api/public/genesis100/consensus'
+import { Route as ApiPublicGenesis100ArchiveRouteImport } from './routes/api/public/genesis100/archive'
+import { Route as ApiPublicGenesis100AnalyzeRouteImport } from './routes/api/public/genesis100/analyze'
+import { Route as ApiPublicGenesis100AllocationsRouteImport } from './routes/api/public/genesis100/allocations'
+import { Route as ApiPublicCompanyProfileRouteImport } from './routes/api/public/company/profile'
+import { Route as ApiPublicBrokerStatusRouteImport } from './routes/api/public/broker/status'
 import { Route as ApiPublicAlertsEvaluateRouteImport } from './routes/api/public/alerts/evaluate'
+import { Route as ApiPaymentsMyfatoorahWebhookRouteImport } from './routes/api/payments/myfatoorah/webhook'
+import { Route as ApiPaymentsMyfatoorahStatusRouteImport } from './routes/api/payments/myfatoorah/status'
+import { Route as ApiPaymentsMyfatoorahCreateRouteImport } from './routes/api/payments/myfatoorah/create'
+import { Route as ApiAiStrategyLabStrategiesRouteImport } from './routes/api/ai/strategy-lab/strategies'
+import { Route as ApiAiStrategyLabRecommendationRouteImport } from './routes/api/ai/strategy-lab/recommendation'
+import { Route as ApiAiStrategyLabCompareRouteImport } from './routes/api/ai/strategy-lab/compare'
+import { Route as ApiAiSourcesHealthRouteImport } from './routes/api/ai/sources/health'
+import { Route as ApiAiSchedulerRunRouteImport } from './routes/api/ai/scheduler/run'
+import { Route as ApiAiScenariosRunRouteImport } from './routes/api/ai/scenarios/run'
+import { Route as ApiAiScenariosPortfolioStressRouteImport } from './routes/api/ai/scenarios/portfolio-stress'
+import { Route as ApiAiScenariosListRouteImport } from './routes/api/ai/scenarios/list'
+import { Route as ApiAiRiskTwinTestDecisionRouteImport } from './routes/api/ai/risk-twin/test-decision'
+import { Route as ApiAiRiskTwinTestRouteImport } from './routes/api/ai/risk-twin/test'
+import { Route as ApiAiRiskTwinStatusRouteImport } from './routes/api/ai/risk-twin/status'
+import { Route as ApiAiRiskTwinReportRouteImport } from './routes/api/ai/risk-twin/report'
+import { Route as ApiAiResearchRunRouteImport } from './routes/api/ai/research/run'
+import { Route as ApiAiResearchLatestRouteImport } from './routes/api/ai/research/latest'
+import { Route as ApiAiResearchArchiveRouteImport } from './routes/api/ai/research/archive'
+import { Route as ApiAiQuantStatusRouteImport } from './routes/api/ai/quant/status'
+import { Route as ApiAiQuantRunRouteImport } from './routes/api/ai/quant/run'
+import { Route as ApiAiPredictionsHistoryRouteImport } from './routes/api/ai/predictions/history'
+import { Route as ApiAiPredictionsEvaluateRouteImport } from './routes/api/ai/predictions/evaluate'
+import { Route as ApiAiPredictionsCreateRouteImport } from './routes/api/ai/predictions/create'
+import { Route as ApiAiPredictionsAccuracyRouteImport } from './routes/api/ai/predictions/accuracy'
+import { Route as ApiAiOrchestratorStatusRouteImport } from './routes/api/ai/orchestrator/status'
+import { Route as ApiAiOrchestratorRunRouteImport } from './routes/api/ai/orchestrator/run'
+import { Route as ApiAiOptimizerRunRouteImport } from './routes/api/ai/optimizer/run'
+import { Route as ApiAiOptimizerReportRouteImport } from './routes/api/ai/optimizer/report'
+import { Route as ApiAiMemoryStatusRouteImport } from './routes/api/ai/memory/status'
+import { Route as ApiAiLearningStatusRouteImport } from './routes/api/ai/learning/status'
+import { Route as ApiAiLearningRunCycleRouteImport } from './routes/api/ai/learning/run-cycle'
+import { Route as ApiAiKnowledgeTopicsRouteImport } from './routes/api/ai/knowledge/topics'
+import { Route as ApiAiKnowledgeStatusRouteImport } from './routes/api/ai/knowledge/status'
+import { Route as ApiAiKnowledgeSearchRouteImport } from './routes/api/ai/knowledge/search'
+import { Route as ApiAiKnowledgeApplyRouteImport } from './routes/api/ai/knowledge/apply'
+import { Route as ApiAiKnowledgeGraphUpdateRouteImport } from './routes/api/ai/knowledge-graph/update'
+import { Route as ApiAiKnowledgeGraphStatusRouteImport } from './routes/api/ai/knowledge-graph/status'
+import { Route as ApiAiKnowledgeGraphQueryRouteImport } from './routes/api/ai/knowledge-graph/query'
+import { Route as ApiAiIntelligenceMarketRouteImport } from './routes/api/ai/intelligence/market'
+import { Route as ApiAiIntelligenceMacroRouteImport } from './routes/api/ai/intelligence/macro'
+import { Route as ApiAiIntelligenceLearningRouteImport } from './routes/api/ai/intelligence/learning'
+import { Route as ApiAiIntelligenceGenesisRouteImport } from './routes/api/ai/intelligence/genesis'
+import { Route as ApiAiFeedsNewsRouteImport } from './routes/api/ai/feeds/news'
+import { Route as ApiAiFeedsMacroRouteImport } from './routes/api/ai/feeds/macro'
+import { Route as ApiAiFeedsEconomicCalendarRouteImport } from './routes/api/ai/feeds/economic-calendar'
+import { Route as ApiAiCredibilitySourcesRouteImport } from './routes/api/ai/credibility/sources'
+import { Route as ApiAiBacktestStatusRouteImport } from './routes/api/ai/backtest/status'
+import { Route as ApiAiBacktestRunRouteImport } from './routes/api/ai/backtest/run'
+import { Route as ApiAiBacktestReportRouteImport } from './routes/api/ai/backtest/report'
+import { Route as ApiAiAltdataStatusRouteImport } from './routes/api/ai/altdata/status'
+import { Route as ApiAiAltdataRunRouteImport } from './routes/api/ai/altdata/run'
+import { Route as ApiAiAgentsStatusRouteImport } from './routes/api/ai/agents/status'
+import { Route as ApiAiAgentsPortfolioDebateRouteImport } from './routes/api/ai/agents/portfolio-debate'
+import { Route as ApiAiAgentsDebateRouteImport } from './routes/api/ai/agents/debate'
+import { Route as ApiAiAgentsConsensusRouteImport } from './routes/api/ai/agents/consensus'
+import { Route as ApiPublicMarketSnapshotIndexRouteImport } from './routes/api/public/market/snapshot/index'
+import { Route as ApiPublicGenesis100ExecutionIndexRouteImport } from './routes/api/public/genesis100/execution/index'
+import { Route as ApiPublicProvidersFinancialdataStatusRouteImport } from './routes/api/public/providers/financialdata/status'
+import { Route as ApiPublicProvidersEodhdExchangesRouteImport } from './routes/api/public/providers/eodhd/exchanges'
+import { Route as ApiPublicMarketSnapshotRunRouteImport } from './routes/api/public/market/snapshot/run'
+import { Route as ApiPublicMarketSnapshotHistoryRouteImport } from './routes/api/public/market/snapshot/history'
+import { Route as ApiPublicGenesis100ExecutionHistoryRouteImport } from './routes/api/public/genesis100/execution/history'
+import { Route as ApiPublicGenesis100ArchiveSummaryRouteImport } from './routes/api/public/genesis100/archive/summary'
+import { Route as ApiPublicGenesis100ArchiveLatestRouteImport } from './routes/api/public/genesis100/archive/latest'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -128,6 +243,16 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPingRoute = ApiPingRouteImport.update({
+  id: '/api/ping',
+  path: '/api/ping',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppWatchlistsRoute = AppWatchlistsRouteImport.update({
+  id: '/watchlists',
+  path: '/watchlists',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppWatchlistRoute = AppWatchlistRouteImport.update({
   id: '/watchlist',
@@ -219,6 +344,11 @@ const AppMarketIntelligenceRoute = AppMarketIntelligenceRouteImport.update({
   path: '/market-intelligence',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMarketHistoryRoute = AppMarketHistoryRouteImport.update({
+  id: '/market-history',
+  path: '/market-history',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMarketDataMonitorRoute = AppMarketDataMonitorRouteImport.update({
   id: '/market-data-monitor',
   path: '/market-data-monitor',
@@ -242,6 +372,11 @@ const AppGrowthPlanRoute = AppGrowthPlanRouteImport.update({
 const AppGlobalIntelRoute = AppGlobalIntelRouteImport.update({
   id: '/global-intel',
   path: '/global-intel',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGenesis100Route = AppGenesis100RouteImport.update({
+  id: '/genesis-100',
+  path: '/genesis-100',
   getParentRoute: () => AppRoute,
 } as any)
 const AppGenesisRoute = AppGenesisRouteImport.update({
@@ -304,6 +439,11 @@ const AppCompanyTradingRoute = AppCompanyTradingRouteImport.update({
   path: '/company-trading',
   getParentRoute: () => AppRoute,
 } as any)
+const AppChangelogRoute = AppChangelogRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCalendarRoute = AppCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
@@ -327,6 +467,11 @@ const AppBankAccountsRoute = AppBankAccountsRouteImport.update({
 const AppBacktestLabRoute = AppBacktestLabRouteImport.update({
   id: '/backtest-lab',
   path: '/backtest-lab',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAssetsPortfolioRoute = AppAssetsPortfolioRouteImport.update({
+  id: '/assets-portfolio',
+  path: '/assets-portfolio',
   getParentRoute: () => AppRoute,
 } as any)
 const AppArchiveRoute = AppArchiveRouteImport.update({
@@ -359,6 +504,16 @@ const AppAiDashboardRoute = AppAiDashboardRouteImport.update({
   path: '/ai-dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAiRoute = AppAiRouteImport.update({
+  id: '/ai',
+  path: '/ai',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAgentConsoleRoute = AppAgentConsoleRouteImport.update({
+  id: '/agent-console',
+  path: '/agent-console',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdvisorRoute = AppAdvisorRouteImport.update({
   id: '/advisor',
   path: '/advisor',
@@ -379,14 +534,89 @@ const ApiWebhooksLemonsqueezyRoute = ApiWebhooksLemonsqueezyRouteImport.update({
   path: '/api/webhooks/lemonsqueezy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicVersionRoute = ApiPublicVersionRouteImport.update({
+  id: '/api/public/version',
+  path: '/api/public/version',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicVaultStatusRoute = ApiPublicVaultStatusRouteImport.update({
   id: '/api/public/vault-status',
   path: '/api/public/vault-status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicUiHealthRoute = ApiPublicUiHealthRouteImport.update({
+  id: '/api/public/ui-health',
+  path: '/api/public/ui-health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSupportedMarketsRoute =
+  ApiPublicSupportedMarketsRouteImport.update({
+    id: '/api/public/supported-markets',
+    path: '/api/public/supported-markets',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicRouterTestRoute = ApiPublicRouterTestRouteImport.update({
+  id: '/api/public/router-test',
+  path: '/api/public/router-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicRouterRegressionRoute =
+  ApiPublicRouterRegressionRouteImport.update({
+    id: '/api/public/router-regression',
+    path: '/api/public/router-regression',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicQuoteRoute = ApiPublicQuoteRouteImport.update({
+  id: '/api/public/quote',
+  path: '/api/public/quote',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicProviderHealthFullRoute =
+  ApiPublicProviderHealthFullRouteImport.update({
+    id: '/api/public/provider-health-full',
+    path: '/api/public/provider-health-full',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicMoyasarWebhookRoute = ApiPublicMoyasarWebhookRouteImport.update({
   id: '/api/public/moyasar-webhook',
   path: '/api/public/moyasar-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicMarketIntelligenceRoute =
+  ApiPublicMarketIntelligenceRouteImport.update({
+    id: '/api/public/market-intelligence',
+    path: '/api/public/market-intelligence',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicMarketCoverageRoute = ApiPublicMarketCoverageRouteImport.update({
+  id: '/api/public/market-coverage',
+  path: '/api/public/market-coverage',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicIntelligenceHealthRoute =
+  ApiPublicIntelligenceHealthRouteImport.update({
+    id: '/api/public/intelligence-health',
+    path: '/api/public/intelligence-health',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHistoryTestRoute = ApiPublicHistoryTestRouteImport.update({
+  id: '/api/public/history-test',
+  path: '/api/public/history-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
+  id: '/api/public/health',
+  path: '/api/public/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicFullSiteHealthRoute = ApiPublicFullSiteHealthRouteImport.update({
+  id: '/api/public/full-site-health',
+  path: '/api/public/full-site-health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicEnvCheckRoute = ApiPublicEnvCheckRouteImport.update({
+  id: '/api/public/env-check',
+  path: '/api/public/env-check',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicEmailConfigCheckRoute =
@@ -395,9 +625,29 @@ const ApiPublicEmailConfigCheckRoute =
     path: '/api/public/email-config-check',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicDeployCheckRoute = ApiPublicDeployCheckRouteImport.update({
+  id: '/api/public/deploy-check',
+  path: '/api/public/deploy-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicAgentHealthRoute = ApiPublicAgentHealthRouteImport.update({
+  id: '/api/public/agent-health',
+  path: '/api/public/agent-health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiFinnhubStreamRoute = ApiFinnhubStreamRouteImport.update({
   id: '/api/finnhub/stream',
   path: '/api/finnhub/stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiDebateRoute = ApiAiDebateRouteImport.update({
+  id: '/api/ai/debate',
+  path: '/api/ai/debate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiConsensusRoute = ApiAiConsensusRouteImport.update({
+  id: '/api/ai/consensus',
+  path: '/api/ai/consensus',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LovableEmailQueueProcessRoute =
@@ -416,6 +666,22 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTreasuryStatusRoute = ApiPublicTreasuryStatusRouteImport.update({
+  id: '/api/public/treasury/status',
+  path: '/api/public/treasury/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTreasuryHistoryRoute =
+  ApiPublicTreasuryHistoryRouteImport.update({
+    id: '/api/public/treasury/history',
+    path: '/api/public/treasury/history',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicTreasuryFundRoute = ApiPublicTreasuryFundRouteImport.update({
+  id: '/api/public/treasury/fund',
+  path: '/api/public/treasury/fund',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -428,11 +694,486 @@ const ApiPublicPaymentsPaypalWebhookRoute =
     path: '/api/public/payments/paypal-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicGenesis100UniverseRoute =
+  ApiPublicGenesis100UniverseRouteImport.update({
+    id: '/api/public/genesis100/universe',
+    path: '/api/public/genesis100/universe',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100StatusRoute =
+  ApiPublicGenesis100StatusRouteImport.update({
+    id: '/api/public/genesis100/status',
+    path: '/api/public/genesis100/status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100SourceRegistryRoute =
+  ApiPublicGenesis100SourceRegistryRouteImport.update({
+    id: '/api/public/genesis100/source-registry',
+    path: '/api/public/genesis100/source-registry',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100SafetyRoute =
+  ApiPublicGenesis100SafetyRouteImport.update({
+    id: '/api/public/genesis100/safety',
+    path: '/api/public/genesis100/safety',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100RunCycleRoute =
+  ApiPublicGenesis100RunCycleRouteImport.update({
+    id: '/api/public/genesis100/run-cycle',
+    path: '/api/public/genesis100/run-cycle',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100ReportRoute =
+  ApiPublicGenesis100ReportRouteImport.update({
+    id: '/api/public/genesis100/report',
+    path: '/api/public/genesis100/report',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100PositionSizingRoute =
+  ApiPublicGenesis100PositionSizingRouteImport.update({
+    id: '/api/public/genesis100/position-sizing',
+    path: '/api/public/genesis100/position-sizing',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100NotificationsRoute =
+  ApiPublicGenesis100NotificationsRouteImport.update({
+    id: '/api/public/genesis100/notifications',
+    path: '/api/public/genesis100/notifications',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100MarketSentimentRoute =
+  ApiPublicGenesis100MarketSentimentRouteImport.update({
+    id: '/api/public/genesis100/market-sentiment',
+    path: '/api/public/genesis100/market-sentiment',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100IntelligenceRoute =
+  ApiPublicGenesis100IntelligenceRouteImport.update({
+    id: '/api/public/genesis100/intelligence',
+    path: '/api/public/genesis100/intelligence',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100GovernanceRoute =
+  ApiPublicGenesis100GovernanceRouteImport.update({
+    id: '/api/public/genesis100/governance',
+    path: '/api/public/genesis100/governance',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100DecisionsRoute =
+  ApiPublicGenesis100DecisionsRouteImport.update({
+    id: '/api/public/genesis100/decisions',
+    path: '/api/public/genesis100/decisions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100DecisionFirewallRoute =
+  ApiPublicGenesis100DecisionFirewallRouteImport.update({
+    id: '/api/public/genesis100/decision-firewall',
+    path: '/api/public/genesis100/decision-firewall',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100DebateRoute =
+  ApiPublicGenesis100DebateRouteImport.update({
+    id: '/api/public/genesis100/debate',
+    path: '/api/public/genesis100/debate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100CredibilityRoute =
+  ApiPublicGenesis100CredibilityRouteImport.update({
+    id: '/api/public/genesis100/credibility',
+    path: '/api/public/genesis100/credibility',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100ControlsRoute =
+  ApiPublicGenesis100ControlsRouteImport.update({
+    id: '/api/public/genesis100/controls',
+    path: '/api/public/genesis100/controls',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100ConsensusRoute =
+  ApiPublicGenesis100ConsensusRouteImport.update({
+    id: '/api/public/genesis100/consensus',
+    path: '/api/public/genesis100/consensus',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100ArchiveRoute =
+  ApiPublicGenesis100ArchiveRouteImport.update({
+    id: '/api/public/genesis100/archive',
+    path: '/api/public/genesis100/archive',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100AnalyzeRoute =
+  ApiPublicGenesis100AnalyzeRouteImport.update({
+    id: '/api/public/genesis100/analyze',
+    path: '/api/public/genesis100/analyze',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100AllocationsRoute =
+  ApiPublicGenesis100AllocationsRouteImport.update({
+    id: '/api/public/genesis100/allocations',
+    path: '/api/public/genesis100/allocations',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCompanyProfileRoute = ApiPublicCompanyProfileRouteImport.update({
+  id: '/api/public/company/profile',
+  path: '/api/public/company/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBrokerStatusRoute = ApiPublicBrokerStatusRouteImport.update({
+  id: '/api/public/broker/status',
+  path: '/api/public/broker/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicAlertsEvaluateRoute = ApiPublicAlertsEvaluateRouteImport.update({
   id: '/api/public/alerts/evaluate',
   path: '/api/public/alerts/evaluate',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPaymentsMyfatoorahWebhookRoute =
+  ApiPaymentsMyfatoorahWebhookRouteImport.update({
+    id: '/api/payments/myfatoorah/webhook',
+    path: '/api/payments/myfatoorah/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPaymentsMyfatoorahStatusRoute =
+  ApiPaymentsMyfatoorahStatusRouteImport.update({
+    id: '/api/payments/myfatoorah/status',
+    path: '/api/payments/myfatoorah/status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPaymentsMyfatoorahCreateRoute =
+  ApiPaymentsMyfatoorahCreateRouteImport.update({
+    id: '/api/payments/myfatoorah/create',
+    path: '/api/payments/myfatoorah/create',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiStrategyLabStrategiesRoute =
+  ApiAiStrategyLabStrategiesRouteImport.update({
+    id: '/api/ai/strategy-lab/strategies',
+    path: '/api/ai/strategy-lab/strategies',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiStrategyLabRecommendationRoute =
+  ApiAiStrategyLabRecommendationRouteImport.update({
+    id: '/api/ai/strategy-lab/recommendation',
+    path: '/api/ai/strategy-lab/recommendation',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiStrategyLabCompareRoute = ApiAiStrategyLabCompareRouteImport.update({
+  id: '/api/ai/strategy-lab/compare',
+  path: '/api/ai/strategy-lab/compare',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiSourcesHealthRoute = ApiAiSourcesHealthRouteImport.update({
+  id: '/api/ai/sources/health',
+  path: '/api/ai/sources/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiSchedulerRunRoute = ApiAiSchedulerRunRouteImport.update({
+  id: '/api/ai/scheduler/run',
+  path: '/api/ai/scheduler/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiScenariosRunRoute = ApiAiScenariosRunRouteImport.update({
+  id: '/api/ai/scenarios/run',
+  path: '/api/ai/scenarios/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiScenariosPortfolioStressRoute =
+  ApiAiScenariosPortfolioStressRouteImport.update({
+    id: '/api/ai/scenarios/portfolio-stress',
+    path: '/api/ai/scenarios/portfolio-stress',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiScenariosListRoute = ApiAiScenariosListRouteImport.update({
+  id: '/api/ai/scenarios/list',
+  path: '/api/ai/scenarios/list',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiRiskTwinTestDecisionRoute =
+  ApiAiRiskTwinTestDecisionRouteImport.update({
+    id: '/api/ai/risk-twin/test-decision',
+    path: '/api/ai/risk-twin/test-decision',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiRiskTwinTestRoute = ApiAiRiskTwinTestRouteImport.update({
+  id: '/api/ai/risk-twin/test',
+  path: '/api/ai/risk-twin/test',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiRiskTwinStatusRoute = ApiAiRiskTwinStatusRouteImport.update({
+  id: '/api/ai/risk-twin/status',
+  path: '/api/ai/risk-twin/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiRiskTwinReportRoute = ApiAiRiskTwinReportRouteImport.update({
+  id: '/api/ai/risk-twin/report',
+  path: '/api/ai/risk-twin/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiResearchRunRoute = ApiAiResearchRunRouteImport.update({
+  id: '/api/ai/research/run',
+  path: '/api/ai/research/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiResearchLatestRoute = ApiAiResearchLatestRouteImport.update({
+  id: '/api/ai/research/latest',
+  path: '/api/ai/research/latest',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiResearchArchiveRoute = ApiAiResearchArchiveRouteImport.update({
+  id: '/api/ai/research/archive',
+  path: '/api/ai/research/archive',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiQuantStatusRoute = ApiAiQuantStatusRouteImport.update({
+  id: '/api/ai/quant/status',
+  path: '/api/ai/quant/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiQuantRunRoute = ApiAiQuantRunRouteImport.update({
+  id: '/api/ai/quant/run',
+  path: '/api/ai/quant/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiPredictionsHistoryRoute = ApiAiPredictionsHistoryRouteImport.update({
+  id: '/api/ai/predictions/history',
+  path: '/api/ai/predictions/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiPredictionsEvaluateRoute =
+  ApiAiPredictionsEvaluateRouteImport.update({
+    id: '/api/ai/predictions/evaluate',
+    path: '/api/ai/predictions/evaluate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiPredictionsCreateRoute = ApiAiPredictionsCreateRouteImport.update({
+  id: '/api/ai/predictions/create',
+  path: '/api/ai/predictions/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiPredictionsAccuracyRoute =
+  ApiAiPredictionsAccuracyRouteImport.update({
+    id: '/api/ai/predictions/accuracy',
+    path: '/api/ai/predictions/accuracy',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiOrchestratorStatusRoute = ApiAiOrchestratorStatusRouteImport.update({
+  id: '/api/ai/orchestrator/status',
+  path: '/api/ai/orchestrator/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiOrchestratorRunRoute = ApiAiOrchestratorRunRouteImport.update({
+  id: '/api/ai/orchestrator/run',
+  path: '/api/ai/orchestrator/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiOptimizerRunRoute = ApiAiOptimizerRunRouteImport.update({
+  id: '/api/ai/optimizer/run',
+  path: '/api/ai/optimizer/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiOptimizerReportRoute = ApiAiOptimizerReportRouteImport.update({
+  id: '/api/ai/optimizer/report',
+  path: '/api/ai/optimizer/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiMemoryStatusRoute = ApiAiMemoryStatusRouteImport.update({
+  id: '/api/ai/memory/status',
+  path: '/api/ai/memory/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiLearningStatusRoute = ApiAiLearningStatusRouteImport.update({
+  id: '/api/ai/learning/status',
+  path: '/api/ai/learning/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiLearningRunCycleRoute = ApiAiLearningRunCycleRouteImport.update({
+  id: '/api/ai/learning/run-cycle',
+  path: '/api/ai/learning/run-cycle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiKnowledgeTopicsRoute = ApiAiKnowledgeTopicsRouteImport.update({
+  id: '/api/ai/knowledge/topics',
+  path: '/api/ai/knowledge/topics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiKnowledgeStatusRoute = ApiAiKnowledgeStatusRouteImport.update({
+  id: '/api/ai/knowledge/status',
+  path: '/api/ai/knowledge/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiKnowledgeSearchRoute = ApiAiKnowledgeSearchRouteImport.update({
+  id: '/api/ai/knowledge/search',
+  path: '/api/ai/knowledge/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiKnowledgeApplyRoute = ApiAiKnowledgeApplyRouteImport.update({
+  id: '/api/ai/knowledge/apply',
+  path: '/api/ai/knowledge/apply',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiKnowledgeGraphUpdateRoute =
+  ApiAiKnowledgeGraphUpdateRouteImport.update({
+    id: '/api/ai/knowledge-graph/update',
+    path: '/api/ai/knowledge-graph/update',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiKnowledgeGraphStatusRoute =
+  ApiAiKnowledgeGraphStatusRouteImport.update({
+    id: '/api/ai/knowledge-graph/status',
+    path: '/api/ai/knowledge-graph/status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiKnowledgeGraphQueryRoute =
+  ApiAiKnowledgeGraphQueryRouteImport.update({
+    id: '/api/ai/knowledge-graph/query',
+    path: '/api/ai/knowledge-graph/query',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiIntelligenceMarketRoute = ApiAiIntelligenceMarketRouteImport.update({
+  id: '/api/ai/intelligence/market',
+  path: '/api/ai/intelligence/market',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiIntelligenceMacroRoute = ApiAiIntelligenceMacroRouteImport.update({
+  id: '/api/ai/intelligence/macro',
+  path: '/api/ai/intelligence/macro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiIntelligenceLearningRoute =
+  ApiAiIntelligenceLearningRouteImport.update({
+    id: '/api/ai/intelligence/learning',
+    path: '/api/ai/intelligence/learning',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiIntelligenceGenesisRoute =
+  ApiAiIntelligenceGenesisRouteImport.update({
+    id: '/api/ai/intelligence/genesis',
+    path: '/api/ai/intelligence/genesis',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiFeedsNewsRoute = ApiAiFeedsNewsRouteImport.update({
+  id: '/api/ai/feeds/news',
+  path: '/api/ai/feeds/news',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiFeedsMacroRoute = ApiAiFeedsMacroRouteImport.update({
+  id: '/api/ai/feeds/macro',
+  path: '/api/ai/feeds/macro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiFeedsEconomicCalendarRoute =
+  ApiAiFeedsEconomicCalendarRouteImport.update({
+    id: '/api/ai/feeds/economic-calendar',
+    path: '/api/ai/feeds/economic-calendar',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiCredibilitySourcesRoute = ApiAiCredibilitySourcesRouteImport.update({
+  id: '/api/ai/credibility/sources',
+  path: '/api/ai/credibility/sources',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiBacktestStatusRoute = ApiAiBacktestStatusRouteImport.update({
+  id: '/api/ai/backtest/status',
+  path: '/api/ai/backtest/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiBacktestRunRoute = ApiAiBacktestRunRouteImport.update({
+  id: '/api/ai/backtest/run',
+  path: '/api/ai/backtest/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiBacktestReportRoute = ApiAiBacktestReportRouteImport.update({
+  id: '/api/ai/backtest/report',
+  path: '/api/ai/backtest/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiAltdataStatusRoute = ApiAiAltdataStatusRouteImport.update({
+  id: '/api/ai/altdata/status',
+  path: '/api/ai/altdata/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiAltdataRunRoute = ApiAiAltdataRunRouteImport.update({
+  id: '/api/ai/altdata/run',
+  path: '/api/ai/altdata/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiAgentsStatusRoute = ApiAiAgentsStatusRouteImport.update({
+  id: '/api/ai/agents/status',
+  path: '/api/ai/agents/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiAgentsPortfolioDebateRoute =
+  ApiAiAgentsPortfolioDebateRouteImport.update({
+    id: '/api/ai/agents/portfolio-debate',
+    path: '/api/ai/agents/portfolio-debate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiAgentsDebateRoute = ApiAiAgentsDebateRouteImport.update({
+  id: '/api/ai/agents/debate',
+  path: '/api/ai/agents/debate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiAgentsConsensusRoute = ApiAiAgentsConsensusRouteImport.update({
+  id: '/api/ai/agents/consensus',
+  path: '/api/ai/agents/consensus',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicMarketSnapshotIndexRoute =
+  ApiPublicMarketSnapshotIndexRouteImport.update({
+    id: '/api/public/market/snapshot/',
+    path: '/api/public/market/snapshot/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100ExecutionIndexRoute =
+  ApiPublicGenesis100ExecutionIndexRouteImport.update({
+    id: '/api/public/genesis100/execution/',
+    path: '/api/public/genesis100/execution/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicProvidersFinancialdataStatusRoute =
+  ApiPublicProvidersFinancialdataStatusRouteImport.update({
+    id: '/api/public/providers/financialdata/status',
+    path: '/api/public/providers/financialdata/status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicProvidersEodhdExchangesRoute =
+  ApiPublicProvidersEodhdExchangesRouteImport.update({
+    id: '/api/public/providers/eodhd/exchanges',
+    path: '/api/public/providers/eodhd/exchanges',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicMarketSnapshotRunRoute =
+  ApiPublicMarketSnapshotRunRouteImport.update({
+    id: '/api/public/market/snapshot/run',
+    path: '/api/public/market/snapshot/run',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicMarketSnapshotHistoryRoute =
+  ApiPublicMarketSnapshotHistoryRouteImport.update({
+    id: '/api/public/market/snapshot/history',
+    path: '/api/public/market/snapshot/history',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100ExecutionHistoryRoute =
+  ApiPublicGenesis100ExecutionHistoryRouteImport.update({
+    id: '/api/public/genesis100/execution/history',
+    path: '/api/public/genesis100/execution/history',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100ArchiveSummaryRoute =
+  ApiPublicGenesis100ArchiveSummaryRouteImport.update({
+    id: '/summary',
+    path: '/summary',
+    getParentRoute: () => ApiPublicGenesis100ArchiveRoute,
+  } as any)
+const ApiPublicGenesis100ArchiveLatestRoute =
+  ApiPublicGenesis100ArchiveLatestRouteImport.update({
+    id: '/latest',
+    path: '/latest',
+    getParentRoute: () => ApiPublicGenesis100ArchiveRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -445,17 +1186,21 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/advisor': typeof AppAdvisorRoute
+  '/agent-console': typeof AppAgentConsoleRoute
+  '/ai': typeof AppAiRoute
   '/ai-dashboard': typeof AppAiDashboardRoute
   '/ai-learning': typeof AppAiLearningRoute
   '/ai-validation': typeof AppAiValidationRoute
   '/alert-center': typeof AppAlertCenterRoute
   '/alerts': typeof AppAlertsRoute
   '/archive': typeof AppArchiveRoute
+  '/assets-portfolio': typeof AppAssetsPortfolioRoute
   '/backtest-lab': typeof AppBacktestLabRoute
   '/bank-accounts': typeof AppBankAccountsRoute
   '/billing': typeof AppBillingRoute
   '/billing-monitor': typeof AppBillingMonitorRoute
   '/calendar': typeof AppCalendarRoute
+  '/changelog': typeof AppChangelogRoute
   '/company-trading': typeof AppCompanyTradingRoute
   '/dashboard': typeof AppDashboardRoute
   '/data-fusion': typeof AppDataFusionRoute
@@ -468,11 +1213,13 @@ export interface FileRoutesByFullPath {
   '/error-logs': typeof AppErrorLogsRoute
   '/external-accounts': typeof AppExternalAccountsRoute
   '/genesis': typeof AppGenesisRoute
+  '/genesis-100': typeof AppGenesis100Route
   '/global-intel': typeof AppGlobalIntelRoute
   '/growth-plan': typeof AppGrowthPlanRoute
   '/heatmap': typeof AppHeatmapRoute
   '/help': typeof AppHelpRoute
   '/market-data-monitor': typeof AppMarketDataMonitorRoute
+  '/market-history': typeof AppMarketHistoryRoute
   '/market-intelligence': typeof AppMarketIntelligenceRoute
   '/market-universe': typeof AppMarketUniverseRoute
   '/markets': typeof AppMarketsRoute
@@ -491,19 +1238,128 @@ export interface FileRoutesByFullPath {
   '/system-health': typeof AppSystemHealthRoute
   '/wallet': typeof AppWalletRoute
   '/watchlist': typeof AppWatchlistRoute
+  '/watchlists': typeof AppWatchlistsRoute
+  '/api/ping': typeof ApiPingRoute
+  '/api/ai/consensus': typeof ApiAiConsensusRoute
+  '/api/ai/debate': typeof ApiAiDebateRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
+  '/api/public/agent-health': typeof ApiPublicAgentHealthRoute
+  '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
+  '/api/public/env-check': typeof ApiPublicEnvCheckRoute
+  '/api/public/full-site-health': typeof ApiPublicFullSiteHealthRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
+  '/api/public/history-test': typeof ApiPublicHistoryTestRoute
+  '/api/public/intelligence-health': typeof ApiPublicIntelligenceHealthRoute
+  '/api/public/market-coverage': typeof ApiPublicMarketCoverageRoute
+  '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
+  '/api/public/provider-health-full': typeof ApiPublicProviderHealthFullRoute
+  '/api/public/quote': typeof ApiPublicQuoteRoute
+  '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
+  '/api/public/router-test': typeof ApiPublicRouterTestRoute
+  '/api/public/supported-markets': typeof ApiPublicSupportedMarketsRoute
+  '/api/public/ui-health': typeof ApiPublicUiHealthRoute
   '/api/public/vault-status': typeof ApiPublicVaultStatusRoute
+  '/api/public/version': typeof ApiPublicVersionRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
+  '/api/ai/agents/consensus': typeof ApiAiAgentsConsensusRoute
+  '/api/ai/agents/debate': typeof ApiAiAgentsDebateRoute
+  '/api/ai/agents/portfolio-debate': typeof ApiAiAgentsPortfolioDebateRoute
+  '/api/ai/agents/status': typeof ApiAiAgentsStatusRoute
+  '/api/ai/altdata/run': typeof ApiAiAltdataRunRoute
+  '/api/ai/altdata/status': typeof ApiAiAltdataStatusRoute
+  '/api/ai/backtest/report': typeof ApiAiBacktestReportRoute
+  '/api/ai/backtest/run': typeof ApiAiBacktestRunRoute
+  '/api/ai/backtest/status': typeof ApiAiBacktestStatusRoute
+  '/api/ai/credibility/sources': typeof ApiAiCredibilitySourcesRoute
+  '/api/ai/feeds/economic-calendar': typeof ApiAiFeedsEconomicCalendarRoute
+  '/api/ai/feeds/macro': typeof ApiAiFeedsMacroRoute
+  '/api/ai/feeds/news': typeof ApiAiFeedsNewsRoute
+  '/api/ai/intelligence/genesis': typeof ApiAiIntelligenceGenesisRoute
+  '/api/ai/intelligence/learning': typeof ApiAiIntelligenceLearningRoute
+  '/api/ai/intelligence/macro': typeof ApiAiIntelligenceMacroRoute
+  '/api/ai/intelligence/market': typeof ApiAiIntelligenceMarketRoute
+  '/api/ai/knowledge-graph/query': typeof ApiAiKnowledgeGraphQueryRoute
+  '/api/ai/knowledge-graph/status': typeof ApiAiKnowledgeGraphStatusRoute
+  '/api/ai/knowledge-graph/update': typeof ApiAiKnowledgeGraphUpdateRoute
+  '/api/ai/knowledge/apply': typeof ApiAiKnowledgeApplyRoute
+  '/api/ai/knowledge/search': typeof ApiAiKnowledgeSearchRoute
+  '/api/ai/knowledge/status': typeof ApiAiKnowledgeStatusRoute
+  '/api/ai/knowledge/topics': typeof ApiAiKnowledgeTopicsRoute
+  '/api/ai/learning/run-cycle': typeof ApiAiLearningRunCycleRoute
+  '/api/ai/learning/status': typeof ApiAiLearningStatusRoute
+  '/api/ai/memory/status': typeof ApiAiMemoryStatusRoute
+  '/api/ai/optimizer/report': typeof ApiAiOptimizerReportRoute
+  '/api/ai/optimizer/run': typeof ApiAiOptimizerRunRoute
+  '/api/ai/orchestrator/run': typeof ApiAiOrchestratorRunRoute
+  '/api/ai/orchestrator/status': typeof ApiAiOrchestratorStatusRoute
+  '/api/ai/predictions/accuracy': typeof ApiAiPredictionsAccuracyRoute
+  '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
+  '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
+  '/api/ai/predictions/history': typeof ApiAiPredictionsHistoryRoute
+  '/api/ai/quant/run': typeof ApiAiQuantRunRoute
+  '/api/ai/quant/status': typeof ApiAiQuantStatusRoute
+  '/api/ai/research/archive': typeof ApiAiResearchArchiveRoute
+  '/api/ai/research/latest': typeof ApiAiResearchLatestRoute
+  '/api/ai/research/run': typeof ApiAiResearchRunRoute
+  '/api/ai/risk-twin/report': typeof ApiAiRiskTwinReportRoute
+  '/api/ai/risk-twin/status': typeof ApiAiRiskTwinStatusRoute
+  '/api/ai/risk-twin/test': typeof ApiAiRiskTwinTestRoute
+  '/api/ai/risk-twin/test-decision': typeof ApiAiRiskTwinTestDecisionRoute
+  '/api/ai/scenarios/list': typeof ApiAiScenariosListRoute
+  '/api/ai/scenarios/portfolio-stress': typeof ApiAiScenariosPortfolioStressRoute
+  '/api/ai/scenarios/run': typeof ApiAiScenariosRunRoute
+  '/api/ai/scheduler/run': typeof ApiAiSchedulerRunRoute
+  '/api/ai/sources/health': typeof ApiAiSourcesHealthRoute
+  '/api/ai/strategy-lab/compare': typeof ApiAiStrategyLabCompareRoute
+  '/api/ai/strategy-lab/recommendation': typeof ApiAiStrategyLabRecommendationRoute
+  '/api/ai/strategy-lab/strategies': typeof ApiAiStrategyLabStrategiesRoute
+  '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
+  '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
+  '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
   '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
+  '/api/public/broker/status': typeof ApiPublicBrokerStatusRoute
+  '/api/public/company/profile': typeof ApiPublicCompanyProfileRoute
+  '/api/public/genesis100/allocations': typeof ApiPublicGenesis100AllocationsRoute
+  '/api/public/genesis100/analyze': typeof ApiPublicGenesis100AnalyzeRoute
+  '/api/public/genesis100/archive': typeof ApiPublicGenesis100ArchiveRouteWithChildren
+  '/api/public/genesis100/consensus': typeof ApiPublicGenesis100ConsensusRoute
+  '/api/public/genesis100/controls': typeof ApiPublicGenesis100ControlsRoute
+  '/api/public/genesis100/credibility': typeof ApiPublicGenesis100CredibilityRoute
+  '/api/public/genesis100/debate': typeof ApiPublicGenesis100DebateRoute
+  '/api/public/genesis100/decision-firewall': typeof ApiPublicGenesis100DecisionFirewallRoute
+  '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
+  '/api/public/genesis100/governance': typeof ApiPublicGenesis100GovernanceRoute
+  '/api/public/genesis100/intelligence': typeof ApiPublicGenesis100IntelligenceRoute
+  '/api/public/genesis100/market-sentiment': typeof ApiPublicGenesis100MarketSentimentRoute
+  '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
+  '/api/public/genesis100/position-sizing': typeof ApiPublicGenesis100PositionSizingRoute
+  '/api/public/genesis100/report': typeof ApiPublicGenesis100ReportRoute
+  '/api/public/genesis100/run-cycle': typeof ApiPublicGenesis100RunCycleRoute
+  '/api/public/genesis100/safety': typeof ApiPublicGenesis100SafetyRoute
+  '/api/public/genesis100/source-registry': typeof ApiPublicGenesis100SourceRegistryRoute
+  '/api/public/genesis100/status': typeof ApiPublicGenesis100StatusRoute
+  '/api/public/genesis100/universe': typeof ApiPublicGenesis100UniverseRoute
   '/api/public/payments/paypal-webhook': typeof ApiPublicPaymentsPaypalWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/api/public/treasury/fund': typeof ApiPublicTreasuryFundRoute
+  '/api/public/treasury/history': typeof ApiPublicTreasuryHistoryRoute
+  '/api/public/treasury/status': typeof ApiPublicTreasuryStatusRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/api/public/genesis100/archive/latest': typeof ApiPublicGenesis100ArchiveLatestRoute
+  '/api/public/genesis100/archive/summary': typeof ApiPublicGenesis100ArchiveSummaryRoute
+  '/api/public/genesis100/execution/history': typeof ApiPublicGenesis100ExecutionHistoryRoute
+  '/api/public/market/snapshot/history': typeof ApiPublicMarketSnapshotHistoryRoute
+  '/api/public/market/snapshot/run': typeof ApiPublicMarketSnapshotRunRoute
+  '/api/public/providers/eodhd/exchanges': typeof ApiPublicProvidersEodhdExchangesRoute
+  '/api/public/providers/financialdata/status': typeof ApiPublicProvidersFinancialdataStatusRoute
+  '/api/public/genesis100/execution/': typeof ApiPublicGenesis100ExecutionIndexRoute
+  '/api/public/market/snapshot/': typeof ApiPublicMarketSnapshotIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -516,17 +1372,21 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/advisor': typeof AppAdvisorRoute
+  '/agent-console': typeof AppAgentConsoleRoute
+  '/ai': typeof AppAiRoute
   '/ai-dashboard': typeof AppAiDashboardRoute
   '/ai-learning': typeof AppAiLearningRoute
   '/ai-validation': typeof AppAiValidationRoute
   '/alert-center': typeof AppAlertCenterRoute
   '/alerts': typeof AppAlertsRoute
   '/archive': typeof AppArchiveRoute
+  '/assets-portfolio': typeof AppAssetsPortfolioRoute
   '/backtest-lab': typeof AppBacktestLabRoute
   '/bank-accounts': typeof AppBankAccountsRoute
   '/billing': typeof AppBillingRoute
   '/billing-monitor': typeof AppBillingMonitorRoute
   '/calendar': typeof AppCalendarRoute
+  '/changelog': typeof AppChangelogRoute
   '/company-trading': typeof AppCompanyTradingRoute
   '/dashboard': typeof AppDashboardRoute
   '/data-fusion': typeof AppDataFusionRoute
@@ -539,11 +1399,13 @@ export interface FileRoutesByTo {
   '/error-logs': typeof AppErrorLogsRoute
   '/external-accounts': typeof AppExternalAccountsRoute
   '/genesis': typeof AppGenesisRoute
+  '/genesis-100': typeof AppGenesis100Route
   '/global-intel': typeof AppGlobalIntelRoute
   '/growth-plan': typeof AppGrowthPlanRoute
   '/heatmap': typeof AppHeatmapRoute
   '/help': typeof AppHelpRoute
   '/market-data-monitor': typeof AppMarketDataMonitorRoute
+  '/market-history': typeof AppMarketHistoryRoute
   '/market-intelligence': typeof AppMarketIntelligenceRoute
   '/market-universe': typeof AppMarketUniverseRoute
   '/markets': typeof AppMarketsRoute
@@ -562,19 +1424,128 @@ export interface FileRoutesByTo {
   '/system-health': typeof AppSystemHealthRoute
   '/wallet': typeof AppWalletRoute
   '/watchlist': typeof AppWatchlistRoute
+  '/watchlists': typeof AppWatchlistsRoute
+  '/api/ping': typeof ApiPingRoute
+  '/api/ai/consensus': typeof ApiAiConsensusRoute
+  '/api/ai/debate': typeof ApiAiDebateRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
+  '/api/public/agent-health': typeof ApiPublicAgentHealthRoute
+  '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
+  '/api/public/env-check': typeof ApiPublicEnvCheckRoute
+  '/api/public/full-site-health': typeof ApiPublicFullSiteHealthRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
+  '/api/public/history-test': typeof ApiPublicHistoryTestRoute
+  '/api/public/intelligence-health': typeof ApiPublicIntelligenceHealthRoute
+  '/api/public/market-coverage': typeof ApiPublicMarketCoverageRoute
+  '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
+  '/api/public/provider-health-full': typeof ApiPublicProviderHealthFullRoute
+  '/api/public/quote': typeof ApiPublicQuoteRoute
+  '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
+  '/api/public/router-test': typeof ApiPublicRouterTestRoute
+  '/api/public/supported-markets': typeof ApiPublicSupportedMarketsRoute
+  '/api/public/ui-health': typeof ApiPublicUiHealthRoute
   '/api/public/vault-status': typeof ApiPublicVaultStatusRoute
+  '/api/public/version': typeof ApiPublicVersionRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
+  '/api/ai/agents/consensus': typeof ApiAiAgentsConsensusRoute
+  '/api/ai/agents/debate': typeof ApiAiAgentsDebateRoute
+  '/api/ai/agents/portfolio-debate': typeof ApiAiAgentsPortfolioDebateRoute
+  '/api/ai/agents/status': typeof ApiAiAgentsStatusRoute
+  '/api/ai/altdata/run': typeof ApiAiAltdataRunRoute
+  '/api/ai/altdata/status': typeof ApiAiAltdataStatusRoute
+  '/api/ai/backtest/report': typeof ApiAiBacktestReportRoute
+  '/api/ai/backtest/run': typeof ApiAiBacktestRunRoute
+  '/api/ai/backtest/status': typeof ApiAiBacktestStatusRoute
+  '/api/ai/credibility/sources': typeof ApiAiCredibilitySourcesRoute
+  '/api/ai/feeds/economic-calendar': typeof ApiAiFeedsEconomicCalendarRoute
+  '/api/ai/feeds/macro': typeof ApiAiFeedsMacroRoute
+  '/api/ai/feeds/news': typeof ApiAiFeedsNewsRoute
+  '/api/ai/intelligence/genesis': typeof ApiAiIntelligenceGenesisRoute
+  '/api/ai/intelligence/learning': typeof ApiAiIntelligenceLearningRoute
+  '/api/ai/intelligence/macro': typeof ApiAiIntelligenceMacroRoute
+  '/api/ai/intelligence/market': typeof ApiAiIntelligenceMarketRoute
+  '/api/ai/knowledge-graph/query': typeof ApiAiKnowledgeGraphQueryRoute
+  '/api/ai/knowledge-graph/status': typeof ApiAiKnowledgeGraphStatusRoute
+  '/api/ai/knowledge-graph/update': typeof ApiAiKnowledgeGraphUpdateRoute
+  '/api/ai/knowledge/apply': typeof ApiAiKnowledgeApplyRoute
+  '/api/ai/knowledge/search': typeof ApiAiKnowledgeSearchRoute
+  '/api/ai/knowledge/status': typeof ApiAiKnowledgeStatusRoute
+  '/api/ai/knowledge/topics': typeof ApiAiKnowledgeTopicsRoute
+  '/api/ai/learning/run-cycle': typeof ApiAiLearningRunCycleRoute
+  '/api/ai/learning/status': typeof ApiAiLearningStatusRoute
+  '/api/ai/memory/status': typeof ApiAiMemoryStatusRoute
+  '/api/ai/optimizer/report': typeof ApiAiOptimizerReportRoute
+  '/api/ai/optimizer/run': typeof ApiAiOptimizerRunRoute
+  '/api/ai/orchestrator/run': typeof ApiAiOrchestratorRunRoute
+  '/api/ai/orchestrator/status': typeof ApiAiOrchestratorStatusRoute
+  '/api/ai/predictions/accuracy': typeof ApiAiPredictionsAccuracyRoute
+  '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
+  '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
+  '/api/ai/predictions/history': typeof ApiAiPredictionsHistoryRoute
+  '/api/ai/quant/run': typeof ApiAiQuantRunRoute
+  '/api/ai/quant/status': typeof ApiAiQuantStatusRoute
+  '/api/ai/research/archive': typeof ApiAiResearchArchiveRoute
+  '/api/ai/research/latest': typeof ApiAiResearchLatestRoute
+  '/api/ai/research/run': typeof ApiAiResearchRunRoute
+  '/api/ai/risk-twin/report': typeof ApiAiRiskTwinReportRoute
+  '/api/ai/risk-twin/status': typeof ApiAiRiskTwinStatusRoute
+  '/api/ai/risk-twin/test': typeof ApiAiRiskTwinTestRoute
+  '/api/ai/risk-twin/test-decision': typeof ApiAiRiskTwinTestDecisionRoute
+  '/api/ai/scenarios/list': typeof ApiAiScenariosListRoute
+  '/api/ai/scenarios/portfolio-stress': typeof ApiAiScenariosPortfolioStressRoute
+  '/api/ai/scenarios/run': typeof ApiAiScenariosRunRoute
+  '/api/ai/scheduler/run': typeof ApiAiSchedulerRunRoute
+  '/api/ai/sources/health': typeof ApiAiSourcesHealthRoute
+  '/api/ai/strategy-lab/compare': typeof ApiAiStrategyLabCompareRoute
+  '/api/ai/strategy-lab/recommendation': typeof ApiAiStrategyLabRecommendationRoute
+  '/api/ai/strategy-lab/strategies': typeof ApiAiStrategyLabStrategiesRoute
+  '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
+  '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
+  '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
   '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
+  '/api/public/broker/status': typeof ApiPublicBrokerStatusRoute
+  '/api/public/company/profile': typeof ApiPublicCompanyProfileRoute
+  '/api/public/genesis100/allocations': typeof ApiPublicGenesis100AllocationsRoute
+  '/api/public/genesis100/analyze': typeof ApiPublicGenesis100AnalyzeRoute
+  '/api/public/genesis100/archive': typeof ApiPublicGenesis100ArchiveRouteWithChildren
+  '/api/public/genesis100/consensus': typeof ApiPublicGenesis100ConsensusRoute
+  '/api/public/genesis100/controls': typeof ApiPublicGenesis100ControlsRoute
+  '/api/public/genesis100/credibility': typeof ApiPublicGenesis100CredibilityRoute
+  '/api/public/genesis100/debate': typeof ApiPublicGenesis100DebateRoute
+  '/api/public/genesis100/decision-firewall': typeof ApiPublicGenesis100DecisionFirewallRoute
+  '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
+  '/api/public/genesis100/governance': typeof ApiPublicGenesis100GovernanceRoute
+  '/api/public/genesis100/intelligence': typeof ApiPublicGenesis100IntelligenceRoute
+  '/api/public/genesis100/market-sentiment': typeof ApiPublicGenesis100MarketSentimentRoute
+  '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
+  '/api/public/genesis100/position-sizing': typeof ApiPublicGenesis100PositionSizingRoute
+  '/api/public/genesis100/report': typeof ApiPublicGenesis100ReportRoute
+  '/api/public/genesis100/run-cycle': typeof ApiPublicGenesis100RunCycleRoute
+  '/api/public/genesis100/safety': typeof ApiPublicGenesis100SafetyRoute
+  '/api/public/genesis100/source-registry': typeof ApiPublicGenesis100SourceRegistryRoute
+  '/api/public/genesis100/status': typeof ApiPublicGenesis100StatusRoute
+  '/api/public/genesis100/universe': typeof ApiPublicGenesis100UniverseRoute
   '/api/public/payments/paypal-webhook': typeof ApiPublicPaymentsPaypalWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/api/public/treasury/fund': typeof ApiPublicTreasuryFundRoute
+  '/api/public/treasury/history': typeof ApiPublicTreasuryHistoryRoute
+  '/api/public/treasury/status': typeof ApiPublicTreasuryStatusRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/api/public/genesis100/archive/latest': typeof ApiPublicGenesis100ArchiveLatestRoute
+  '/api/public/genesis100/archive/summary': typeof ApiPublicGenesis100ArchiveSummaryRoute
+  '/api/public/genesis100/execution/history': typeof ApiPublicGenesis100ExecutionHistoryRoute
+  '/api/public/market/snapshot/history': typeof ApiPublicMarketSnapshotHistoryRoute
+  '/api/public/market/snapshot/run': typeof ApiPublicMarketSnapshotRunRoute
+  '/api/public/providers/eodhd/exchanges': typeof ApiPublicProvidersEodhdExchangesRoute
+  '/api/public/providers/financialdata/status': typeof ApiPublicProvidersFinancialdataStatusRoute
+  '/api/public/genesis100/execution': typeof ApiPublicGenesis100ExecutionIndexRoute
+  '/api/public/market/snapshot': typeof ApiPublicMarketSnapshotIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -589,17 +1560,21 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/_app/advisor': typeof AppAdvisorRoute
+  '/_app/agent-console': typeof AppAgentConsoleRoute
+  '/_app/ai': typeof AppAiRoute
   '/_app/ai-dashboard': typeof AppAiDashboardRoute
   '/_app/ai-learning': typeof AppAiLearningRoute
   '/_app/ai-validation': typeof AppAiValidationRoute
   '/_app/alert-center': typeof AppAlertCenterRoute
   '/_app/alerts': typeof AppAlertsRoute
   '/_app/archive': typeof AppArchiveRoute
+  '/_app/assets-portfolio': typeof AppAssetsPortfolioRoute
   '/_app/backtest-lab': typeof AppBacktestLabRoute
   '/_app/bank-accounts': typeof AppBankAccountsRoute
   '/_app/billing': typeof AppBillingRoute
   '/_app/billing-monitor': typeof AppBillingMonitorRoute
   '/_app/calendar': typeof AppCalendarRoute
+  '/_app/changelog': typeof AppChangelogRoute
   '/_app/company-trading': typeof AppCompanyTradingRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/data-fusion': typeof AppDataFusionRoute
@@ -612,11 +1587,13 @@ export interface FileRoutesById {
   '/_app/error-logs': typeof AppErrorLogsRoute
   '/_app/external-accounts': typeof AppExternalAccountsRoute
   '/_app/genesis': typeof AppGenesisRoute
+  '/_app/genesis-100': typeof AppGenesis100Route
   '/_app/global-intel': typeof AppGlobalIntelRoute
   '/_app/growth-plan': typeof AppGrowthPlanRoute
   '/_app/heatmap': typeof AppHeatmapRoute
   '/_app/help': typeof AppHelpRoute
   '/_app/market-data-monitor': typeof AppMarketDataMonitorRoute
+  '/_app/market-history': typeof AppMarketHistoryRoute
   '/_app/market-intelligence': typeof AppMarketIntelligenceRoute
   '/_app/market-universe': typeof AppMarketUniverseRoute
   '/_app/markets': typeof AppMarketsRoute
@@ -635,19 +1612,128 @@ export interface FileRoutesById {
   '/_app/system-health': typeof AppSystemHealthRoute
   '/_app/wallet': typeof AppWalletRoute
   '/_app/watchlist': typeof AppWatchlistRoute
+  '/_app/watchlists': typeof AppWatchlistsRoute
+  '/api/ping': typeof ApiPingRoute
+  '/api/ai/consensus': typeof ApiAiConsensusRoute
+  '/api/ai/debate': typeof ApiAiDebateRoute
   '/api/finnhub/stream': typeof ApiFinnhubStreamRoute
+  '/api/public/agent-health': typeof ApiPublicAgentHealthRoute
+  '/api/public/deploy-check': typeof ApiPublicDeployCheckRoute
   '/api/public/email-config-check': typeof ApiPublicEmailConfigCheckRoute
+  '/api/public/env-check': typeof ApiPublicEnvCheckRoute
+  '/api/public/full-site-health': typeof ApiPublicFullSiteHealthRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
+  '/api/public/history-test': typeof ApiPublicHistoryTestRoute
+  '/api/public/intelligence-health': typeof ApiPublicIntelligenceHealthRoute
+  '/api/public/market-coverage': typeof ApiPublicMarketCoverageRoute
+  '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
+  '/api/public/provider-health-full': typeof ApiPublicProviderHealthFullRoute
+  '/api/public/quote': typeof ApiPublicQuoteRoute
+  '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
+  '/api/public/router-test': typeof ApiPublicRouterTestRoute
+  '/api/public/supported-markets': typeof ApiPublicSupportedMarketsRoute
+  '/api/public/ui-health': typeof ApiPublicUiHealthRoute
   '/api/public/vault-status': typeof ApiPublicVaultStatusRoute
+  '/api/public/version': typeof ApiPublicVersionRoute
   '/api/webhooks/lemonsqueezy': typeof ApiWebhooksLemonsqueezyRoute
   '/api/webhooks/paddle': typeof ApiWebhooksPaddleRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
+  '/api/ai/agents/consensus': typeof ApiAiAgentsConsensusRoute
+  '/api/ai/agents/debate': typeof ApiAiAgentsDebateRoute
+  '/api/ai/agents/portfolio-debate': typeof ApiAiAgentsPortfolioDebateRoute
+  '/api/ai/agents/status': typeof ApiAiAgentsStatusRoute
+  '/api/ai/altdata/run': typeof ApiAiAltdataRunRoute
+  '/api/ai/altdata/status': typeof ApiAiAltdataStatusRoute
+  '/api/ai/backtest/report': typeof ApiAiBacktestReportRoute
+  '/api/ai/backtest/run': typeof ApiAiBacktestRunRoute
+  '/api/ai/backtest/status': typeof ApiAiBacktestStatusRoute
+  '/api/ai/credibility/sources': typeof ApiAiCredibilitySourcesRoute
+  '/api/ai/feeds/economic-calendar': typeof ApiAiFeedsEconomicCalendarRoute
+  '/api/ai/feeds/macro': typeof ApiAiFeedsMacroRoute
+  '/api/ai/feeds/news': typeof ApiAiFeedsNewsRoute
+  '/api/ai/intelligence/genesis': typeof ApiAiIntelligenceGenesisRoute
+  '/api/ai/intelligence/learning': typeof ApiAiIntelligenceLearningRoute
+  '/api/ai/intelligence/macro': typeof ApiAiIntelligenceMacroRoute
+  '/api/ai/intelligence/market': typeof ApiAiIntelligenceMarketRoute
+  '/api/ai/knowledge-graph/query': typeof ApiAiKnowledgeGraphQueryRoute
+  '/api/ai/knowledge-graph/status': typeof ApiAiKnowledgeGraphStatusRoute
+  '/api/ai/knowledge-graph/update': typeof ApiAiKnowledgeGraphUpdateRoute
+  '/api/ai/knowledge/apply': typeof ApiAiKnowledgeApplyRoute
+  '/api/ai/knowledge/search': typeof ApiAiKnowledgeSearchRoute
+  '/api/ai/knowledge/status': typeof ApiAiKnowledgeStatusRoute
+  '/api/ai/knowledge/topics': typeof ApiAiKnowledgeTopicsRoute
+  '/api/ai/learning/run-cycle': typeof ApiAiLearningRunCycleRoute
+  '/api/ai/learning/status': typeof ApiAiLearningStatusRoute
+  '/api/ai/memory/status': typeof ApiAiMemoryStatusRoute
+  '/api/ai/optimizer/report': typeof ApiAiOptimizerReportRoute
+  '/api/ai/optimizer/run': typeof ApiAiOptimizerRunRoute
+  '/api/ai/orchestrator/run': typeof ApiAiOrchestratorRunRoute
+  '/api/ai/orchestrator/status': typeof ApiAiOrchestratorStatusRoute
+  '/api/ai/predictions/accuracy': typeof ApiAiPredictionsAccuracyRoute
+  '/api/ai/predictions/create': typeof ApiAiPredictionsCreateRoute
+  '/api/ai/predictions/evaluate': typeof ApiAiPredictionsEvaluateRoute
+  '/api/ai/predictions/history': typeof ApiAiPredictionsHistoryRoute
+  '/api/ai/quant/run': typeof ApiAiQuantRunRoute
+  '/api/ai/quant/status': typeof ApiAiQuantStatusRoute
+  '/api/ai/research/archive': typeof ApiAiResearchArchiveRoute
+  '/api/ai/research/latest': typeof ApiAiResearchLatestRoute
+  '/api/ai/research/run': typeof ApiAiResearchRunRoute
+  '/api/ai/risk-twin/report': typeof ApiAiRiskTwinReportRoute
+  '/api/ai/risk-twin/status': typeof ApiAiRiskTwinStatusRoute
+  '/api/ai/risk-twin/test': typeof ApiAiRiskTwinTestRoute
+  '/api/ai/risk-twin/test-decision': typeof ApiAiRiskTwinTestDecisionRoute
+  '/api/ai/scenarios/list': typeof ApiAiScenariosListRoute
+  '/api/ai/scenarios/portfolio-stress': typeof ApiAiScenariosPortfolioStressRoute
+  '/api/ai/scenarios/run': typeof ApiAiScenariosRunRoute
+  '/api/ai/scheduler/run': typeof ApiAiSchedulerRunRoute
+  '/api/ai/sources/health': typeof ApiAiSourcesHealthRoute
+  '/api/ai/strategy-lab/compare': typeof ApiAiStrategyLabCompareRoute
+  '/api/ai/strategy-lab/recommendation': typeof ApiAiStrategyLabRecommendationRoute
+  '/api/ai/strategy-lab/strategies': typeof ApiAiStrategyLabStrategiesRoute
+  '/api/payments/myfatoorah/create': typeof ApiPaymentsMyfatoorahCreateRoute
+  '/api/payments/myfatoorah/status': typeof ApiPaymentsMyfatoorahStatusRoute
+  '/api/payments/myfatoorah/webhook': typeof ApiPaymentsMyfatoorahWebhookRoute
   '/api/public/alerts/evaluate': typeof ApiPublicAlertsEvaluateRoute
+  '/api/public/broker/status': typeof ApiPublicBrokerStatusRoute
+  '/api/public/company/profile': typeof ApiPublicCompanyProfileRoute
+  '/api/public/genesis100/allocations': typeof ApiPublicGenesis100AllocationsRoute
+  '/api/public/genesis100/analyze': typeof ApiPublicGenesis100AnalyzeRoute
+  '/api/public/genesis100/archive': typeof ApiPublicGenesis100ArchiveRouteWithChildren
+  '/api/public/genesis100/consensus': typeof ApiPublicGenesis100ConsensusRoute
+  '/api/public/genesis100/controls': typeof ApiPublicGenesis100ControlsRoute
+  '/api/public/genesis100/credibility': typeof ApiPublicGenesis100CredibilityRoute
+  '/api/public/genesis100/debate': typeof ApiPublicGenesis100DebateRoute
+  '/api/public/genesis100/decision-firewall': typeof ApiPublicGenesis100DecisionFirewallRoute
+  '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
+  '/api/public/genesis100/governance': typeof ApiPublicGenesis100GovernanceRoute
+  '/api/public/genesis100/intelligence': typeof ApiPublicGenesis100IntelligenceRoute
+  '/api/public/genesis100/market-sentiment': typeof ApiPublicGenesis100MarketSentimentRoute
+  '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
+  '/api/public/genesis100/position-sizing': typeof ApiPublicGenesis100PositionSizingRoute
+  '/api/public/genesis100/report': typeof ApiPublicGenesis100ReportRoute
+  '/api/public/genesis100/run-cycle': typeof ApiPublicGenesis100RunCycleRoute
+  '/api/public/genesis100/safety': typeof ApiPublicGenesis100SafetyRoute
+  '/api/public/genesis100/source-registry': typeof ApiPublicGenesis100SourceRegistryRoute
+  '/api/public/genesis100/status': typeof ApiPublicGenesis100StatusRoute
+  '/api/public/genesis100/universe': typeof ApiPublicGenesis100UniverseRoute
   '/api/public/payments/paypal-webhook': typeof ApiPublicPaymentsPaypalWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/api/public/treasury/fund': typeof ApiPublicTreasuryFundRoute
+  '/api/public/treasury/history': typeof ApiPublicTreasuryHistoryRoute
+  '/api/public/treasury/status': typeof ApiPublicTreasuryStatusRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/api/public/genesis100/archive/latest': typeof ApiPublicGenesis100ArchiveLatestRoute
+  '/api/public/genesis100/archive/summary': typeof ApiPublicGenesis100ArchiveSummaryRoute
+  '/api/public/genesis100/execution/history': typeof ApiPublicGenesis100ExecutionHistoryRoute
+  '/api/public/market/snapshot/history': typeof ApiPublicMarketSnapshotHistoryRoute
+  '/api/public/market/snapshot/run': typeof ApiPublicMarketSnapshotRunRoute
+  '/api/public/providers/eodhd/exchanges': typeof ApiPublicProvidersEodhdExchangesRoute
+  '/api/public/providers/financialdata/status': typeof ApiPublicProvidersFinancialdataStatusRoute
+  '/api/public/genesis100/execution/': typeof ApiPublicGenesis100ExecutionIndexRoute
+  '/api/public/market/snapshot/': typeof ApiPublicMarketSnapshotIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -662,17 +1748,21 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/advisor'
+    | '/agent-console'
+    | '/ai'
     | '/ai-dashboard'
     | '/ai-learning'
     | '/ai-validation'
     | '/alert-center'
     | '/alerts'
     | '/archive'
+    | '/assets-portfolio'
     | '/backtest-lab'
     | '/bank-accounts'
     | '/billing'
     | '/billing-monitor'
     | '/calendar'
+    | '/changelog'
     | '/company-trading'
     | '/dashboard'
     | '/data-fusion'
@@ -685,11 +1775,13 @@ export interface FileRouteTypes {
     | '/error-logs'
     | '/external-accounts'
     | '/genesis'
+    | '/genesis-100'
     | '/global-intel'
     | '/growth-plan'
     | '/heatmap'
     | '/help'
     | '/market-data-monitor'
+    | '/market-history'
     | '/market-intelligence'
     | '/market-universe'
     | '/markets'
@@ -708,19 +1800,128 @@ export interface FileRouteTypes {
     | '/system-health'
     | '/wallet'
     | '/watchlist'
+    | '/watchlists'
+    | '/api/ping'
+    | '/api/ai/consensus'
+    | '/api/ai/debate'
     | '/api/finnhub/stream'
+    | '/api/public/agent-health'
+    | '/api/public/deploy-check'
     | '/api/public/email-config-check'
+    | '/api/public/env-check'
+    | '/api/public/full-site-health'
+    | '/api/public/health'
+    | '/api/public/history-test'
+    | '/api/public/intelligence-health'
+    | '/api/public/market-coverage'
+    | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
+    | '/api/public/provider-health-full'
+    | '/api/public/quote'
+    | '/api/public/router-regression'
+    | '/api/public/router-test'
+    | '/api/public/supported-markets'
+    | '/api/public/ui-health'
     | '/api/public/vault-status'
+    | '/api/public/version'
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
+    | '/api/ai/agents/consensus'
+    | '/api/ai/agents/debate'
+    | '/api/ai/agents/portfolio-debate'
+    | '/api/ai/agents/status'
+    | '/api/ai/altdata/run'
+    | '/api/ai/altdata/status'
+    | '/api/ai/backtest/report'
+    | '/api/ai/backtest/run'
+    | '/api/ai/backtest/status'
+    | '/api/ai/credibility/sources'
+    | '/api/ai/feeds/economic-calendar'
+    | '/api/ai/feeds/macro'
+    | '/api/ai/feeds/news'
+    | '/api/ai/intelligence/genesis'
+    | '/api/ai/intelligence/learning'
+    | '/api/ai/intelligence/macro'
+    | '/api/ai/intelligence/market'
+    | '/api/ai/knowledge-graph/query'
+    | '/api/ai/knowledge-graph/status'
+    | '/api/ai/knowledge-graph/update'
+    | '/api/ai/knowledge/apply'
+    | '/api/ai/knowledge/search'
+    | '/api/ai/knowledge/status'
+    | '/api/ai/knowledge/topics'
+    | '/api/ai/learning/run-cycle'
+    | '/api/ai/learning/status'
+    | '/api/ai/memory/status'
+    | '/api/ai/optimizer/report'
+    | '/api/ai/optimizer/run'
+    | '/api/ai/orchestrator/run'
+    | '/api/ai/orchestrator/status'
+    | '/api/ai/predictions/accuracy'
+    | '/api/ai/predictions/create'
+    | '/api/ai/predictions/evaluate'
+    | '/api/ai/predictions/history'
+    | '/api/ai/quant/run'
+    | '/api/ai/quant/status'
+    | '/api/ai/research/archive'
+    | '/api/ai/research/latest'
+    | '/api/ai/research/run'
+    | '/api/ai/risk-twin/report'
+    | '/api/ai/risk-twin/status'
+    | '/api/ai/risk-twin/test'
+    | '/api/ai/risk-twin/test-decision'
+    | '/api/ai/scenarios/list'
+    | '/api/ai/scenarios/portfolio-stress'
+    | '/api/ai/scenarios/run'
+    | '/api/ai/scheduler/run'
+    | '/api/ai/sources/health'
+    | '/api/ai/strategy-lab/compare'
+    | '/api/ai/strategy-lab/recommendation'
+    | '/api/ai/strategy-lab/strategies'
+    | '/api/payments/myfatoorah/create'
+    | '/api/payments/myfatoorah/status'
+    | '/api/payments/myfatoorah/webhook'
     | '/api/public/alerts/evaluate'
+    | '/api/public/broker/status'
+    | '/api/public/company/profile'
+    | '/api/public/genesis100/allocations'
+    | '/api/public/genesis100/analyze'
+    | '/api/public/genesis100/archive'
+    | '/api/public/genesis100/consensus'
+    | '/api/public/genesis100/controls'
+    | '/api/public/genesis100/credibility'
+    | '/api/public/genesis100/debate'
+    | '/api/public/genesis100/decision-firewall'
+    | '/api/public/genesis100/decisions'
+    | '/api/public/genesis100/governance'
+    | '/api/public/genesis100/intelligence'
+    | '/api/public/genesis100/market-sentiment'
+    | '/api/public/genesis100/notifications'
+    | '/api/public/genesis100/position-sizing'
+    | '/api/public/genesis100/report'
+    | '/api/public/genesis100/run-cycle'
+    | '/api/public/genesis100/safety'
+    | '/api/public/genesis100/source-registry'
+    | '/api/public/genesis100/status'
+    | '/api/public/genesis100/universe'
     | '/api/public/payments/paypal-webhook'
     | '/api/public/payments/webhook'
+    | '/api/public/treasury/fund'
+    | '/api/public/treasury/history'
+    | '/api/public/treasury/status'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/api/public/genesis100/archive/latest'
+    | '/api/public/genesis100/archive/summary'
+    | '/api/public/genesis100/execution/history'
+    | '/api/public/market/snapshot/history'
+    | '/api/public/market/snapshot/run'
+    | '/api/public/providers/eodhd/exchanges'
+    | '/api/public/providers/financialdata/status'
+    | '/api/public/genesis100/execution/'
+    | '/api/public/market/snapshot/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -733,17 +1934,21 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/advisor'
+    | '/agent-console'
+    | '/ai'
     | '/ai-dashboard'
     | '/ai-learning'
     | '/ai-validation'
     | '/alert-center'
     | '/alerts'
     | '/archive'
+    | '/assets-portfolio'
     | '/backtest-lab'
     | '/bank-accounts'
     | '/billing'
     | '/billing-monitor'
     | '/calendar'
+    | '/changelog'
     | '/company-trading'
     | '/dashboard'
     | '/data-fusion'
@@ -756,11 +1961,13 @@ export interface FileRouteTypes {
     | '/error-logs'
     | '/external-accounts'
     | '/genesis'
+    | '/genesis-100'
     | '/global-intel'
     | '/growth-plan'
     | '/heatmap'
     | '/help'
     | '/market-data-monitor'
+    | '/market-history'
     | '/market-intelligence'
     | '/market-universe'
     | '/markets'
@@ -779,19 +1986,128 @@ export interface FileRouteTypes {
     | '/system-health'
     | '/wallet'
     | '/watchlist'
+    | '/watchlists'
+    | '/api/ping'
+    | '/api/ai/consensus'
+    | '/api/ai/debate'
     | '/api/finnhub/stream'
+    | '/api/public/agent-health'
+    | '/api/public/deploy-check'
     | '/api/public/email-config-check'
+    | '/api/public/env-check'
+    | '/api/public/full-site-health'
+    | '/api/public/health'
+    | '/api/public/history-test'
+    | '/api/public/intelligence-health'
+    | '/api/public/market-coverage'
+    | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
+    | '/api/public/provider-health-full'
+    | '/api/public/quote'
+    | '/api/public/router-regression'
+    | '/api/public/router-test'
+    | '/api/public/supported-markets'
+    | '/api/public/ui-health'
     | '/api/public/vault-status'
+    | '/api/public/version'
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
+    | '/api/ai/agents/consensus'
+    | '/api/ai/agents/debate'
+    | '/api/ai/agents/portfolio-debate'
+    | '/api/ai/agents/status'
+    | '/api/ai/altdata/run'
+    | '/api/ai/altdata/status'
+    | '/api/ai/backtest/report'
+    | '/api/ai/backtest/run'
+    | '/api/ai/backtest/status'
+    | '/api/ai/credibility/sources'
+    | '/api/ai/feeds/economic-calendar'
+    | '/api/ai/feeds/macro'
+    | '/api/ai/feeds/news'
+    | '/api/ai/intelligence/genesis'
+    | '/api/ai/intelligence/learning'
+    | '/api/ai/intelligence/macro'
+    | '/api/ai/intelligence/market'
+    | '/api/ai/knowledge-graph/query'
+    | '/api/ai/knowledge-graph/status'
+    | '/api/ai/knowledge-graph/update'
+    | '/api/ai/knowledge/apply'
+    | '/api/ai/knowledge/search'
+    | '/api/ai/knowledge/status'
+    | '/api/ai/knowledge/topics'
+    | '/api/ai/learning/run-cycle'
+    | '/api/ai/learning/status'
+    | '/api/ai/memory/status'
+    | '/api/ai/optimizer/report'
+    | '/api/ai/optimizer/run'
+    | '/api/ai/orchestrator/run'
+    | '/api/ai/orchestrator/status'
+    | '/api/ai/predictions/accuracy'
+    | '/api/ai/predictions/create'
+    | '/api/ai/predictions/evaluate'
+    | '/api/ai/predictions/history'
+    | '/api/ai/quant/run'
+    | '/api/ai/quant/status'
+    | '/api/ai/research/archive'
+    | '/api/ai/research/latest'
+    | '/api/ai/research/run'
+    | '/api/ai/risk-twin/report'
+    | '/api/ai/risk-twin/status'
+    | '/api/ai/risk-twin/test'
+    | '/api/ai/risk-twin/test-decision'
+    | '/api/ai/scenarios/list'
+    | '/api/ai/scenarios/portfolio-stress'
+    | '/api/ai/scenarios/run'
+    | '/api/ai/scheduler/run'
+    | '/api/ai/sources/health'
+    | '/api/ai/strategy-lab/compare'
+    | '/api/ai/strategy-lab/recommendation'
+    | '/api/ai/strategy-lab/strategies'
+    | '/api/payments/myfatoorah/create'
+    | '/api/payments/myfatoorah/status'
+    | '/api/payments/myfatoorah/webhook'
     | '/api/public/alerts/evaluate'
+    | '/api/public/broker/status'
+    | '/api/public/company/profile'
+    | '/api/public/genesis100/allocations'
+    | '/api/public/genesis100/analyze'
+    | '/api/public/genesis100/archive'
+    | '/api/public/genesis100/consensus'
+    | '/api/public/genesis100/controls'
+    | '/api/public/genesis100/credibility'
+    | '/api/public/genesis100/debate'
+    | '/api/public/genesis100/decision-firewall'
+    | '/api/public/genesis100/decisions'
+    | '/api/public/genesis100/governance'
+    | '/api/public/genesis100/intelligence'
+    | '/api/public/genesis100/market-sentiment'
+    | '/api/public/genesis100/notifications'
+    | '/api/public/genesis100/position-sizing'
+    | '/api/public/genesis100/report'
+    | '/api/public/genesis100/run-cycle'
+    | '/api/public/genesis100/safety'
+    | '/api/public/genesis100/source-registry'
+    | '/api/public/genesis100/status'
+    | '/api/public/genesis100/universe'
     | '/api/public/payments/paypal-webhook'
     | '/api/public/payments/webhook'
+    | '/api/public/treasury/fund'
+    | '/api/public/treasury/history'
+    | '/api/public/treasury/status'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/api/public/genesis100/archive/latest'
+    | '/api/public/genesis100/archive/summary'
+    | '/api/public/genesis100/execution/history'
+    | '/api/public/market/snapshot/history'
+    | '/api/public/market/snapshot/run'
+    | '/api/public/providers/eodhd/exchanges'
+    | '/api/public/providers/financialdata/status'
+    | '/api/public/genesis100/execution'
+    | '/api/public/market/snapshot'
   id:
     | '__root__'
     | '/'
@@ -805,17 +2121,21 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/_app/advisor'
+    | '/_app/agent-console'
+    | '/_app/ai'
     | '/_app/ai-dashboard'
     | '/_app/ai-learning'
     | '/_app/ai-validation'
     | '/_app/alert-center'
     | '/_app/alerts'
     | '/_app/archive'
+    | '/_app/assets-portfolio'
     | '/_app/backtest-lab'
     | '/_app/bank-accounts'
     | '/_app/billing'
     | '/_app/billing-monitor'
     | '/_app/calendar'
+    | '/_app/changelog'
     | '/_app/company-trading'
     | '/_app/dashboard'
     | '/_app/data-fusion'
@@ -828,11 +2148,13 @@ export interface FileRouteTypes {
     | '/_app/error-logs'
     | '/_app/external-accounts'
     | '/_app/genesis'
+    | '/_app/genesis-100'
     | '/_app/global-intel'
     | '/_app/growth-plan'
     | '/_app/heatmap'
     | '/_app/help'
     | '/_app/market-data-monitor'
+    | '/_app/market-history'
     | '/_app/market-intelligence'
     | '/_app/market-universe'
     | '/_app/markets'
@@ -851,19 +2173,128 @@ export interface FileRouteTypes {
     | '/_app/system-health'
     | '/_app/wallet'
     | '/_app/watchlist'
+    | '/_app/watchlists'
+    | '/api/ping'
+    | '/api/ai/consensus'
+    | '/api/ai/debate'
     | '/api/finnhub/stream'
+    | '/api/public/agent-health'
+    | '/api/public/deploy-check'
     | '/api/public/email-config-check'
+    | '/api/public/env-check'
+    | '/api/public/full-site-health'
+    | '/api/public/health'
+    | '/api/public/history-test'
+    | '/api/public/intelligence-health'
+    | '/api/public/market-coverage'
+    | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
+    | '/api/public/provider-health-full'
+    | '/api/public/quote'
+    | '/api/public/router-regression'
+    | '/api/public/router-test'
+    | '/api/public/supported-markets'
+    | '/api/public/ui-health'
     | '/api/public/vault-status'
+    | '/api/public/version'
     | '/api/webhooks/lemonsqueezy'
     | '/api/webhooks/paddle'
     | '/api/webhooks/stripe'
+    | '/api/ai/agents/consensus'
+    | '/api/ai/agents/debate'
+    | '/api/ai/agents/portfolio-debate'
+    | '/api/ai/agents/status'
+    | '/api/ai/altdata/run'
+    | '/api/ai/altdata/status'
+    | '/api/ai/backtest/report'
+    | '/api/ai/backtest/run'
+    | '/api/ai/backtest/status'
+    | '/api/ai/credibility/sources'
+    | '/api/ai/feeds/economic-calendar'
+    | '/api/ai/feeds/macro'
+    | '/api/ai/feeds/news'
+    | '/api/ai/intelligence/genesis'
+    | '/api/ai/intelligence/learning'
+    | '/api/ai/intelligence/macro'
+    | '/api/ai/intelligence/market'
+    | '/api/ai/knowledge-graph/query'
+    | '/api/ai/knowledge-graph/status'
+    | '/api/ai/knowledge-graph/update'
+    | '/api/ai/knowledge/apply'
+    | '/api/ai/knowledge/search'
+    | '/api/ai/knowledge/status'
+    | '/api/ai/knowledge/topics'
+    | '/api/ai/learning/run-cycle'
+    | '/api/ai/learning/status'
+    | '/api/ai/memory/status'
+    | '/api/ai/optimizer/report'
+    | '/api/ai/optimizer/run'
+    | '/api/ai/orchestrator/run'
+    | '/api/ai/orchestrator/status'
+    | '/api/ai/predictions/accuracy'
+    | '/api/ai/predictions/create'
+    | '/api/ai/predictions/evaluate'
+    | '/api/ai/predictions/history'
+    | '/api/ai/quant/run'
+    | '/api/ai/quant/status'
+    | '/api/ai/research/archive'
+    | '/api/ai/research/latest'
+    | '/api/ai/research/run'
+    | '/api/ai/risk-twin/report'
+    | '/api/ai/risk-twin/status'
+    | '/api/ai/risk-twin/test'
+    | '/api/ai/risk-twin/test-decision'
+    | '/api/ai/scenarios/list'
+    | '/api/ai/scenarios/portfolio-stress'
+    | '/api/ai/scenarios/run'
+    | '/api/ai/scheduler/run'
+    | '/api/ai/sources/health'
+    | '/api/ai/strategy-lab/compare'
+    | '/api/ai/strategy-lab/recommendation'
+    | '/api/ai/strategy-lab/strategies'
+    | '/api/payments/myfatoorah/create'
+    | '/api/payments/myfatoorah/status'
+    | '/api/payments/myfatoorah/webhook'
     | '/api/public/alerts/evaluate'
+    | '/api/public/broker/status'
+    | '/api/public/company/profile'
+    | '/api/public/genesis100/allocations'
+    | '/api/public/genesis100/analyze'
+    | '/api/public/genesis100/archive'
+    | '/api/public/genesis100/consensus'
+    | '/api/public/genesis100/controls'
+    | '/api/public/genesis100/credibility'
+    | '/api/public/genesis100/debate'
+    | '/api/public/genesis100/decision-firewall'
+    | '/api/public/genesis100/decisions'
+    | '/api/public/genesis100/governance'
+    | '/api/public/genesis100/intelligence'
+    | '/api/public/genesis100/market-sentiment'
+    | '/api/public/genesis100/notifications'
+    | '/api/public/genesis100/position-sizing'
+    | '/api/public/genesis100/report'
+    | '/api/public/genesis100/run-cycle'
+    | '/api/public/genesis100/safety'
+    | '/api/public/genesis100/source-registry'
+    | '/api/public/genesis100/status'
+    | '/api/public/genesis100/universe'
     | '/api/public/payments/paypal-webhook'
     | '/api/public/payments/webhook'
+    | '/api/public/treasury/fund'
+    | '/api/public/treasury/history'
+    | '/api/public/treasury/status'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/api/public/genesis100/archive/latest'
+    | '/api/public/genesis100/archive/summary'
+    | '/api/public/genesis100/execution/history'
+    | '/api/public/market/snapshot/history'
+    | '/api/public/market/snapshot/run'
+    | '/api/public/providers/eodhd/exchanges'
+    | '/api/public/providers/financialdata/status'
+    | '/api/public/genesis100/execution/'
+    | '/api/public/market/snapshot/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -877,19 +2308,125 @@ export interface RootRouteChildren {
   ServicesRoute: typeof ServicesRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  ApiPingRoute: typeof ApiPingRoute
+  ApiAiConsensusRoute: typeof ApiAiConsensusRoute
+  ApiAiDebateRoute: typeof ApiAiDebateRoute
   ApiFinnhubStreamRoute: typeof ApiFinnhubStreamRoute
+  ApiPublicAgentHealthRoute: typeof ApiPublicAgentHealthRoute
+  ApiPublicDeployCheckRoute: typeof ApiPublicDeployCheckRoute
   ApiPublicEmailConfigCheckRoute: typeof ApiPublicEmailConfigCheckRoute
+  ApiPublicEnvCheckRoute: typeof ApiPublicEnvCheckRoute
+  ApiPublicFullSiteHealthRoute: typeof ApiPublicFullSiteHealthRoute
+  ApiPublicHealthRoute: typeof ApiPublicHealthRoute
+  ApiPublicHistoryTestRoute: typeof ApiPublicHistoryTestRoute
+  ApiPublicIntelligenceHealthRoute: typeof ApiPublicIntelligenceHealthRoute
+  ApiPublicMarketCoverageRoute: typeof ApiPublicMarketCoverageRoute
+  ApiPublicMarketIntelligenceRoute: typeof ApiPublicMarketIntelligenceRoute
   ApiPublicMoyasarWebhookRoute: typeof ApiPublicMoyasarWebhookRoute
+  ApiPublicProviderHealthFullRoute: typeof ApiPublicProviderHealthFullRoute
+  ApiPublicQuoteRoute: typeof ApiPublicQuoteRoute
+  ApiPublicRouterRegressionRoute: typeof ApiPublicRouterRegressionRoute
+  ApiPublicRouterTestRoute: typeof ApiPublicRouterTestRoute
+  ApiPublicSupportedMarketsRoute: typeof ApiPublicSupportedMarketsRoute
+  ApiPublicUiHealthRoute: typeof ApiPublicUiHealthRoute
   ApiPublicVaultStatusRoute: typeof ApiPublicVaultStatusRoute
+  ApiPublicVersionRoute: typeof ApiPublicVersionRoute
   ApiWebhooksLemonsqueezyRoute: typeof ApiWebhooksLemonsqueezyRoute
   ApiWebhooksPaddleRoute: typeof ApiWebhooksPaddleRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
+  ApiAiAgentsConsensusRoute: typeof ApiAiAgentsConsensusRoute
+  ApiAiAgentsDebateRoute: typeof ApiAiAgentsDebateRoute
+  ApiAiAgentsPortfolioDebateRoute: typeof ApiAiAgentsPortfolioDebateRoute
+  ApiAiAgentsStatusRoute: typeof ApiAiAgentsStatusRoute
+  ApiAiAltdataRunRoute: typeof ApiAiAltdataRunRoute
+  ApiAiAltdataStatusRoute: typeof ApiAiAltdataStatusRoute
+  ApiAiBacktestReportRoute: typeof ApiAiBacktestReportRoute
+  ApiAiBacktestRunRoute: typeof ApiAiBacktestRunRoute
+  ApiAiBacktestStatusRoute: typeof ApiAiBacktestStatusRoute
+  ApiAiCredibilitySourcesRoute: typeof ApiAiCredibilitySourcesRoute
+  ApiAiFeedsEconomicCalendarRoute: typeof ApiAiFeedsEconomicCalendarRoute
+  ApiAiFeedsMacroRoute: typeof ApiAiFeedsMacroRoute
+  ApiAiFeedsNewsRoute: typeof ApiAiFeedsNewsRoute
+  ApiAiIntelligenceGenesisRoute: typeof ApiAiIntelligenceGenesisRoute
+  ApiAiIntelligenceLearningRoute: typeof ApiAiIntelligenceLearningRoute
+  ApiAiIntelligenceMacroRoute: typeof ApiAiIntelligenceMacroRoute
+  ApiAiIntelligenceMarketRoute: typeof ApiAiIntelligenceMarketRoute
+  ApiAiKnowledgeGraphQueryRoute: typeof ApiAiKnowledgeGraphQueryRoute
+  ApiAiKnowledgeGraphStatusRoute: typeof ApiAiKnowledgeGraphStatusRoute
+  ApiAiKnowledgeGraphUpdateRoute: typeof ApiAiKnowledgeGraphUpdateRoute
+  ApiAiKnowledgeApplyRoute: typeof ApiAiKnowledgeApplyRoute
+  ApiAiKnowledgeSearchRoute: typeof ApiAiKnowledgeSearchRoute
+  ApiAiKnowledgeStatusRoute: typeof ApiAiKnowledgeStatusRoute
+  ApiAiKnowledgeTopicsRoute: typeof ApiAiKnowledgeTopicsRoute
+  ApiAiLearningRunCycleRoute: typeof ApiAiLearningRunCycleRoute
+  ApiAiLearningStatusRoute: typeof ApiAiLearningStatusRoute
+  ApiAiMemoryStatusRoute: typeof ApiAiMemoryStatusRoute
+  ApiAiOptimizerReportRoute: typeof ApiAiOptimizerReportRoute
+  ApiAiOptimizerRunRoute: typeof ApiAiOptimizerRunRoute
+  ApiAiOrchestratorRunRoute: typeof ApiAiOrchestratorRunRoute
+  ApiAiOrchestratorStatusRoute: typeof ApiAiOrchestratorStatusRoute
+  ApiAiPredictionsAccuracyRoute: typeof ApiAiPredictionsAccuracyRoute
+  ApiAiPredictionsCreateRoute: typeof ApiAiPredictionsCreateRoute
+  ApiAiPredictionsEvaluateRoute: typeof ApiAiPredictionsEvaluateRoute
+  ApiAiPredictionsHistoryRoute: typeof ApiAiPredictionsHistoryRoute
+  ApiAiQuantRunRoute: typeof ApiAiQuantRunRoute
+  ApiAiQuantStatusRoute: typeof ApiAiQuantStatusRoute
+  ApiAiResearchArchiveRoute: typeof ApiAiResearchArchiveRoute
+  ApiAiResearchLatestRoute: typeof ApiAiResearchLatestRoute
+  ApiAiResearchRunRoute: typeof ApiAiResearchRunRoute
+  ApiAiRiskTwinReportRoute: typeof ApiAiRiskTwinReportRoute
+  ApiAiRiskTwinStatusRoute: typeof ApiAiRiskTwinStatusRoute
+  ApiAiRiskTwinTestRoute: typeof ApiAiRiskTwinTestRoute
+  ApiAiRiskTwinTestDecisionRoute: typeof ApiAiRiskTwinTestDecisionRoute
+  ApiAiScenariosListRoute: typeof ApiAiScenariosListRoute
+  ApiAiScenariosPortfolioStressRoute: typeof ApiAiScenariosPortfolioStressRoute
+  ApiAiScenariosRunRoute: typeof ApiAiScenariosRunRoute
+  ApiAiSchedulerRunRoute: typeof ApiAiSchedulerRunRoute
+  ApiAiSourcesHealthRoute: typeof ApiAiSourcesHealthRoute
+  ApiAiStrategyLabCompareRoute: typeof ApiAiStrategyLabCompareRoute
+  ApiAiStrategyLabRecommendationRoute: typeof ApiAiStrategyLabRecommendationRoute
+  ApiAiStrategyLabStrategiesRoute: typeof ApiAiStrategyLabStrategiesRoute
+  ApiPaymentsMyfatoorahCreateRoute: typeof ApiPaymentsMyfatoorahCreateRoute
+  ApiPaymentsMyfatoorahStatusRoute: typeof ApiPaymentsMyfatoorahStatusRoute
+  ApiPaymentsMyfatoorahWebhookRoute: typeof ApiPaymentsMyfatoorahWebhookRoute
   ApiPublicAlertsEvaluateRoute: typeof ApiPublicAlertsEvaluateRoute
+  ApiPublicBrokerStatusRoute: typeof ApiPublicBrokerStatusRoute
+  ApiPublicCompanyProfileRoute: typeof ApiPublicCompanyProfileRoute
+  ApiPublicGenesis100AllocationsRoute: typeof ApiPublicGenesis100AllocationsRoute
+  ApiPublicGenesis100AnalyzeRoute: typeof ApiPublicGenesis100AnalyzeRoute
+  ApiPublicGenesis100ArchiveRoute: typeof ApiPublicGenesis100ArchiveRouteWithChildren
+  ApiPublicGenesis100ConsensusRoute: typeof ApiPublicGenesis100ConsensusRoute
+  ApiPublicGenesis100ControlsRoute: typeof ApiPublicGenesis100ControlsRoute
+  ApiPublicGenesis100CredibilityRoute: typeof ApiPublicGenesis100CredibilityRoute
+  ApiPublicGenesis100DebateRoute: typeof ApiPublicGenesis100DebateRoute
+  ApiPublicGenesis100DecisionFirewallRoute: typeof ApiPublicGenesis100DecisionFirewallRoute
+  ApiPublicGenesis100DecisionsRoute: typeof ApiPublicGenesis100DecisionsRoute
+  ApiPublicGenesis100GovernanceRoute: typeof ApiPublicGenesis100GovernanceRoute
+  ApiPublicGenesis100IntelligenceRoute: typeof ApiPublicGenesis100IntelligenceRoute
+  ApiPublicGenesis100MarketSentimentRoute: typeof ApiPublicGenesis100MarketSentimentRoute
+  ApiPublicGenesis100NotificationsRoute: typeof ApiPublicGenesis100NotificationsRoute
+  ApiPublicGenesis100PositionSizingRoute: typeof ApiPublicGenesis100PositionSizingRoute
+  ApiPublicGenesis100ReportRoute: typeof ApiPublicGenesis100ReportRoute
+  ApiPublicGenesis100RunCycleRoute: typeof ApiPublicGenesis100RunCycleRoute
+  ApiPublicGenesis100SafetyRoute: typeof ApiPublicGenesis100SafetyRoute
+  ApiPublicGenesis100SourceRegistryRoute: typeof ApiPublicGenesis100SourceRegistryRoute
+  ApiPublicGenesis100StatusRoute: typeof ApiPublicGenesis100StatusRoute
+  ApiPublicGenesis100UniverseRoute: typeof ApiPublicGenesis100UniverseRoute
   ApiPublicPaymentsPaypalWebhookRoute: typeof ApiPublicPaymentsPaypalWebhookRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
+  ApiPublicTreasuryFundRoute: typeof ApiPublicTreasuryFundRoute
+  ApiPublicTreasuryHistoryRoute: typeof ApiPublicTreasuryHistoryRoute
+  ApiPublicTreasuryStatusRoute: typeof ApiPublicTreasuryStatusRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
+  ApiPublicGenesis100ExecutionHistoryRoute: typeof ApiPublicGenesis100ExecutionHistoryRoute
+  ApiPublicMarketSnapshotHistoryRoute: typeof ApiPublicMarketSnapshotHistoryRoute
+  ApiPublicMarketSnapshotRunRoute: typeof ApiPublicMarketSnapshotRunRoute
+  ApiPublicProvidersEodhdExchangesRoute: typeof ApiPublicProvidersEodhdExchangesRoute
+  ApiPublicProvidersFinancialdataStatusRoute: typeof ApiPublicProvidersFinancialdataStatusRoute
+  ApiPublicGenesis100ExecutionIndexRoute: typeof ApiPublicGenesis100ExecutionIndexRoute
+  ApiPublicMarketSnapshotIndexRoute: typeof ApiPublicMarketSnapshotIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -963,6 +2500,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/ping': {
+      id: '/api/ping'
+      path: '/api/ping'
+      fullPath: '/api/ping'
+      preLoaderRoute: typeof ApiPingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/watchlists': {
+      id: '/_app/watchlists'
+      path: '/watchlists'
+      fullPath: '/watchlists'
+      preLoaderRoute: typeof AppWatchlistsRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/watchlist': {
       id: '/_app/watchlist'
@@ -1090,6 +2641,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMarketIntelligenceRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/market-history': {
+      id: '/_app/market-history'
+      path: '/market-history'
+      fullPath: '/market-history'
+      preLoaderRoute: typeof AppMarketHistoryRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/market-data-monitor': {
       id: '/_app/market-data-monitor'
       path: '/market-data-monitor'
@@ -1123,6 +2681,13 @@ declare module '@tanstack/react-router' {
       path: '/global-intel'
       fullPath: '/global-intel'
       preLoaderRoute: typeof AppGlobalIntelRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/genesis-100': {
+      id: '/_app/genesis-100'
+      path: '/genesis-100'
+      fullPath: '/genesis-100'
+      preLoaderRoute: typeof AppGenesis100RouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/genesis': {
@@ -1209,6 +2774,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCompanyTradingRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/changelog': {
+      id: '/_app/changelog'
+      path: '/changelog'
+      fullPath: '/changelog'
+      preLoaderRoute: typeof AppChangelogRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/calendar': {
       id: '/_app/calendar'
       path: '/calendar'
@@ -1242,6 +2814,13 @@ declare module '@tanstack/react-router' {
       path: '/backtest-lab'
       fullPath: '/backtest-lab'
       preLoaderRoute: typeof AppBacktestLabRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/assets-portfolio': {
+      id: '/_app/assets-portfolio'
+      path: '/assets-portfolio'
+      fullPath: '/assets-portfolio'
+      preLoaderRoute: typeof AppAssetsPortfolioRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/archive': {
@@ -1286,6 +2865,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAiDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/ai': {
+      id: '/_app/ai'
+      path: '/ai'
+      fullPath: '/ai'
+      preLoaderRoute: typeof AppAiRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/agent-console': {
+      id: '/_app/agent-console'
+      path: '/agent-console'
+      fullPath: '/agent-console'
+      preLoaderRoute: typeof AppAgentConsoleRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/advisor': {
       id: '/_app/advisor'
       path: '/advisor'
@@ -1314,11 +2907,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksLemonsqueezyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/version': {
+      id: '/api/public/version'
+      path: '/api/public/version'
+      fullPath: '/api/public/version'
+      preLoaderRoute: typeof ApiPublicVersionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/vault-status': {
       id: '/api/public/vault-status'
       path: '/api/public/vault-status'
       fullPath: '/api/public/vault-status'
       preLoaderRoute: typeof ApiPublicVaultStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/ui-health': {
+      id: '/api/public/ui-health'
+      path: '/api/public/ui-health'
+      fullPath: '/api/public/ui-health'
+      preLoaderRoute: typeof ApiPublicUiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/supported-markets': {
+      id: '/api/public/supported-markets'
+      path: '/api/public/supported-markets'
+      fullPath: '/api/public/supported-markets'
+      preLoaderRoute: typeof ApiPublicSupportedMarketsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/router-test': {
+      id: '/api/public/router-test'
+      path: '/api/public/router-test'
+      fullPath: '/api/public/router-test'
+      preLoaderRoute: typeof ApiPublicRouterTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/router-regression': {
+      id: '/api/public/router-regression'
+      path: '/api/public/router-regression'
+      fullPath: '/api/public/router-regression'
+      preLoaderRoute: typeof ApiPublicRouterRegressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/quote': {
+      id: '/api/public/quote'
+      path: '/api/public/quote'
+      fullPath: '/api/public/quote'
+      preLoaderRoute: typeof ApiPublicQuoteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/provider-health-full': {
+      id: '/api/public/provider-health-full'
+      path: '/api/public/provider-health-full'
+      fullPath: '/api/public/provider-health-full'
+      preLoaderRoute: typeof ApiPublicProviderHealthFullRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/moyasar-webhook': {
@@ -1328,6 +2970,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMoyasarWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/market-intelligence': {
+      id: '/api/public/market-intelligence'
+      path: '/api/public/market-intelligence'
+      fullPath: '/api/public/market-intelligence'
+      preLoaderRoute: typeof ApiPublicMarketIntelligenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/market-coverage': {
+      id: '/api/public/market-coverage'
+      path: '/api/public/market-coverage'
+      fullPath: '/api/public/market-coverage'
+      preLoaderRoute: typeof ApiPublicMarketCoverageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/intelligence-health': {
+      id: '/api/public/intelligence-health'
+      path: '/api/public/intelligence-health'
+      fullPath: '/api/public/intelligence-health'
+      preLoaderRoute: typeof ApiPublicIntelligenceHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/history-test': {
+      id: '/api/public/history-test'
+      path: '/api/public/history-test'
+      fullPath: '/api/public/history-test'
+      preLoaderRoute: typeof ApiPublicHistoryTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/health': {
+      id: '/api/public/health'
+      path: '/api/public/health'
+      fullPath: '/api/public/health'
+      preLoaderRoute: typeof ApiPublicHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/full-site-health': {
+      id: '/api/public/full-site-health'
+      path: '/api/public/full-site-health'
+      fullPath: '/api/public/full-site-health'
+      preLoaderRoute: typeof ApiPublicFullSiteHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/env-check': {
+      id: '/api/public/env-check'
+      path: '/api/public/env-check'
+      fullPath: '/api/public/env-check'
+      preLoaderRoute: typeof ApiPublicEnvCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/email-config-check': {
       id: '/api/public/email-config-check'
       path: '/api/public/email-config-check'
@@ -1335,11 +3026,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEmailConfigCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/deploy-check': {
+      id: '/api/public/deploy-check'
+      path: '/api/public/deploy-check'
+      fullPath: '/api/public/deploy-check'
+      preLoaderRoute: typeof ApiPublicDeployCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/agent-health': {
+      id: '/api/public/agent-health'
+      path: '/api/public/agent-health'
+      fullPath: '/api/public/agent-health'
+      preLoaderRoute: typeof ApiPublicAgentHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/finnhub/stream': {
       id: '/api/finnhub/stream'
       path: '/api/finnhub/stream'
       fullPath: '/api/finnhub/stream'
       preLoaderRoute: typeof ApiFinnhubStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/debate': {
+      id: '/api/ai/debate'
+      path: '/api/ai/debate'
+      fullPath: '/api/ai/debate'
+      preLoaderRoute: typeof ApiAiDebateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/consensus': {
+      id: '/api/ai/consensus'
+      path: '/api/ai/consensus'
+      fullPath: '/api/ai/consensus'
+      preLoaderRoute: typeof ApiAiConsensusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lovable/email/queue/process': {
@@ -1363,6 +3082,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/treasury/status': {
+      id: '/api/public/treasury/status'
+      path: '/api/public/treasury/status'
+      fullPath: '/api/public/treasury/status'
+      preLoaderRoute: typeof ApiPublicTreasuryStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/treasury/history': {
+      id: '/api/public/treasury/history'
+      path: '/api/public/treasury/history'
+      fullPath: '/api/public/treasury/history'
+      preLoaderRoute: typeof ApiPublicTreasuryHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/treasury/fund': {
+      id: '/api/public/treasury/fund'
+      path: '/api/public/treasury/fund'
+      fullPath: '/api/public/treasury/fund'
+      preLoaderRoute: typeof ApiPublicTreasuryFundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -1377,6 +3117,160 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsPaypalWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/genesis100/universe': {
+      id: '/api/public/genesis100/universe'
+      path: '/api/public/genesis100/universe'
+      fullPath: '/api/public/genesis100/universe'
+      preLoaderRoute: typeof ApiPublicGenesis100UniverseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/status': {
+      id: '/api/public/genesis100/status'
+      path: '/api/public/genesis100/status'
+      fullPath: '/api/public/genesis100/status'
+      preLoaderRoute: typeof ApiPublicGenesis100StatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/source-registry': {
+      id: '/api/public/genesis100/source-registry'
+      path: '/api/public/genesis100/source-registry'
+      fullPath: '/api/public/genesis100/source-registry'
+      preLoaderRoute: typeof ApiPublicGenesis100SourceRegistryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/safety': {
+      id: '/api/public/genesis100/safety'
+      path: '/api/public/genesis100/safety'
+      fullPath: '/api/public/genesis100/safety'
+      preLoaderRoute: typeof ApiPublicGenesis100SafetyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/run-cycle': {
+      id: '/api/public/genesis100/run-cycle'
+      path: '/api/public/genesis100/run-cycle'
+      fullPath: '/api/public/genesis100/run-cycle'
+      preLoaderRoute: typeof ApiPublicGenesis100RunCycleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/report': {
+      id: '/api/public/genesis100/report'
+      path: '/api/public/genesis100/report'
+      fullPath: '/api/public/genesis100/report'
+      preLoaderRoute: typeof ApiPublicGenesis100ReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/position-sizing': {
+      id: '/api/public/genesis100/position-sizing'
+      path: '/api/public/genesis100/position-sizing'
+      fullPath: '/api/public/genesis100/position-sizing'
+      preLoaderRoute: typeof ApiPublicGenesis100PositionSizingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/notifications': {
+      id: '/api/public/genesis100/notifications'
+      path: '/api/public/genesis100/notifications'
+      fullPath: '/api/public/genesis100/notifications'
+      preLoaderRoute: typeof ApiPublicGenesis100NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/market-sentiment': {
+      id: '/api/public/genesis100/market-sentiment'
+      path: '/api/public/genesis100/market-sentiment'
+      fullPath: '/api/public/genesis100/market-sentiment'
+      preLoaderRoute: typeof ApiPublicGenesis100MarketSentimentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/intelligence': {
+      id: '/api/public/genesis100/intelligence'
+      path: '/api/public/genesis100/intelligence'
+      fullPath: '/api/public/genesis100/intelligence'
+      preLoaderRoute: typeof ApiPublicGenesis100IntelligenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/governance': {
+      id: '/api/public/genesis100/governance'
+      path: '/api/public/genesis100/governance'
+      fullPath: '/api/public/genesis100/governance'
+      preLoaderRoute: typeof ApiPublicGenesis100GovernanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/decisions': {
+      id: '/api/public/genesis100/decisions'
+      path: '/api/public/genesis100/decisions'
+      fullPath: '/api/public/genesis100/decisions'
+      preLoaderRoute: typeof ApiPublicGenesis100DecisionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/decision-firewall': {
+      id: '/api/public/genesis100/decision-firewall'
+      path: '/api/public/genesis100/decision-firewall'
+      fullPath: '/api/public/genesis100/decision-firewall'
+      preLoaderRoute: typeof ApiPublicGenesis100DecisionFirewallRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/debate': {
+      id: '/api/public/genesis100/debate'
+      path: '/api/public/genesis100/debate'
+      fullPath: '/api/public/genesis100/debate'
+      preLoaderRoute: typeof ApiPublicGenesis100DebateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/credibility': {
+      id: '/api/public/genesis100/credibility'
+      path: '/api/public/genesis100/credibility'
+      fullPath: '/api/public/genesis100/credibility'
+      preLoaderRoute: typeof ApiPublicGenesis100CredibilityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/controls': {
+      id: '/api/public/genesis100/controls'
+      path: '/api/public/genesis100/controls'
+      fullPath: '/api/public/genesis100/controls'
+      preLoaderRoute: typeof ApiPublicGenesis100ControlsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/consensus': {
+      id: '/api/public/genesis100/consensus'
+      path: '/api/public/genesis100/consensus'
+      fullPath: '/api/public/genesis100/consensus'
+      preLoaderRoute: typeof ApiPublicGenesis100ConsensusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/archive': {
+      id: '/api/public/genesis100/archive'
+      path: '/api/public/genesis100/archive'
+      fullPath: '/api/public/genesis100/archive'
+      preLoaderRoute: typeof ApiPublicGenesis100ArchiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/analyze': {
+      id: '/api/public/genesis100/analyze'
+      path: '/api/public/genesis100/analyze'
+      fullPath: '/api/public/genesis100/analyze'
+      preLoaderRoute: typeof ApiPublicGenesis100AnalyzeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/allocations': {
+      id: '/api/public/genesis100/allocations'
+      path: '/api/public/genesis100/allocations'
+      fullPath: '/api/public/genesis100/allocations'
+      preLoaderRoute: typeof ApiPublicGenesis100AllocationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/company/profile': {
+      id: '/api/public/company/profile'
+      path: '/api/public/company/profile'
+      fullPath: '/api/public/company/profile'
+      preLoaderRoute: typeof ApiPublicCompanyProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/broker/status': {
+      id: '/api/public/broker/status'
+      path: '/api/public/broker/status'
+      fullPath: '/api/public/broker/status'
+      preLoaderRoute: typeof ApiPublicBrokerStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/alerts/evaluate': {
       id: '/api/public/alerts/evaluate'
       path: '/api/public/alerts/evaluate'
@@ -1384,22 +3278,474 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAlertsEvaluateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/payments/myfatoorah/webhook': {
+      id: '/api/payments/myfatoorah/webhook'
+      path: '/api/payments/myfatoorah/webhook'
+      fullPath: '/api/payments/myfatoorah/webhook'
+      preLoaderRoute: typeof ApiPaymentsMyfatoorahWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/payments/myfatoorah/status': {
+      id: '/api/payments/myfatoorah/status'
+      path: '/api/payments/myfatoorah/status'
+      fullPath: '/api/payments/myfatoorah/status'
+      preLoaderRoute: typeof ApiPaymentsMyfatoorahStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/payments/myfatoorah/create': {
+      id: '/api/payments/myfatoorah/create'
+      path: '/api/payments/myfatoorah/create'
+      fullPath: '/api/payments/myfatoorah/create'
+      preLoaderRoute: typeof ApiPaymentsMyfatoorahCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/strategy-lab/strategies': {
+      id: '/api/ai/strategy-lab/strategies'
+      path: '/api/ai/strategy-lab/strategies'
+      fullPath: '/api/ai/strategy-lab/strategies'
+      preLoaderRoute: typeof ApiAiStrategyLabStrategiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/strategy-lab/recommendation': {
+      id: '/api/ai/strategy-lab/recommendation'
+      path: '/api/ai/strategy-lab/recommendation'
+      fullPath: '/api/ai/strategy-lab/recommendation'
+      preLoaderRoute: typeof ApiAiStrategyLabRecommendationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/strategy-lab/compare': {
+      id: '/api/ai/strategy-lab/compare'
+      path: '/api/ai/strategy-lab/compare'
+      fullPath: '/api/ai/strategy-lab/compare'
+      preLoaderRoute: typeof ApiAiStrategyLabCompareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/sources/health': {
+      id: '/api/ai/sources/health'
+      path: '/api/ai/sources/health'
+      fullPath: '/api/ai/sources/health'
+      preLoaderRoute: typeof ApiAiSourcesHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/scheduler/run': {
+      id: '/api/ai/scheduler/run'
+      path: '/api/ai/scheduler/run'
+      fullPath: '/api/ai/scheduler/run'
+      preLoaderRoute: typeof ApiAiSchedulerRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/scenarios/run': {
+      id: '/api/ai/scenarios/run'
+      path: '/api/ai/scenarios/run'
+      fullPath: '/api/ai/scenarios/run'
+      preLoaderRoute: typeof ApiAiScenariosRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/scenarios/portfolio-stress': {
+      id: '/api/ai/scenarios/portfolio-stress'
+      path: '/api/ai/scenarios/portfolio-stress'
+      fullPath: '/api/ai/scenarios/portfolio-stress'
+      preLoaderRoute: typeof ApiAiScenariosPortfolioStressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/scenarios/list': {
+      id: '/api/ai/scenarios/list'
+      path: '/api/ai/scenarios/list'
+      fullPath: '/api/ai/scenarios/list'
+      preLoaderRoute: typeof ApiAiScenariosListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/risk-twin/test-decision': {
+      id: '/api/ai/risk-twin/test-decision'
+      path: '/api/ai/risk-twin/test-decision'
+      fullPath: '/api/ai/risk-twin/test-decision'
+      preLoaderRoute: typeof ApiAiRiskTwinTestDecisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/risk-twin/test': {
+      id: '/api/ai/risk-twin/test'
+      path: '/api/ai/risk-twin/test'
+      fullPath: '/api/ai/risk-twin/test'
+      preLoaderRoute: typeof ApiAiRiskTwinTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/risk-twin/status': {
+      id: '/api/ai/risk-twin/status'
+      path: '/api/ai/risk-twin/status'
+      fullPath: '/api/ai/risk-twin/status'
+      preLoaderRoute: typeof ApiAiRiskTwinStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/risk-twin/report': {
+      id: '/api/ai/risk-twin/report'
+      path: '/api/ai/risk-twin/report'
+      fullPath: '/api/ai/risk-twin/report'
+      preLoaderRoute: typeof ApiAiRiskTwinReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/research/run': {
+      id: '/api/ai/research/run'
+      path: '/api/ai/research/run'
+      fullPath: '/api/ai/research/run'
+      preLoaderRoute: typeof ApiAiResearchRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/research/latest': {
+      id: '/api/ai/research/latest'
+      path: '/api/ai/research/latest'
+      fullPath: '/api/ai/research/latest'
+      preLoaderRoute: typeof ApiAiResearchLatestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/research/archive': {
+      id: '/api/ai/research/archive'
+      path: '/api/ai/research/archive'
+      fullPath: '/api/ai/research/archive'
+      preLoaderRoute: typeof ApiAiResearchArchiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/quant/status': {
+      id: '/api/ai/quant/status'
+      path: '/api/ai/quant/status'
+      fullPath: '/api/ai/quant/status'
+      preLoaderRoute: typeof ApiAiQuantStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/quant/run': {
+      id: '/api/ai/quant/run'
+      path: '/api/ai/quant/run'
+      fullPath: '/api/ai/quant/run'
+      preLoaderRoute: typeof ApiAiQuantRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/predictions/history': {
+      id: '/api/ai/predictions/history'
+      path: '/api/ai/predictions/history'
+      fullPath: '/api/ai/predictions/history'
+      preLoaderRoute: typeof ApiAiPredictionsHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/predictions/evaluate': {
+      id: '/api/ai/predictions/evaluate'
+      path: '/api/ai/predictions/evaluate'
+      fullPath: '/api/ai/predictions/evaluate'
+      preLoaderRoute: typeof ApiAiPredictionsEvaluateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/predictions/create': {
+      id: '/api/ai/predictions/create'
+      path: '/api/ai/predictions/create'
+      fullPath: '/api/ai/predictions/create'
+      preLoaderRoute: typeof ApiAiPredictionsCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/predictions/accuracy': {
+      id: '/api/ai/predictions/accuracy'
+      path: '/api/ai/predictions/accuracy'
+      fullPath: '/api/ai/predictions/accuracy'
+      preLoaderRoute: typeof ApiAiPredictionsAccuracyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/orchestrator/status': {
+      id: '/api/ai/orchestrator/status'
+      path: '/api/ai/orchestrator/status'
+      fullPath: '/api/ai/orchestrator/status'
+      preLoaderRoute: typeof ApiAiOrchestratorStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/orchestrator/run': {
+      id: '/api/ai/orchestrator/run'
+      path: '/api/ai/orchestrator/run'
+      fullPath: '/api/ai/orchestrator/run'
+      preLoaderRoute: typeof ApiAiOrchestratorRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/optimizer/run': {
+      id: '/api/ai/optimizer/run'
+      path: '/api/ai/optimizer/run'
+      fullPath: '/api/ai/optimizer/run'
+      preLoaderRoute: typeof ApiAiOptimizerRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/optimizer/report': {
+      id: '/api/ai/optimizer/report'
+      path: '/api/ai/optimizer/report'
+      fullPath: '/api/ai/optimizer/report'
+      preLoaderRoute: typeof ApiAiOptimizerReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/memory/status': {
+      id: '/api/ai/memory/status'
+      path: '/api/ai/memory/status'
+      fullPath: '/api/ai/memory/status'
+      preLoaderRoute: typeof ApiAiMemoryStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/learning/status': {
+      id: '/api/ai/learning/status'
+      path: '/api/ai/learning/status'
+      fullPath: '/api/ai/learning/status'
+      preLoaderRoute: typeof ApiAiLearningStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/learning/run-cycle': {
+      id: '/api/ai/learning/run-cycle'
+      path: '/api/ai/learning/run-cycle'
+      fullPath: '/api/ai/learning/run-cycle'
+      preLoaderRoute: typeof ApiAiLearningRunCycleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/knowledge/topics': {
+      id: '/api/ai/knowledge/topics'
+      path: '/api/ai/knowledge/topics'
+      fullPath: '/api/ai/knowledge/topics'
+      preLoaderRoute: typeof ApiAiKnowledgeTopicsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/knowledge/status': {
+      id: '/api/ai/knowledge/status'
+      path: '/api/ai/knowledge/status'
+      fullPath: '/api/ai/knowledge/status'
+      preLoaderRoute: typeof ApiAiKnowledgeStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/knowledge/search': {
+      id: '/api/ai/knowledge/search'
+      path: '/api/ai/knowledge/search'
+      fullPath: '/api/ai/knowledge/search'
+      preLoaderRoute: typeof ApiAiKnowledgeSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/knowledge/apply': {
+      id: '/api/ai/knowledge/apply'
+      path: '/api/ai/knowledge/apply'
+      fullPath: '/api/ai/knowledge/apply'
+      preLoaderRoute: typeof ApiAiKnowledgeApplyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/knowledge-graph/update': {
+      id: '/api/ai/knowledge-graph/update'
+      path: '/api/ai/knowledge-graph/update'
+      fullPath: '/api/ai/knowledge-graph/update'
+      preLoaderRoute: typeof ApiAiKnowledgeGraphUpdateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/knowledge-graph/status': {
+      id: '/api/ai/knowledge-graph/status'
+      path: '/api/ai/knowledge-graph/status'
+      fullPath: '/api/ai/knowledge-graph/status'
+      preLoaderRoute: typeof ApiAiKnowledgeGraphStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/knowledge-graph/query': {
+      id: '/api/ai/knowledge-graph/query'
+      path: '/api/ai/knowledge-graph/query'
+      fullPath: '/api/ai/knowledge-graph/query'
+      preLoaderRoute: typeof ApiAiKnowledgeGraphQueryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/intelligence/market': {
+      id: '/api/ai/intelligence/market'
+      path: '/api/ai/intelligence/market'
+      fullPath: '/api/ai/intelligence/market'
+      preLoaderRoute: typeof ApiAiIntelligenceMarketRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/intelligence/macro': {
+      id: '/api/ai/intelligence/macro'
+      path: '/api/ai/intelligence/macro'
+      fullPath: '/api/ai/intelligence/macro'
+      preLoaderRoute: typeof ApiAiIntelligenceMacroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/intelligence/learning': {
+      id: '/api/ai/intelligence/learning'
+      path: '/api/ai/intelligence/learning'
+      fullPath: '/api/ai/intelligence/learning'
+      preLoaderRoute: typeof ApiAiIntelligenceLearningRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/intelligence/genesis': {
+      id: '/api/ai/intelligence/genesis'
+      path: '/api/ai/intelligence/genesis'
+      fullPath: '/api/ai/intelligence/genesis'
+      preLoaderRoute: typeof ApiAiIntelligenceGenesisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/feeds/news': {
+      id: '/api/ai/feeds/news'
+      path: '/api/ai/feeds/news'
+      fullPath: '/api/ai/feeds/news'
+      preLoaderRoute: typeof ApiAiFeedsNewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/feeds/macro': {
+      id: '/api/ai/feeds/macro'
+      path: '/api/ai/feeds/macro'
+      fullPath: '/api/ai/feeds/macro'
+      preLoaderRoute: typeof ApiAiFeedsMacroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/feeds/economic-calendar': {
+      id: '/api/ai/feeds/economic-calendar'
+      path: '/api/ai/feeds/economic-calendar'
+      fullPath: '/api/ai/feeds/economic-calendar'
+      preLoaderRoute: typeof ApiAiFeedsEconomicCalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/credibility/sources': {
+      id: '/api/ai/credibility/sources'
+      path: '/api/ai/credibility/sources'
+      fullPath: '/api/ai/credibility/sources'
+      preLoaderRoute: typeof ApiAiCredibilitySourcesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/backtest/status': {
+      id: '/api/ai/backtest/status'
+      path: '/api/ai/backtest/status'
+      fullPath: '/api/ai/backtest/status'
+      preLoaderRoute: typeof ApiAiBacktestStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/backtest/run': {
+      id: '/api/ai/backtest/run'
+      path: '/api/ai/backtest/run'
+      fullPath: '/api/ai/backtest/run'
+      preLoaderRoute: typeof ApiAiBacktestRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/backtest/report': {
+      id: '/api/ai/backtest/report'
+      path: '/api/ai/backtest/report'
+      fullPath: '/api/ai/backtest/report'
+      preLoaderRoute: typeof ApiAiBacktestReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/altdata/status': {
+      id: '/api/ai/altdata/status'
+      path: '/api/ai/altdata/status'
+      fullPath: '/api/ai/altdata/status'
+      preLoaderRoute: typeof ApiAiAltdataStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/altdata/run': {
+      id: '/api/ai/altdata/run'
+      path: '/api/ai/altdata/run'
+      fullPath: '/api/ai/altdata/run'
+      preLoaderRoute: typeof ApiAiAltdataRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/agents/status': {
+      id: '/api/ai/agents/status'
+      path: '/api/ai/agents/status'
+      fullPath: '/api/ai/agents/status'
+      preLoaderRoute: typeof ApiAiAgentsStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/agents/portfolio-debate': {
+      id: '/api/ai/agents/portfolio-debate'
+      path: '/api/ai/agents/portfolio-debate'
+      fullPath: '/api/ai/agents/portfolio-debate'
+      preLoaderRoute: typeof ApiAiAgentsPortfolioDebateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/agents/debate': {
+      id: '/api/ai/agents/debate'
+      path: '/api/ai/agents/debate'
+      fullPath: '/api/ai/agents/debate'
+      preLoaderRoute: typeof ApiAiAgentsDebateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/agents/consensus': {
+      id: '/api/ai/agents/consensus'
+      path: '/api/ai/agents/consensus'
+      fullPath: '/api/ai/agents/consensus'
+      preLoaderRoute: typeof ApiAiAgentsConsensusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/market/snapshot/': {
+      id: '/api/public/market/snapshot/'
+      path: '/api/public/market/snapshot'
+      fullPath: '/api/public/market/snapshot/'
+      preLoaderRoute: typeof ApiPublicMarketSnapshotIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/execution/': {
+      id: '/api/public/genesis100/execution/'
+      path: '/api/public/genesis100/execution'
+      fullPath: '/api/public/genesis100/execution/'
+      preLoaderRoute: typeof ApiPublicGenesis100ExecutionIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/providers/financialdata/status': {
+      id: '/api/public/providers/financialdata/status'
+      path: '/api/public/providers/financialdata/status'
+      fullPath: '/api/public/providers/financialdata/status'
+      preLoaderRoute: typeof ApiPublicProvidersFinancialdataStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/providers/eodhd/exchanges': {
+      id: '/api/public/providers/eodhd/exchanges'
+      path: '/api/public/providers/eodhd/exchanges'
+      fullPath: '/api/public/providers/eodhd/exchanges'
+      preLoaderRoute: typeof ApiPublicProvidersEodhdExchangesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/market/snapshot/run': {
+      id: '/api/public/market/snapshot/run'
+      path: '/api/public/market/snapshot/run'
+      fullPath: '/api/public/market/snapshot/run'
+      preLoaderRoute: typeof ApiPublicMarketSnapshotRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/market/snapshot/history': {
+      id: '/api/public/market/snapshot/history'
+      path: '/api/public/market/snapshot/history'
+      fullPath: '/api/public/market/snapshot/history'
+      preLoaderRoute: typeof ApiPublicMarketSnapshotHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/execution/history': {
+      id: '/api/public/genesis100/execution/history'
+      path: '/api/public/genesis100/execution/history'
+      fullPath: '/api/public/genesis100/execution/history'
+      preLoaderRoute: typeof ApiPublicGenesis100ExecutionHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/archive/summary': {
+      id: '/api/public/genesis100/archive/summary'
+      path: '/summary'
+      fullPath: '/api/public/genesis100/archive/summary'
+      preLoaderRoute: typeof ApiPublicGenesis100ArchiveSummaryRouteImport
+      parentRoute: typeof ApiPublicGenesis100ArchiveRoute
+    }
+    '/api/public/genesis100/archive/latest': {
+      id: '/api/public/genesis100/archive/latest'
+      path: '/latest'
+      fullPath: '/api/public/genesis100/archive/latest'
+      preLoaderRoute: typeof ApiPublicGenesis100ArchiveLatestRouteImport
+      parentRoute: typeof ApiPublicGenesis100ArchiveRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppAdvisorRoute: typeof AppAdvisorRoute
+  AppAgentConsoleRoute: typeof AppAgentConsoleRoute
+  AppAiRoute: typeof AppAiRoute
   AppAiDashboardRoute: typeof AppAiDashboardRoute
   AppAiLearningRoute: typeof AppAiLearningRoute
   AppAiValidationRoute: typeof AppAiValidationRoute
   AppAlertCenterRoute: typeof AppAlertCenterRoute
   AppAlertsRoute: typeof AppAlertsRoute
   AppArchiveRoute: typeof AppArchiveRoute
+  AppAssetsPortfolioRoute: typeof AppAssetsPortfolioRoute
   AppBacktestLabRoute: typeof AppBacktestLabRoute
   AppBankAccountsRoute: typeof AppBankAccountsRoute
   AppBillingRoute: typeof AppBillingRoute
   AppBillingMonitorRoute: typeof AppBillingMonitorRoute
   AppCalendarRoute: typeof AppCalendarRoute
+  AppChangelogRoute: typeof AppChangelogRoute
   AppCompanyTradingRoute: typeof AppCompanyTradingRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDataFusionRoute: typeof AppDataFusionRoute
@@ -1412,11 +3758,13 @@ interface AppRouteChildren {
   AppErrorLogsRoute: typeof AppErrorLogsRoute
   AppExternalAccountsRoute: typeof AppExternalAccountsRoute
   AppGenesisRoute: typeof AppGenesisRoute
+  AppGenesis100Route: typeof AppGenesis100Route
   AppGlobalIntelRoute: typeof AppGlobalIntelRoute
   AppGrowthPlanRoute: typeof AppGrowthPlanRoute
   AppHeatmapRoute: typeof AppHeatmapRoute
   AppHelpRoute: typeof AppHelpRoute
   AppMarketDataMonitorRoute: typeof AppMarketDataMonitorRoute
+  AppMarketHistoryRoute: typeof AppMarketHistoryRoute
   AppMarketIntelligenceRoute: typeof AppMarketIntelligenceRoute
   AppMarketUniverseRoute: typeof AppMarketUniverseRoute
   AppMarketsRoute: typeof AppMarketsRoute
@@ -1435,21 +3783,26 @@ interface AppRouteChildren {
   AppSystemHealthRoute: typeof AppSystemHealthRoute
   AppWalletRoute: typeof AppWalletRoute
   AppWatchlistRoute: typeof AppWatchlistRoute
+  AppWatchlistsRoute: typeof AppWatchlistsRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdvisorRoute: AppAdvisorRoute,
+  AppAgentConsoleRoute: AppAgentConsoleRoute,
+  AppAiRoute: AppAiRoute,
   AppAiDashboardRoute: AppAiDashboardRoute,
   AppAiLearningRoute: AppAiLearningRoute,
   AppAiValidationRoute: AppAiValidationRoute,
   AppAlertCenterRoute: AppAlertCenterRoute,
   AppAlertsRoute: AppAlertsRoute,
   AppArchiveRoute: AppArchiveRoute,
+  AppAssetsPortfolioRoute: AppAssetsPortfolioRoute,
   AppBacktestLabRoute: AppBacktestLabRoute,
   AppBankAccountsRoute: AppBankAccountsRoute,
   AppBillingRoute: AppBillingRoute,
   AppBillingMonitorRoute: AppBillingMonitorRoute,
   AppCalendarRoute: AppCalendarRoute,
+  AppChangelogRoute: AppChangelogRoute,
   AppCompanyTradingRoute: AppCompanyTradingRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDataFusionRoute: AppDataFusionRoute,
@@ -1462,11 +3815,13 @@ const AppRouteChildren: AppRouteChildren = {
   AppErrorLogsRoute: AppErrorLogsRoute,
   AppExternalAccountsRoute: AppExternalAccountsRoute,
   AppGenesisRoute: AppGenesisRoute,
+  AppGenesis100Route: AppGenesis100Route,
   AppGlobalIntelRoute: AppGlobalIntelRoute,
   AppGrowthPlanRoute: AppGrowthPlanRoute,
   AppHeatmapRoute: AppHeatmapRoute,
   AppHelpRoute: AppHelpRoute,
   AppMarketDataMonitorRoute: AppMarketDataMonitorRoute,
+  AppMarketHistoryRoute: AppMarketHistoryRoute,
   AppMarketIntelligenceRoute: AppMarketIntelligenceRoute,
   AppMarketUniverseRoute: AppMarketUniverseRoute,
   AppMarketsRoute: AppMarketsRoute,
@@ -1485,9 +3840,28 @@ const AppRouteChildren: AppRouteChildren = {
   AppSystemHealthRoute: AppSystemHealthRoute,
   AppWalletRoute: AppWalletRoute,
   AppWatchlistRoute: AppWatchlistRoute,
+  AppWatchlistsRoute: AppWatchlistsRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
+interface ApiPublicGenesis100ArchiveRouteChildren {
+  ApiPublicGenesis100ArchiveLatestRoute: typeof ApiPublicGenesis100ArchiveLatestRoute
+  ApiPublicGenesis100ArchiveSummaryRoute: typeof ApiPublicGenesis100ArchiveSummaryRoute
+}
+
+const ApiPublicGenesis100ArchiveRouteChildren: ApiPublicGenesis100ArchiveRouteChildren =
+  {
+    ApiPublicGenesis100ArchiveLatestRoute:
+      ApiPublicGenesis100ArchiveLatestRoute,
+    ApiPublicGenesis100ArchiveSummaryRoute:
+      ApiPublicGenesis100ArchiveSummaryRoute,
+  }
+
+const ApiPublicGenesis100ArchiveRouteWithChildren =
+  ApiPublicGenesis100ArchiveRoute._addFileChildren(
+    ApiPublicGenesis100ArchiveRouteChildren,
+  )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -1500,19 +3874,132 @@ const rootRouteChildren: RootRouteChildren = {
   ServicesRoute: ServicesRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  ApiPingRoute: ApiPingRoute,
+  ApiAiConsensusRoute: ApiAiConsensusRoute,
+  ApiAiDebateRoute: ApiAiDebateRoute,
   ApiFinnhubStreamRoute: ApiFinnhubStreamRoute,
+  ApiPublicAgentHealthRoute: ApiPublicAgentHealthRoute,
+  ApiPublicDeployCheckRoute: ApiPublicDeployCheckRoute,
   ApiPublicEmailConfigCheckRoute: ApiPublicEmailConfigCheckRoute,
+  ApiPublicEnvCheckRoute: ApiPublicEnvCheckRoute,
+  ApiPublicFullSiteHealthRoute: ApiPublicFullSiteHealthRoute,
+  ApiPublicHealthRoute: ApiPublicHealthRoute,
+  ApiPublicHistoryTestRoute: ApiPublicHistoryTestRoute,
+  ApiPublicIntelligenceHealthRoute: ApiPublicIntelligenceHealthRoute,
+  ApiPublicMarketCoverageRoute: ApiPublicMarketCoverageRoute,
+  ApiPublicMarketIntelligenceRoute: ApiPublicMarketIntelligenceRoute,
   ApiPublicMoyasarWebhookRoute: ApiPublicMoyasarWebhookRoute,
+  ApiPublicProviderHealthFullRoute: ApiPublicProviderHealthFullRoute,
+  ApiPublicQuoteRoute: ApiPublicQuoteRoute,
+  ApiPublicRouterRegressionRoute: ApiPublicRouterRegressionRoute,
+  ApiPublicRouterTestRoute: ApiPublicRouterTestRoute,
+  ApiPublicSupportedMarketsRoute: ApiPublicSupportedMarketsRoute,
+  ApiPublicUiHealthRoute: ApiPublicUiHealthRoute,
   ApiPublicVaultStatusRoute: ApiPublicVaultStatusRoute,
+  ApiPublicVersionRoute: ApiPublicVersionRoute,
   ApiWebhooksLemonsqueezyRoute: ApiWebhooksLemonsqueezyRoute,
   ApiWebhooksPaddleRoute: ApiWebhooksPaddleRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
+  ApiAiAgentsConsensusRoute: ApiAiAgentsConsensusRoute,
+  ApiAiAgentsDebateRoute: ApiAiAgentsDebateRoute,
+  ApiAiAgentsPortfolioDebateRoute: ApiAiAgentsPortfolioDebateRoute,
+  ApiAiAgentsStatusRoute: ApiAiAgentsStatusRoute,
+  ApiAiAltdataRunRoute: ApiAiAltdataRunRoute,
+  ApiAiAltdataStatusRoute: ApiAiAltdataStatusRoute,
+  ApiAiBacktestReportRoute: ApiAiBacktestReportRoute,
+  ApiAiBacktestRunRoute: ApiAiBacktestRunRoute,
+  ApiAiBacktestStatusRoute: ApiAiBacktestStatusRoute,
+  ApiAiCredibilitySourcesRoute: ApiAiCredibilitySourcesRoute,
+  ApiAiFeedsEconomicCalendarRoute: ApiAiFeedsEconomicCalendarRoute,
+  ApiAiFeedsMacroRoute: ApiAiFeedsMacroRoute,
+  ApiAiFeedsNewsRoute: ApiAiFeedsNewsRoute,
+  ApiAiIntelligenceGenesisRoute: ApiAiIntelligenceGenesisRoute,
+  ApiAiIntelligenceLearningRoute: ApiAiIntelligenceLearningRoute,
+  ApiAiIntelligenceMacroRoute: ApiAiIntelligenceMacroRoute,
+  ApiAiIntelligenceMarketRoute: ApiAiIntelligenceMarketRoute,
+  ApiAiKnowledgeGraphQueryRoute: ApiAiKnowledgeGraphQueryRoute,
+  ApiAiKnowledgeGraphStatusRoute: ApiAiKnowledgeGraphStatusRoute,
+  ApiAiKnowledgeGraphUpdateRoute: ApiAiKnowledgeGraphUpdateRoute,
+  ApiAiKnowledgeApplyRoute: ApiAiKnowledgeApplyRoute,
+  ApiAiKnowledgeSearchRoute: ApiAiKnowledgeSearchRoute,
+  ApiAiKnowledgeStatusRoute: ApiAiKnowledgeStatusRoute,
+  ApiAiKnowledgeTopicsRoute: ApiAiKnowledgeTopicsRoute,
+  ApiAiLearningRunCycleRoute: ApiAiLearningRunCycleRoute,
+  ApiAiLearningStatusRoute: ApiAiLearningStatusRoute,
+  ApiAiMemoryStatusRoute: ApiAiMemoryStatusRoute,
+  ApiAiOptimizerReportRoute: ApiAiOptimizerReportRoute,
+  ApiAiOptimizerRunRoute: ApiAiOptimizerRunRoute,
+  ApiAiOrchestratorRunRoute: ApiAiOrchestratorRunRoute,
+  ApiAiOrchestratorStatusRoute: ApiAiOrchestratorStatusRoute,
+  ApiAiPredictionsAccuracyRoute: ApiAiPredictionsAccuracyRoute,
+  ApiAiPredictionsCreateRoute: ApiAiPredictionsCreateRoute,
+  ApiAiPredictionsEvaluateRoute: ApiAiPredictionsEvaluateRoute,
+  ApiAiPredictionsHistoryRoute: ApiAiPredictionsHistoryRoute,
+  ApiAiQuantRunRoute: ApiAiQuantRunRoute,
+  ApiAiQuantStatusRoute: ApiAiQuantStatusRoute,
+  ApiAiResearchArchiveRoute: ApiAiResearchArchiveRoute,
+  ApiAiResearchLatestRoute: ApiAiResearchLatestRoute,
+  ApiAiResearchRunRoute: ApiAiResearchRunRoute,
+  ApiAiRiskTwinReportRoute: ApiAiRiskTwinReportRoute,
+  ApiAiRiskTwinStatusRoute: ApiAiRiskTwinStatusRoute,
+  ApiAiRiskTwinTestRoute: ApiAiRiskTwinTestRoute,
+  ApiAiRiskTwinTestDecisionRoute: ApiAiRiskTwinTestDecisionRoute,
+  ApiAiScenariosListRoute: ApiAiScenariosListRoute,
+  ApiAiScenariosPortfolioStressRoute: ApiAiScenariosPortfolioStressRoute,
+  ApiAiScenariosRunRoute: ApiAiScenariosRunRoute,
+  ApiAiSchedulerRunRoute: ApiAiSchedulerRunRoute,
+  ApiAiSourcesHealthRoute: ApiAiSourcesHealthRoute,
+  ApiAiStrategyLabCompareRoute: ApiAiStrategyLabCompareRoute,
+  ApiAiStrategyLabRecommendationRoute: ApiAiStrategyLabRecommendationRoute,
+  ApiAiStrategyLabStrategiesRoute: ApiAiStrategyLabStrategiesRoute,
+  ApiPaymentsMyfatoorahCreateRoute: ApiPaymentsMyfatoorahCreateRoute,
+  ApiPaymentsMyfatoorahStatusRoute: ApiPaymentsMyfatoorahStatusRoute,
+  ApiPaymentsMyfatoorahWebhookRoute: ApiPaymentsMyfatoorahWebhookRoute,
   ApiPublicAlertsEvaluateRoute: ApiPublicAlertsEvaluateRoute,
+  ApiPublicBrokerStatusRoute: ApiPublicBrokerStatusRoute,
+  ApiPublicCompanyProfileRoute: ApiPublicCompanyProfileRoute,
+  ApiPublicGenesis100AllocationsRoute: ApiPublicGenesis100AllocationsRoute,
+  ApiPublicGenesis100AnalyzeRoute: ApiPublicGenesis100AnalyzeRoute,
+  ApiPublicGenesis100ArchiveRoute: ApiPublicGenesis100ArchiveRouteWithChildren,
+  ApiPublicGenesis100ConsensusRoute: ApiPublicGenesis100ConsensusRoute,
+  ApiPublicGenesis100ControlsRoute: ApiPublicGenesis100ControlsRoute,
+  ApiPublicGenesis100CredibilityRoute: ApiPublicGenesis100CredibilityRoute,
+  ApiPublicGenesis100DebateRoute: ApiPublicGenesis100DebateRoute,
+  ApiPublicGenesis100DecisionFirewallRoute:
+    ApiPublicGenesis100DecisionFirewallRoute,
+  ApiPublicGenesis100DecisionsRoute: ApiPublicGenesis100DecisionsRoute,
+  ApiPublicGenesis100GovernanceRoute: ApiPublicGenesis100GovernanceRoute,
+  ApiPublicGenesis100IntelligenceRoute: ApiPublicGenesis100IntelligenceRoute,
+  ApiPublicGenesis100MarketSentimentRoute:
+    ApiPublicGenesis100MarketSentimentRoute,
+  ApiPublicGenesis100NotificationsRoute: ApiPublicGenesis100NotificationsRoute,
+  ApiPublicGenesis100PositionSizingRoute:
+    ApiPublicGenesis100PositionSizingRoute,
+  ApiPublicGenesis100ReportRoute: ApiPublicGenesis100ReportRoute,
+  ApiPublicGenesis100RunCycleRoute: ApiPublicGenesis100RunCycleRoute,
+  ApiPublicGenesis100SafetyRoute: ApiPublicGenesis100SafetyRoute,
+  ApiPublicGenesis100SourceRegistryRoute:
+    ApiPublicGenesis100SourceRegistryRoute,
+  ApiPublicGenesis100StatusRoute: ApiPublicGenesis100StatusRoute,
+  ApiPublicGenesis100UniverseRoute: ApiPublicGenesis100UniverseRoute,
   ApiPublicPaymentsPaypalWebhookRoute: ApiPublicPaymentsPaypalWebhookRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
+  ApiPublicTreasuryFundRoute: ApiPublicTreasuryFundRoute,
+  ApiPublicTreasuryHistoryRoute: ApiPublicTreasuryHistoryRoute,
+  ApiPublicTreasuryStatusRoute: ApiPublicTreasuryStatusRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
+  ApiPublicGenesis100ExecutionHistoryRoute:
+    ApiPublicGenesis100ExecutionHistoryRoute,
+  ApiPublicMarketSnapshotHistoryRoute: ApiPublicMarketSnapshotHistoryRoute,
+  ApiPublicMarketSnapshotRunRoute: ApiPublicMarketSnapshotRunRoute,
+  ApiPublicProvidersEodhdExchangesRoute: ApiPublicProvidersEodhdExchangesRoute,
+  ApiPublicProvidersFinancialdataStatusRoute:
+    ApiPublicProvidersFinancialdataStatusRoute,
+  ApiPublicGenesis100ExecutionIndexRoute:
+    ApiPublicGenesis100ExecutionIndexRoute,
+  ApiPublicMarketSnapshotIndexRoute: ApiPublicMarketSnapshotIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

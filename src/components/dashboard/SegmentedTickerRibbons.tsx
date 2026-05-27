@@ -88,7 +88,7 @@ function Ribbon({ segment, quotes, ar }: { segment: SegmentDef; quotes: MarketQu
       <div className={cn(
         "flex shrink-0 items-center gap-2 border-e border-border/40 bg-background/40 px-3 py-2 text-xs font-semibold tracking-wide",
       )}>
-        <segment.Icon className={cn("h-3.5 w-3.5", segment.accent)} />
+        {segment.Icon && <segment.Icon className={cn("h-3.5 w-3.5", segment.accent)} />}
         <span className="uppercase text-foreground/90">{ar ? segment.labelAr : segment.labelEn}</span>
         <span className={cn("inline-flex items-center gap-0.5 text-[10px] font-bold", biasColor)}>
           <BiasIcon className="h-3 w-3" />

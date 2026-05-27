@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAutoTrading, updateSettings } from "@/lib/autoTrading";
 import { assetPnlMock } from "@/lib/mock-data";
 import { useI18n } from "@/lib/i18n";
-import { ShieldCheck, ShieldAlert, Target, AlertTriangle, Eye } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Target, AlertTriangle, Eye , Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -68,7 +68,7 @@ export function RiskManagementPanel() {
                 drop < -1.5 ? { label_ar: "مراقبة", label_en: "Watch", cls: "text-warning", Icon: Eye } :
                 drop > 7 ? { label_ar: "اقتراح خروج", label_en: "Exit suggestion", cls: "text-primary", Icon: Target } :
                 { label_ar: "آمن", label_en: "Safe", cls: "text-success", Icon: ShieldCheck };
-              const Icon = status.Icon;
+              const Icon = status?.Icon ?? Activity;
               const pa = perAsset[a.symbol] ?? {};
               return (
                 <tr key={a.symbol} className="border-t border-border">

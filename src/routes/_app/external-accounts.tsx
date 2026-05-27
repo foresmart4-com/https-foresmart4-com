@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +14,7 @@ import { toast } from "sonner";
 import { Bitcoin, Building2, Briefcase, Trash2, Plus, Link2, Shield } from "lucide-react";
 
 export const Route = createFileRoute("/_app/external-accounts")({
-  component: ExternalAccountsPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><ExternalAccountsPage /></ErrorBoundary>,
 });
 
 type Provider = "crypto_wallet" | "lean" | "snaptrade";

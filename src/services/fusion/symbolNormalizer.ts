@@ -10,8 +10,8 @@ const FOREX_PAIRS = new Set([
 const COMMODITY_ALIASES: Record<string, string> = {
   XAUUSD: "GOLD-USD", GOLD: "GOLD-USD",
   XAGUSD: "SILVER-USD", SILVER: "SILVER-USD",
-  WTI: "OIL-WTI", BRENT: "OIL-BRENT",
-  NG: "NATGAS",
+  WTI: "OIL-WTI", USOIL: "OIL-WTI", BRENT: "OIL-BRENT", UKOIL: "OIL-BRENT",
+  NATGAS: "NATGAS", NG: "NATGAS",
 };
 const ETF_TICKERS = new Set(["SPY", "QQQ", "IWM", "DIA", "VTI", "EEM", "GLD", "SLV", "USO", "TLT", "HYG"]);
 
@@ -57,6 +57,13 @@ export function normalizeSymbol(raw: string, hint?: AssetClass): NormalizedSymbo
 
 export function providerSymbol(canonical: string, provider: string): string {
   const [base, quote] = canonical.split("-");
+  if (provider === "commodityprice") {
+    if (canonical === "SILVER-USD") return "XAG";
+    if (canonical === "OIL-WTI") return "WTI";
+    if (canonical === "OIL-BRENT") return "BRENT";
+    if (canonical === "NATGAS") return "NATGAS";
+    return canonical;
+  }
   if (!quote) return canonical;
   switch (provider) {
     case "binance":      return `${base}${quote === "USD" ? "USDT" : quote}`;

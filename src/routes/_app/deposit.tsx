@@ -1,10 +1,11 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wallet, Info, Ban, Sparkles } from "lucide-react";
 
-export const Route = createFileRoute("/_app/deposit")({ component: DepositPage });
+export const Route = createFileRoute("/_app/deposit")({ component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><DepositPage /></ErrorBoundary> });
 
 function DepositPage() {
   const { lang, dir } = useI18n();

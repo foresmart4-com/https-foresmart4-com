@@ -27,18 +27,34 @@ jobs:
         run: bun install --frozen-lockfile
 
       # 1. Dependency vulnerabilities — fail on high/critical
-      - name: npm audit (high+critical)
+      - name: Bun audit (high+critical)
         run: |
-          bunx --bun npm audit --audit-level=high --omit=dev || {
+          bun audit --audit-level=high --prod || {
             echo "::error::High or critical vulnerabilities detected in dependencies."
             exit 1
           }
 
       # 2. Secret scan — Gitleaks
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
       - name: Gitleaks secret scan
-        uses: gitleaks/gitleaks-action@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE_SHA: ${{ github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          go install github.com/zricethezav/gitleaks/v8@latest
+          if [ "$EVENT_NAME" = "push" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+            LOG_OPTS="$BEFORE_SHA..$HEAD_SHA"
+          elif [ "$EVENT_NAME" = "pull_request" ]; then
+            LOG_OPTS="origin/$BASE_REF..HEAD"
+          else
+            LOG_OPTS="--all"
+          fi
+          "$(go env GOPATH)/bin/gitleaks" detect --source . --log-opts="$LOG_OPTS" --redact --verbose
 
       # 3. Static analysis — Semgrep with security ruleset
       - name: Semgrep (OWASP + security-audit)

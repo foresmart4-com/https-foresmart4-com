@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -12,7 +13,7 @@ import { Sprout, Target, Calendar, ShieldAlert, CheckCircle2, AlertTriangle, Tre
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/growth-plan")({
-  component: GrowthPlanPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><GrowthPlanPage /></ErrorBoundary>,
 });
 
 const FOCUS_OPTS: { id: "crypto" | "stocks" | "metals" | "fx" | "savings"; ar: string; en: string }[] = [

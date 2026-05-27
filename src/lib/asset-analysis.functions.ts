@@ -17,6 +17,8 @@ export interface AssetVerdict {
   arabicSummary: string;
   uncertaintyLevel?: "low" | "medium" | "high";
   marketFears?: string[];
+  riskLevel?: "low" | "medium" | "high";
+  counterScenario?: string;
 }
 
 const AssetInput = z.object({
@@ -51,6 +53,8 @@ const verdictTool = {
         arabicSummary: { type: "string", description: "One-paragraph Arabic summary, even when language is English." },
         uncertaintyLevel: { type: "string", enum: ["low", "medium", "high"], description: "Overall market uncertainty level right now." },
         marketFears: { type: "array", items: { type: "string" }, description: "2-3 current market fears / sources of uncertainty." },
+        riskLevel: { type: "string", enum: ["low", "medium", "high"], description: "Overall risk level for taking a position in this asset now." },
+        counterScenario: { type: "string", description: "Arabic counter-scenario (السيناريو المعاكس): what would invalidate the call." },
       },
       required: ["action", "confidence", "horizon", "rationale", "drivers", "risks", "arabicSummary", "uncertaintyLevel", "marketFears"],
       additionalProperties: false,

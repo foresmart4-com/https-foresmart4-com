@@ -1,21 +1,24 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listPlans, getMySubscription, createBillingPortalSession } from "@/lib/payments.functions";
+import { getPaymentProvidersHealth } from "@/lib/payments-health.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { useI18n } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Check, Crown, Sparkles, Settings, X } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Check, Crown, Sparkles, Settings, X, ShieldAlert, CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { StripeSubscriptionCheckout, type SubPriceId } from "@/components/StripeSubscriptionCheckout";
 import { PayPalCheckoutButton } from "@/components/PayPalCheckoutButton";
 import { LegalFooter } from "@/components/LegalFooter";
 
-export const Route = createFileRoute("/_app/subscription")({ component: SubscriptionPage });
+export const Route = createFileRoute("/_app/subscription")({ component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><SubscriptionPage /></ErrorBoundary> });
 
 const PRICE_MAP: Record<string, SubPriceId> = {
   quarterly:      "quarterly_sar",
@@ -33,11 +36,16 @@ function SubscriptionPage() {
   const plansFn = useServerFn(listPlans);
   const subFn = useServerFn(getMySubscription);
   const portalFn = useServerFn(createBillingPortalSession);
+  const healthFn = useServerFn(getPaymentProvidersHealth);
 
-  const { data: plans } = useQuery({ queryKey: ["plans"], queryFn: () => plansFn() });
-  const { data: sub } = useQuery({ queryKey: ["my-sub"], queryFn: () => subFn() });
+  const plansQ = useQuery({ queryKey: ["plans"], queryFn: () => plansFn() });
+  const subQ   = useQuery({ queryKey: ["my-sub"], queryFn: () => subFn() });
+  const healthQ = useQuery({ queryKey: ["payments-health"], queryFn: () => healthFn(), staleTime: 60_000 });
+  const plans = plansQ.data;
+  const sub   = subQ.data;
   const [selectedPrice, setSelectedPrice] = useState<SubPriceId | null>(null);
   const [tier, setTier] = useState<"basic" | "pro">("basic");
+  const [withTrial, setWithTrial] = useState(true);
 
   const portal = useMutation({
     mutationFn: () => portalFn({ data: { returnUrl: `${window.location.origin}/subscription`, environment: getStripeEnvironment() } }),
@@ -55,9 +63,9 @@ function SubscriptionPage() {
   return (
     <div className="container mx-auto max-w-6xl space-y-8 p-6" dir={dir}>
       <div className="text-center">
-        <Badge className="mb-3 gap-1"><Sparkles className="h-3 w-3" />{lang === "ar" ? "تجربة 14 يوم مجاناً" : "14-day free trial"}</Badge>
+        <Badge className="mb-3 gap-1"><Sparkles className="h-3 w-3" />{lang === "ar" ? "باقة داخلية للشركة" : "Corporate internal plan"}</Badge>
         <h1 className="font-display text-4xl font-bold">
-          {lang === "ar" ? "باقات العضوية" : "Membership Plans"}
+          {lang === "ar" ? "صلاحيات داخلية" : "Internal Access"}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {lang === "ar"
@@ -74,24 +82,94 @@ function SubscriptionPage() {
           </div>
           <div>
             <div className="font-display text-lg font-bold">
-              {lang === "ar" ? "ابدأ بتجربة مجانية 14 يوم" : "Start a 14-day free trial"}
+              {lang === "ar" ? "إدارة الوصول الداخلي" : "Internal Access Management"}
             </div>
             <div className="text-xs text-muted-foreground">
               {lang === "ar"
-                ? "وصول كامل لميزات الخطة الأساسية بدون أي خصم. ألغِ في أي وقت قبل انتهاء التجربة."
-                : "Full access to Basic features with no charge. Cancel anytime before the trial ends."}
+                ? "صلاحيات وصول داخلية للشركة. يدار من قبل مسؤول النظام."
+                : "Corporate internal access managed by system administrator."}
             </div>
           </div>
         </div>
         <Button
           className="gap-2 shrink-0"
           disabled={!!(isActive && hasStripeCustomer)}
-          onClick={() => toast.success(lang === "ar" ? "تم تفعيل التجربة المجانية لمدة 14 يوم" : "14-day free trial activated")}
+          onClick={() => toast.success(lang === "ar" ? "تم تفعيل الوصول الداخلي" : "Internal access activated")}
         >
           <Sparkles className="h-4 w-4" />
-          {lang === "ar" ? "بدء التجربة المجانية" : "Start free trial"}
+          {lang === "ar" ? "تفعيل الوصول" : "Activate access"}
         </Button>
       </Card>
+
+      {/* Payments availability + provider health */}
+      {healthQ.data && !healthQ.data.anyConfigured && (
+        <Alert variant="destructive">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertDescription>
+            {lang === "ar"
+              ? "لا توجد بوابة دفع مفعّلة حالياً. لا يمكن تفعيل الوصول حتى يتم إعداد Stripe أو PayPal أو Moyasar."
+              : "No payment provider is configured. Access management disabled until Stripe, PayPal, or Moyasar is enabled."}
+          </AlertDescription>
+        </Alert>
+      )}
+      {healthQ.data && (
+        <Card className="p-4">
+          <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            <CreditCard className="h-4 w-4 text-primary" />
+            {lang === "ar" ? "حالة بوابات الدفع" : "Payment provider status"}
+          </div>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {healthQ.data.providers.map((p) => (
+              <div key={p.id} className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2">
+                <div>
+                  <div className="text-sm font-medium">{p.label}</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {p.configured
+                      ? (p.environment === "live"
+                          ? (lang === "ar" ? "وضع التشغيل" : "Live")
+                          : (lang === "ar" ? "وضع الاختبار" : "Sandbox"))
+                      : (lang === "ar" ? "غير مُهيأ" : "Not configured")}
+                  </div>
+                </div>
+                <Badge variant={p.configured ? "default" : "outline"} className={p.configured ? "bg-success/15 text-success border-success/30" : "text-muted-foreground"}>
+                  {p.configured ? (lang === "ar" ? "متصل" : "Connected") : (lang === "ar" ? "معطّل" : "Off")}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Free plan */}
+      <Card className="p-5 border-border">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="font-display text-lg font-bold">
+              {lang === "ar" ? "الوصول الأساسي" : "Basic Access"}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {lang === "ar"
+                ? "وصول محدود للتحليلات الأساسية وقائمة متابعة واحدة. مناسبة للتجربة المفتوحة."
+                : "Limited access to core analytics and one watchlist. Great to explore the platform."}
+            </div>
+          </div>
+          <Link to="/dashboard">
+            <Button variant="outline" className="gap-2"><Check className="h-4 w-4" />{lang === "ar" ? "متابعة بالوصول الأساسي" : "Continue with basic access"}</Button>
+          </Link>
+        </div>
+      </Card>
+
+      {plansQ.isLoading && (
+        <div className="flex items-center justify-center py-10 text-muted-foreground">
+          <Loader2 className="me-2 h-4 w-4 animate-spin" />
+          {lang === "ar" ? "جاري تحميل الخطط" : "Loading plans"}
+        </div>
+      )}
+      {plansQ.error && (
+        <Alert variant="destructive"><AlertDescription>{lang === "ar" ? "تعذر تحميل باقات الوصول" : "Failed to load access plans"}</AlertDescription></Alert>
+      )}
+
+
 
       {isActive && (
         <Card className="gradient-card border-success/40 p-4 flex items-center justify-between gap-3">
@@ -100,10 +178,10 @@ function SubscriptionPage() {
             <div>
               <div className="font-semibold">
                 {sub.status === "trialing"
-                  ? (lang === "ar" ? "أنت في فترة التجربة المجانية" : "You're on free trial")
+                  ? (lang === "ar" ? "الوصول الداخلي مفعل" : "Internal access active")
                   : sub.status === "past_due"
                   ? (lang === "ar" ? "تأخر في الدفع — يحاول النظام التجديد" : "Payment past due — retrying")
-                  : (lang === "ar" ? "اشتراكك نشط" : "Subscription active")}
+                  : (lang === "ar" ? "الوصول الداخلي نشط" : "Internal access active")}
               </div>
               <div className="text-xs text-muted-foreground">
                 {lang === "ar" ? "ينتهي في" : "Ends on"}{" "}
@@ -114,7 +192,7 @@ function SubscriptionPage() {
           {hasStripeCustomer && (
             <Button variant="outline" size="sm" onClick={() => portal.mutate()} disabled={portal.isPending}>
               <Settings className="me-2 h-4 w-4" />
-              {lang === "ar" ? "إدارة الاشتراك" : "Manage Subscription"}
+              {lang === "ar" ? "إدارة الصلاحيات" : "Manage Access"}
             </Button>
           )}
         </Card>
@@ -123,13 +201,13 @@ function SubscriptionPage() {
       {selectedPrice ? (
         <Card className="p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-display text-lg font-bold">{lang === "ar" ? "إتمام الاشتراك" : "Complete Subscription"}</h3>
+            <h3 className="font-display text-lg font-bold">{lang === "ar" ? "إدارة الوصول" : "Access Management"}</h3>
             <Button variant="ghost" size="sm" onClick={() => setSelectedPrice(null)}>{lang === "ar" ? "رجوع" : "Back"}</Button>
           </div>
           <p className="mb-4 text-sm text-muted-foreground">
             {lang === "ar"
-              ? "اختر طريقة الدفع. لن يتم خصم أي مبلغ خلال فترة التجربة عبر البطاقة."
-              : "Choose a payment method. Card subscriptions include a 14-day free trial."}
+              ? "اختر طريقة تفعيل الوصول الداخلي."
+              : "Choose a payment method. Card-based access activation."}
           </p>
           <StripeSubscriptionCheckout priceId={selectedPrice} returnUrl={`${window.location.origin}/subscription?checkout=success`} />
           <div className="my-4 flex items-center gap-3 text-xs uppercase text-muted-foreground">
@@ -148,7 +226,7 @@ function SubscriptionPage() {
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
             {lang === "ar"
               ? "الدفع عبر PayPal يفعّل الاشتراك فوراً (بدون فترة تجربة)."
-              : "PayPal payments activate the subscription immediately (no free trial)."}
+              : "PayPal activates access immediately."}
           </p>
         </Card>
       ) : (
@@ -173,7 +251,7 @@ function SubscriptionPage() {
           {/* Comparison */}
           <Card className="overflow-hidden">
             <header className="border-b border-border bg-muted/30 px-5 py-3 font-semibold">
-              {lang === "ar" ? "مقارنة المميزات" : "Feature Comparison"}
+              {lang === "ar" ? "مقارنة الصلاحيات" : "Access Comparison"}
             </header>
             <table className="w-full text-sm">
               <thead className="bg-muted/20 text-xs uppercase text-muted-foreground">
@@ -248,8 +326,8 @@ function PlanGrid({ plans, accent, priceMap, lang, onPick, disabled }: {
             <Button className="mt-6 w-full" variant={isHighlight ? "default" : "outline"}
               disabled={!priceId || disabled} onClick={() => priceId && onPick(priceId)}>
               {disabled
-                ? (lang === "ar" ? "مشترك حالياً" : "Already subscribed")
-                : (lang === "ar" ? "ابدأ التجربة المجانية 14 يوم" : "Start 14-day free trial")}
+                ? (lang === "ar" ? "الوصول مفعل" : "Access active")
+                : (lang === "ar" ? "تفعيل الباقة الداخلية" : "Activate internal plan")}
             </Button>
           </Card>
         );

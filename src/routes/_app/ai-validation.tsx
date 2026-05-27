@@ -1,8 +1,9 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { AIValidationPanel } from "@/components/dashboard/AIValidationPanel";
 
 export const Route = createFileRoute("/_app/ai-validation")({
-  component: AIValidationRoute,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><AIValidationRoute /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "AI Validation — ForeSmart" },

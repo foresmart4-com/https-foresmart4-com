@@ -3,6 +3,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./auth";
 
 export const DISCLAIMER_VERSION = "2026-05-08-v1";
+const ACCEPT_CACHE_PREFIX = "fs-disclaimer-accepted:";
+
+function cacheKey(userId: string) {
+  return `${ACCEPT_CACHE_PREFIX}${userId}:${DISCLAIMER_VERSION}`;
+}
+
+function readCachedAccept(userId: string): boolean {
+  if (typeof window === "undefined") return false;
+  try { return window.localStorage.getItem(cacheKey(userId)) === "1"; } catch { return false; }
+}
+
+function writeCachedAccept(userId: string) {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.setItem(cacheKey(userId), "1"); } catch { /* ignore */ }
+}
 
 // localStorage key scoped to the disclaimer version so re-versioning clears the cache.
 const LS_KEY = `foresmart_disclaimer_accepted_${DISCLAIMER_VERSION}`;
@@ -18,6 +33,8 @@ export type AppRole = "admin" | "subscriber" | "pending";
 
 export function useAccess() {
   const { user } = useAuth();
+  // Hydrate optimistically from localStorage so the disclaimer modal does not
+  // re-flash on every page load for users who have already accepted it.
   const [role, setRole] = useState<AppRole | null>(null);
   // Fast-path: seed from localStorage so already-accepted users skip the blocking gate
   // on every hard refresh while the Supabase round-trip completes in the background.

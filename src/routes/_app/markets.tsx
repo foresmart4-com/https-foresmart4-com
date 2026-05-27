@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -35,7 +36,7 @@ interface SelectedAsset {
 }
 
 export const Route = createFileRoute("/_app/markets")({
-  component: MarketsPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><MarketsPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Markets — ForeSmart" },

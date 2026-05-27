@@ -12,12 +12,9 @@ import { DataStatusBadge } from "@/components/DataStatusBadge";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/portfolio-ai")({
-  component: PortfolioAIPage,
+  component: () => <Navigate to="/genesis-100" />,
   head: () => ({
-    meta: [
-      { title: "AI Portfolio — ForeSmart" },
-      { name: "description", content: "Autonomous AI portfolio: allocation, rebalance, hedge, risk radar." },
-    ],
+    meta: [{ title: "ForeSmart Genesis 100" }],
   }),
 });
 

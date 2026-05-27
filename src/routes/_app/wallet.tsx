@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -9,7 +10,7 @@ import { getLiveBinanceBalances, getLiveBrokerRuntime } from "@/lib/liveTrading.
 import { Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine, Crown, RefreshCw, CheckCircle2, AlertTriangle, Coins, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/_app/wallet")({
-  component: WalletPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><WalletPage /></ErrorBoundary>,
 });
 
 function WalletPage() {

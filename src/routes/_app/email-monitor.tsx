@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Mail, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/_app/email-monitor")({
-  component: EmailMonitorPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><EmailMonitorPage /></ErrorBoundary>,
 });
 
 function EmailMonitorPage() {

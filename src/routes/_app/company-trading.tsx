@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -31,7 +32,7 @@ export const Route = createFileRoute("/_app/company-trading")({
       .maybeSingle();
     if (!role) throw redirect({ to: "/dashboard" });
   },
-  component: CompanyTradingPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><CompanyTradingPage /></ErrorBoundary>,
 });
 
 function CompanyTradingPage() {

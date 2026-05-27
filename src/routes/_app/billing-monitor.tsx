@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { CreditCard, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/_app/billing-monitor")({
-  component: BillingMonitorPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><BillingMonitorPage /></ErrorBoundary>,
 });
 
 function BillingMonitorPage() {

@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { getBankAccounts } from "@/lib/wallet.functions";
@@ -8,7 +9,7 @@ import { Building, Shield, Info } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/bank-accounts")({
-  component: BankAccountsPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><BankAccountsPage /></ErrorBoundary>,
 });
 
 function BankAccountsPage() {

@@ -1,3 +1,4 @@
+import { isDisclaimerAcknowledged, acknowledgeDisclaimer } from "@/lib/ui/disclaimerState";
 import { createFileRoute, Outlet, Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { LoginRequired } from "@/components/LoginRequired";
 import { useState, useEffect } from "react";
@@ -11,7 +12,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
   LayoutDashboard, LineChart, Bell, Archive, User as UserIcon,
-  Brain, LogOut, Globe2, Menu, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap, Eye, Search, Flame, CalendarDays, GraduationCap, Layers, Cpu, Activity, HelpCircle, Compass, Bot,
+  Brain, LogOut, Globe2, Menu, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap, Eye, Search, Flame, CalendarDays, GraduationCap, Layers, Cpu, Activity, HelpCircle, Compass, Bot, History, Rocket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
@@ -20,6 +21,23 @@ import brandLogo from "@/assets/foresmart4-logo.png";
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
 });
+
+
+function DisclaimerBanner({ t, userId }: { t: (key: string) => string; userId?: string }) {
+  const [ack, setAck] = useState(() => isDisclaimerAcknowledged(userId));
+  useEffect(() => {
+    if (!ack && userId && isDisclaimerAcknowledged(userId)) setAck(true);
+  }, [userId, ack]);
+  if (ack) return null;
+  const accept = () => { setAck(true); acknowledgeDisclaimer(userId); };
+  return (
+    <div className="mx-4 sm:mx-6 my-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-center text-sm space-y-2">
+      <p className="font-medium text-foreground">⚠ {t("disclaimerTitle")}</p>
+      <p className="text-xs text-muted-foreground leading-relaxed">{t("disclaimerBody")}</p>
+      <button onClick={accept} className="rounded-md bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90">موافق</button>
+    </div>
+  );
+}
 
 function AppLayout() {
   const { user, loading, signOut } = useAuth();
@@ -51,7 +69,7 @@ function AppLayout() {
     { to: "/heatmap", icon: Flame, label: t("nav.heatmap"), hint: hint("خريطة حرارية لأداء الأصول", "Heatmap of asset performance") },
     { to: "/calendar", icon: CalendarDays, label: t("nav.calendar"), hint: hint("التقويم الاقتصادي", "Economic calendar") },
     { to: "/paper-trading", icon: GraduationCap, label: t("nav.simulation"), hint: hint("تداول تجريبي آمن بدون مخاطر", "Risk-free paper trading") },
-    { to: "/stocks-portfolio", icon: Briefcase, label: hint("محفظة الأسهم", "Stocks Portfolio"), hint: hint("أرصدة وأوامر حقيقية عبر Alpaca / IBKR", "Real Alpaca / IBKR stock balances & orders") },
+    { to: "/assets-portfolio", icon: Briefcase, label: hint("محفظة الأصول", "Assets Portfolio"), hint: hint("محفظة شاملة: أسهم، ETFs، سندات، كريبتو، معادن، كاش", "Universal portfolio: stocks, ETFs, bonds, crypto, metals, cash") },
     { to: "/wallet", icon: Wallet, label: t("nav.wallet"), hint: hint("أرصدة Binance الحقيقية (كريبتو فقط)", "Real Binance balances (crypto only)") },
     { to: "/subscription", icon: Crown, label: t("nav.subscription"), hint: hint("خطط الاشتراك والدفع عبر PayPal", "Subscription plans & PayPal checkout") },
     { to: "/billing", icon: Crown, label: t("nav.billing"), hint: hint("الفواتير وحالة الاشتراك", "Billing & subscription status") },
@@ -65,7 +83,7 @@ function AppLayout() {
     { to: "/growth-plan", icon: Sprout, label: t("nav.growthPlan"), hint: hint("خطة نمو رأس المال", "Capital growth plan") },
     { to: "/alerts", icon: Bell, label: t("nav.alerts"), hint: hint("التنبيهات", "Alerts") },
     { to: "/alert-center", icon: Bell, label: t("nav.alertCenter"), hint: hint("مركز التنبيهات", "Alert center") },
-    { to: "/portfolio-ai", icon: Briefcase, label: t("nav.portfolioAI"), hint: hint("محفظة مدعومة بالذكاء", "AI-driven portfolio") },
+    { to: "/genesis-100", icon: Brain, label: "ForeSmart Genesis 100", hint: hint("محفظة عالمية مدارة بالذكاء الاصطناعي - تداول تجريبي فقط", "AI-managed global portfolio - paper trading only") },
     { to: "/ai-learning", icon: Brain, label: t("nav.aiLearning"), hint: hint("تعلم الذكاء الاصطناعي", "AI learning lab") },
     { to: "/market-intelligence", icon: Brain, label: hint("ذكاء السوق", "Market Intelligence"), hint: hint("ذكاء السوق المتقدم", "Advanced market intelligence") },
     { to: "/market-data-monitor", icon: Activity, label: hint("مراقب بيانات السوق", "Market Data Monitor"), hint: hint("صحة بيانات السوق", "Market data feed health") },
@@ -73,14 +91,26 @@ function AppLayout() {
     { to: "/archive", icon: Archive, label: t("nav.archive"), hint: hint("الأرشيف", "Archive") },
     ...(isAdmin ? [{ to: "/members", icon: Users, label: t("nav.members"), hint: hint("إدارة الأعضاء (مشرفون)", "Members admin") }] : []),
     { to: "/help", icon: HelpCircle, label: hint("مركز المساعدة", "Help Center"), hint: hint("شرح المحفظة، Binance، Alpaca، IBKR، الاشتراكات", "Wallet, Binance, Alpaca, IBKR, subscriptions") },
+    { to: "/changelog", icon: History, label: hint("سجل التغييرات", "Changelog"), hint: hint("آخر نسخة منشورة من الواجهة مع التاريخ والملخص", "Latest published frontend release with date and summary") },
     { to: "/profile", icon: UserIcon, label: t("nav.profile"), hint: hint("الملف الشخصي", "Profile") },
     { to: "/settings", icon: Settings, label: t("nav.settings"), hint: hint("الإعدادات", "Settings") },
   ];
 
+  const editorUrl = "https://lovable.dev/projects/5a68377c-93dc-42f4-9999-fc0850af1ae2";
+
   const handleSignOut = async () => { await signOut(); navigate({ to: "/" }); };
 
   const NavList = ({ onItemClick }: { onItemClick?: () => void }) => (
-    <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-2">
+    <nav
+      className="flex-1 space-y-1 overflow-y-auto px-2 py-2"
+      style={{ overscrollBehavior: "contain" }}
+      ref={(el) => {
+        if (!el) return;
+        const saved = sessionStorage.getItem("sidebar-scroll-position");
+        if (saved) el.scrollTop = Number(saved);
+        el.onscroll = () => sessionStorage.setItem("sidebar-scroll-position", String(el.scrollTop));
+      }}
+    >
       {items.map((it) => {
         const active = path === it.to;
         const link = (
@@ -116,6 +146,16 @@ function AppLayout() {
 
   const SidebarFooter = () => (
     <div className="space-y-1 border-t border-sidebar-border p-2">
+      {import.meta.env.DEV && <a
+        href={editorUrl}
+        target="_blank"
+        rel="noreferrer"
+        title={hint("نشر آخر تحديثات الواجهة إلى الموقع المباشر بنقرة واحدة", "Publish the latest frontend to the live site in one click")}
+        className="flex w-full items-center gap-3 rounded-lg gradient-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 min-h-11"
+      >
+        <Rocket className="h-4 w-4 shrink-0" />
+        {!collapsed && <span>{hint("نشر التحديث", "Publish update")}</span>}
+      </a>}
       <button
         onClick={() => setLang(lang === "ar" ? "en" : "ar")}
         className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/60 min-h-11"
@@ -189,6 +229,18 @@ function AppLayout() {
             <span className="font-display text-sm font-bold truncate">{t("appName")}</span>
           </Link>
 
+          {import.meta.env.DEV && <a
+            href={editorUrl}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={hint("نشر التحديث", "Publish update")}
+            title={hint("نشر آخر تحديثات الواجهة إلى الموقع المباشر", "Publish the latest frontend to the live site")}
+            className="inline-flex h-10 items-center gap-1.5 rounded-md gradient-primary px-3 text-xs font-semibold text-primary-foreground"
+          >
+            <Rocket className="h-4 w-4" />
+            <span>{hint("نشر", "Publish")}</span>
+          </a>}
+
           <Button
             variant="ghost"
             size="icon"
@@ -205,10 +257,7 @@ function AppLayout() {
           <AccessGate>
             <Outlet />
           </AccessGate>
-          <div className="px-4 sm:px-6 py-2 text-center text-[11px] text-muted-foreground">
-            ⚠ {t("disclaimerTitle")} — {t("disclaimerBody").slice(0, 140)}…
-          </div>
-          <LegalFooter />
+          <div className="px-4 sm:px-6 py-1 text-center"><a href="/disclaimer" className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground">إخلاء المسؤولية</a></div>
         </main>
       </div>
     </div>

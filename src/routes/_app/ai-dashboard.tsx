@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -45,7 +46,7 @@ import { useAIMarketAnalyst, useAIMarketInsights } from "@/hooks/useAIBrain";
 import type { AssetKey } from "@/services/market/marketData";
 
 export const Route = createFileRoute("/_app/ai-dashboard")({
-  component: AIDashboardPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><AIDashboardPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "AI Financial Dashboard — ForeSmart" },
@@ -129,14 +130,14 @@ function AIDashboardPage() {
     [data],
   );
 
-  const sentimentLabel = data?.summary.sentiment === "bullish"
+  const sentimentLabel = data?.summary?.sentiment === "bullish"
     ? (ar ? "متفائل" : "Bullish")
-    : data?.summary.sentiment === "bearish"
+    : data?.summary?.sentiment === "bearish"
     ? (ar ? "متشائم" : "Bearish")
     : (ar ? "محايد" : "Neutral");
   const sentimentTone =
-    data?.summary.sentiment === "bullish" ? "text-success" :
-    data?.summary.sentiment === "bearish" ? "text-danger" : "text-warning";
+    data?.summary?.sentiment === "bullish" ? "text-success" :
+    data?.summary?.sentiment === "bearish" ? "text-danger" : "text-warning";
 
   const riskMap: Record<string, { label: string; tone: string }> = {
     low: { label: ar ? "منخفض" : "Low", tone: "text-success" },
@@ -228,7 +229,7 @@ function AIDashboardPage() {
         {data && (
           <div className="grid gap-4 lg:grid-cols-3">
             <GlassCard className="p-5">
-              <FearGreedGauge sentiment={data.sentiment} ar={ar} />
+              <FearGreedGauge sentiment={data?.sentiment ?? data?.summary?.sentiment ?? "neutral"} ar={ar} />
             </GlassCard>
             <GlassCard className="p-5 lg:col-span-2">
               <div className="mb-2 flex items-center gap-2">
@@ -237,7 +238,7 @@ function AIDashboardPage() {
                 </span>
                 <div className="flex-1">
                   <h3 className="font-display text-base font-bold">
-                    {analyst ? (ar ? "نظرة المحلل المؤسسي" : "Institutional Market Outlook") : data.insight.title}
+                    {analyst ? (ar ? "نظرة المحلل المؤسسي" : "Institutional Market Outlook") : (data?.insight?.title ?? "")}
                   </h3>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
                     {analyst ? "Lovable AI · GPT-class reasoning" : aiAnalyst.isFetching ? (ar ? "يفكر..." : "Thinking...") : (ar ? "تحليل محلي" : "On-device heuristic")}
@@ -250,7 +251,7 @@ function AIDashboardPage() {
                 )}
               </div>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                {analyst?.outlook ?? data.insight.body}
+                {analyst?.outlook ?? (data?.insight?.body ?? "")}
               </p>
               {analyst && (
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -309,7 +310,7 @@ function AIDashboardPage() {
           ))}
           {overviewQuotes.map((q) => {
             const up = q.changePct >= 0;
-            const Icon = ASSET_ICONS[q.key] ?? LineIcon;
+            const Icon = ASSET_ICONS[q.key as AssetKey] ?? LineIcon ?? Activity;
             const conf = Math.min(96, 50 + Math.round(Math.abs(q.momentum) * 20 + (50 - Math.abs(50 - q.volatility)) * 0.3));
             const chartData = q.history.map((v) => ({ v }));
             return (
@@ -504,21 +505,21 @@ function AIDashboardPage() {
         {data && <TacticalExecutionPanel data={data} ar={ar} />}
         {data && <PrecisionPanel data={data} ar={ar} />}
 
-        <AutonomousExecutionPanel data={data} ar={ar} />
+        <ErrorBoundary fallbackTitle="تعذر تحميل هذا الجزء"><AutonomousExecutionPanel data={data} ar={ar} /></ErrorBoundary>
 
         <InvestmentPlansPanel data={data ?? null} ar={ar} />
 
-        <ExecutionControlCenter data={data ?? null} ar={ar} />
+        <ErrorBoundary fallbackTitle="تعذر تحميل هذا الجزء"><ExecutionControlCenter data={data ?? null} ar={ar} /></ErrorBoundary>
 
         {/* Phase 3 — Capital Protection */}
-        <CapitalProtectionPanel ar={ar} />
+        <ErrorBoundary fallbackTitle="تعذر تحميل هذا الجزء"><CapitalProtectionPanel ar={ar} /></ErrorBoundary>
 
         {/* Phase 2 — Live Command Center */}
-        <LiveCommandCenter ar={ar} />
+        <ErrorBoundary fallbackTitle="تعذر تحميل هذا الجزء"><LiveCommandCenter ar={ar} /></ErrorBoundary>
 
-        <MonitoringCommandCenter data={data} ar={ar} />
+        <ErrorBoundary fallbackTitle="تعذر تحميل هذا الجزء"><MonitoringCommandCenter data={data} ar={ar} /></ErrorBoundary>
 
-        <EmailDeliveryPanel />
+        <ErrorBoundary fallbackTitle="تعذر تحميل هذا الجزء"><EmailDeliveryPanel /></ErrorBoundary>
 
         <div className="px-4">
           <a href="/email-diagnostics" className="inline-flex items-center text-sm text-primary underline hover:no-underline">
@@ -526,12 +527,12 @@ function AIDashboardPage() {
           </a>
         </div>
 
-        <InvitationSenderPanel ar={ar} />
+        <ErrorBoundary fallbackTitle="تعذر تحميل هذا الجزء"><InvitationSenderPanel ar={ar} /></ErrorBoundary>
 
         <SecurityCommandCenter data={data} ar={ar} />
 
         {/* Master Phase — Institutional AI Trading Ecosystem */}
-        <MasterControlCenter ar={ar} />
+        <ErrorBoundary fallbackTitle="تعذر تحميل هذا الجزء"><MasterControlCenter ar={ar} /></ErrorBoundary>
 
 
 
@@ -588,7 +589,7 @@ function AIDashboardPage() {
                 { k: "news", labelAr: "تنبيهات الأخبار", labelEn: "News Alerts", icon: Newspaper },
                 { k: "highRisk", labelAr: "مخاطر عالية فقط", labelEn: "High-Risk Only", icon: ShieldAlert },
               ].map((row) => {
-                const Icon = row.icon;
+                const Icon = row.icon ?? Activity;
                 const v = alerts[row.k as keyof typeof alerts];
                 return (
                   <div key={row.k} className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/10 p-3">

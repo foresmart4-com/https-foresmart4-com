@@ -809,6 +809,36 @@ export type Database = {
         }
         Relationships: []
       }
+      manual_cash_entries: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          kind: Database["public"]["Enums"]["manual_cash_kind"]
+          note: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["manual_cash_kind"]
+          note?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["manual_cash_kind"]
+          note?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       market_archive: {
         Row: {
           asset_name: string
@@ -844,6 +874,54 @@ export type Database = {
           price?: number
           symbol?: string
           user_id?: string
+          volume?: number | null
+        }
+        Relationships: []
+      }
+      market_price_candles: {
+        Row: {
+          asset_class: string
+          close: number
+          created_at: string
+          data_mode: string
+          high: number | null
+          id: string
+          interval: string
+          low: number | null
+          open: number | null
+          provider: string
+          symbol: string
+          timestamp: string
+          volume: number | null
+        }
+        Insert: {
+          asset_class: string
+          close: number
+          created_at?: string
+          data_mode?: string
+          high?: number | null
+          id?: string
+          interval: string
+          low?: number | null
+          open?: number | null
+          provider: string
+          symbol: string
+          timestamp: string
+          volume?: number | null
+        }
+        Update: {
+          asset_class?: string
+          close?: number
+          created_at?: string
+          data_mode?: string
+          high?: number | null
+          id?: string
+          interval?: string
+          low?: number | null
+          open?: number | null
+          provider?: string
+          symbol?: string
+          timestamp?: string
           volume?: number | null
         }
         Relationships: []
@@ -1515,6 +1593,44 @@ export type Database = {
         }
         Relationships: []
       }
+      user_alert_events: {
+        Row: {
+          alert_id: string
+          created_at: string
+          id: string
+          message: string | null
+          price: number | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          alert_id: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          price?: number | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          alert_id?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          price?: number | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_alert_events_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "user_price_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_api_keys: {
         Row: {
           auth_tag: string
@@ -1560,6 +1676,123 @@ export type Database = {
         }
         Relationships: []
       }
+      user_assets: {
+        Row: {
+          asset_class: Database["public"]["Enums"]["asset_class"]
+          avg_cost: number
+          created_at: string
+          currency: string
+          data_mode: Database["public"]["Enums"]["asset_data_mode"]
+          id: string
+          is_active: boolean
+          market: string | null
+          name: string | null
+          notes: string | null
+          quantity: number
+          source: Database["public"]["Enums"]["asset_source"]
+          symbol: string
+          updated_at: string
+          user_id: string
+          yield_pct: number | null
+        }
+        Insert: {
+          asset_class: Database["public"]["Enums"]["asset_class"]
+          avg_cost?: number
+          created_at?: string
+          currency?: string
+          data_mode?: Database["public"]["Enums"]["asset_data_mode"]
+          id?: string
+          is_active?: boolean
+          market?: string | null
+          name?: string | null
+          notes?: string | null
+          quantity?: number
+          source?: Database["public"]["Enums"]["asset_source"]
+          symbol: string
+          updated_at?: string
+          user_id: string
+          yield_pct?: number | null
+        }
+        Update: {
+          asset_class?: Database["public"]["Enums"]["asset_class"]
+          avg_cost?: number
+          created_at?: string
+          currency?: string
+          data_mode?: Database["public"]["Enums"]["asset_data_mode"]
+          id?: string
+          is_active?: boolean
+          market?: string | null
+          name?: string | null
+          notes?: string | null
+          quantity?: number
+          source?: Database["public"]["Enums"]["asset_source"]
+          symbol?: string
+          updated_at?: string
+          user_id?: string
+          yield_pct?: number | null
+        }
+        Relationships: []
+      }
+      user_price_alerts: {
+        Row: {
+          asset_type: string
+          condition: string
+          created_at: string
+          enabled: boolean
+          id: string
+          last_checked_at: string | null
+          last_error: string | null
+          last_price: number | null
+          last_status: string | null
+          market: string | null
+          name: string | null
+          note: string | null
+          symbol: string
+          target_value: number
+          triggered_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asset_type: string
+          condition: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_checked_at?: string | null
+          last_error?: string | null
+          last_price?: number | null
+          last_status?: string | null
+          market?: string | null
+          name?: string | null
+          note?: string | null
+          symbol: string
+          target_value: number
+          triggered_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asset_type?: string
+          condition?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_checked_at?: string | null
+          last_error?: string | null
+          last_price?: number | null
+          last_status?: string | null
+          market?: string | null
+          name?: string | null
+          note?: string | null
+          symbol?: string
+          target_value?: number
+          triggered_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1577,6 +1810,74 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_watchlist_items: {
+        Row: {
+          asset_type: string
+          created_at: string
+          id: string
+          market: string | null
+          name: string | null
+          note: string | null
+          symbol: string
+          user_id: string
+          watchlist_id: string
+        }
+        Insert: {
+          asset_type: string
+          created_at?: string
+          id?: string
+          market?: string | null
+          name?: string | null
+          note?: string | null
+          symbol: string
+          user_id: string
+          watchlist_id: string
+        }
+        Update: {
+          asset_type?: string
+          created_at?: string
+          id?: string
+          market?: string | null
+          name?: string | null
+          note?: string | null
+          symbol?: string
+          user_id?: string
+          watchlist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_watchlist_items_watchlist_id_fkey"
+            columns: ["watchlist_id"]
+            isOneToOne: false
+            referencedRelation: "user_watchlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_watchlists: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -1842,6 +2143,19 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "subscriber" | "pending"
+      asset_class:
+        | "us_stock"
+        | "sa_stock"
+        | "etf"
+        | "bond"
+        | "crypto"
+        | "metal"
+        | "commodity"
+        | "cash"
+        | "other"
+      asset_data_mode: "live" | "delayed" | "manual" | "mock"
+      asset_source: "manual" | "binance" | "alpaca" | "ibkr" | "demo"
+      manual_cash_kind: "deposit" | "withdrawal" | "adjustment"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1970,6 +2284,20 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "subscriber", "pending"],
+      asset_class: [
+        "us_stock",
+        "sa_stock",
+        "etf",
+        "bond",
+        "crypto",
+        "metal",
+        "commodity",
+        "cash",
+        "other",
+      ],
+      asset_data_mode: ["live", "delayed", "manual", "mock"],
+      asset_source: ["manual", "binance", "alpaca", "ibkr", "demo"],
+      manual_cash_kind: ["deposit", "withdrawal", "adjustment"],
     },
   },
 } as const

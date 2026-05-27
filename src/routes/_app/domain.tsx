@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { useAccess } from "@/lib/use-access";
@@ -6,7 +7,7 @@ import { Globe, ExternalLink, Copy, ShieldAlert, ArrowLeft } from "lucide-react"
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/domain")({
-  component: DomainPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><DomainPage /></ErrorBoundary>,
 });
 
 function Row({ label, value }: { label: string; value: string }) {

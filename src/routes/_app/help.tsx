@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
@@ -11,7 +12,7 @@ export const Route = createFileRoute("/_app/help")({
       { name: "description", content: "ForeSmart help center: wallet, Binance, Alpaca, Interactive Brokers, subscriptions, paper and live trading." },
     ],
   }),
-  component: HelpCenterPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><HelpCenterPage /></ErrorBoundary>,
 });
 
 type Topic = {

@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
@@ -21,7 +22,7 @@ import { useWatchlist } from "@/lib/watchlistStore";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/watchlist")({
-  component: WatchlistPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><WatchlistPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Watchlist — ForeSmart" },

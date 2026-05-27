@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { DataStatusBadge, type DataStatus } from "@/components/DataStatusBadge";
-import { Rocket, Database, CreditCard, LineChart, Briefcase, AlertTriangle } from "lucide-react";
+import { Rocket, Database, CreditCard, LineChart, Briefcase, AlertTriangle , Activity } from "lucide-react";
 import { toast } from "sonner";
 
 type Phase = {
@@ -66,7 +66,7 @@ export function ProductionRoadmap() {
 
       <div className="grid gap-3 md:grid-cols-2">
         {PHASES.map((p) => {
-          const Icon = p.Icon;
+          const Icon = p?.Icon ?? Activity;
           const showDetails = () => {
             const req = (lang === "ar" ? p.required_ar : p.required_en).map((x) => `• ${x}`).join("\n");
             const risks = (lang === "ar" ? p.risks_ar : p.risks_en).map((x) => `⚠ ${x}`).join("\n");

@@ -1,71 +1,111 @@
-## Plan: Full i18n System + Growth Portfolio Restoration
+# Phase 2 — محفظة الأصول الشاملة (Universal Asset Portfolio)
 
-### Part 1 — Centralized i18n Architecture
+## الهدف
+تحويل صفحة `/stocks-portfolio` إلى صفحة `/assets-portfolio` تجمع كل أصول المستخدم في مكان واحد (يدوي + مزودون اختياريون)، مع تصنيف، تسعير حي، أرباح/خسائر، وشارات مصدر البيانات. التداول الحقيقي يبقى معطّلاً.
 
-**1. Translation files**
-- Create `src/locales/ar.json` and `src/locales/en.json` with namespaces: `common`, `nav`, `dashboard`, `markets`, `subscription`, `portfolio`, `signals`, `alerts`, `settings`, `billing`, `footer`, `notifications`, `errors`, `empty`, `seo`.
-- Migrate every key currently in `src/lib/i18n.tsx` `dict` into these JSON files and expand with the missing surfaces.
+## 1) قاعدة البيانات (Migration)
 
-**2. Rewrite `src/lib/i18n.tsx`**
-- Load both JSON dictionaries statically (small, fine to bundle).
-- `t(key)` accepts dot-paths like `dashboard.title`. Fallback chain: current lang → English → key.
-- Default language detection: 
-  1. Saved profile language (loaded post-auth via a new `useUserLanguage` effect)
-  2. `localStorage.lang`
-  3. `navigator.language.startsWith('ar') ? 'ar' : 'en'`
-- Persist to `localStorage` on every change.
-- Expose `formatDate`, `formatNumber`, `formatCurrency` helpers using `Intl` with `ar-SA` / `en-US` locales — for charts/tables/tooltips.
-- Keep the old flat `t(key)` API working for legacy callers by aliasing flat keys to `common.*`.
+جدول جديد `user_assets` لتخزين جميع الأصول (يدوي أو مرتبطة بمزود):
 
-**3. Profile persistence**
-- Add `language` column to `profiles` table via migration (text, default `'ar'`, check `in ('ar','en')`).
-- On login (`auth.tsx` / root auth listener), fetch `profiles.language` and call `setLang` if present.
-- On `setLang`, if user is signed in, update `profiles.language` (fire-and-forget).
+```
+user_assets
+  id uuid pk
+  user_id uuid (RLS: auth.uid())
+  asset_class enum: us_stock | sa_stock | etf | bond | crypto | metal
+                  | commodity | cash | other
+  source enum: manual | binance | alpaca | ibkr | demo
+  symbol text          -- AAPL / 2222.SR / BTC / GOLD / USD
+  name text            -- اسم العرض
+  quantity numeric
+  avg_cost numeric     -- متوسط تكلفة الشراء
+  currency text default 'USD'
+  market text          -- US / SA / CRYPTO / METAL / ...
+  notes text
+  yield_pct numeric    -- التوزيعات/الفائدة السنوية (اختياري)
+  data_mode enum: live | delayed | manual | mock  default 'manual'
+  is_active boolean default true
+  created_at / updated_at
+```
 
-**4. Language selector**
-- Build `<LanguageSwitcher />` component (compact + full variants).
-- Mount in: Settings page, desktop sidebar footer (`_app.tsx`), mobile sidebar sheet.
+سياسات RLS: `auth.uid() = user_id` لكل العمليات. منع anon كلياً.
 
-**5. RTL/LTR**
-- Already handled by current provider (`document.dir`). Verify all custom panels use logical properties (`ms-*`, `me-*`, `start/end`) — fix any `ml-/mr-/left-/right-` in headers, nav, footer.
+جدول `manual_cash_entries` (إيداعات/سحوبات يدوية لخانة الكاش):
+```
+  id, user_id, currency, amount, kind (deposit|withdrawal|adjustment),
+  note, created_at
+```
+RLS مالك فقط.
 
-**6. SEO**
-- Update each route's `head()` to return localized `title` + `description`. Where `head()` is static, convert to function reading the current lang from a server-safe lookup OR set `<title>` from inside the component via TanStack `useDocumentHead` equivalent. Practical approach: localize from inside the component using `useEffect` on `document.title` for the routes where SSR-time language can't be known.
+(لا نلمس wallet_transactions — تلك خاصة بحركات SAR الفعلية).
 
-**7. Sweep hardcoded strings**
-- Pages to convert: `routes/_app/dashboard.tsx`, `markets.tsx`, `subscription.tsx`, `portfolios.tsx`, `signals.tsx`, `alerts.tsx`, `settings.tsx`, `billing.tsx`, plus `LegalFooter.tsx`, toast notifications, error boundaries, empty-state components.
-- Replace inline `lang === 'ar' ? 'X' : 'Y'` patterns with `t('namespace.key')`.
+## 2) Server Functions — `src/lib/assets.functions.ts`
+كلها مع `requireSupabaseAuth` + Zod validation:
 
-### Part 2 — Growth Portfolio Restoration
+- `listUserAssets()` — يرجع كل الأصول + يحسب القيمة السوقية والـ P/L.
+- `addUserAsset(input)` — إضافة يدوية.
+- `updateUserAsset(id, patch)` — تعديل.
+- `deleteUserAsset(id)` — حذف ناعم (is_active=false) أو حذف فعلي.
+- `addManualCash(input)` — يضيف صف في `manual_cash_entries` ويُحدّث/يُنشئ صف cash في `user_assets`.
+- `seedDemoBalance()` — يحقن 5–6 أصول تجريبية (source='demo', data_mode='mock') للمستخدم.
+- `getAssetPrices(symbols, asset_class)` — يجلب الأسعار من المزود المناسب:
+  - US/ETF/Bond → Alpaca/Finnhub (الموجودَين)
+  - Crypto → Binance public (بدون مفاتيح) أو CoinGecko
+  - SA stocks → TwelveData (موجود)
+  - Metals/Commodity → سعر يدوي/متأخر مع شارة Delayed
+  - Cash → 1.00
+  يرجع `{symbol, price, mode: live|delayed|manual|mock}`.
 
-**1. Investigate**
-- Read `src/services/investment/planEngine.ts`, `routes/_app/portfolios.tsx`, dashboard summary components, and `InvestmentPlansPanel.tsx` to find where "Growth" was removed during the SaaS pivot.
+## 3) UI — `src/routes/_app/assets-portfolio.tsx`
 
-**2. Restore Growth plan**
-- Add Growth plan entry alongside Starter/Pro/Elite (or as a portfolio risk profile: Conservative / **Growth** / Aggressive depending on existing schema).
-- Wire into:
-  - `portfolios.tsx` selector
-  - `InvestmentPlansPanel.tsx`
-  - Dashboard summary cards
-- Provide deterministic mock data when backend returns nothing: allocation, risk score, perf chart series, historical growth.
+استبدال محتوى صفحة الأسهم الحالي (الاحتفاظ بالملف القديم كاسم بديل/redirect لتفادي كسر الروابط).
 
-**3. Resilience**
-- Add try/catch + `console.error` around portfolio loading.
-- Loading skeleton + empty state (localized).
-- Both AR + EN labels in locale JSON under `portfolio.growth.*`.
+### الأقسام:
+1. **Header**: عنوان «محفظة الأصول الشاملة» + شرح موجز عربي عن فائدتها (متابعة موحّدة لكل أصولك من سوق واحد ولوحة واحدة، حساب P/L، تنويع، تخصيص).
+2. **Summary cards**: إجمالي القيمة، الكاش، P/L اليوم، P/L الكلي، عدد الأصول.
+3. **Asset Allocation**: توزيع حسب `asset_class` (Progress bars + ألوان).
+4. **Actions toolbar**:
+   - زر «إضافة أصل» (Dialog)
+   - زر «إيداع كاش يدوي» (Dialog)
+   - زر «تحميل رصيد تجريبي»
+   - زر «تحديث الأسعار»
+   - مفتاح تحديث تلقائي 60s
+5. **Assets Table** (Tabs حسب التصنيف: الكل / أسهم / ETFs / سندات / كريبتو / معادن / كاش):
+   - الأعمدة: الرمز · النوع · السوق · الكمية · متوسط الشراء · السعر الحالي · القيمة · P/L · P/L% · العائد% · المصدر · إجراءات.
+   - شارة لكل صف: Live (أخضر) / Delayed (أصفر) / Manual (رمادي) / Mock (بنفسجي).
+   - Tooltips عربية على رأس كل عمود تشرح المعنى.
+   - أزرار تعديل/حذف عبر Dialog.
+6. **Broker Linking (اختياري)**: بطاقات Binance / Alpaca / IBKR — تعرض حالة الاتصال، عند الربط تستورد المراكز كـ `source='binance|alpaca|ibkr'` و `data_mode='live'`. لا تظهر أي زر تنفيذ أوامر.
+7. **Live Trading Disabled banner**: شريط واضح أعلى الصفحة «التداول الحقيقي معطّل — معاينة فقط» مع `LIVE_TRADING_ENABLED=false` ثابت في الكود.
 
-**4. Constraints**
-- No theme, layout, or sidebar redesign.
-- No backend trading logic changes.
+### مكونات فرعية:
+- `AddAssetDialog.tsx` — نموذج: asset_class، symbol، name، quantity، avg_cost، currency، market، yield_pct، notes.
+- `EditAssetDialog.tsx`
+- `ManualCashDialog.tsx`
+- `AssetRow.tsx` (مع Tooltip عربي على شارة المصدر يشرح Live/Delayed/Manual/Mock)
+- `DataModeBadge.tsx` (مشترك)
 
-### Technical notes
+## 4) i18n
+إضافة مفاتيح عربية كاملة في `src/locales/ar.json` لكل النصوص + Tooltips:
+- شرح كل تصنيف أصل
+- معنى متوسط الشراء، P/L، العائد
+- معنى كل شارة بيانات
+- شرح أن الأرصدة اليدوية لا تُنفّذ صفقات حقيقية
 
-- JSON imports: TanStack Start + Vite handle `import en from '@/locales/en.json'` natively.
-- The dict file is small enough (<50KB combined) to ship in the main bundle; no async loading needed.
-- For server-rendered SEO titles, default to Arabic (matches default) and let the client effect override post-hydration.
-- Existing `useI18n` consumers (~30+ files) keep working via the flat-key alias layer; new code uses dot paths.
+## 5) قائمة التنقل
+- إعادة تسمية «محفظة الأسهم» إلى «محفظة الأصول» في `src/routes/_app.tsx`.
+- توجيه `/stocks-portfolio` إلى `/assets-portfolio` (redirect خفيف داخل الراوتر).
 
-### Out of scope
-- No changes to design tokens, color palette, fonts, or component layouts.
-- No new routes.
-- No real-money / broker behavior changes.
+## 6) القيود/الحماية
+- `LIVE_TRADING_ENABLED = false` ثابت + banner.
+- كل الـ server functions تستخدم `requireSupabaseAuth` + Zod (حدود طول/أرقام معقولة).
+- لا أسرار في الـ client. أسعار العملات الرقمية تستخدم endpoints عامة من السيرفر فقط.
+- ربط البروكر لا يُغيّر أرصدة المستخدم اليدوية — يضيف مراكز منفصلة بمصدر مختلف.
+
+## Deliverables
+1. Migration (`user_assets` + `manual_cash_entries` + RLS).
+2. `src/lib/assets.functions.ts` (8 server functions).
+3. `src/routes/_app/assets-portfolio.tsx` + 4 مكونات Dialog/Row.
+4. `DataModeBadge` مشترك.
+5. تحديث i18n + قائمة التنقل + redirect من الصفحة القديمة.
+
+التداول الحقيقي يبقى معطّلاً. الربط بالبروكر اختياري لاحقاً عبر نفس البنية.

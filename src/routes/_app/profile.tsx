@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
@@ -21,7 +22,7 @@ import { User as UserIcon, Key, Trash2, ShieldCheck, History, CheckCircle2, XCir
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/profile")({
-  component: ProfilePage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><ProfilePage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Profile & Settings — ForeSmart" },

@@ -1,5 +1,6 @@
-import { createFileRoute, Navigate, useNavigate, Link } from "@tanstack/react-router";
+import { isDisclaimerAcknowledged, acknowledgeDisclaimer } from "@/lib/ui/disclaimerState";
 import { useState } from "react";
+import { createFileRoute, Navigate, useNavigate, Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -54,8 +55,22 @@ function AuthPage() {
   const [su, setSu] = useState({ email: "", password: "", name: "" });
   const [forgotEmail, setForgotEmail] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [disclaimerAcked, setDisclaimerAcked] = useState(() => isDisclaimerAcknowledged());
 
-  if (!loading && user) return <Navigate to="/dashboard" />;
+  if (!loading && user) {
+    if (!disclaimerAcked) {
+      return (
+        <div dir={dir} className="flex min-h-screen items-center justify-center bg-background px-4">
+          <div className="max-w-lg rounded-xl border border-amber-500/30 bg-card p-6 text-center space-y-4">
+            <p className="text-lg font-bold">{lang === "ar" ? "⚠ إخلاء المسؤولية" : "⚠ Disclaimer"}</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">{t("disclaimerBody")}</p>
+            <button onClick={() => { acknowledgeDisclaimer(user.id); setDisclaimerAcked(true); }} className="rounded-md bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90">{lang === "ar" ? "موافق" : "I Agree"}</button>
+          </div>
+        </div>
+      );
+    }
+    return <Navigate to="/dashboard" />;
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true);

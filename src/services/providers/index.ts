@@ -40,6 +40,10 @@ import {
   getFinancialFeed as naFinancialFeed,
   providerHealth as naHealth,
 } from "@/services/providers/newsapi";
+import {
+  getCommodityQuote,
+  providerHealth as cpHealth,
+} from "@/services/providers/commodityprice";
 
 export const providers = {
   // US / global market primary
@@ -64,6 +68,8 @@ export const providers = {
 
   // News
   newsFinancial: naFinancialFeed,
+  // Commodities / metals
+  commodityQuote: getCommodityQuote,
 };
 
 /** Aggregated health for all wired providers. */
@@ -74,6 +80,7 @@ export function allProvidersHealth() {
     alphavantage: avHealth(),
     newsapi: naHealth(),
     sahmk: sahmkHealth(),
+    commodityprice: cpHealth(),
   };
 }
 
@@ -83,6 +90,7 @@ type ProviderId =
   | "alphavantage"
   | "newsapi"
   | "sahmk"
+  | "commodityprice"
   | "unavailable";
 
 type FailoverEvent = {

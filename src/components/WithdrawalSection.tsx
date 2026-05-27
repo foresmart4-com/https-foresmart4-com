@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { calcTransferFee } from "@/lib/mock-data";
 import { logEvent } from "@/lib/tradingJournal";
-import { ArrowUpFromLine, AlertTriangle, Clock, CheckCircle2, XCircle, Ban, Copy, Eye, ShieldCheck } from "lucide-react";
+import { ArrowUpFromLine, AlertTriangle, Clock, CheckCircle2, XCircle, Ban, Copy, Eye, ShieldCheck , Activity } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +39,7 @@ function statusBadge(s: WithdrawalStatus, lang: "ar" | "en") {
     rejected:  { cls: "bg-danger/15 text-danger border-danger/30",          ar: "مرفوض",        en: "Rejected",     Icon: XCircle },
     cancelled: { cls: "bg-muted text-muted-foreground border-muted-foreground/40", ar: "ملغى", en: "Cancelled", Icon: Ban },
   };
-  const m = map[s]; const Icon = m.Icon;
+  const m = map[s]; const Icon = m?.Icon ?? Activity;
   return (
     <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px]", m.cls)}>
       <Icon className="h-3 w-3" />{lang === "ar" ? m.ar : m.en}

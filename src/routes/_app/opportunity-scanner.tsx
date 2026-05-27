@@ -1,8 +1,9 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { GlobalOpportunityScanner } from "@/components/dashboard/GlobalOpportunityScanner";
 
 export const Route = createFileRoute("/_app/opportunity-scanner")({
-  component: OpportunityScannerRoute,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><OpportunityScannerRoute /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Opportunity Scanner — ForeSmart" },

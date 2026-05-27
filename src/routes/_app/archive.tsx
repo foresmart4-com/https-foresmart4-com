@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
@@ -42,7 +43,7 @@ import {
 } from "recharts";
 
 export const Route = createFileRoute("/_app/archive")({
-  component: ArchivePage,
+  component: () => <ErrorBoundary fallbackTitle="\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0623\u0631\u0634\u064a\u0641"><ArchivePage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Archive & Top Gainers — ForeSmart" },
@@ -67,7 +68,7 @@ interface Row {
   captured_at: string;
 }
 
-type Category = "crypto" | "metals" | "currencies" | "stocks";
+type Category = "crypto" | "metals" | "currencies" | "stocks" | "etf_bond" | "commodity";
 type DisplayCurrency = "USD" | "SAR";
 
 const USD_SAR_RATE = 3.75;
@@ -120,6 +121,27 @@ const ASSET_OPTIONS: Record<Category, { symbol: string; name: string }[]> = {
     { symbol: "2222.SR", name: "Saudi Aramco" },
     { symbol: "1120.SR", name: "Al Rajhi Bank" },
     { symbol: "2010.SR", name: "SABIC" },
+  ],
+  etf_bond: [
+    { symbol: "SPY", name: "S&P 500 ETF" },
+    { symbol: "QQQ", name: "Nasdaq 100 ETF" },
+    { symbol: "VOO", name: "Vanguard S&P 500" },
+    { symbol: "VTI", name: "Total US Market" },
+    { symbol: "TLT", name: "20+ Yr Treasury" },
+    { symbol: "IEF", name: "7-10 Yr Treasury" },
+    { symbol: "AGG", name: "US Aggregate Bond" },
+    { symbol: "LQD", name: "Investment Grade Bonds" },
+    { symbol: "HYG", name: "High Yield Bonds" },
+    { symbol: "TIP", name: "TIPS Inflation Bonds" },
+  ],
+  commodity: [
+    { symbol: "WTI/USD", name: "WTI Crude Oil" },
+    { symbol: "BRENT/USD", name: "Brent Crude Oil" },
+    { symbol: "NG/USD", name: "Natural Gas" },
+    { symbol: "USO", name: "US Oil Fund ETF" },
+    { symbol: "UNG", name: "US Natural Gas ETF" },
+    { symbol: "CORN", name: "Corn" },
+    { symbol: "WEAT", name: "Wheat" },
   ],
 };
 
@@ -225,7 +247,7 @@ function TopGainersView() {
                 ? "تعذّر تحميل عملات الارتفاع. حاول مجددًا."
                 : "Could not load top gainers. Try again."
               : lang === "ar"
-                ? "لا توجد بيانات حاليًا."
+                ? "لا توجد بيانات مؤرشفة بعد. سيتم حفظ البيانات الجديدة من الآن."
                 : "No data available right now."}
           </div>
           {isError && <div className="text-xs">{error?.message}</div>}
@@ -373,7 +395,7 @@ function TopStockGainersView() {
                 ? "تعذّر تحميل الأسهم. حاول مجددًا."
                 : "Could not load stocks. Try again."
               : lang === "ar"
-                ? "لا توجد بيانات حاليًا."
+                ? "لا توجد بيانات مؤرشفة بعد. سيتم حفظ البيانات الجديدة من الآن."
                 : "No data available right now."}
           </div>
           {isError && <div className="text-xs">{error?.message}</div>}
@@ -525,6 +547,8 @@ function HistoryView() {
               <SelectItem value="metals">{lang === "ar" ? "المعادن" : "Metals"}</SelectItem>
               <SelectItem value="currencies">{lang === "ar" ? "العملات" : "Currencies"}</SelectItem>
               <SelectItem value="stocks">{lang === "ar" ? "الأسهم" : "Stocks"}</SelectItem>
+              <SelectItem value="etf_bond">{lang === "ar" ? "صناديق وسندات" : "ETFs & Bonds"}</SelectItem>
+              <SelectItem value="commodity">{lang === "ar" ? "السلع" : "Commodities"}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -554,11 +578,12 @@ function HistoryView() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="1">{lang === "ar" ? "24 ساعة" : "24 hours"}</SelectItem>
               <SelectItem value="7">{lang === "ar" ? "7 أيام" : "7 days"}</SelectItem>
               <SelectItem value="30">{lang === "ar" ? "30 يومًا" : "30 days"}</SelectItem>
               <SelectItem value="90">{lang === "ar" ? "90 يومًا" : "90 days"}</SelectItem>
-              <SelectItem value="180">{lang === "ar" ? "180 يومًا" : "180 days"}</SelectItem>
               <SelectItem value="365">{lang === "ar" ? "سنة" : "1 year"}</SelectItem>
+              <SelectItem value="1095">{lang === "ar" ? "3 سنوات" : "3 years"}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -610,12 +635,48 @@ function HistoryView() {
       )}
 
       <div className="rounded-xl border border-border bg-card p-4">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
           <div>
             <div className="font-semibold">{data?.name ?? symbol}</div>
-            <div className="text-xs text-muted-foreground">{data?.currency ?? "USD"}</div>
+            <div className="text-xs text-muted-foreground flex items-center gap-2">
+              <span>{data?.currency ?? "USD"}</span>
+              {data?.source && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded border border-border bg-muted/30">
+                  {lang === "ar" ? "المصدر: " : "Source: "}{data.source}
+                </span>
+              )}
+              {data?.points?.length ? (
+                <span className="text-[10px] px-1.5 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/15 text-emerald-500">
+                  {lang === "ar" ? "حي" : "Live"}
+                </span>
+              ) : null}
+              {data?.points?.length ? (
+                <span className="text-[10px] text-muted-foreground">
+                  {lang === "ar" ? "نقاط:" : "Points:"} {data.points.length}
+                </span>
+              ) : null}
+            </div>
           </div>
+          {(data?.points?.length ?? 0) > 0 && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => exportArchiveCSV(data!, { symbol, category, days, displayCurrency })}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/40"
+              >
+                {lang === "ar" ? "تصدير CSV (الفلتر الحالي)" : "Export CSV (current filter)"}
+              </button>
+              <button
+                type="button"
+                onClick={() => exportArchivePDF(data!, { symbol, category, days, displayCurrency }, lang === "ar")}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/40"
+              >
+                {lang === "ar" ? "تصدير PDF (الفلتر الحالي)" : "Export PDF (current filter)"}
+              </button>
+            </div>
+          )}
         </div>
+
         <div className="h-72">
           {isLoading ? (
             <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -629,9 +690,13 @@ function HistoryView() {
                   ? lang === "ar"
                     ? "تعذّر تحميل بيانات السوق الآن. أعد المحاولة أو اختر أصلًا آخر."
                     : "Market data could not be loaded. Try again or choose another asset."
-                  : lang === "ar"
-                    ? "لا توجد قيم تاريخية متاحة لهذا الاختيار حاليًا."
-                    : "No historical values are available for this selection yet."}
+                  : data?.reason === "range_unsupported"
+                    ? lang === "ar"
+                      ? "هذه المدة غير مدعومة من المزود لهذا الأصل. جرّب مدة أطول."
+                      : "This range is not supported by the provider for this asset. Try a longer range."
+                    : lang === "ar"
+                      ? "لا توجد قيم تاريخية متاحة لهذا الاختيار حاليًا."
+                      : "No historical values are available for this selection yet."}
               </div>
               {isError && <div className="text-xs text-muted-foreground/80">{error.message}</div>}
               <button
@@ -855,3 +920,96 @@ function SnapshotsTable({ rows, lang, t }: { rows: Row[]; lang: string; t: (k: n
     </div>
   );
 }
+
+// ---------- Export helpers (CSV + print-to-PDF) ----------
+type HistoryData = {
+  name?: string;
+  currency?: string;
+  source?: string;
+  points: Array<{ date: string; open?: number; high?: number; low?: number; close: number; volume?: number }>;
+};
+
+function downloadBlob(content: string, mime: string, filename: string) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+type ExportFilter = { symbol: string; category: Category; days: number; displayCurrency: DisplayCurrency };
+
+function rangeLabel(days: number, ar: boolean): string {
+  if (days <= 1) return ar ? "24 ساعة" : "24h";
+  if (days <= 7) return ar ? "7 أيام" : "7d";
+  if (days <= 30) return ar ? "30 يوم" : "30d";
+  if (days <= 90) return ar ? "90 يوم" : "90d";
+  if (days <= 365) return ar ? "سنة" : "1y";
+  return ar ? "3 سنوات" : "3y";
+}
+
+function categoryLabel(c: Category, ar: boolean): string {
+  const map: Record<Category, { ar: string; en: string }> = {
+    crypto: { ar: "العملات الرقمية", en: "Crypto" },
+    metals: { ar: "المعادن", en: "Metals" },
+    currencies: { ar: "العملات", en: "Currencies" },
+    stocks: { ar: "الأسهم", en: "Stocks" },
+    etf_bond: { ar: "صناديق وسندات", en: "ETFs & Bonds" },
+    commodity: { ar: "السلع", en: "Commodities" },
+  };
+  return ar ? map[c].ar : map[c].en;
+}
+
+function exportArchiveCSV(data: HistoryData, f: ExportFilter) {
+  const header = ["date", "open", "high", "low", "close", "volume"];
+  const lines = [
+    `# ForeSmart Archive Export`,
+    `# Asset: ${data.name ?? f.symbol} (${f.symbol})`,
+    `# Market: ${f.category}`,
+    `# Range: ${f.days}d`,
+    `# Source currency: ${data.currency ?? "USD"} • Display: ${f.displayCurrency}`,
+    `# Source: ${data.source ?? "—"}`,
+    `# Exported: ${new Date().toISOString()}`,
+    header.join(","),
+  ];
+  for (const p of data.points) {
+    lines.push([p.date, p.open ?? "", p.high ?? "", p.low ?? "", p.close, p.volume ?? ""].join(","));
+  }
+  const ts = new Date().toISOString().slice(0, 10);
+  const safe = f.symbol.replace(/[^a-zA-Z0-9._-]/g, "_");
+  downloadBlob("\uFEFF" + lines.join("\n"), "text/csv;charset=utf-8", `foresmart_${f.category}_${safe}_${f.days}d_${ts}.csv`);
+}
+
+function exportArchivePDF(data: HistoryData, f: ExportFilter, ar: boolean) {
+  const ts = new Date().toLocaleString(ar ? "ar-EG" : "en-US");
+  const rows = data.points.slice(-500).map((p) =>
+    `<tr><td>${p.date}</td><td>${p.open ?? ""}</td><td>${p.high ?? ""}</td><td>${p.low ?? ""}</td><td>${p.close}</td><td>${p.volume ?? ""}</td></tr>`
+  ).join("");
+  const html = `<!doctype html><html dir="${ar ? "rtl" : "ltr"}"><head><meta charset="utf-8"/>
+<title>${f.symbol} — ForeSmart Archive</title>
+<style>
+  body{font-family:Arial,sans-serif;padding:24px;color:#111}
+  h1{margin:0 0 4px;font-size:20px}
+  .meta{color:#555;font-size:12px;margin-bottom:6px}
+  .filter{color:#333;font-size:12px;margin-bottom:16px;padding:6px 10px;background:#f3f4f6;border-radius:4px;display:inline-block}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th,td{border:1px solid #ddd;padding:4px 6px;text-align:${ar ? "right" : "left"}}
+  th{background:#f3f4f6}
+  .foot{margin-top:16px;color:#777;font-size:10px}
+</style></head><body>
+  <h1>${data.name ?? f.symbol} (${f.symbol})</h1>
+  <div class="meta">${ar ? "العملة" : "Currency"}: ${data.currency ?? "USD"} • ${ar ? "المصدر" : "Source"}: ${data.source ?? "—"} • ${ar ? "تم التصدير" : "Exported"}: ${ts}</div>
+  <div class="filter"><b>${ar ? "الفلتر الحالي" : "Current filter"}:</b> ${ar ? "السوق" : "Market"} = ${categoryLabel(f.category, ar)} • ${ar ? "الأصل" : "Asset"} = ${f.symbol} • ${ar ? "المدة" : "Range"} = ${rangeLabel(f.days, ar)} • ${ar ? "عملة العرض" : "Display"} = ${f.displayCurrency}</div>
+  <table><thead><tr>
+    <th>${ar ? "التاريخ" : "Date"}</th><th>${ar ? "افتتاح" : "Open"}</th><th>${ar ? "أعلى" : "High"}</th>
+    <th>${ar ? "أدنى" : "Low"}</th><th>${ar ? "إغلاق" : "Close"}</th><th>${ar ? "حجم" : "Volume"}</th>
+  </tr></thead><tbody>${rows}</tbody></table>
+  <div class="foot">ForeSmart • ${ar ? "للأغراض التحليلية فقط، لا يشكل توصية استثمارية." : "Analytical use only, not investment advice."}</div>
+  <script>window.onload=()=>{setTimeout(()=>window.print(),300)}</script>
+</body></html>`;
+  const w = window.open("", "_blank", "noopener,noreferrer,width=900,height=700");
+  if (!w) return;
+  w.document.open(); w.document.write(html); w.document.close();
+}
+

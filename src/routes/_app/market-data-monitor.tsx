@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -14,7 +15,7 @@ import { toast } from "sonner";
 import { Activity, Gauge, RefreshCw, Signal, Wifi, WifiOff, BellRing, History } from "lucide-react";
 
 export const Route = createFileRoute("/_app/market-data-monitor")({
-  component: MarketDataMonitorPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><MarketDataMonitorPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Market Data Monitor — ForeSmart" },
@@ -265,7 +266,7 @@ function MarketDataMonitorPage() {
             <p className="text-sm text-muted-foreground">{ar ? "جارٍ التحميل…" : "Loading…"}</p>
           ) : !data.configured ? (
             <p className="text-sm text-destructive">
-              {ar ? "FINNHUB_API_KEY غير مهيّأ." : "FINNHUB_API_KEY is not configured."}
+              {ar ? "FINNHUB_API_KEY غير مهيأ في بيئة الإنتاج." : "FINNHUB_API_KEY غير مهيأ في بيئة الإنتاج."}
             </p>
           ) : (
             <>

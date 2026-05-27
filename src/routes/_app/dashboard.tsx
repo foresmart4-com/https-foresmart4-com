@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -33,7 +34,7 @@ import { SmartMarketPulse } from "@/components/dashboard/SmartMarketPulse";
 import { DecisionCenter } from "@/components/dashboard/DecisionCenter";
 
 export const Route = createFileRoute("/_app/dashboard")({
-  component: DashboardPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><DashboardPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Dashboard — ForeSmart" },

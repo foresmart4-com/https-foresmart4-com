@@ -9,8 +9,11 @@
     "postbuild": "node -e \"const fs=require('fs');fs.writeFileSync('dist/server/server.js',\\\"// shim: @tanstack/start-plugin-core preview expects server.js; cloudflare plugin outputs index.js\\nexport { default } from './index.js';\\n\\\")\" && node scripts/create-worker-vars.cjs",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
+    "start": "node scripts/railway-start.mjs",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "smoke:routes": "node scripts/smoke-production-routes.mjs",
+    "smoke:auth": "node scripts/smoke-authenticated-routes.mjs"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",

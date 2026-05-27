@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,9 +29,10 @@ import {
   GraduationCap, Target, Activity, TrendingUp, Award, AlertTriangle,
   Brain, Trophy, Gauge, LineChart as LineIcon, Zap, ShieldAlert, Radar,
 } from "lucide-react";
+import { AILearningInsightsPanel } from "@/components/ai-learning/AILearningInsightsPanel";
 
 export const Route = createFileRoute("/_app/ai-learning")({
-  component: AILearningPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل مختبر التعلم"><AILearningPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "AI Learning — ForeSmart" },
@@ -206,6 +208,25 @@ function AILearningPage() {
           </div>
         </div>
       </div>
+
+      {/* Archive integration notice */}
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-2 p-3 text-xs">
+          <Badge variant="outline">{ar ? "أرشيف السوق" : "Market Archive"}</Badge>
+          <span className="text-muted-foreground">
+            {ar
+              ? "يقارن المحرك التوقعات بالنتائج الفعلية من الأرشيف التاريخي. سيظهر تنبيه عند عدم كفاية البيانات."
+              : "Predictions are compared against archived outcomes. A warning appears when archive coverage is insufficient."}
+          </span>
+          {data.rows.length < 30 && (
+            <Badge variant="secondary">{ar ? "بيانات أرشيف غير كافية" : "Insufficient archive data"}</Badge>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Phase 9 — Arabic-first insights panel (always visible, RTL) */}
+      <AILearningInsightsPanel sinceMs={RANGE_MS[range]} key={`insights-${tick}-${range}`} />
+
 
       {/* Dimension filters: strategy / agent / regime — scoped to current range */}
       <div className="flex flex-wrap items-center gap-2">

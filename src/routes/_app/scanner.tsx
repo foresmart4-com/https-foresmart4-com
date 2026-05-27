@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
@@ -14,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/scanner")({
-  component: ScannerPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><ScannerPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Opportunity Scanner — ForeSmart" },

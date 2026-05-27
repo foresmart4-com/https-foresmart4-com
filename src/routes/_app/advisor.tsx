@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -20,7 +21,7 @@ import { AIDecisionTester } from "@/components/AIDecisionTester";
 import { AutoTradingModeBar, BacktestingPanel, TradingJournalPanel } from "@/components/ForeSmartPanels";
 
 export const Route = createFileRoute("/_app/advisor")({
-  component: AdvisorPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><AdvisorPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "AI Advisor — ForeSmart" },

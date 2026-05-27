@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
@@ -18,7 +19,7 @@ type Kind = "stocks" | "crypto" | "metals" | "bonds" | "currencies";
 
 
 export const Route = createFileRoute("/_app/paper-trading")({
-  component: PaperTradingPage,
+  component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><PaperTradingPage /></ErrorBoundary>,
   head: () => ({
     meta: [
       { title: "Paper Trading — ForeSmart" },
