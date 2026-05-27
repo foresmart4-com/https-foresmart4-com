@@ -54,6 +54,7 @@ interface Exchange {
   question: string;
   reply: GenesisReply;
   engine: "ai" | "heuristic";
+  provider?: string;
   actionState: "pending" | "confirmed" | "dismissed" | "deferred" | null;
   feedback: "helpful" | "unhelpful" | null;
   comparisonPair: [string, string] | null;
@@ -350,6 +351,7 @@ function GenesisPage() {
           question: trimmed,
           reply: res.reply!,
           engine: res.engine,
+          provider: (res as { provider?: string }).provider,
           actionState: res.reply?.suggestedAction?.type && res.reply.suggestedAction.type !== "none" ? "pending" : null,
           feedback: null,
           comparisonPair: intent.comparisonPair,
@@ -953,7 +955,9 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
                 ? "bg-primary/10 text-primary ring-primary/30"
                 : "bg-muted/40 text-muted-foreground ring-border"
             )}>
-              {engine === "ai" ? "AI" : (ar ? "محلي" : "Heuristic")}
+              {engine === "ai"
+                ? (exchange.provider === "gemini" ? "Gemini AI" : exchange.provider === "lovable" ? "Lovable AI" : "AI")
+                : (ar ? "محلي" : "Heuristic")}
             </span>
             {reply.researchType && (
               <span className="flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary ring-1 ring-primary/20">

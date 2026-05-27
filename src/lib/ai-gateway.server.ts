@@ -174,6 +174,9 @@ export async function callAIGateway<T>(opts: AICallOptions): Promise<AICallResul
 
     if (!opts.jsonObject) return { data: raw as unknown as T, raw, error: null, provider };
     const parsed = safeParseJson<T>(raw);
+    if (!parsed) {
+      console.warn(`[ai-gateway] parse_error provider=${provider} raw_preview="${raw.slice(0, 400)}"`);
+    }
     return parsed
       ? { data: parsed, raw, error: null, provider }
       : { data: null, raw, error: "parse_error", provider };

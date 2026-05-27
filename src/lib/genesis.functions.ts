@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { callAIGateway, safeParseJson } from "@/lib/ai-gateway.server";
+import { callAIGateway, safeParseJson, resolveAIProvider, type AIProvider } from "@/lib/ai-gateway.server";
 import { buildLocaleSystemPrompt, wrapUserContext } from "@/lib/ai/locale";
 import type { Lang } from "@/lib/ai/locale";
 
@@ -90,7 +90,7 @@ function checkAiRateLimit(userId: string): boolean {
   return b.count <= AI_RATE_MAX;
 }
 
-function heuristicReply(lang: Lang): GenesisReply {
+function heuristicReply(lang: Lang, reason: "missing_key" | "ai_unavailable" = "missing_key"): GenesisReply {
   const ar = lang === "ar";
   return {
     headline: ar
@@ -113,8 +113,72 @@ function heuristicReply(lang: Lang): GenesisReply {
           { label: "Sharp correction", probability: "25%", impact: "Broad pressure on high-risk assets" },
         ],
     risks: ar
-      ? ["تحليل بدقة منخفضة — مفتاح AI غير مُهيّأ", "يعتمد على أنماط محلية فقط دون تحليل نصي أو إخباري"]
-      : ["Low-fidelity analysis — AI key not configured", "Relies on local heuristics only without news or text analysis"],
+      ? reason === "missing_key"
+        ? ["تحليل بدقة منخفضة — مفتاح AI غير مُهيّأ", "يعتمد على أنماط محلية فقط دون تحليل نصي أو إخباري"]
+        : ["تحليل هيوريستي — تعذّر الحصول على استجابة Gemini AI", "أعد المحاولة للحصول على تحليل AI"]
+      : reason === "missing_key"
+        ? ["Low-fidelity analysis — AI key not configured", "Relies on local heuristics only without news or text analysis"]
+        : ["Heuristic analysis — Gemini AI response temporarily unavailable", "Retry to get a Gemini AI-powered analysis"],
+    suggestedAction: null,
+    disclaimer: ar
+      ? "للأغراض التعليمية فقط — لا يُعتبر توصية استثمارية مرخصة."
+      : "Educational only — not licensed investment advice.",
+  };
+}
+
+// Attempts to extract a GenesisReply from a raw Gemini response that failed
+// standard JSON parsing. Uses brace-counting extraction (more robust than greedy
+// regex) and falls back to wrapping plain text in a minimal schema so the UI
+// shows a real AI response rather than the heuristic placeholder.
+function recoverGenesisReply(raw: string, lang: Lang): GenesisReply | null {
+  if (!raw?.trim()) return null;
+  // Brace-counting JSON extraction — handles text before/after the JSON object.
+  const start = raw.indexOf("{");
+  if (start !== -1) {
+    let depth = 0; let inStr = false; let esc = false;
+    for (let i = start; i < raw.length; i++) {
+      const c = raw[i];
+      if (esc)        { esc = false; continue; }
+      if (c === "\\") { esc = true; continue; }
+      if (c === '"')  { inStr = !inStr; continue; }
+      if (inStr)      { continue; }
+      if (c === "{")  { depth++; }
+      if (c === "}") {
+        depth--;
+        if (depth === 0) {
+          try {
+            const obj = JSON.parse(raw.slice(start, i + 1)) as Partial<GenesisReply>;
+            if (obj?.headline) return obj as GenesisReply;
+          } catch { break; }
+        }
+      }
+    }
+  }
+  // Gemini returned plain text — map it into a minimal GenesisReply so the UI
+  // shows the actual AI reasoning rather than the hardcoded heuristic fallback.
+  const text = raw.trim().slice(0, 2000);
+  const ar = lang === "ar";
+  const breakAt = text.search(/[.\n!?]/);
+  const headline = (breakAt > 10 ? text.slice(0, breakAt + 1) : text.slice(0, 120)).trim();
+  return {
+    headline: headline || (ar ? "تحليل من Gemini AI" : "Gemini AI Analysis"),
+    outlook: text,
+    confidence: 55,
+    confidenceLabel: "moderate",
+    scenarios: ar
+      ? [
+          { label: "سيناريو صاعد",   probability: "~40%", impact: "تحسن ظروف السوق مع تراجع التذبذب" },
+          { label: "سيناريو أساسي",  probability: "~35%", impact: "استقرار نسبي ومحدودية المحفزات" },
+          { label: "سيناريو هابط",   probability: "~25%", impact: "ضغط على الأصول عالية المخاطر" },
+        ]
+      : [
+          { label: "Upside scenario",    probability: "~40%", impact: "Improving market conditions with declining volatility" },
+          { label: "Base scenario",      probability: "~35%", impact: "Relative stability with limited near-term catalysts" },
+          { label: "Downside scenario",  probability: "~25%", impact: "Broad pressure on risk-sensitive assets" },
+        ],
+    risks: ar
+      ? ["استجابة Gemini AI بصيغة نصية — جارٍ العرض بتنسيق مبسّط"]
+      : ["Gemini AI responded as plain text — displaying in simplified layout"],
     suggestedAction: null,
     disclaimer: ar
       ? "للأغراض التعليمية فقط — لا يُعتبر توصية استثمارية مرخصة."
@@ -485,6 +549,8 @@ export const askGenesis = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const lang = data.language as Lang;
     const userId = (context as { userId?: string }).userId ?? "anon";
+    // Resolve provider once so all return paths can surface it to the UI.
+    const provider: AIProvider | undefined = resolveAIProvider()?.provider;
 
     // Server-side emergency kill switch — set AI_DISABLED=true in Railway secrets to disable AI.
     if (process.env.AI_DISABLED === "true") {
@@ -520,7 +586,7 @@ export const askGenesis = createServerFn({ method: "POST" })
       if (tracksUsed >= 1) {
         const fused = await runFusion(lang, data.question, data.marketContext, trackA, trackB, trackC, trackD, trackE, consensus);
         if (fused?.headline) {
-          return { reply: fused, error: null as null, engine: "ai" as const, tracksUsed };
+          return { reply: fused, error: null as null, engine: "ai" as const, tracksUsed, provider };
         }
       }
       // Graceful fallback to single-call if all tracks failed or fusion failed.
@@ -543,12 +609,30 @@ export const askGenesis = createServerFn({ method: "POST" })
 
     if (result.error === "rate_limited") return { reply: null, error: "rate_limited" as const, engine: "heuristic" as const };
     if (result.error === "payment_required") return { reply: null, error: "payment_required" as const, engine: "heuristic" as const };
-    if (result.error === "missing_key" || result.error === "ai_error" || result.error === "network_error") {
-      return { reply: heuristicReply(lang), error: null as null, engine: "heuristic" as const };
+    // missing_key → AI was never available; show the "key not configured" warning.
+    if (result.error === "missing_key") {
+      return { reply: heuristicReply(lang, "missing_key"), error: null as null, engine: "heuristic" as const };
+    }
+    // ai_error / network_error → Gemini is configured but the call failed; use a
+    // heuristic labelled as a temporary outage, not "key not configured".
+    if (result.error === "ai_error" || result.error === "network_error") {
+      return { reply: heuristicReply(lang, "ai_unavailable"), error: null as null, engine: "heuristic" as const };
     }
 
-    const parsed = result.data ?? safeParseJson<GenesisReply>(result.raw);
-    if (!parsed?.headline) return { reply: heuristicReply(lang), error: null as null, engine: "heuristic" as const };
+    // error is null or parse_error — result.data is set on success, raw always carries
+    // the original response string. Try the structured data first, then a second JSON
+    // parse in case callAIGateway missed something, then full text recovery.
+    const direct = result.data ?? (result.raw ? safeParseJson<GenesisReply>(result.raw) : null);
+    if (direct?.headline) return { reply: direct, error: null as null, engine: "ai" as const, provider };
 
-    return { reply: parsed, error: null as null, engine: "ai" as const };
+    // Gemini responded but the output couldn't be parsed — log a safe preview and
+    // try the brace-counting extractor + plain-text mapper before giving up.
+    if (result.raw) {
+      console.warn(`[genesis] provider=${provider} no valid reply — raw_preview="${result.raw.slice(0, 400)}"`);
+      const recovered = recoverGenesisReply(result.raw, lang);
+      if (recovered?.headline) return { reply: recovered, error: null as null, engine: "ai" as const, provider };
+    }
+
+    // Full recovery failed — show heuristic labelled appropriately.
+    return { reply: heuristicReply(lang, provider ? "ai_unavailable" : "missing_key"), error: null as null, engine: "heuristic" as const };
   });
