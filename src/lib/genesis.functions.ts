@@ -67,6 +67,10 @@ export interface GenesisReply {
   confidenceCalibration?: string;  // 1 sentence: why confidence is at this level
   uncertaintyLevel?: "likely" | "possible" | "uncertain" | "conflicting";
   caveats?: string[];  // 1-3 specific logical tensions or contradictions in own reasoning
+  // Phase 11: Fusion visibility + live market intelligence fields
+  crossAssetConfirmation?: string;  // Track C: gold/BTC/DXY confirms or contradicts macro thesis
+  positioningSignal?: string;       // Track E: positioning/sentiment timing signal
+  marketStateQuality?: "live" | "partial" | "inferred";  // quality of live market data used
 }
 
 const AskInput = z.object({
@@ -228,6 +232,12 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
     ? obj.uncertaintyLevel as typeof validUncertaintyLevel[number]
     : undefined;
 
+  // Phase 11 enum field
+  const validMSQ = ["live", "partial", "inferred"] as const;
+  const marketStateQuality = validMSQ.includes(obj.marketStateQuality as typeof validMSQ[number])
+    ? obj.marketStateQuality as typeof validMSQ[number]
+    : undefined;
+
   return {
     headline,
     outlook,
@@ -248,6 +258,8 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
     disagreementNote: cleanStr(obj.disagreementNote),
     supportingCase: cleanStr(obj.supportingCase),
     opposingCase: cleanStr(obj.opposingCase),
+    crossAssetConfirmation: cleanStr(obj.crossAssetConfirmation),
+    positioningSignal: cleanStr(obj.positioningSignal),
     simulatedScenario: cleanStr(obj.simulatedScenario),
     expectedImpact: cleanStr(obj.expectedImpact),
     watchlistSensitivity: cleanStr(obj.watchlistSensitivity),
@@ -267,6 +279,7 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
     reasoningQuality,
     uncertaintyLevel,
     comparisonTable,
+    marketStateQuality,
   };
 }
 
@@ -395,6 +408,9 @@ const GENESIS_SCHEMA = `{
   "confidenceCalibration": "string — 1 sentence explaining why confidence is at this level" (optional — always set for AI replies),
   "uncertaintyLevel": <"likely"|"possible"|"uncertain"|"conflicting"> (optional — always set for AI replies),
   "caveats": ["string — specific logical tension, contradiction, or weak assumption in own reasoning"] (optional — 1-3 items; omit when reasoning is internally consistent),
+  "crossAssetConfirmation": "string — 1 sentence: do gold/BTC/DXY signals CONFIRM or CONTRADICT the dominant macro thesis? State direction explicitly." (optional — set when Track C cross-asset context is present),
+  "positioningSignal": "string — 1 sentence: what does the positioning/sentiment signal imply for timing and near-term risk?" (optional — set when Track E context is present),
+  "marketStateQuality": <"live"|"partial"|"inferred"> (optional — set from the LIVE MARKET STATE QUALITY line in track context; always set when track fusion context is present),
   "scenarios": [{ "label": "string", "probability": "string e.g. 35%", "impact": "string — one sentence" }],
   "risks": ["string"],
   "suggestedAction": {
@@ -455,7 +471,17 @@ function buildGenesisSystemPrompt(lang: Lang): string {
     اضبط "confidenceCalibration": جملة واحدة بالضبط توضّح ما يرفع مستوى الثقة وما يحدّ من ارتفاعه.
     اضبط "uncertaintyLevel": "likely" (ثقة ≥70% مع أدلة متسقة)، "possible" (40-69%)، "uncertain" (ثقة <40% أو تحذير عدم يقين موجود)، "conflicting" (عند تعارض consensusStrength أو تناقض الأطروحة مع النظام السوقي أو خلاف ملحوظ بين الوكلاء).
     اضبط "caveats": 1-3 توترات منطقية أو تناقضات أو افتراضات ضعيفة رصدتها في تحليلك. أدرج فقط التحفظات الجوهرية التي يلاحظها قارئ مؤسسي ناقد. أغفل الحقل تماماً عند الاتساق الداخلي.
-    الاستدلال الميتا تقييم ذاتي فقط — استشاري وتعليمي. لا تستخدمه للادعاء باليقين.`
+    الاستدلال الميتا تقييم ذاتي فقط — استشاري وتعليمي. لا تستخدمه للادعاء باليقين.
+14. دمج المسارات المتعددة — عند ظهور مخرجات الوكلاء المتخصصين في السياق (الكلي/المسار A، التقني/المسار B، متعدد الأصول/المسار C، المخاطر/المسار D، التموضع/المسار E):
+    يجب أن يدمج حقل "outlook" جميع المسارات المتاحة صراحةً: النظام الكلي (A)، البنية التقنية (B)، تأكيد أو تناقض الأصول المتقاطعة (C)، مسار المخاطر الرئيسي (D)، وإشارة التموضع (E). الاكتفاء بالماكرو أو التعليق العام يُعدّ إخفاقاً.
+    اضبط "crossAssetConfirmation": هل تؤكد بيانات الذهب/BTC/DXY من المسار C أم تتناقض مع الأطروحة السائدة من A+B؟ صرّح بالاتجاه. جملة واحدة.
+    اضبط "positioningSignal": من إشارة sentimentSignal في المسار E — ما الذي يشير إليه التموضع من حيث التوقيت والمخاطر قصيرة الأجل؟ جملة واحدة.
+    اضبط "marketStateQuality" من سطر LIVE MARKET STATE QUALITY في السياق: "live" أو "partial" أو "inferred". أدرج هذا الحقل دائماً عند وجود سياق الدمج.
+    عند إجماع < 70 أو strength = "weak"/"conflicted": "disagreementNote" إلزامي. سمّ المسارات المتعارضة وبيّن التعارض الاتجاهي.
+    اضبط "thesis" متى توفّر سياق المسارين A وB — ليس اختيارياً في وضع الدمج.
+    اضبط "opposingCase" من counterCase في المسار D + counterThesis في المسار E. اذكر أقوى حجة مضادة ثم بيّن في الجملة ذاتها لماذا تخسر أمام الحالة الأساسية.
+    اضبط "invalidation" من invalidationTrigger في المسار D — يجب أن يكون حدثاً قابلاً للملاحظة، لا مفهوماً مبهماً.
+    إذا كان marketStateQuality = "inferred": أشر في confidenceCalibration إلى غياب البيانات الحية وخفّض الثقة 5 نقاط على الأقل.`
     : `Rules you must NEVER break:
 - Never suggest, confirm, or describe real buy/sell order execution, broker actions, or money movement.
 - Never claim certainty — always express confidence as a calibrated percentage.
@@ -500,7 +526,18 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
     Set "confidenceCalibration": exactly 1 sentence explaining what drives the confidence number — what pushes it upward and what limits it from being higher.
     Set "uncertaintyLevel": "likely" (confidence ≥70% with consistent evidence), "possible" (confidence 40-69%), "uncertain" (confidence <40% or uncertaintyWarning present), "conflicting" (when consensusStrength is "conflicted" or thesis contradicts the regime or agents significantly disagree).
     Set "caveats": 1-3 specific logical tensions, contradictions, or weak assumptions you have identified in your own analysis. Only include genuine, non-trivial caveats a critical institutional reader would flag. Omit entirely when the reasoning is internally consistent.
-    Meta-reasoning is self-evaluation only — advisory and educational. Never use it to claim certainty.`;
+    Meta-reasoning is self-evaluation only — advisory and educational. Never use it to claim certainty.
+14. MULTI-TRACK FUSION — When specialist agent track outputs appear in context (MACRO/Track A, TECHNICAL/Track B, CROSS-ASSET/Track C, RISK/Track D, POSITIONING/Track E):
+    The "outlook" field MUST synthesize ALL available tracks explicitly — the macro regime (Track A), technical structure (Track B), cross-asset confirmation or contradiction (Track C), primary risk path (Track D), and positioning signal (Track E). A macro-only or generic market comment is a failure.
+    Set "crossAssetConfirmation": does the gold/BTC/DXY evidence from Track C CONFIRM or CONTRADICT the dominant thesis from Tracks A+B? State the direction explicitly. 1 sentence.
+    Set "positioningSignal": from Track E's sentimentSignal — what does positioning imply for timing and near-term risk? 1 sentence.
+    Set "marketStateQuality" from the LIVE MARKET STATE QUALITY line in context — "live", "partial", or "inferred". Always set this field when track fusion context is present.
+    When consensus agreement < 70 or strength is "weak"/"conflicted": "disagreementNote" is MANDATORY. Name the specific tracks that disagree and state the directional conflict.
+    Set "thesis" whenever macro (Track A) and technical (Track B) context is available — not optional in fusion mode.
+    Set "opposingCase" from Track D counterCase + Track E counterThesis. State the strongest counter-argument, then explain in the same sentence WHY it loses to the base case.
+    Set "invalidation" from Track D's invalidationTrigger — must be a specific observable event, never a vague concept.
+    Set "supportingCase" from the single most compelling cross-track evidence alignment supporting the base thesis.
+    If marketStateQuality is "inferred": note in "confidenceCalibration" that live market data was unavailable and reduce confidence by at least 5 points from the anchor.`;
 
   const base = buildLocaleSystemPrompt({ lang, surface: "genesis_copilot", schema: GENESIS_SCHEMA, extra });
   // Prepend a hard JSON-only directive so Gemini never emits text outside the object.
@@ -559,6 +596,7 @@ function computeConsensus(
   trackA: TrackA | null,
   trackB: TrackB | null,
   trackC: TrackC | null,
+  trackD: TrackD | null,
   trackE: TrackE | null,
 ): ConsensusResult {
   const EMPTY: ConsensusResult = {
@@ -566,12 +604,13 @@ function computeConsensus(
     dominantBias: "neutral", agreementScore: 0, strength: "weak", conflictNote: "",
   };
 
+  // Rebalanced weights: A+B = 50%, C = 30% (cross-asset elevated), E = 20% (devil's advocate)
+  // TrackD does not vote on direction — it adjusts the agreementScore via uncertainty penalty below.
   const votes: { bias: "bullish" | "bearish" | "neutral"; weight: number }[] = [];
-  if (trackA) votes.push({ bias: trackA.macroBias ?? regimeToBias(trackA.regime), weight: 0.35 });
-  if (trackB) votes.push({ bias: trackB.technicalBias, weight: 0.30 });
-  if (trackC) votes.push({ bias: trackC.crossAssetBias, weight: 0.20 });
-  // Devil's advocate casts an opposing vote at reduced weight
-  if (trackE) votes.push({ bias: trackE.opposingBias, weight: 0.15 });
+  if (trackA) votes.push({ bias: trackA.macroBias ?? regimeToBias(trackA.regime), weight: 0.25 });
+  if (trackB) votes.push({ bias: trackB.technicalBias, weight: 0.25 });
+  if (trackC) votes.push({ bias: trackC.crossAssetBias, weight: 0.30 });
+  if (trackE) votes.push({ bias: trackE.opposingBias, weight: 0.20 });
 
   if (!votes.length) return EMPTY;
 
@@ -583,18 +622,28 @@ function computeConsensus(
     biasVotes.bullish >= biasVotes.bearish && biasVotes.bullish >= biasVotes.neutral ? "bullish" :
     biasVotes.bearish >= biasVotes.bullish && biasVotes.bearish >= biasVotes.neutral ? "bearish" : "neutral";
 
-  const agreementScore = Math.round((biasVotes[dominantBias] / total) * 100);
+  const rawAgreement = Math.round((biasVotes[dominantBias] / total) * 100);
+
+  // TrackD adversarial penalty: high/extreme uncertainty degrades agreement score
+  let agreementScore = rawAgreement;
+  if (trackD) {
+    if (trackD.uncertaintyLevel === "extreme") agreementScore = Math.max(0, agreementScore - 15);
+    else if (trackD.uncertaintyLevel === "high") agreementScore = Math.max(0, agreementScore - 8);
+    else if (trackD.uncertaintyLevel === "low") agreementScore = Math.min(100, agreementScore + 3);
+  }
+
   const bullBearGap = Math.abs(biasVotes.bullish - biasVotes.bearish);
   const isConflicted = bullBearGap < 0.15 && (biasVotes.bullish + biasVotes.bearish) > 0.35;
 
   let strength: ConsensusResult["strength"];
   let conflictNote = "";
-  if (isConflicted) {
+  if (isConflicted || agreementScore < 40) {
     strength = "conflicted";
     const conflictors: string[] = [];
     if (trackA && trackB && trackA.macroBias !== trackB.technicalBias) conflictors.push("macro vs technical");
     if (trackA && trackC && trackA.macroBias !== trackC.crossAssetBias) conflictors.push("macro vs cross-asset");
     if (trackB && trackC && trackB.technicalBias !== trackC.crossAssetBias) conflictors.push("technical vs cross-asset");
+    if (trackD && (trackD.uncertaintyLevel === "high" || trackD.uncertaintyLevel === "extreme")) conflictors.push(`risk officer: ${trackD.uncertaintyLevel} uncertainty`);
     conflictNote = conflictors.length > 0
       ? `Divergent signals: ${conflictors.join("; ")}`
       : "Agents diverge on directional bias";
@@ -604,6 +653,12 @@ function computeConsensus(
     strength = "moderate";
   } else {
     strength = "weak";
+    // Still surface disagreements even when not fully conflicted
+    const conflictors: string[] = [];
+    if (trackA && trackB && trackA.macroBias !== trackB.technicalBias) conflictors.push("macro vs technical");
+    if (trackA && trackC && trackA.macroBias !== trackC.crossAssetBias) conflictors.push("macro vs cross-asset");
+    if (trackD && (trackD.uncertaintyLevel === "high" || trackD.uncertaintyLevel === "extreme")) conflictors.push(`risk officer flags ${trackD.uncertaintyLevel} uncertainty`);
+    if (conflictors.length) conflictNote = `Partial disagreement: ${conflictors.join("; ")}`;
   }
 
   return { biasVotes, dominantBias, agreementScore, strength, conflictNote };
@@ -671,13 +726,159 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
   return Promise.race([promise, timeoutP]).finally(() => clearTimeout(tid));
 }
 
-async function runTrackA(lang: Lang, question: string, ctx: string): Promise<TrackA | null> {
+// ─── Live Market Intelligence Layer ───────────────────────────────────────────
+
+interface LiveMarketState {
+  // Track A macro signals
+  oilPrice: number | null;
+  oilChangePct: number | null;
+  tltPrice: number | null;    // TLT: long-bond ETF — rising = yields falling = easing
+  tltChangePct: number | null;
+  // Track B equity signal
+  spyPrice: number | null;
+  spyChangePct: number | null;
+  // Track C cross-asset signals
+  btcPrice: number | null;
+  btcChangePct: number | null;
+  goldPrice: number | null;   // PAXG proxy
+  goldChangePct: number | null;
+  eurUsd: number | null;      // EUR/USD: higher = weaker USD / DXY pressure
+  // Metadata
+  marketStateQuality: "live" | "partial" | "inferred";
+  sourcesLive: number;
+}
+
+async function quickFetch<T>(url: string, ms = 5000): Promise<T | null> {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
+    const r = await fetch(url, { signal: ctrl.signal, headers: { Accept: "application/json" } }).finally(() => clearTimeout(t));
+    if (!r.ok) return null;
+    return await r.json() as T;
+  } catch { return null; }
+}
+
+async function quickFetchYahoo<T>(url: string, ms = 5000): Promise<T | null> {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
+    const r = await fetch(url, {
+      signal: ctrl.signal,
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+      },
+    }).finally(() => clearTimeout(t));
+    if (!r.ok) return null;
+    return await r.json() as T;
+  } catch { return null; }
+}
+
+type YahooChartResp = { chart: { result?: Array<{ meta: { regularMarketPrice: number; chartPreviousClose: number } }> } };
+
+function parseYahooMeta(r: YahooChartResp | null): { price: number | null; changePct: number | null } {
+  const meta = r?.chart?.result?.[0]?.meta;
+  if (!meta?.regularMarketPrice) return { price: null, changePct: null };
+  const prev = meta.chartPreviousClose || meta.regularMarketPrice;
+  return { price: meta.regularMarketPrice, changePct: prev ? ((meta.regularMarketPrice - prev) / prev) * 100 : null };
+}
+
+async function buildLiveMarketState(): Promise<LiveMarketState> {
+  const [cgRes, fxRes, spyRes, tltRes, oilRes] = await Promise.allSettled([
+    quickFetch<Record<string, { usd: number; usd_24h_change: number }>>(
+      "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,pax-gold&vs_currencies=usd&include_24hr_change=true",
+    ),
+    quickFetch<{ rates: Record<string, number> }>(
+      "https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD",
+    ),
+    quickFetchYahoo<YahooChartResp>("https://query1.finance.yahoo.com/v8/finance/chart/SPY?interval=1d&range=2d"),
+    quickFetchYahoo<YahooChartResp>("https://query1.finance.yahoo.com/v8/finance/chart/TLT?interval=1d&range=2d"),
+    quickFetchYahoo<YahooChartResp>("https://query1.finance.yahoo.com/v8/finance/chart/CL%3DF?interval=1d&range=2d"),
+  ]);
+
+  let btcPrice: number | null = null, btcChangePct: number | null = null;
+  let goldPrice: number | null = null, goldChangePct: number | null = null;
+  let eurUsd: number | null = null;
+  let spyPrice: number | null = null, spyChangePct: number | null = null;
+  let tltPrice: number | null = null, tltChangePct: number | null = null;
+  let oilPrice: number | null = null, oilChangePct: number | null = null;
+  let sourcesLive = 0;
+
+  if (cgRes.status === "fulfilled" && cgRes.value) {
+    const d = cgRes.value;
+    if (d["bitcoin"]?.usd) { btcPrice = d["bitcoin"].usd; btcChangePct = d["bitcoin"].usd_24h_change ?? null; sourcesLive++; }
+    if (d["pax-gold"]?.usd) { goldPrice = d["pax-gold"].usd; goldChangePct = d["pax-gold"].usd_24h_change ?? null; sourcesLive++; }
+  }
+  if (fxRes.status === "fulfilled" && fxRes.value?.rates?.USD) { eurUsd = fxRes.value.rates.USD; sourcesLive++; }
+
+  const spy = parseYahooMeta(spyRes.status === "fulfilled" ? spyRes.value : null);
+  if (spy.price) { spyPrice = spy.price; spyChangePct = spy.changePct; sourcesLive++; }
+  const tlt = parseYahooMeta(tltRes.status === "fulfilled" ? tltRes.value : null);
+  if (tlt.price) { tltPrice = tlt.price; tltChangePct = tlt.changePct; sourcesLive++; }
+  const oil = parseYahooMeta(oilRes.status === "fulfilled" ? oilRes.value : null);
+  if (oil.price) { oilPrice = oil.price; oilChangePct = oil.changePct; sourcesLive++; }
+
+  const marketStateQuality: "live" | "partial" | "inferred" =
+    sourcesLive >= 4 ? "live" : sourcesLive >= 2 ? "partial" : "inferred";
+
+  return { oilPrice, oilChangePct, tltPrice, tltChangePct, spyPrice, spyChangePct, btcPrice, btcChangePct, goldPrice, goldChangePct, eurUsd, marketStateQuality, sourcesLive };
+}
+
+function fmtPct(v: number | null): string {
+  if (v === null) return "n/a";
+  return (v >= 0 ? "+" : "") + v.toFixed(2) + "%";
+}
+
+function liveContextTrackA(s: LiveMarketState): string {
+  const lines: string[] = [];
+  if (s.oilPrice !== null) {
+    const dir = (s.oilChangePct ?? 0) >= 1.5 ? "rising sharply (risk-on demand)" : (s.oilChangePct ?? 0) >= 0.3 ? "rising (mild risk appetite)" : (s.oilChangePct ?? 0) <= -1.5 ? "falling sharply (demand concern / risk-off)" : (s.oilChangePct ?? 0) <= -0.3 ? "falling (mild softening)" : "flat";
+    lines.push(`WTI crude: $${s.oilPrice.toFixed(1)} (${fmtPct(s.oilChangePct)}) — ${dir}`);
+  }
+  if (s.tltPrice !== null) {
+    const dir = (s.tltChangePct ?? 0) >= 0.4 ? "TLT rallying — yields falling, easing bias" : (s.tltChangePct ?? 0) <= -0.4 ? "TLT selling off — yields rising, tightening pressure" : "TLT range-bound — rates stable";
+    lines.push(`Long-bond TLT: $${s.tltPrice.toFixed(2)} (${fmtPct(s.tltChangePct)}) — ${dir}`);
+  }
+  if (!lines.length) return "";
+  return `\n\nLive macro inputs (ground truth — supersede generic rate assumptions):\n${lines.map((l) => `- ${l}`).join("\n")}`;
+}
+
+function liveContextTrackB(s: LiveMarketState): string {
+  if (s.spyPrice === null) return "";
+  const momentum = (s.spyChangePct ?? 0) >= 1 ? "bullish daily momentum" : (s.spyChangePct ?? 0) <= -1 ? "bearish daily pressure" : "sideways / neutral";
+  return `\n\nLive equity signal:\n- SPY: $${s.spyPrice.toFixed(2)} (${fmtPct(s.spyChangePct)}) — ${momentum}`;
+}
+
+function liveContextTrackC(s: LiveMarketState): string {
+  const lines: string[] = [];
+  if (s.btcPrice !== null) {
+    const risk = (s.btcChangePct ?? 0) >= 3 ? "strong risk-on" : (s.btcChangePct ?? 0) >= 1 ? "mild risk-on" : (s.btcChangePct ?? 0) <= -3 ? "strong risk-off" : (s.btcChangePct ?? 0) <= -1 ? "mild risk-off" : "neutral risk appetite";
+    lines.push(`BTC: $${s.btcPrice.toLocaleString("en-US", { maximumFractionDigits: 0 })} (${fmtPct(s.btcChangePct)} 24h) — ${risk}`);
+  }
+  if (s.goldPrice !== null) {
+    const haven = (s.goldChangePct ?? 0) >= 0.5 ? "haven bid active (risk-off signal)" : (s.goldChangePct ?? 0) <= -0.5 ? "haven fading (risk-on rotation)" : "gold neutral";
+    lines.push(`Gold PAXG: $${s.goldPrice.toFixed(0)} (${fmtPct(s.goldChangePct)} 24h) — ${haven}`);
+  }
+  if (s.eurUsd !== null) {
+    const dxy = s.eurUsd >= 1.10 ? "USD weak — DXY under pressure, EM/commodities supported" : s.eurUsd <= 1.00 ? "USD strong — DXY elevated, risk assets headwind" : "USD neutral";
+    lines.push(`EUR/USD: ${s.eurUsd.toFixed(4)} — ${dxy}`);
+  }
+  if (!lines.length) return "";
+  return `\n\nLive cross-asset inputs (ground truth — use for gold/BTC/DXY analysis):\n${lines.map((l) => `- ${l}`).join("\n")}`;
+}
+
+function liveContextAll(s: LiveMarketState): string {
+  return [liveContextTrackA(s), liveContextTrackB(s), liveContextTrackC(s)].filter(Boolean).join("");
+}
+
+async function runTrackA(lang: Lang, question: string, ctx: string, live: LiveMarketState | null): Promise<TrackA | null> {
   const schema = `{"regime":"string — classify as: bull_trending|bear_ranging|high_vol_risk-off|low_vol_accumulation|macro_transition","macroSummary":"string — 2 sentences: CB policy stance + credit/liquidity condition","ratesEnv":"string — 1 sentence: yield curve shape, rate trajectory, and CB policy implication","oilLiquidity":"string — 1 sentence: oil price direction as a global liquidity and risk-appetite signal","regimeConf":<integer 0-100>,"macroBias":"bullish"|"bearish"|"neutral"}`;
   const extra = lang === "ar"
     ? `أنت كبير استراتيجيي الماكرو. ركّز فقط على: (1) موقف البنوك المركزية ومسار أسعار الفائدة، (2) شكل منحنى العائد وظروف الائتمان، (3) النفط كإشارة سيولة عالمية، (4) قوة الدولار وبيئة السيولة. لا تعليق عام. كل جملة تحمل ادعاءً محدداً وقابلاً للقياس. لا تشر إلى أرباع تقويمية أو سنوات محددة.`
     : `You are the macro strategist on an institutional research desk. Focus ONLY on: (1) central bank policy stance and rate trajectory, (2) yield curve shape and credit conditions, (3) oil as a global liquidity signal, (4) dollar environment and liquidity regime. No generic commentary. Every sentence must state a specific, conditional, or measurable claim. Do not reference specific calendar quarters or years.`;
   const sys = buildLocaleSystemPrompt({ lang, surface: "global_macro", schema, extra });
-  const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}`);
+  const liveCtx = live ? liveContextTrackA(live) : "";
+  const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}${liveCtx}`);
   const res = await withTimeout(
     callAIGateway<TrackA>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 600, temperature: 0.3 }),
     8000,
@@ -685,13 +886,14 @@ async function runTrackA(lang: Lang, question: string, ctx: string): Promise<Tra
   return res?.data ?? null;
 }
 
-async function runTrackB(lang: Lang, question: string, ctx: string): Promise<TrackB | null> {
+async function runTrackB(lang: Lang, question: string, ctx: string, live: LiveMarketState | null): Promise<TrackB | null> {
   const schema = `{"technicalBias":"bullish"|"bearish"|"neutral","trendStrength":<integer 0-100>,"volatilityRegime":"low"|"normal"|"elevated"|"extreme","momentumStrength":<integer 0-100>,"technicalNote":"string — 1-2 sentences on trend structure and volatility regime"}`;
   const extra = lang === "ar"
     ? `أنت المحلل الفني المؤسسي. ركّز فقط على: (1) قوة الاتجاه الأساسي واتجاهه، (2) نظام التقلب (VIX / التقلب المحقق)، (3) قوة الزخم، (4) المستويات البنيوية الرئيسية. جمل قصيرة بدون تعليق عام. لا تذكر أرباعاً أو سنوات محددة.`
     : `You are the technical analyst on an institutional trading desk. Focus ONLY on: (1) primary trend direction and structural strength, (2) volatility regime (VIX level / realized vol environment), (3) momentum conviction, (4) key structural price levels. Short declarative sentences, no generic commentary. Do not reference specific quarters or years.`;
   const sys = buildLocaleSystemPrompt({ lang, surface: "market_analyst", schema, extra });
-  const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}`);
+  const liveCtx = live ? liveContextTrackB(live) : "";
+  const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}${liveCtx}`);
   const res = await withTimeout(
     callAIGateway<TrackB>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 400, temperature: 0.3 }),
     8000,
@@ -699,13 +901,14 @@ async function runTrackB(lang: Lang, question: string, ctx: string): Promise<Tra
   return res?.data ?? null;
 }
 
-async function runTrackC(lang: Lang, question: string, ctx: string): Promise<TrackC | null> {
+async function runTrackC(lang: Lang, question: string, ctx: string, live: LiveMarketState | null): Promise<TrackC | null> {
   const schema = `{"crossAssetBias":"bullish"|"bearish"|"neutral","goldSignal":"string — 1 sentence on gold directional signal and what it implies","btcSignal":"string — 1 sentence on BTC/crypto as risk-appetite indicator","dxyPressure":"string — 1 sentence on dollar strength and its cross-asset impact","correlationNote":"string — 1 sentence on the prevailing cross-asset correlation regime","catalysts":["string — specific near-term catalyst"],"nearTermRisk":"string — 1 sentence"}`;
   const extra = lang === "ar"
     ? `أنت استراتيجي متعدد الأصول. ركّز فقط على: (1) الذهب كإشارة مخاطر، (2) BTC/كريبتو كمقياس لشهية المخاطرة، (3) مؤشر الدولار DXY وتأثيره على الأصول المرتبطة، (4) نظام الارتباط بين الأصول. إشارات اتجاهية واضحة فقط — لا تعليق عام.`
     : `You are the cross-asset strategist. Focus ONLY on: (1) gold as a risk/haven signal, (2) BTC/crypto as a risk-appetite indicator, (3) DXY pressure and its directional cross-asset implications, (4) the prevailing inter-market correlation regime. Directional signals only — no general commentary. Do not reference specific quarters or years.`;
   const sys = buildLocaleSystemPrompt({ lang, surface: "global_macro", schema, extra });
-  const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}`);
+  const liveCtx = live ? liveContextTrackC(live) : "";
+  const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}${liveCtx}`);
   const res = await withTimeout(
     callAIGateway<TrackC>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 500, temperature: 0.3 }),
     8000,
@@ -715,13 +918,14 @@ async function runTrackC(lang: Lang, question: string, ctx: string): Promise<Tra
 
 // ─── Phase 6: Risk Officer (TrackD) ───────────────────────────────────────────
 
-async function runTrackD(lang: Lang, question: string, ctx: string): Promise<TrackD | null> {
+async function runTrackD(lang: Lang, question: string, ctx: string, live: LiveMarketState | null): Promise<TrackD | null> {
   const schema = `{"uncertaintyLevel":"low"|"moderate"|"high"|"extreme","primaryRisk":"string — 1 sentence: the specific, most probable downside path","thesisWeakness":"string — 1 sentence: the weakest assumption in the dominant bull or bear case","counterCase":"string — 1 sentence: the strongest argument against the prevailing directional view","invalidationTrigger":"string — 1 sentence: the specific observable event that would break the dominant thesis","confidenceChallenge":"string — 1 sentence: what specific factor should prevent confidence from being higher"}`;
   const extra = lang === "ar"
     ? `أنت مسؤول المخاطر المؤسسي ومحلل الأطروحة المضادة. مهمتك: (1) تحديد المخاطر الهبوطية المحددة، (2) تحديد الافتراض الأضعف في الرأي السائد، (3) صياغة أقوى حجة مضادة، (4) تحديد الحدث المحدد الذي يُلغي الأطروحة السائدة. كن صريحاً ومعارضاً. جملة واحدة لكل حقل.`
     : `You are the institutional risk officer and counter-thesis analyst. Your mandate: (1) identify the most specific probable downside path, (2) find the weakest assumption in the dominant view, (3) state the strongest counter-argument, (4) name the precise observable event that invalidates the thesis. Be adversarial and specific. One sentence per field.`;
   const sys = buildLocaleSystemPrompt({ lang, surface: "decision_engine", schema, extra });
-  const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}`);
+  const liveCtx = live ? liveContextAll(live) : "";
+  const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}${liveCtx}`);
   const res = await withTimeout(
     callAIGateway<TrackD>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 450, temperature: 0.3 }),
     8000,
@@ -731,13 +935,14 @@ async function runTrackD(lang: Lang, question: string, ctx: string): Promise<Tra
 
 // ─── Phase 6: Devil's Advocate (TrackE) ───────────────────────────────────────
 
-async function runTrackE(lang: Lang, question: string, ctx: string): Promise<TrackE | null> {
+async function runTrackE(lang: Lang, question: string, ctx: string, live: LiveMarketState | null): Promise<TrackE | null> {
   const schema = `{"sentimentSignal":"string — 1 sentence on positioning or sentiment indicators (crowded trades, fund flows, fear/greed extremes)","uncertaintyNote":"string — 1 sentence: the most consequential unresolved variable","counterThesis":"string — 1 sentence opposing the dominant directional view","missingEvidence":"string — 1 sentence: what the dominant view ignores or underweights","opposingBias":"bullish"|"bearish"|"neutral"}`;
   const extra = lang === "ar"
     ? `أنت محلل المراكز والمشاعر ومحامي الشيطان. ركّز على: (1) مؤشرات تمركز المتداولين وتدفقات الصناديق وإشارات الخوف/الطمع، (2) المتغير الرئيسي غير المحسوم، (3) الأطروحة المضادة للرأي الغالب، (4) ما يتجاهله التحليل السائد. كن نقدياً ومعارضاً. جملة واحدة لكل حقل.`
     : `You are the positioning, sentiment, and devil's advocate analyst. Focus on: (1) positioning signals — crowded trades, fund flow direction, fear/greed extremes, (2) the most consequential unresolved variable creating uncertainty, (3) the strongest counter-thesis against the dominant view, (4) what the dominant analysis ignores or underweights. Be critical and adversarial. One sentence per field.`;
   const sys = buildLocaleSystemPrompt({ lang, surface: "market_analyst", schema, extra });
-  const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}`);
+  const liveCtx = live ? liveContextAll(live) : "";
+  const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}${liveCtx}`);
   const res = await withTimeout(
     callAIGateway<TrackE>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 400, temperature: 0.45 }),
     8000,
@@ -755,21 +960,28 @@ async function runFusion(
   trackD: TrackD | null,
   trackE: TrackE | null,
   consensus: ConsensusResult,
+  live: LiveMarketState | null,
 ): Promise<GenesisReply | null> {
   const confAnchor = computeConfidenceFromTracks(trackA, trackB, trackD, consensus);
+  const msq = live?.marketStateQuality ?? "inferred";
+  const msqDetail = live
+    ? `${msq} (${live.sourcesLive} data sources confirmed: ${[live.btcPrice ? "BTC" : null, live.goldPrice ? "Gold" : null, live.eurUsd ? "EUR/USD" : null, live.spyPrice ? "SPY" : null, live.tltPrice ? "TLT" : null, live.oilPrice ? "Oil" : null].filter(Boolean).join(", ")})`
+    : "inferred (no live market data available — reason from question context only; downgrade confidence by ≥5 pts)";
+
   const trackLines = [
     trackA ? `MACRO (Track A): regime=${trackA.regime} conf=${trackA.regimeConf}% bias=${trackA.macroBias} | rates: ${trackA.ratesEnv} | oil/liquidity: ${trackA.oilLiquidity} | ${trackA.macroSummary}` : null,
     trackB ? `TECHNICAL (Track B): ${trackB.technicalBias} bias | trend_strength=${trackB.trendStrength}/100 | momentum=${trackB.momentumStrength}/100 | vol_regime=${trackB.volatilityRegime} | ${trackB.technicalNote}` : null,
     trackC ? `CROSS-ASSET (Track C): ${trackC.crossAssetBias} bias | gold: ${trackC.goldSignal} | BTC/risk-appetite: ${trackC.btcSignal} | DXY: ${trackC.dxyPressure} | correlation: ${trackC.correlationNote}` : null,
-    trackD ? `RISK/COUNTER (Track D): uncertainty=${trackD.uncertaintyLevel} | primary_risk: ${trackD.primaryRisk} | weakness: ${trackD.thesisWeakness} | counter: ${trackD.counterCase} | invalidation: ${trackD.invalidationTrigger}` : null,
-    trackE ? `POSITIONING/SENTIMENT (Track E): ${trackE.sentimentSignal} | uncertainty: ${trackE.uncertaintyNote} | counter_thesis: ${trackE.counterThesis} | missing: ${trackE.missingEvidence}` : null,
+    trackD ? `RISK/COUNTER (Track D): uncertainty=${trackD.uncertaintyLevel} | primary_risk: ${trackD.primaryRisk} | weakness: ${trackD.thesisWeakness} | counter: ${trackD.counterCase} | invalidation: ${trackD.invalidationTrigger} | confidence_challenge: ${trackD.confidenceChallenge}` : null,
+    trackE ? `POSITIONING/SENTIMENT (Track E): sentiment=${trackE.sentimentSignal} | uncertainty: ${trackE.uncertaintyNote} | counter_thesis: ${trackE.counterThesis} | missing: ${trackE.missingEvidence}` : null,
     `CONSENSUS (${[trackA, trackB, trackC, trackD, trackE].filter(Boolean).length}/5 agents): dominant=${consensus.dominantBias}, agreement=${consensus.agreementScore}%, strength=${consensus.strength}${consensus.conflictNote ? ` — ${consensus.conflictNote}` : ""}`,
-    `EVIDENCE-CALIBRATED CONFIDENCE ANCHOR: ${confAnchor}% — derived from track evidence alignment. Use this as a calibration reference; adjust up or down based on additional context in the question, but justify any deviation in confidenceCalibration.`,
+    `EVIDENCE-CALIBRATED CONFIDENCE ANCHOR: ${confAnchor}% — derived from track evidence alignment. Use this as calibration reference; justify deviation in confidenceCalibration.`,
+    `LIVE MARKET STATE QUALITY: ${msqDetail}`,
   ].filter(Boolean).join("\n");
 
   const fusionDirective = lang === "ar"
-    ? `نتائج خمسة وكلاء متخصصين:\n${trackLines}\n\nادمج هذه المسارات في تحليل مؤسسي شامل. يجب أن تكون الثقة مكتسبة من توافق الأدلة — لا تُجزم بالنتائج. اضبط consensusStrength من نتيجة الإجماع. اضبط supportingCase من أقوى الحجج الداعمة. اضبط opposingCase وinvalidation من نتائج المسارين D وE. اضبط disagreementNote فقط عند التعارض أو ضعف الإجماع. لا تُشر إلى أرباع أو سنوات تقويمية محددة. تجنب الصياغات العامة — كل جملة تحمل ادعاءً محدداً أو شرطياً. جميع القواعد الإلزامية سارية.`
-    : `Five specialist agent outputs:\n${trackLines}\n\nSynthesize into a unified institutional analysis. Confidence must be earned from evidence alignment — do not assert it. Set consensusStrength from the consensus result. Set supportingCase from the strongest corroborating signal. Set opposingCase and invalidation using Track D and E outputs. Set disagreementNote only when conflicted or weak consensus. Do not reference specific calendar quarters or years. Avoid generic phrasing — every sentence must carry a specific, conditional, or quantifiable claim. All mandatory rules remain in force.`;
+    ? `نتائج خمسة وكلاء متخصصين:\n${trackLines}\n\nمتطلبات الدمج المؤسسي الإلزامية:\n1. يجب أن يدمج حقل "outlook" جميع المسارات المتاحة صراحةً: النظام الكلي (A)، البنية التقنية (B)، تأكيد أو تناقض الأصول المتقاطعة (C)، مسار المخاطر الرئيسي (D)، وإشارة التموضع (E). الاكتفاء بالماكرو فشل.\n2. اضبط crossAssetConfirmation من المسار C: هل تؤكد بيانات الذهب/BTC/DXY أم تتناقض مع الأطروحة الغالبة؟\n3. اضبط positioningSignal من sentimentSignal في المسار E.\n4. اضبط marketStateQuality من سطر LIVE MARKET STATE QUALITY أعلاه.\n5. إذا كان consensus agreement < 70: disagreementNote إلزامي — سمّ المسارات المتعارضة.\n6. اضبط thesis من A+B، opposingCase من D+E، invalidation من invalidationTrigger في D.\n7. supportingCase: بيّن لماذا الحالة الأساسية أقوى من الأطروحة المضادة. جميع القواعد الإلزامية سارية.`
+    : `Five specialist agent outputs:\n${trackLines}\n\nMARKET-STATE-AWARE INSTITUTIONAL SYNTHESIS — all requirements are mandatory:\n\n1. MULTI-TRACK OUTLOOK: The "outlook" field MUST synthesize ALL available tracks — macro regime and rates from Track A, technical trend structure and volatility from Track B, cross-asset confirmation or contradiction from Track C, primary risk path and weakest assumption from Track D, and positioning/sentiment timing signal from Track E. A macro-only outlook is a failure.\n\n2. REQUIRED VISIBILITY FIELDS:\n   - Set "crossAssetConfirmation": does the gold/BTC/DXY evidence from Track C CONFIRM or CONTRADICT the dominant thesis from Tracks A+B? State the specific direction. 1 sentence required.\n   - Set "positioningSignal": from Track E's sentimentSignal — what does positioning imply for timing and near-term risk? 1 sentence required.\n   - Set "marketStateQuality" from the LIVE MARKET STATE QUALITY line above.\n\n3. CONSENSUS HANDLING:\n   - consensus agreement=${consensus.agreementScore}%, strength=${consensus.strength}. ${consensus.agreementScore < 70 ? `Agreement is below 70% — "disagreementNote" is MANDATORY. State which specific tracks disagree and what the directional conflict is.` : `Agreement is strong — supportingCase must name the specific cross-track evidence alignment that drives the dominant view.`}\n   - Set "consensusStrength" = "${consensus.strength}".\n\n4. THESIS CONSTRUCTION (all required when track context is present):\n   - Set "thesis": integrate macro regime (Track A) + technical bias (Track B). Directional, declarative, 1 sentence.\n   - Set "opposingCase": synthesize Track D counterCase + Track E counterThesis into the strongest possible counter-argument. In the SAME sentence, explain WHY this opposing case ultimately loses to the base case. Do not simply restate the counter — explain why it fails.\n   - Set "invalidation": use Track D's invalidationTrigger verbatim or refine it. Must be a specific observable event, never a vague concept.\n   - Set "supportingCase": name the single most compelling cross-track evidence alignment (e.g., A+B+C all agree, or A+C align against B) that makes the base case more probable than the opposing case.\n\n5. CONFIDENCE: anchor=${confAnchor}%. ${live?.marketStateQuality === "inferred" ? "LIVE DATA UNAVAILABLE — reduce confidence by ≥5 pts from anchor and note in confidenceCalibration." : ""} Track D uncertainty=${trackD?.uncertaintyLevel ?? "n/a"}${trackD?.uncertaintyLevel === "high" || trackD?.uncertaintyLevel === "extreme" ? " — confidence must be ≤65%." : "."}\n\nAll mandatory system rules remain in force. No specific quarters or years. No generic filler.`;
 
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
@@ -808,16 +1020,19 @@ export const askGenesis = createServerFn({ method: "POST" })
       return { reply: null, error: "rate_limited" as const, engine: "heuristic" as const };
     }
 
-    // ── Multi-agent parallel path (detailed mode) — Phase 6: 5 specialist agents ──
+    // ── Multi-agent parallel path (detailed mode) — Phase 11: live market + 5 specialist agents ──
     if (data.responseStyle === "detailed") {
-      const [settledA, settledB, settledC, settledD, settledE] = await Promise.allSettled([
-        runTrackA(lang, data.question, data.marketContext),  // Macro Analyst
-        runTrackB(lang, data.question, data.marketContext),  // Technical Analyst
-        runTrackC(lang, data.question, data.marketContext),  // Sentiment Analyst
-        runTrackD(lang, data.question, data.marketContext),  // Risk Officer
-        runTrackE(lang, data.question, data.marketContext),  // Devil's Advocate
+      // Fetch live market state in parallel with the specialist tracks (6s timeout)
+      const [liveSettled, settledA, settledB, settledC, settledD, settledE] = await Promise.allSettled([
+        withTimeout(buildLiveMarketState(), 6000),           // Live Market Intelligence
+        runTrackA(lang, data.question, data.marketContext, null),  // Macro Analyst (live injected after)
+        runTrackB(lang, data.question, data.marketContext, null),  // Technical Analyst
+        runTrackC(lang, data.question, data.marketContext, null),  // Cross-Asset Strategist
+        runTrackD(lang, data.question, data.marketContext, null),  // Risk Officer
+        runTrackE(lang, data.question, data.marketContext, null),  // Devil's Advocate
       ]);
 
+      const live = (liveSettled.status === "fulfilled" ? liveSettled.value : null) ?? null;
       const trackA = settledA.status === "fulfilled" ? settledA.value : null;
       const trackB = settledB.status === "fulfilled" ? settledB.value : null;
       const trackC = settledC.status === "fulfilled" ? settledC.value : null;
@@ -826,12 +1041,14 @@ export const askGenesis = createServerFn({ method: "POST" })
       const tracksUsed = [trackA, trackB, trackC, trackD, trackE].filter(Boolean).length;
 
       // Pure consensus engine — no AI call, runs on track outputs only.
-      const consensus = computeConsensus(trackA, trackB, trackC, trackE);
+      const consensus = computeConsensus(trackA, trackB, trackC, trackD, trackE);
 
       // Attempt fusion when at least one track succeeded.
       if (tracksUsed >= 1) {
-        const fused = await runFusion(lang, data.question, data.marketContext, trackA, trackB, trackC, trackD, trackE, consensus);
+        const fused = await runFusion(lang, data.question, data.marketContext, trackA, trackB, trackC, trackD, trackE, consensus, live);
         if (fused?.headline) {
+          // Stamp marketStateQuality from live state (authoritative — not AI-guessed)
+          if (live) fused.marketStateQuality = live.marketStateQuality;
           return { reply: fused, error: null as null, engine: "ai" as const, tracksUsed, provider };
         }
       }
