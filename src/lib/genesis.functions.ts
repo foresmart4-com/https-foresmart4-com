@@ -127,14 +127,20 @@ function heuristicReply(lang: Lang, reason: "missing_key" | "ai_unavailable" = "
 }
 
 // Validates and sanitises a parsed-but-unverified Gemini object before it
-// reaches the UI. Rejects JSON-looking strings in rendered fields so the user
-// never sees raw `{"headline":...}` blocks. Returns null when headline is
-// missing or JSON-like, which lets the caller fall through to recoverGenesisReply.
+// reaches the UI. Every field is explicitly enumerated — no spread — so JSON
+// strings in optional fields can never leak to the render layer.
 function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | null {
   const isJson = (s: unknown): boolean =>
     typeof s === "string" && /^\s*[{[]/.test(s);
   const cleanStr = (s: unknown): string | undefined =>
     typeof s === "string" && s.trim() && !isJson(s) ? s.trim() : undefined;
+  const cleanStrArr = (a: unknown): string[] | undefined => {
+    if (!Array.isArray(a)) return undefined;
+    const out = (a as unknown[]).filter(
+      (x): x is string => typeof x === "string" && x.trim().length > 0 && !isJson(x),
+    );
+    return out.length > 0 ? out : undefined;
+  };
 
   const headline = cleanStr(obj.headline) ?? null;
   if (!headline) return null;
@@ -172,17 +178,96 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
 
   const disclaimer = cleanStr(obj.disclaimer) ?? (ar ? "للأغراض التعليمية فقط." : "Educational only.");
 
+  // suggestedAction — validate shape; null if malformed
+  let suggestedAction: GenesisReply["suggestedAction"] = null;
+  if (obj.suggestedAction && typeof obj.suggestedAction === "object") {
+    const a = obj.suggestedAction;
+    const validTypes = ["add_watchlist","create_alert","analyze_asset","compare_assets","summarize_portfolio","navigate","none"] as const;
+    if (validTypes.includes(a.type as typeof validTypes[number])) {
+      suggestedAction = {
+        type: a.type as typeof validTypes[number],
+        label: typeof a.label === "string" ? a.label.trim() : "",
+        symbol: typeof a.symbol === "string" ? a.symbol.trim() : undefined,
+        assets: Array.isArray(a.assets) ? (a.assets as unknown[]).filter((x): x is string => typeof x === "string") : undefined,
+        route: typeof a.route === "string" ? a.route.trim() : undefined,
+        price: typeof a.price === "number" ? a.price : undefined,
+        condition: a.condition === "above" || a.condition === "below" ? a.condition : undefined,
+      };
+    }
+  }
+
+  // comparisonTable — validate row shape
+  let comparisonTable: GenesisReply["comparisonTable"];
+  if (Array.isArray(obj.comparisonTable)) {
+    const rows = (obj.comparisonTable as unknown[]).filter(
+      (r): r is { metric: string; a: string; b: string } =>
+        typeof r === "object" && r !== null &&
+        typeof (r as { metric: unknown }).metric === "string" &&
+        typeof (r as { a: unknown }).a === "string" &&
+        typeof (r as { b: unknown }).b === "string" &&
+        !isJson((r as { metric: string }).metric),
+    );
+    comparisonTable = rows.length > 0 ? rows : undefined;
+  }
+
+  // Enum fields
+  const validConsensus = ["strong","moderate","weak","conflicted"] as const;
+  const consensusStrength = validConsensus.includes(obj.consensusStrength as typeof validConsensus[number])
+    ? obj.consensusStrength as typeof validConsensus[number]
+    : undefined;
+  const validResearchType = ["asset","comparison","sector","thesis","market"] as const;
+  const researchType = validResearchType.includes(obj.researchType as typeof validResearchType[number])
+    ? obj.researchType as typeof validResearchType[number]
+    : undefined;
+  const validReasoningQuality = ["strong","adequate","weak"] as const;
+  const reasoningQuality = validReasoningQuality.includes(obj.reasoningQuality as typeof validReasoningQuality[number])
+    ? obj.reasoningQuality as typeof validReasoningQuality[number]
+    : undefined;
+  const validUncertaintyLevel = ["likely","possible","uncertain","conflicting"] as const;
+  const uncertaintyLevel = validUncertaintyLevel.includes(obj.uncertaintyLevel as typeof validUncertaintyLevel[number])
+    ? obj.uncertaintyLevel as typeof validUncertaintyLevel[number]
+    : undefined;
+
   return {
-    ...obj,
     headline,
     outlook,
     confidence,
     confidenceLabel,
     scenarios,
     risks,
-    suggestedAction: obj.suggestedAction ?? null,
+    suggestedAction,
     disclaimer,
-  } as GenesisReply;
+    // Optional scalar string fields — all sanitized through cleanStr
+    regime: cleanStr(obj.regime),
+    portfolioImpact: cleanStr(obj.portfolioImpact),
+    uncertaintyWarning: cleanStr(obj.uncertaintyWarning),
+    thesis: cleanStr(obj.thesis),
+    reasoning: cleanStr(obj.reasoning),
+    invalidation: cleanStr(obj.invalidation),
+    viewChange: cleanStr(obj.viewChange),
+    disagreementNote: cleanStr(obj.disagreementNote),
+    supportingCase: cleanStr(obj.supportingCase),
+    opposingCase: cleanStr(obj.opposingCase),
+    simulatedScenario: cleanStr(obj.simulatedScenario),
+    expectedImpact: cleanStr(obj.expectedImpact),
+    watchlistSensitivity: cleanStr(obj.watchlistSensitivity),
+    thesisSensitivity: cleanStr(obj.thesisSensitivity),
+    executiveSummary: cleanStr(obj.executiveSummary),
+    confidenceCalibration: cleanStr(obj.confidenceCalibration),
+    // Optional string array fields — all sanitized through cleanStrArr
+    evidence: cleanStrArr(obj.evidence),
+    catalysts: cleanStrArr(obj.catalysts),
+    confidenceDrivers: cleanStrArr(obj.confidenceDrivers),
+    keyDrivers: cleanStrArr(obj.keyDrivers),
+    watchItems: cleanStrArr(obj.watchItems),
+    caveats: cleanStrArr(obj.caveats),
+    // Validated enum and structured fields
+    consensusStrength,
+    researchType,
+    reasoningQuality,
+    uncertaintyLevel,
+    comparisonTable,
+  };
 }
 
 // Attempts to extract a GenesisReply from a raw Gemini response that failed
@@ -191,12 +276,14 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
 // shows a real AI response rather than the heuristic placeholder.
 function recoverGenesisReply(raw: string, lang: Lang): GenesisReply | null {
   if (!raw?.trim()) return null;
+  // Strip markdown fences first so brace-counting and JSON-detection work on bare JSON.
+  const src = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim() || raw.trim();
   // Brace-counting JSON extraction — handles text before/after the JSON object.
-  const start = raw.indexOf("{");
+  const start = src.indexOf("{");
   if (start !== -1) {
     let depth = 0; let inStr = false; let esc = false;
-    for (let i = start; i < raw.length; i++) {
-      const c = raw[i];
+    for (let i = start; i < src.length; i++) {
+      const c = src[i];
       if (esc)        { esc = false; continue; }
       if (c === "\\") { esc = true; continue; }
       if (c === '"')  { inStr = !inStr; continue; }
@@ -206,7 +293,7 @@ function recoverGenesisReply(raw: string, lang: Lang): GenesisReply | null {
         depth--;
         if (depth === 0) {
           try {
-            const obj = JSON.parse(raw.slice(start, i + 1)) as Partial<GenesisReply>;
+            const obj = JSON.parse(src.slice(start, i + 1)) as Partial<GenesisReply>;
             const cleaned = sanitizeReply(obj, lang);
             if (cleaned) return cleaned;
           } catch { break; }
@@ -214,7 +301,7 @@ function recoverGenesisReply(raw: string, lang: Lang): GenesisReply | null {
       }
     }
   }
-  const text = raw.trim().slice(0, 2000);
+  const text = src.slice(0, 2000);
   const ar = lang === "ar";
 
   // If the text looks like JSON (truncated or unextractable), never use it as
