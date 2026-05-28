@@ -1518,7 +1518,24 @@ async function runFusion(
     callAIGateway<GenesisReply>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 4096, temperature: 0.4, providerIdentity }),
     12000,
   );
-  if (!res || res.error || !res.data) return null;
+  if (!res || !res.data) {
+    // parse_error with raw content: attempt brace-counting recovery before giving up
+    if (res?.error === "parse_error" && res.raw) {
+      console.warn(`[genesis:fusion] parse_error — attempting raw recovery (provider=${res.provider ?? providerIdentity ?? "auto"})`);
+      const recovered = recoverGenesisReply(res.raw, lang);
+      // Only use recovery when it produced a real headline, not the "incomplete" placeholder
+      if (
+        recovered &&
+        !recovered.headline.includes("incomplete") &&
+        !recovered.headline.includes("غير مكتملة")
+      ) {
+        fillArbitrationFields(recovered, trackA, trackB, trackC, trackD, trackE, trackF, consensus, lang);
+        console.info("[genesis:fusion] parse_error recovery succeeded");
+        return recovered;
+      }
+    }
+    return null;
+  }
 
   // Safe debug: log Phase-12 field coverage before and after sanitize (no secrets)
   const _p12 = ["trackViewMacro","trackViewTechnical","trackViewCrossAsset","trackViewRisk","trackViewPositioning","arbitrationReason","disagreementMap","marketStateQuality"] as const;
@@ -1658,9 +1675,48 @@ export const askGenesis = createServerFn({ method: "POST" })
     if (result.raw) {
       console.warn(`[genesis] provider=${provider} sanitize rejected or parse failed — raw_preview="${result.raw.slice(0, 400)}"`);
       const recovered = recoverGenesisReply(result.raw, lang);
-      if (recovered) {
+      // Only surface the recovery result when it produced a real analysis headline,
+      // not the "incomplete" placeholder that signals genuinely truncated JSON.
+      if (
+        recovered &&
+        !recovered.headline.includes("incomplete") &&
+        !recovered.headline.includes("غير مكتملة")
+      ) {
         if (!recovered.marketStateQuality) recovered.marketStateQuality = "inferred";
+        console.info(`[genesis] provider=${provider} response normalized — returning recovered analysis`);
         return { reply: recovered, error: null as null, engine: "ai" as const, provider, providerIdentity: routing.providerIdentity, routingMode: routing.routingMode };
+      }
+    }
+
+    // Primary provider parse failed (or recovery hit truncated JSON).
+    // Attempt one OpenAI retry when a key is available and primary was not already OpenAI.
+    const openaiKey = process.env.OPENAI_API_KEY?.trim();
+    const primaryIsOpenAI = routing.providerIdentity === "openai_deep";
+    if (openaiKey && !primaryIsOpenAI) {
+      console.info(`[genesis] parse failure on ${provider ?? routing.providerIdentity} — attempting OpenAI fallback`);
+      const fallbackUser = wrapUserContext(lang, [
+        `User question: ${data.question}`,
+        data.marketContext ? `\nLive market context:\n${data.marketContext}` : "",
+      ].join(""));
+      const fallbackRes = await withTimeout(
+        callAIGateway<GenesisReply>({
+          system: buildGenesisSystemPrompt(lang),
+          user: fallbackUser,
+          language: lang,
+          jsonObject: true,
+          maxTokens: 4096,
+          temperature: 0.4,
+          providerIdentity: "openai_deep",
+        }),
+        12000,
+      );
+      if (fallbackRes?.data) {
+        const fallbackDirect = sanitizeReply(fallbackRes.data, lang);
+        if (fallbackDirect) {
+          if (!fallbackDirect.marketStateQuality) fallbackDirect.marketStateQuality = "inferred";
+          console.info("[genesis] OpenAI fallback succeeded");
+          return { reply: fallbackDirect, error: null as null, engine: "ai" as const, provider: fallbackRes.provider, providerIdentity: "openai_deep" as ProviderIdentity, routingMode: "fallback" as RoutingMode };
+        }
       }
     }
 

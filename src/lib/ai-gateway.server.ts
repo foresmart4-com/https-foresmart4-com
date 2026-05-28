@@ -100,13 +100,66 @@ function stripFences(s: string): string {
   return s.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
 }
 
+/**
+ * Brace-counting JSON extraction — more reliable than greedy regex for responses
+ * that include leading prose or trailing text after the JSON object.
+ * Returns the first balanced {...} substring, or null if none found.
+ */
+function extractJsonByBraces(s: string): string | null {
+  const start = s.indexOf("{");
+  if (start === -1) return null;
+  let depth = 0; let inStr = false; let esc = false;
+  for (let i = start; i < s.length; i++) {
+    const c = s[i];
+    if (esc) { esc = false; continue; }
+    if (c === "\\") { esc = true; continue; }
+    if (c === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (c === "{") depth++;
+    if (c === "}") { if (--depth === 0) return s.slice(start, i + 1); }
+  }
+  return null;
+}
+
+/**
+ * Bounded JSON repair — handles the most common provider formatting issues.
+ * Only removes trailing commas before } or ]; never reconstructs missing content.
+ * Safe to apply before JSON.parse — cannot produce false positives on valid JSON.
+ */
+function tryRepairJson(s: string): string {
+  return s.replace(/,(\s*[}\]])/g, "$1");
+}
+
 export function safeParseJson<T>(raw: string): T | null {
   if (!raw) return null;
   const s = stripFences(raw);
+
+  // 1. Direct parse after fence strip (fastest path — most responses are clean JSON)
   try { return JSON.parse(s) as T; } catch { /* fallthrough */ }
+
+  // 2. Brace-counting extraction (tolerates leading prose + trailing text)
+  const extracted = extractJsonByBraces(s);
+  if (extracted) {
+    try { return JSON.parse(extracted) as T; } catch { /* fallthrough */ }
+    // 3. Bounded trailing-comma repair on the extracted fragment
+    const repaired = tryRepairJson(extracted);
+    if (repaired !== extracted) {
+      try { return JSON.parse(repaired) as T; } catch { /* fallthrough */ }
+    }
+  }
+
+  // 4. Greedy regex fallback (original behaviour — catches edge cases brace-counting misses)
   const m = s.match(/\{[\s\S]*\}/);
   if (!m) return null;
-  try { return JSON.parse(m[0]) as T; } catch { return null; }
+  try { return JSON.parse(m[0]) as T; } catch { /* fallthrough */ }
+
+  // 5. Bounded repair on the greedy fragment
+  const repairedGreedy = tryRepairJson(m[0]);
+  if (repairedGreedy !== m[0]) {
+    try { return JSON.parse(repairedGreedy) as T; } catch { /* fallthrough */ }
+  }
+
+  return null;
 }
 
 export interface AICallOptions {
