@@ -71,6 +71,8 @@ import { computeResearchSandbox, type ResearchSandboxResult } from "@/services/r
 import { computeGovernedKnowledgeAcquisition, type GovernedKnowledgeAcquisitionResult } from "@/services/knowledge/governedKnowledgeAcquisition";
 import { runLiveAcquisitionCycle, type LiveAcquisitionSummary } from "@/services/knowledge/liveKnowledgeAcquisition";
 import { computeInstitutionalModels, type InstitutionalModelsResult } from "@/services/intelligence/institutionalModels";
+import { computeInstitutionalValidation, type InstitutionalValidationResult } from "@/services/intelligence/institutionalValidation";
+import { computeDecisionMemory, type DecisionMemoryResult } from "@/services/intelligence/decisionMemory";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -199,6 +201,8 @@ function GenesisPage() {
   const [knowledgeAcqResult, setKnowledgeAcqResult] = useState<GovernedKnowledgeAcquisitionResult | null>(null); // Phase-50A
   const [liveAcquisitionResult, setLiveAcquisitionResult] = useState<LiveAcquisitionSummary | null>(null); // Phase-50B
   const [institutionalModelsResult, setInstitutionalModelsResult] = useState<InstitutionalModelsResult | null>(null); // Phase-51
+  const [institutionalValidationResult, setInstitutionalValidationResult] = useState<InstitutionalValidationResult | null>(null); // Phase-52
+  const [decisionMemoryResult, setDecisionMemoryResult] = useState<DecisionMemoryResult | null>(null); // Phase-53
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
   const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -652,6 +656,21 @@ function GenesisPage() {
       });
       setInstitutionalModelsResult(institutionalModels);
 
+      // Phase-52: Institutional Validation — historical environment-framework assessment; pure function
+      const institutionalValidation = computeInstitutionalValidation({
+        question: trimmed,
+        primaryFramework: institutionalModels.primaryFramework,
+        stressLevel: marketIntel.stressLevel,
+        riskOnScore: marketIntel.riskOnScore,
+        macroCycle: globalMacro.macroCycle,
+        behavioralLabel: behavioralMarket.label,
+        portfolioConstructionLabel: portfolioConstruction.label,
+        firewallState: firewallResult.state,
+        crossMarketLabel: crossMarket.label,
+        ar,
+      });
+      setInstitutionalValidationResult(institutionalValidation);
+
       // Phase-47: Governance OS — cross-layer supervision, conflict arbitration
       const governanceOS = computeGovernanceOS({
         firewallState: firewallResult.state,
@@ -752,6 +771,23 @@ function GenesisPage() {
       });
       setLiveAcquisitionResult(liveAcquisition);
 
+      // Phase-53: Decision Memory — governed compressed analytical patterns; no persistence, no autonomous growth
+      const decisionMemory = computeDecisionMemory({
+        modelState: institutionalModels.modelState,
+        validationState: institutionalValidation.validationState,
+        competingPhilosophy: institutionalModels.competingPhilosophy,
+        governanceState: governanceOS.governanceState,
+        firewallState: firewallResult.state,
+        calibrationScore: decisionScore.score,
+        debateBalance: debate.debateBalance,
+        thesisState: thesisLab.thesisState,
+        strategicBias: strategicSynthesis.bias,
+        behavioralLabel: behavioralMarket.label,
+        macroCycle: globalMacro.macroCycle,
+        ar,
+      });
+      setDecisionMemoryResult(decisionMemory);
+
       const decisionCtx = [
         `System calibration: ECE=${eceVal.toFixed(3)}${drift.isDrifting ? " ⚠ performance drift detected" : ""}`,
         topStrategy ? `Top strategy: ${topStrategy.strategy} win-rate ${(topStrategy.winRate * 100).toFixed(0)}% (${topStrategy.bestRegime ?? "any"} regime)` : "",
@@ -835,6 +871,22 @@ function GenesisPage() {
         liveAcquisition.competingFrameworkContext,
         // Institutional Models — Phase-51: framework alignment, competing philosophies
         institutionalModels.contextString,
+        // Historical validation — Phase-52: historical environment-framework assessment
+        institutionalValidation.contextString,
+        // Institutional resilience — Phase-52: resilience observation when detected
+        institutionalValidation.resilienceObservation
+          ? `Institutional resilience: ${institutionalValidation.resilienceObservation.slice(0, 120)}`
+          : "",
+        // Competing lesson — Phase-52: competing framework perspective; preserve disagreement
+        institutionalValidation.competingObservation
+          ? `Competing lesson: ${institutionalValidation.competingObservation.slice(0, 120)}`
+          : "",
+        // Decision memory — Phase-53: governed session pattern; advisory only
+        decisionMemory.contextString,
+        // Risk lesson — Phase-53: specific risk from current analysis
+        decisionMemory.riskLesson
+          ? `Risk lesson: ${decisionMemory.riskLesson.slice(0, 120)}`
+          : "",
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
