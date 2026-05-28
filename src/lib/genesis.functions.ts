@@ -399,8 +399,8 @@ function recoverGenesisReply(raw: string, lang: Lang): GenesisReply | null {
 
 // JSON schema shape — same for both languages; JSON field names are always English.
 const GENESIS_SCHEMA = `{
-  "headline": "string — one forward-looking sentence naming the dominant regime and its directional implication for the asset or market",
-  "outlook": "string — 3-paragraph synthesis: (1) macro regime, rate/liquidity environment, and what the CB trajectory implies for risk assets; (2) technical trend structure plus cross-asset confirmation or contradiction (gold/BTC/DXY); (3) primary downside path, positioning signal, and the specific basis for the stated confidence level. Every sentence states a specific causal or conditional claim — no generic observations, no 'investors should watch'.",
+  "headline": "string — one forward-looking sentence naming the dominant regime, the credit/liquidity environment, and its directional implication for the specific asset or market asked about",
+  "outlook": "string — 3-paragraph synthesis: (1) macro regime, rate/liquidity environment, credit stress level, and what the CB trajectory implies for risk assets; for Saudi/Gulf queries also state the oil→fiscal channel and DXY→SAR peg implication; (2) technical trend structure plus cross-asset confirmation or contradiction (gold/BTC/DXY); (3) primary downside path, positioning signal, and the specific basis for the stated confidence level. Every sentence states a specific causal or conditional claim — no generic observations.",
   "confidence": <integer 0-100>,
   "confidenceLabel": <"low" | "moderate" | "high">,
   "regime": "string (optional — market regime label; omit if context insufficient)",
@@ -519,7 +519,14 @@ function buildGenesisSystemPrompt(lang: Lang): string {
     اضبط "trackViewPositioning": وجهة نظر المسار E في جملة واحدة — ما يُشير إليه التموضع والمشاعر بشأن المسار الاتجاهي قريب الأجل.
     اضبط "arbitrationReason": جملة أو جملتان — لماذا تتفوق الأطروحة الأساسية على الحالة المضادة؟ سمّ العامل المحدد الحاسم. لا تُعد صياغة الأطروحة — بل اشرح ما الذي يُرجّح الكفة.
     اضبط "disagreementMap": قيد واحد لكل زوج من المسارات ذات التعارض الاتجاهي الصريح، مثال: "المسار A (صاعد — كلي) vs المسار B (هابط — تقني)". أدرج فقط الأزواج التي يختلف فيها التصنيف الاتجاهي.
-    اضبط "trackViewPortfolio": وجهة نظر المسار F في جملة واحدة — هل المحفظة متوافقة أم متعارضة أم مختلطة بالنسبة للأطروحة الكلية السائدة، مع الإشارة إلى مستوى مخاطر التركّز. أدرج فقط عند ظهور سياق توافق المحفظة (المسار F) في مخرجات الوكلاء المتخصصين.`
+    اضبط "trackViewPortfolio": وجهة نظر المسار F في جملة واحدة — هل المحفظة متوافقة أم متعارضة أم مختلطة بالنسبة للأطروحة الكلية السائدة، مع الإشارة إلى مستوى مخاطر التركّز. أدرج فقط عند ظهور سياق توافق المحفظة (المسار F) في مخرجات الوكلاء المتخصصين.
+15. الربط بين الماكرو والأطروحة — طبّق عند توافر سياق نظام المسار A:
+    - bull_trending / low_vol_accumulation: تحيّز الأطروحة صاعد؛ السيناريو الصاعد يستحق ≥40%؛ حد أدنى للثقة 55% عند تأكيد الأصول المتقاطعة.
+    - bear_ranging / high_vol_risk-off: تحيّز دفاعي؛ السيناريو الهابط ≥35%؛ سقف الثقة 65% ما لم تتحول الأصول المتقاطعة نحو داعم.
+    - macro_transition: يجب إدراج caveats؛ الثقة 40-55%؛ فجوة احتمالية أوسع في السيناريوهات.
+    - إذا كان ضغط الائتمان مرتفعاً أو حرجاً (creditStressLevel = high/extreme): سقف الثقة 60%؛ يجب أن تتضمن caveats ضغط التمويل.
+    - إذا انخفض النفط وتعلّق السؤال بـ TASI/السعودية/أرامكو/الخليج: خفّض الثقة 5-8 نقاط؛ اذكر قناة الإيرادات المالية (breakeven ~75-80 دولار) في الأطروحة أو caveats.
+    - إذا ارتفع DXY وتعلّق السؤال بأسواق الخليج أو الأسواق الناشئة: أضف عائق العملة والتدفقات إلى الأطروحة وشرط الإلغاء.`
     : `Rules you must NEVER break:
 - Never suggest, confirm, or describe real buy/sell order execution, broker actions, or money movement.
 - Never claim certainty — always express confidence as a calibrated percentage.
@@ -583,7 +590,14 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
     Set "trackViewPositioning": Track E's view in 1 sentence — what positioning and sentiment imply for the near-term directional path.
     Set "arbitrationReason": 1-2 sentences — WHY the base thesis wins over the opposing case. Name the specific deciding factor (e.g. "Track A and Track C both confirm X, which outweighs Track B's Y because Z"). Do not restate the thesis — explain what breaks the tie.
     Set "disagreementMap": one string per track pair with explicit directional conflict, e.g. "Track A (bullish macro) vs Track B (bearish technical)". Only include pairs where the directional labels differ.
-    Set "trackViewPortfolio": Track F's portfolio alignment view in 1 sentence — whether the portfolio context is aligned, divergent, or mixed relative to the dominant macro thesis, and the concentration risk level. Only set when Portfolio Alignment (Track F) context appears in the specialist agent outputs.`;
+    Set "trackViewPortfolio": Track F's portfolio alignment view in 1 sentence — whether the portfolio context is aligned, divergent, or mixed relative to the dominant macro thesis, and the concentration risk level. Only set when Portfolio Alignment (Track F) context appears in the specialist agent outputs.
+15. MACRO-TO-THESIS LINKAGE — Apply when Track A regime context is present:
+    - bull_trending / low_vol_accumulation: thesis bias bullish; upside scenario ≥40%; confidence floor 55% when cross-asset confirms.
+    - bear_ranging / high_vol_risk-off: defensive thesis bias; downside scenario ≥35%; confidence cap 65% unless cross-asset signals flip.
+    - macro_transition: MUST set caveats; confidence 40-55%; show wider scenario probability spread reflecting regime ambiguity.
+    - HIGH/EXTREME credit stress (creditStressLevel): confidence cap 60%; caveats must include funding/spread stress as a specific risk.
+    - IF oil falling AND question involves TASI/Saudi/Aramco/Gulf: reduce confidence 5-8 pts; state the fiscal-channel transmission (Saudi breakeven ~$75-80/bbl) in thesis or caveats.
+    - IF DXY rising sharply AND question involves Gulf/EM equities: add currency/flows headwind to thesis and to the invalidation condition.`;
 
   const base = buildLocaleSystemPrompt({ lang, surface: "genesis_copilot", schema: GENESIS_SCHEMA, extra });
   // Prepend a hard JSON-only directive so Gemini never emits text outside the object.
@@ -598,8 +612,10 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
 interface TrackA {
   regime: string;
   macroSummary: string;
-  ratesEnv: string;      // rates / CB policy stance — 1 sentence
-  oilLiquidity: string;  // oil direction + global liquidity signal — 1 sentence
+  ratesEnv: string;             // rates / CB policy stance — 1 sentence
+  oilLiquidity: string;         // oil direction + global liquidity signal — 1 sentence
+  creditStressLevel: "low" | "moderate" | "high" | "extreme"; // credit-spread / funding-stress environment
+  dxyImpact: string;            // USD/DXY direction + risk-asset implication — 1 sentence
   regimeConf: number;
   macroBias: "bullish" | "bearish" | "neutral";
 }
@@ -764,6 +780,11 @@ function computeConfidenceFromTracks(
   // when no live prices are available; the anchor should reflect that degraded evidence floor.
   if (marketStateQuality === "inferred") score -= 5;
   else if (marketStateQuality === "partial") score -= 2;
+  // Phase 18: Credit stress penalty from TrackA — high/extreme funding stress caps
+  // confidence ceiling and degrades the anchor for consensus-based upside.
+  if (trackA?.creditStressLevel === "extreme") score -= 10;
+  else if (trackA?.creditStressLevel === "high") score -= 5;
+  else if (trackA?.creditStressLevel === "low") score += 3;
   return Math.max(10, Math.min(90, score));
 }
 
@@ -937,16 +958,54 @@ function liveContextAll(s: LiveMarketState): string {
   return [liveContextTrackA(s), liveContextTrackB(s), liveContextTrackC(s)].filter(Boolean).join("");
 }
 
+// ─── Saudi / Gulf Macro Context ───────────────────────────────────────────────
+// Pure function — no network calls. Injects Saudi transmission-channel context
+// into TrackA when the question or context is Saudi/Gulf-relevant.
+const SAUDI_PATTERN = /tasi|saudi|أرامكو|تاسي|سعود|2222|aramco|gulf|خليج|sabic|ساسكو|dfm|adx|nomu|نمو/i;
+
+function buildSaudiMacroContext(live: LiveMarketState | null, question: string): string {
+  if (!SAUDI_PATTERN.test(question)) return "";
+  const lines = [
+    "Saudi/TASI macro transmission channels (apply to this analysis):",
+    "- Oil → fiscal channel: Saudi budget breakeven ~$75-80/bbl WTI. Above = surplus + Vision 2030 spending tailwind = TASI support. Below = fiscal drag = TASI headwind.",
+    "- USD-SAR peg (3.75): SAMA must shadow Fed rate moves. Rising US rates = tighter local liquidity without CB offset. DXY strength = capital-outflow pressure on pegged currencies.",
+    "- Foreign flows: TASI foreign ownership ~15-20%; net inflows in global risk-on, outflows in risk-off. Aramco (2222.SR) ~85% of TASI cap — its dividend yield anchors valuation.",
+    "- Sector sensitivity: Energy (Aramco) and banks (~10% cap) drive 75%+ of TASI moves. Petrochemicals (SABIC) track naphtha/oil spreads. High global rates compress bank NIMs if curve inverts.",
+    "- Credit stress implication: when global HY spreads widen, Saudi sovereign spreads and sukuk market follow; reduces local liquidity for non-energy names.",
+  ];
+  if (live?.oilPrice != null) {
+    const oilDir = (live.oilChangePct ?? 0) <= -1.5
+      ? `falling sharply — Saudi fiscal stress signal; TASI headwind via Aramco earnings and government spending`
+      : (live.oilChangePct ?? 0) >= 1.5
+        ? `rising — fiscal surplus support; TASI tailwind via Aramco dividend capacity and government capex`
+        : `near flat — neutral fiscal signal for TASI`;
+    lines.push(`- Live oil: $${live.oilPrice.toFixed(1)} (${fmtPct(live.oilChangePct)}) — ${oilDir}`);
+  }
+  if (live?.eurUsd != null) {
+    const dxyNote = live.eurUsd <= 1.00
+      ? `DXY elevated — SAR peg tightening effect; foreign capital cautious on EM/Gulf; commodity headwind`
+      : live.eurUsd >= 1.10
+        ? `DXY weak — SAR liquidity relatively relieved; EM/Gulf flows supported`
+        : `DXY neutral for SAR peg dynamics`;
+    lines.push(`- Live EUR/USD: ${live.eurUsd.toFixed(4)} — ${dxyNote}`);
+  }
+  return lines.join("\n");
+}
+
 async function runTrackA(lang: Lang, question: string, ctx: string, live: LiveMarketState | null): Promise<TrackA | null> {
-  const schema = `{"regime":"string — classify as: bull_trending|bear_ranging|high_vol_risk-off|low_vol_accumulation|macro_transition","macroSummary":"string — 2 sentences: (1) global liquidity and credit-spread environment (funding conditions, EM stress, spread widening or compression); (2) what single factor most challenges the dominant macro regime","ratesEnv":"string — 1 sentence: yield curve shape, rate trajectory, and the specific CB policy implication for risk assets","oilLiquidity":"string — 1 sentence: oil direction as a global liquidity and demand signal — include the directional implication","regimeConf":<integer 0-100>,"macroBias":"bullish"|"bearish"|"neutral"}`;
+  const schema = `{"regime":"string — classify as: bull_trending|bear_ranging|high_vol_risk-off|low_vol_accumulation|macro_transition","macroSummary":"string — 2 sentences: (1) global liquidity and credit-spread environment (IG/HY spread direction, EM funding stress, interbank conditions); (2) the single factor that most threatens or confirms the dominant macro regime","ratesEnv":"string — 1 sentence: yield curve shape, rate trajectory, and the specific CB policy implication for risk-asset valuations","oilLiquidity":"string — 1 sentence: oil direction as a global demand, liquidity, and fiscal signal — for Saudi/Gulf contexts include the fiscal-space implication","creditStressLevel":"low"|"moderate"|"high"|"extreme","dxyImpact":"string — 1 sentence: USD/DXY direction and its transmission to EM assets, commodities, Gulf equities, and SAR-pegged liquidity","regimeConf":<integer 0-100>,"macroBias":"bullish"|"bearish"|"neutral"}`;
   const extra = lang === "ar"
-    ? `أنت كبير استراتيجيي الماكرو. ركّز فقط على: (1) موقف البنوك المركزية ومسار أسعار الفائدة، (2) شكل منحنى العائد وظروف الائتمان، (3) النفط كإشارة سيولة عالمية، (4) قوة الدولار وبيئة السيولة. لا تعليق عام. كل جملة تحمل ادعاءً محدداً وقابلاً للقياس. لا تشر إلى أرباع تقويمية أو سنوات محددة.`
-    : `You are the macro strategist on an institutional research desk. Focus ONLY on: (1) central bank policy stance and rate trajectory, (2) yield curve shape and credit conditions, (3) oil as a global liquidity signal, (4) dollar environment and liquidity regime. No generic commentary. Every sentence must state a specific, conditional, or measurable claim. Do not reference specific calendar quarters or years.`;
+    ? `أنت كبير استراتيجيي الماكرو في مكتب بحوث مؤسسي. ركّز على المحاور الستة التالية فقط: (1) موقف البنوك المركزية ومسار أسعار الفائدة وانعكاسه على تقييمات الأصول، (2) شكل منحنى العائد وظروف الائتمان (فروقات IG/HY، ضغوط تمويل الأسواق الناشئة)، (3) النفط كإشارة طلب وسيولة عالمية وفضاء مالي لدول الخليج، (4) مؤشر الدولار DXY وقناة انتقاله إلى الأسواق الناشئة والسلع وأسواق الخليج المرتبطة بسعر صرف ثابت، (5) بيئة ضغط الائتمان: هل فروقات الائتمان تتسع (ضغط تمويلي) أم تتضيق (شهية مخاطرة)، (6) عند تعلّق السؤال بالسوق السعودي (TASI) أو الخليج أو أرامكو: صرّح صراحةً بقناة النفط → الإيرادات المالية السعودية (نقطة توازن الميزانية ~75-80 دولار)، وقيد ربط الريال بالدولار على السياسة النقدية المحلية، والتدفقات الأجنبية على تاسي في ظل الإقبال/النفور من المخاطرة عالمياً. لا تعليق عام. كل جملة ادعاء محدد وقابل للقياس. لا تشر إلى أرباع تقويمية أو سنوات.`
+    : `You are the macro strategist on an institutional research desk. Cover exactly these six channels: (1) central bank policy stance and rate trajectory — its specific implication for risk-asset valuations; (2) yield curve shape and credit conditions (IG/HY spread direction, EM funding stress, interbank conditions); (3) oil as a global demand, liquidity, and fiscal signal; (4) USD/DXY direction and its transmission channel to EM assets, commodities, and SAR-pegged Gulf markets; (5) credit stress environment: are spreads widening (funding stress) or compressing (risk appetite)? Set creditStressLevel accordingly; (6) when the question or context involves Saudi Arabia, TASI, Aramco, or Gulf markets: explicitly state the oil→Saudi fiscal-space channel (budget breakeven ~$75-80/bbl WTI), the USD-SAR peg constraint on local monetary policy, and global risk-on/off impact on TASI foreign flows. No generic commentary. Every sentence must state a specific, conditional, or measurable claim. Do not reference specific quarters or years.`;
   const sys = buildLocaleSystemPrompt({ lang, surface: "global_macro", schema, extra });
   const liveCtx = live ? liveContextTrackA(live) : "";
-  const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}${liveCtx}`);
+  const saudiCtx = buildSaudiMacroContext(live, question + "\n" + ctx);
+  const user = wrapUserContext(
+    lang,
+    `Question: ${question}\n\nContext:\n${ctx}${liveCtx}${saudiCtx ? `\n\n${saudiCtx}` : ""}`,
+  );
   const res = await withTimeout(
-    callAIGateway<TrackA>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 600, temperature: 0.3 }),
+    callAIGateway<TrackA>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 700, temperature: 0.3 }),
     8000,
   );
   return res?.data ?? null;
@@ -1063,11 +1122,14 @@ function fillArbitrationFields(
 
   if (!reply.trackViewMacro && trackA) {
     const regime = trackA.regime.replace(/_/g, " ");
-    // Prefer oilLiquidity (demand/liquidity signal) over ratesEnv when both available — more distinctive
-    const macroDetail = trackA.oilLiquidity || trackA.ratesEnv;
+    // Prefer dxyImpact (macro channel) > oilLiquidity (demand signal) > ratesEnv (rates)
+    const macroDetail = trackA.dxyImpact || trackA.oilLiquidity || trackA.ratesEnv;
+    const creditSuffix = trackA.creditStressLevel === "high" || trackA.creditStressLevel === "extreme"
+      ? (ar ? `؛ ضغط ائتمان ${ar ? (trackA.creditStressLevel === "extreme" ? "حرج" : "مرتفع") : trackA.creditStressLevel}` : `; ${trackA.creditStressLevel} credit stress`)
+      : "";
     reply.trackViewMacro = ar
-      ? `${biasTr(trackA.macroBias, ar)} — نظام ${regime} بثقة ${trackA.regimeConf}%؛ ${macroDetail}`
-      : `${biasTr(trackA.macroBias, ar)} — ${regime} at ${trackA.regimeConf}% conviction; ${macroDetail}`;
+      ? `${biasTr(trackA.macroBias, ar)} — نظام ${regime} بثقة ${trackA.regimeConf}%؛ ${macroDetail}${creditSuffix}`
+      : `${biasTr(trackA.macroBias, ar)} — ${regime} at ${trackA.regimeConf}% conviction; ${macroDetail}${creditSuffix}`;
   }
 
   if (!reply.trackViewTechnical && trackB) {
@@ -1191,7 +1253,7 @@ async function runFusion(
     : "inferred (no live market data available — reason from question context only; downgrade confidence by ≥5 pts)";
 
   const trackLines = [
-    trackA ? `MACRO (Track A): regime=${trackA.regime} conf=${trackA.regimeConf}% bias=${trackA.macroBias} | rates: ${trackA.ratesEnv} | oil/liquidity: ${trackA.oilLiquidity} | ${trackA.macroSummary}` : null,
+    trackA ? `MACRO (Track A): regime=${trackA.regime} conf=${trackA.regimeConf}% bias=${trackA.macroBias} | credit_stress=${trackA.creditStressLevel ?? "n/a"} | rates: ${trackA.ratesEnv} | oil/liquidity: ${trackA.oilLiquidity} | dxy: ${trackA.dxyImpact ?? "n/a"} | ${trackA.macroSummary}` : null,
     trackB ? `TECHNICAL (Track B): ${trackB.technicalBias} bias | trend_strength=${trackB.trendStrength}/100 | momentum=${trackB.momentumStrength}/100 | vol_regime=${trackB.volatilityRegime} | ${trackB.technicalNote}` : null,
     trackC ? `CROSS-ASSET (Track C): ${trackC.crossAssetBias} bias | gold: ${trackC.goldSignal} | BTC/risk-appetite: ${trackC.btcSignal} | DXY: ${trackC.dxyPressure} | correlation: ${trackC.correlationNote}` : null,
     trackD ? `RISK/COUNTER (Track D): uncertainty=${trackD.uncertaintyLevel} | primary_risk: ${trackD.primaryRisk} | weakness: ${trackD.thesisWeakness} | counter: ${trackD.counterCase} | invalidation: ${trackD.invalidationTrigger} | confidence_challenge: ${trackD.confidenceChallenge}` : null,
