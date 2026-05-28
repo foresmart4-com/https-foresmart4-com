@@ -112,10 +112,12 @@ import { Route as ApiPublicGenesis100StatusRouteImport } from './routes/api/publ
 import { Route as ApiPublicGenesis100SourceRegistryRouteImport } from './routes/api/public/genesis100/source-registry'
 import { Route as ApiPublicGenesis100SafetyRouteImport } from './routes/api/public/genesis100/safety'
 import { Route as ApiPublicGenesis100RunCycleRouteImport } from './routes/api/public/genesis100/run-cycle'
+import { Route as ApiPublicGenesis100ResearchSandboxRouteImport } from './routes/api/public/genesis100/research-sandbox'
 import { Route as ApiPublicGenesis100ReportRouteImport } from './routes/api/public/genesis100/report'
 import { Route as ApiPublicGenesis100PositionSizingRouteImport } from './routes/api/public/genesis100/position-sizing'
 import { Route as ApiPublicGenesis100NotificationsRouteImport } from './routes/api/public/genesis100/notifications'
 import { Route as ApiPublicGenesis100MarketSentimentRouteImport } from './routes/api/public/genesis100/market-sentiment'
+import { Route as ApiPublicGenesis100KnowledgeAcquisitionRouteImport } from './routes/api/public/genesis100/knowledge-acquisition'
 import { Route as ApiPublicGenesis100IntelligenceRouteImport } from './routes/api/public/genesis100/intelligence'
 import { Route as ApiPublicGenesis100GovernanceRouteImport } from './routes/api/public/genesis100/governance'
 import { Route as ApiPublicGenesis100DecisionsRouteImport } from './routes/api/public/genesis100/decisions'
@@ -724,6 +726,12 @@ const ApiPublicGenesis100RunCycleRoute =
     path: '/api/public/genesis100/run-cycle',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicGenesis100ResearchSandboxRoute =
+  ApiPublicGenesis100ResearchSandboxRouteImport.update({
+    id: '/api/public/genesis100/research-sandbox',
+    path: '/api/public/genesis100/research-sandbox',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicGenesis100ReportRoute =
   ApiPublicGenesis100ReportRouteImport.update({
     id: '/api/public/genesis100/report',
@@ -746,6 +754,12 @@ const ApiPublicGenesis100MarketSentimentRoute =
   ApiPublicGenesis100MarketSentimentRouteImport.update({
     id: '/api/public/genesis100/market-sentiment',
     path: '/api/public/genesis100/market-sentiment',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicGenesis100KnowledgeAcquisitionRoute =
+  ApiPublicGenesis100KnowledgeAcquisitionRouteImport.update({
+    id: '/api/public/genesis100/knowledge-acquisition',
+    path: '/api/public/genesis100/knowledge-acquisition',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicGenesis100IntelligenceRoute =
@@ -1334,10 +1348,12 @@ export interface FileRoutesByFullPath {
   '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
   '/api/public/genesis100/governance': typeof ApiPublicGenesis100GovernanceRoute
   '/api/public/genesis100/intelligence': typeof ApiPublicGenesis100IntelligenceRoute
+  '/api/public/genesis100/knowledge-acquisition': typeof ApiPublicGenesis100KnowledgeAcquisitionRoute
   '/api/public/genesis100/market-sentiment': typeof ApiPublicGenesis100MarketSentimentRoute
   '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
   '/api/public/genesis100/position-sizing': typeof ApiPublicGenesis100PositionSizingRoute
   '/api/public/genesis100/report': typeof ApiPublicGenesis100ReportRoute
+  '/api/public/genesis100/research-sandbox': typeof ApiPublicGenesis100ResearchSandboxRoute
   '/api/public/genesis100/run-cycle': typeof ApiPublicGenesis100RunCycleRoute
   '/api/public/genesis100/safety': typeof ApiPublicGenesis100SafetyRoute
   '/api/public/genesis100/source-registry': typeof ApiPublicGenesis100SourceRegistryRoute
@@ -1520,10 +1536,12 @@ export interface FileRoutesByTo {
   '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
   '/api/public/genesis100/governance': typeof ApiPublicGenesis100GovernanceRoute
   '/api/public/genesis100/intelligence': typeof ApiPublicGenesis100IntelligenceRoute
+  '/api/public/genesis100/knowledge-acquisition': typeof ApiPublicGenesis100KnowledgeAcquisitionRoute
   '/api/public/genesis100/market-sentiment': typeof ApiPublicGenesis100MarketSentimentRoute
   '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
   '/api/public/genesis100/position-sizing': typeof ApiPublicGenesis100PositionSizingRoute
   '/api/public/genesis100/report': typeof ApiPublicGenesis100ReportRoute
+  '/api/public/genesis100/research-sandbox': typeof ApiPublicGenesis100ResearchSandboxRoute
   '/api/public/genesis100/run-cycle': typeof ApiPublicGenesis100RunCycleRoute
   '/api/public/genesis100/safety': typeof ApiPublicGenesis100SafetyRoute
   '/api/public/genesis100/source-registry': typeof ApiPublicGenesis100SourceRegistryRoute
@@ -1708,10 +1726,12 @@ export interface FileRoutesById {
   '/api/public/genesis100/decisions': typeof ApiPublicGenesis100DecisionsRoute
   '/api/public/genesis100/governance': typeof ApiPublicGenesis100GovernanceRoute
   '/api/public/genesis100/intelligence': typeof ApiPublicGenesis100IntelligenceRoute
+  '/api/public/genesis100/knowledge-acquisition': typeof ApiPublicGenesis100KnowledgeAcquisitionRoute
   '/api/public/genesis100/market-sentiment': typeof ApiPublicGenesis100MarketSentimentRoute
   '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
   '/api/public/genesis100/position-sizing': typeof ApiPublicGenesis100PositionSizingRoute
   '/api/public/genesis100/report': typeof ApiPublicGenesis100ReportRoute
+  '/api/public/genesis100/research-sandbox': typeof ApiPublicGenesis100ResearchSandboxRoute
   '/api/public/genesis100/run-cycle': typeof ApiPublicGenesis100RunCycleRoute
   '/api/public/genesis100/safety': typeof ApiPublicGenesis100SafetyRoute
   '/api/public/genesis100/source-registry': typeof ApiPublicGenesis100SourceRegistryRoute
@@ -1896,10 +1916,12 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/decisions'
     | '/api/public/genesis100/governance'
     | '/api/public/genesis100/intelligence'
+    | '/api/public/genesis100/knowledge-acquisition'
     | '/api/public/genesis100/market-sentiment'
     | '/api/public/genesis100/notifications'
     | '/api/public/genesis100/position-sizing'
     | '/api/public/genesis100/report'
+    | '/api/public/genesis100/research-sandbox'
     | '/api/public/genesis100/run-cycle'
     | '/api/public/genesis100/safety'
     | '/api/public/genesis100/source-registry'
@@ -2082,10 +2104,12 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/decisions'
     | '/api/public/genesis100/governance'
     | '/api/public/genesis100/intelligence'
+    | '/api/public/genesis100/knowledge-acquisition'
     | '/api/public/genesis100/market-sentiment'
     | '/api/public/genesis100/notifications'
     | '/api/public/genesis100/position-sizing'
     | '/api/public/genesis100/report'
+    | '/api/public/genesis100/research-sandbox'
     | '/api/public/genesis100/run-cycle'
     | '/api/public/genesis100/safety'
     | '/api/public/genesis100/source-registry'
@@ -2269,10 +2293,12 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/decisions'
     | '/api/public/genesis100/governance'
     | '/api/public/genesis100/intelligence'
+    | '/api/public/genesis100/knowledge-acquisition'
     | '/api/public/genesis100/market-sentiment'
     | '/api/public/genesis100/notifications'
     | '/api/public/genesis100/position-sizing'
     | '/api/public/genesis100/report'
+    | '/api/public/genesis100/research-sandbox'
     | '/api/public/genesis100/run-cycle'
     | '/api/public/genesis100/safety'
     | '/api/public/genesis100/source-registry'
@@ -2403,10 +2429,12 @@ export interface RootRouteChildren {
   ApiPublicGenesis100DecisionsRoute: typeof ApiPublicGenesis100DecisionsRoute
   ApiPublicGenesis100GovernanceRoute: typeof ApiPublicGenesis100GovernanceRoute
   ApiPublicGenesis100IntelligenceRoute: typeof ApiPublicGenesis100IntelligenceRoute
+  ApiPublicGenesis100KnowledgeAcquisitionRoute: typeof ApiPublicGenesis100KnowledgeAcquisitionRoute
   ApiPublicGenesis100MarketSentimentRoute: typeof ApiPublicGenesis100MarketSentimentRoute
   ApiPublicGenesis100NotificationsRoute: typeof ApiPublicGenesis100NotificationsRoute
   ApiPublicGenesis100PositionSizingRoute: typeof ApiPublicGenesis100PositionSizingRoute
   ApiPublicGenesis100ReportRoute: typeof ApiPublicGenesis100ReportRoute
+  ApiPublicGenesis100ResearchSandboxRoute: typeof ApiPublicGenesis100ResearchSandboxRoute
   ApiPublicGenesis100RunCycleRoute: typeof ApiPublicGenesis100RunCycleRoute
   ApiPublicGenesis100SafetyRoute: typeof ApiPublicGenesis100SafetyRoute
   ApiPublicGenesis100SourceRegistryRoute: typeof ApiPublicGenesis100SourceRegistryRoute
@@ -3152,6 +3180,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicGenesis100RunCycleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/genesis100/research-sandbox': {
+      id: '/api/public/genesis100/research-sandbox'
+      path: '/api/public/genesis100/research-sandbox'
+      fullPath: '/api/public/genesis100/research-sandbox'
+      preLoaderRoute: typeof ApiPublicGenesis100ResearchSandboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/genesis100/report': {
       id: '/api/public/genesis100/report'
       path: '/api/public/genesis100/report'
@@ -3178,6 +3213,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/genesis100/market-sentiment'
       fullPath: '/api/public/genesis100/market-sentiment'
       preLoaderRoute: typeof ApiPublicGenesis100MarketSentimentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/knowledge-acquisition': {
+      id: '/api/public/genesis100/knowledge-acquisition'
+      path: '/api/public/genesis100/knowledge-acquisition'
+      fullPath: '/api/public/genesis100/knowledge-acquisition'
+      preLoaderRoute: typeof ApiPublicGenesis100KnowledgeAcquisitionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/genesis100/intelligence': {
@@ -3970,12 +4012,16 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicGenesis100DecisionsRoute: ApiPublicGenesis100DecisionsRoute,
   ApiPublicGenesis100GovernanceRoute: ApiPublicGenesis100GovernanceRoute,
   ApiPublicGenesis100IntelligenceRoute: ApiPublicGenesis100IntelligenceRoute,
+  ApiPublicGenesis100KnowledgeAcquisitionRoute:
+    ApiPublicGenesis100KnowledgeAcquisitionRoute,
   ApiPublicGenesis100MarketSentimentRoute:
     ApiPublicGenesis100MarketSentimentRoute,
   ApiPublicGenesis100NotificationsRoute: ApiPublicGenesis100NotificationsRoute,
   ApiPublicGenesis100PositionSizingRoute:
     ApiPublicGenesis100PositionSizingRoute,
   ApiPublicGenesis100ReportRoute: ApiPublicGenesis100ReportRoute,
+  ApiPublicGenesis100ResearchSandboxRoute:
+    ApiPublicGenesis100ResearchSandboxRoute,
   ApiPublicGenesis100RunCycleRoute: ApiPublicGenesis100RunCycleRoute,
   ApiPublicGenesis100SafetyRoute: ApiPublicGenesis100SafetyRoute,
   ApiPublicGenesis100SourceRegistryRoute:

@@ -67,6 +67,8 @@ import { computeBookIntelligence, type BookIntelligenceResult } from "@/services
 import { computeBehavioralMarket, type BehavioralMarketResult, type BehavioralLabel } from "@/services/intelligence/behavioralMarket";
 import { computePortfolioConstruction, type PortfolioConstructionResult, type PortfolioConstructionLabel } from "@/services/portfolio/portfolioConstruction";
 import { computeGovernanceOS, type GovernanceOSResult, type GovernanceState } from "@/services/governance/governanceOS";
+import { computeResearchSandbox, type ResearchSandboxResult } from "@/services/research/researchSandbox";
+import { computeGovernedKnowledgeAcquisition, type GovernedKnowledgeAcquisitionResult } from "@/services/knowledge/governedKnowledgeAcquisition";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -191,6 +193,8 @@ function GenesisPage() {
   const [behavioralMarketResult, setBehavioralMarketResult] = useState<BehavioralMarketResult | null>(null); // Phase-44
   const [portfolioConstructionResult, setPortfolioConstructionResult] = useState<PortfolioConstructionResult | null>(null); // Phase-48
   const [governanceOSResult, setGovernanceOSResult] = useState<GovernanceOSResult | null>(null); // Phase-47
+  const [sandboxResult, setSandboxResult] = useState<ResearchSandboxResult | null>(null); // Phase-49
+  const [knowledgeAcqResult, setKnowledgeAcqResult] = useState<GovernedKnowledgeAcquisitionResult | null>(null); // Phase-50A
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
   const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -657,6 +661,53 @@ function GenesisPage() {
       });
       setGovernanceOSResult(governanceOS);
 
+      // Phase-49: Research Sandbox — exploratory comparison infrastructure; never trades
+      const sandbox = computeResearchSandbox({
+        thesisCount: thesisLab.thesisCount,
+        competingTheses: thesisLab.competingViews,
+        scenarioSpread: scenarioIntel.uncertaintyLevel === "extreme" ? "extreme" : scenarioIntel.uncertaintyLevel === "high" ? "wide" : "narrow",
+        frameworkConflict:
+          governanceOS.activeConflicts.includes("scenario_debate_conflict") ||
+          governanceOS.activeConflicts.includes("evidence_confidence_mismatch"),
+        historicalAnalogActive: (bookIntelligenceResult?.historicalAnalog ?? null) !== null,
+        uncertaintyLevel: scenarioIntel.uncertaintyLevel,
+        debateBalance: debate.debateBalance,
+        governanceState: governanceOS.governanceState,
+        learningGovernance: learningGov.label,
+        firewallState: firewallResult.state,
+        ar,
+      });
+      setSandboxResult(sandbox);
+
+      // Phase-50A: Governed Knowledge Acquisition Infrastructure; no live acquisition
+      const knowledgeAcq = computeGovernedKnowledgeAcquisition({
+        credibilityScore:
+          credibility.label === "high" ? 82 :
+          credibility.label === "medium" ? 55 :
+          credibility.label === "low" ? 22 : 40,
+        hasCompetingFramework: (bookIntelligenceResult?.competingSchool ?? null) !== null,
+        evidenceDurability:
+          bookIntelligenceResult?.qualityLabel === "high_institutional_value" ? "high" :
+          bookIntelligenceResult?.qualityLabel === "contextual_value" ? "medium" : "low",
+        institutionalRelevance:
+          coverage.relevanceState === "high_relevance" ? "high" :
+          coverage.relevanceState === "moderate_relevance" ? "medium" : "low",
+        historicalImportance: (bookIntelligenceResult?.historicalAnalog ?? null) !== null,
+        ideologicalRisk:
+          governanceOS.activeConflicts.length >= 3 ? "high" :
+          (debate.hasMaterialDisagreement && governanceOS.activeConflicts.length >= 2) ? "moderate" :
+          debate.hasMaterialDisagreement ? "low" : "none",
+        popularityDriven: credibility.label === "low",
+        hasSocialMediaOrigin: false,
+        amplifiesCertainty: false,
+        existingCorpusDiversity: "diverse",
+        sandboxCandidateCount: sandbox.researchCandidates.length,
+        governanceState: governanceOS.governanceState,
+        firewallState: firewallResult.state,
+        ar,
+      });
+      setKnowledgeAcqResult(knowledgeAcq);
+
       const decisionCtx = [
         `System calibration: ECE=${eceVal.toFixed(3)}${drift.isDrifting ? " ⚠ performance drift detected" : ""}`,
         topStrategy ? `Top strategy: ${topStrategy.strategy} win-rate ${(topStrategy.winRate * 100).toFixed(0)}% (${topStrategy.bestRegime ?? "any"} regime)` : "",
@@ -726,6 +777,14 @@ function GenesisPage() {
         governanceOS.confidenceModifier !== 0
           ? `Governance confidence: ${governanceOS.confidenceModifier} pts (${governanceOS.governanceState.replace(/_/g, " ")})`
           : "",
+        // Research Sandbox — Phase-49: exploratory comparison state
+        sandbox.contextString,
+        // Sandbox research candidates — surfaced for governance review; no auto-ingestion
+        sandbox.researchCandidates.length > 0
+          ? `Learning candidate: ${sandbox.researchCandidates[0].slice(0, 80)}`
+          : "",
+        // Knowledge Acquisition — Phase-50A: governed acquisition pipeline state
+        knowledgeAcq.contextString,
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
