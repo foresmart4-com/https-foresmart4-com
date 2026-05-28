@@ -10,7 +10,7 @@ function warnIfVaultMissing() {
   vaultChecked = true;
   const s = vaultStatus();
   if (!s.ok) {
-    console.warn(`[vault] ${s.message}`);
+    console.info(`[vault] ${s.message}`);
   }
 }
 
