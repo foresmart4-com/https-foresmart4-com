@@ -50,6 +50,8 @@ import { computePaperSynthesis, type PaperSynthesis, type PaperThesisState } fro
 import { computeFirewall, type FirewallResult, type FirewallState } from "@/services/governance/decisionFirewall";
 import { computeResearchCoverage, type ResearchCoverageResult, type RelevanceState } from "@/services/research/researchCoverageEngine";
 import { computeMacroEvent, type MacroEventResult, type EventSignificance } from "@/services/macro/macroEventEngine";
+import { computeCredibility, type CredibilityResult, type CredibilityLabel } from "@/services/credibility/credibilityEngine";
+import { computeDebate, type DebateResult, type DebateBalance } from "@/services/intelligence/debateEngine";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -156,6 +158,8 @@ function GenesisPage() {
   const [activeFrameworks, setActiveFrameworks] = useState<string[]>([]); // Phase-28: knowledge frameworks active on last send
   const [coverageResult, setCoverageResult] = useState<ResearchCoverageResult | null>(null); // Phase-31
   const [macroEventResult, setMacroEventResult] = useState<MacroEventResult | null>(null); // Phase-33
+  const [credibilityResult, setCredibilityResult] = useState<CredibilityResult | null>(null); // Phase-34
+  const [debateResult, setDebateResult] = useState<DebateResult | null>(null); // Phase-32
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
   const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -329,6 +333,26 @@ function GenesisPage() {
       );
       setMacroEventResult(macroEvent);
 
+      // Phase-34: Credibility Intelligence — question-reactive, pure function
+      const credibility = computeCredibility(trimmed, ar);
+      setCredibilityResult(credibility);
+
+      // Phase-32: Multi-Agent Debate Intelligence — uses signals from all prior engines
+      const debate = computeDebate({
+        question: trimmed,
+        regime: marketIntel.regime ?? "",
+        strategicBias: strategicSynthesis.bias,
+        firewallState: firewallResult.state,
+        portfolioRiskLabel: portfolioRisk.riskLabel,
+        hasActiveVulnerability: portfolioRisk.hasActiveVulnerability,
+        watchlistCategories: watchlistItems.map((a) => a.category),
+        coverageTopics: coverage.topTopics.map((t) => t.topic),
+        macroEventSignificance: macroEvent.significance,
+        macroEventType: macroEvent.primaryEvent,
+        ar,
+      });
+      setDebateResult(debate);
+
       const decisionCtx = [
         `System calibration: ECE=${eceVal.toFixed(3)}${drift.isDrifting ? " ⚠ performance drift detected" : ""}`,
         topStrategy ? `Top strategy: ${topStrategy.strategy} win-rate ${(topStrategy.winRate * 100).toFixed(0)}% (${topStrategy.bestRegime ?? "any"} regime)` : "",
@@ -354,6 +378,14 @@ function GenesisPage() {
         coverage.contextString,
         // Macro event — Phase-33: event significance + transmission channels
         macroEvent.contextString,
+        // Credibility — Phase-34: source quality framing
+        credibility.contextString,
+        // Credibility confidence note — only when low to guide AI framing
+        credibility.shouldReduceConfidence ? credibility.confidenceNote : "",
+        // Debate — Phase-32: structured bull/bear balance
+        debate.contextString,
+        // Debate confidence impact — injected only when material
+        debate.confidenceImpact < 0 ? `Debate confidence impact: ${debate.confidenceImpact} pts (${debate.debateBalance.replace(/_/g, " ")})` : "",
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
@@ -1070,6 +1102,16 @@ function GenesisPage() {
         <MacroEventStatusLine result={macroEventResult} ar={ar} />
       )}
 
+      {/* ─── Credibility — Phase 34 ─────────────────────────────────────── */}
+      {credibilityResult?.hasLowCredibilityRisk && (
+        <CredibilityStatusLine result={credibilityResult} ar={ar} />
+      )}
+
+      {/* ─── Debate Balance — Phase 32 ──────────────────────────────────── */}
+      {debateResult?.hasActiveDebate && (
+        <DebateStatusLine result={debateResult} ar={ar} />
+      )}
+
       {/* ─── Proactive Research Signals — Phase 21 ──────────────────────── */}
       {researchCandidates.length > 0 && (
         <ProactiveResearchPanel
@@ -1286,6 +1328,77 @@ function MacroEventStatusLine({ result, ar }: { result: MacroEventResult; ar: bo
         <>
           <span className="text-border/60">|</span>
           <span className="text-muted-foreground/60 truncate italic">{result.transmissionChannels[0]}</span>
+        </>
+      )}
+      <span className="ms-auto text-muted-foreground/40 italic text-[9px]">
+        {ar ? "استشاري" : "advisory"}
+      </span>
+    </div>
+  );
+}
+
+// ─── Phase 34: Credibility Status Line ───────────────────────────────────────
+
+const CREDIBILITY_STYLE: Record<CredibilityLabel, { border: string; bg: string; text: string; dot: string }> = {
+  high_credibility:      { border: "border-success/40",  bg: "bg-success/5",   text: "text-success",           dot: "bg-success" },
+  medium_credibility:    { border: "border-border/50",   bg: "bg-muted/8",     text: "text-foreground/70",     dot: "bg-muted-foreground/60" },
+  low_credibility:       { border: "border-warning/50",  bg: "bg-warning/5",   text: "text-warning",           dot: "bg-warning" },
+  uncertain_credibility: { border: "border-border/20",   bg: "bg-muted/3",     text: "text-muted-foreground/60", dot: "bg-muted-foreground/30" },
+};
+
+function CredibilityStatusLine({ result, ar }: { result: CredibilityResult; ar: boolean }) {
+  const s = CREDIBILITY_STYLE[result.label];
+  const labelText = ar
+    ? ({ high_credibility: "مصداقية عالية", medium_credibility: "مصداقية متوسطة", low_credibility: "مصداقية منخفضة", uncertain_credibility: "مصداقية غير محددة" }[result.label])
+    : result.label.replace(/_/g, " ");
+  return (
+    <div className={cn("mb-2 flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px]", s.border, s.bg)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)} />
+      <span className={cn("font-bold uppercase tracking-wide", s.text)}>
+        {ar ? "المصداقية" : "Credibility"} — {labelText}
+      </span>
+      {result.primarySignal && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/70 truncate">{result.primarySignal.matched}</span>
+        </>
+      )}
+      <span className="ms-auto text-muted-foreground/40 italic text-[9px]">
+        {ar ? "استشاري" : "advisory"}
+      </span>
+    </div>
+  );
+}
+
+// ─── Phase 32: Debate Balance Status Line ────────────────────────────────────
+
+const DEBATE_STYLE: Record<DebateBalance, { border: string; bg: string; text: string; dot: string }> = {
+  bull_dominant: { border: "border-success/40",  bg: "bg-success/5",  text: "text-success",          dot: "bg-success" },
+  bear_dominant: { border: "border-warning/50",  bg: "bg-warning/5",  text: "text-warning",           dot: "bg-warning" },
+  contested:     { border: "border-primary/30",  bg: "bg-primary/5",  text: "text-primary",           dot: "bg-primary" },
+  inconclusive:  { border: "border-border/30",   bg: "bg-muted/5",    text: "text-muted-foreground",  dot: "bg-muted-foreground/40" },
+};
+
+function DebateStatusLine({ result, ar }: { result: DebateResult; ar: boolean }) {
+  const s = DEBATE_STYLE[result.debateBalance];
+  const balanceLabel = ar
+    ? ({ bull_dominant: "صاعد غالب", bear_dominant: "هابط غالب", contested: "متنازع", inconclusive: "غير حاسم" }[result.debateBalance])
+    : result.debateBalance.replace(/_/g, " ");
+  const scoreStr = `bull ${result.bullScore} / bear ${result.bearScore}`;
+  return (
+    <div className={cn("mb-2 flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px]", s.border, s.bg)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)} />
+      <span className={cn("font-bold uppercase tracking-wide", s.text)}>
+        {ar ? "النقاش الداخلي" : "Bull/Bear Balance"} — {balanceLabel}
+      </span>
+      <span className="text-border/60">|</span>
+      <span className="text-muted-foreground/70 truncate">{scoreStr}</span>
+      {result.confidenceImpact < 0 && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/60 italic truncate">
+            {ar ? `تأثير الثقة: ${result.confidenceImpact} نقطة` : `confidence ${result.confidenceImpact} pts`}
+          </span>
         </>
       )}
       <span className="ms-auto text-muted-foreground/40 italic text-[9px]">

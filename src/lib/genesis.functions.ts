@@ -714,7 +714,13 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
   const macroEventGuidance = ar
     ? `عند ظهور "Macro event:" في السياق: critical — أوضح قنوات الانتقال المتعددة مع لغة شرطية؛ meaningful — أشر للقناة الأساسية؛ secondary — اعترف بمحدودية الصلة الكلية. الأهمية ≠ توقع الاتجاه. ممنوع: "مؤكد التأثير"، "سيرتفع/ينخفض بالضرورة"، "يجب الاستجابة الآن". جميع مخرجات الأحداث الكلية استشارية وتعليمية.`
     : `When "Macro event:" appears in context: critical — explain multiple transmission channels with conditional language; meaningful — note the primary channel; secondary — acknowledge limited macro linkage. Significance ≠ directional prediction. FORBIDDEN: "certain impact", "will definitely rise/fall", "must respond immediately". All macro event output is advisory and educational only.`;
-  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n\n${base}`;
+  const credibilityGuidance = ar
+    ? `عند ظهور "Credibility:" في السياق: high — استخدم كأدلة أولية مع الإقرار بالمصدر؛ medium — اذكر حدود التحقق؛ low — خفّض الثقة ~5 نقاط وتجنب تأطير الأفعال الاتجاهية؛ uncertain — اعترف بمحدودية الأدلة. ممنوع: "مصدر موثوق تماماً"، "بيانات مؤكدة"، "مضمون الدقة". الشعبية ≠ المصداقية — لا تُضخّم الإشاعات.`
+    : `When "Credibility:" appears in context: high — treat as primary evidence acknowledging source; medium — note verification limits; low — reduce confidence anchor ~5 pts and avoid directional action framing; uncertain — acknowledge limited evidence quality. FORBIDDEN: "fully reliable source", "confirmed data", "guaranteed accuracy". Popularity ≠ credibility — never amplify rumor signals.`;
+  const debateGuidance = ar
+    ? `عند ظهور "Debate:" في السياق: bull_dominant — أدلة صاعدة أقوى لكن اذكر الاعتراضات؛ bear_dominant — الحالة الهابطة مدعومة أكثر؛ سقف الثقة بشكل صريح؛ contested — خلاف جوهري قائم؛ صِغ الحجتين معاً ووضّح أيهما يكسب ولماذا؛ lconclusive — ابنِ على السياق المباشر. "تأثير الثقة: -X نقطة" — طبّق الضغط على الأنكر. ممنوع: "نتيجة مؤكدة"، "واضح أن"، "اشترِ/بِع الآن"، "النقاش انتهى". اعترف بأن الخلاف يبقى.`
+    : `When "Debate:" appears in context: bull_dominant — bull evidence is stronger but note the objections; bear_dominant — bear case is better-supported; explicitly cap confidence; contested — material disagreement is active; frame both sides and explain which wins and why; inconclusive — build from immediate context. "Debate confidence impact: -X pts" — apply this pressure to your confidence anchor. FORBIDDEN: "certain outcome", "it is obvious", "buy/sell now", "debate is settled". Always acknowledge that disagreement may remain.`;
+  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n\n${base}`;
 }
 
 // ─── Institutional Reasoning Tracks ───────────────────────────────────────
