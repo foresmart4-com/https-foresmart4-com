@@ -543,7 +543,13 @@ function buildGenesisSystemPrompt(lang: Lang): string {
     - المعايرة: إذا ظهر "Calibration memory" في السياق، طبّق تعديل الثقة المذكور على الأنكر. لا تدّعي تعديلاً على أساس البيانات دون توافر تلك البيانات في السياق.
     - سياق النتائج: إذا أشارت "نتائج الأطروحات السابقة" إلى أطروحات ضعيفة أو ملغاة، اعترف بما يُشير إليه النمط — مثال: "الأطروحة السابقة على [الأصل] ضعّفها النظام الحالي — الرأي الجديد يجب أن يُعالج ما الذي تغيّر." إذا كانت النتائج غير محددة، اعترف بالحالة غير المحسومة دون اختلاق نتيجة. لا تدّعي أن أطروحة "أُثبتت صحتها أو خطؤها" بناءً على بيانات الجلسة وحدها.
     - ضغط النتائج: إذا ظهرت ملاحظة "Outcome pressure" في السياق (مثل "-4 pts from thesis pattern")، طبّق التعديل المذكور على الأنكر. لا تطبّق الضغط دون توافر الملاحظة في السياق.
-17. التحيّز الاستراتيجي وإطار القرار — عند توافر سياق متعدد المسارات:
+17. معايرة القرار والسرد — عند ظهور "Calibration context" أو "Calibration pressure" أو "Outcome pressure" في السياق:
+    طبّق الضغط المذكور على أنكر الثقة. لا تطبّق ضغطاً غير موجود في السياق صراحةً.
+    لغة المعايرة المسموح بها: "الثقة متوافقة تاريخياً"، "الثقة تحت ضغط مؤخراً"، "المعايرة مختلطة"، "أدلة نتائج محدودة"، "ميل للمبالغة لوحظ"، "معايرة جيدة تاريخياً"
+    لغة المعايرة الممنوعة: "مثبت الربحية"، "دقة مضمونة"، "دائماً صحيح"، "ألفا مُتحقق منه" (لا تدّعي هذه دون بيانات محسومة صريحة)
+    عند محدودية أدلة المعايرة: اذكر "أدلة المعايرة محدودة — الثقة تعكس جودة الأدلة الحالية فقط" ولا تشير إلى الأداء التاريخي.
+    عند وجود إشارة مبالغة: أشر في confidenceCalibration إلى "الترسيخ محافظ بسبب ميل المبالغة الملاحظ".
+18. التحيّز الاستراتيجي وإطار القرار — عند توافر سياق متعدد المسارات:
     اضبط "strategicBias" بناءً على تجميع الأدلة عبر المسارات:
     - "constructive": النظام الكلي والتقني والأصول المتقاطعة تدعم الحالة الأساسية بمخاطر قابلة للإدارة
     - "opportunistic": توضّع غير متماثل — أحد جانبي الفرصة مُعوَّض بشكل أفضل مقارنةً بملف المخاطر
@@ -637,7 +643,13 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
     - CALIBRATION: if "Calibration memory" context is present, apply the stated confidence adjustment to your anchor. Never assert calibration-based adjustment without the data to support it.
     - OUTCOME CONTEXT: if "Recent thesis outcomes" shows weakened or invalidated theses, acknowledge what the outcome pattern suggests — e.g. "Prior [asset] thesis weakened by current regime — the new view must address what changed." If outcomes are confirmed, you may note the regime continuity without overstating certainty. If outcomes are unclear, acknowledge the unresolved state rather than inventing a result. Never claim a thesis was "proven correct" or "proven wrong" based solely on session data.
     - OUTCOME PRESSURE: if "Outcome pressure" note appears in context (e.g. "-4 pts from thesis pattern"), apply the stated adjustment to your confidence anchor. Never apply pressure without the note in context.
-17. STRATEGIC BIAS & DECISION FRAMING — When multi-track or strategic context is present:
+17. DECISION CALIBRATION NARRATIVE — When "Calibration context", "Calibration pressure", or "Outcome pressure" appears in context:
+    Apply the stated pressure to your confidence anchor. Never apply pressure that isn't explicitly in context.
+    Allowed calibration language: "confidence historically aligned", "confidence recently pressured", "calibration mixed", "limited outcome evidence", "overshoot tendency noted", "well-calibrated historically"
+    Forbidden calibration language: "proven profitable", "guaranteed accuracy", "always correct", "verified alpha", "statistically significant track record" (never claim these without explicit resolved data)
+    When calibration evidence is limited: state "Calibration evidence limited — confidence reflects current evidence quality" and do NOT reference historical performance.
+    When overshoot signal is present: note "confidence anchoring is conservative given overshoot tendency" in confidenceCalibration.
+18. STRATEGIC BIAS & DECISION FRAMING — When multi-track or strategic context is present:
     Set "strategicBias" based on the synthesis of all available evidence:
     - "constructive": macro regime + technical + cross-asset all favor the base case; risk is manageable and well-quantified
     - "opportunistic": asymmetric setup — one side of the trade is clearly better-compensated given the risk profile

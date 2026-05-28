@@ -41,6 +41,8 @@ import { coordinateIntelligence, type CoordinationResult } from "@/services/inte
 import { computeProactiveResearch, type ResearchCandidate } from "@/services/research/proactiveEngine";
 import { computeStrategicSynthesis, type StrategicSynthesis, type StrategicBias } from "@/services/intelligence/strategicEngine";
 import { inferThesisOutcomes, type OutcomeSummary } from "@/services/learning/outcomeEngine";
+import { computeDecisionScore, type DecisionScoreResult, type CalibrationScore } from "@/services/learning/decisionScoring";
+import { overallStats } from "@/services/learning/selfLearningEngine";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -209,6 +211,23 @@ function GenesisPage() {
     ar,
   ), [researchCandidates, ar]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Decision calibration score — unifies ECE, outcome patterns, and track record.
+  // Provides compact context for AI injection; shown as tiny badge in stats panel.
+  const decisionScore = useMemo(() => {
+    const overall = overallStats();
+    const thesisStats = thesisMemory.outcomeStats();
+    return computeDecisionScore({
+      eceVal,
+      tradeCount: overall.trades,
+      isDrifting: drift.isDrifting,
+      confModifier,
+      outcomeSummary: thesisOutcomes,
+      thesisResolved: thesisStats.resolved,
+      thesisAccuracy: thesisStats.accuracy,
+      ar,
+    });
+  }, [eceVal, thesisOutcomes, confModifier, ar]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const marketContext = assets
     .slice(0, 10)
     .map((a) => `${a.symbol}: ${a.price} (${a.changePct >= 0 ? "+" : ""}${a.changePct.toFixed(2)}%)`)
@@ -248,6 +267,12 @@ function GenesisPage() {
         // Outcome pressure note — conservative adjustment from prior thesis pattern
         thesisOutcomes.confidencePressure !== 0
           ? `Outcome pressure: ${thesisOutcomes.confidencePressure > 0 ? "+" : ""}${thesisOutcomes.confidencePressure} pts from thesis pattern (${thesisOutcomes.confirmed} confirmed, ${thesisOutcomes.weakened} weakened, ${thesisOutcomes.invalidated} invalidated)`
+          : "",
+        // Calibration context — unified ECE + outcome + track record score
+        decisionScore.calibrationContext,
+        // Calibration pressure — additive to outcome pressure, bounded ±4 pts
+        decisionScore.calibrationPressure !== 0
+          ? `Calibration pressure: ${decisionScore.calibrationPressure > 0 ? "+" : ""}${decisionScore.calibrationPressure} pts (${decisionScore.score}${decisionScore.trustProfile.hasOvershootSignal ? ", overshoot detected" : ""})`
           : "",
       ].filter(Boolean).join(" | ");
 
@@ -670,6 +695,15 @@ function GenesisPage() {
                 label={ar ? "المعايرة ECE" : "Calibration ECE"}
                 value={eceVal > 0 ? eceVal.toFixed(3) : "—"}
                 highlight={drift.isDrifting ? "warning" : undefined}
+              />
+              <MemoryStat
+                label={ar ? "معايرة القرار" : "Decision Score"}
+                value={decisionScore.narrativeHint}
+                highlight={
+                  decisionScore.score === "well_calibrated" ? "success" :
+                  decisionScore.score === "weakly_calibrated" ? "warning" :
+                  undefined
+                }
               />
             </div>
 
@@ -1918,14 +1952,20 @@ const ACTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   none: ChevronRight,
 };
 
-function MemoryStat({ label, value, highlight }: { label: string; value: string; highlight?: "warning" }) {
+function MemoryStat({ label, value, highlight }: { label: string; value: string; highlight?: "warning" | "success" }) {
   return (
     <div className={cn(
       "rounded-lg border p-2.5 text-center",
-      highlight === "warning" ? "border-warning/30 bg-warning/5" : "border-border/40 bg-muted/20",
+      highlight === "warning" ? "border-warning/30 bg-warning/5" :
+      highlight === "success" ? "border-success/30 bg-success/5" :
+      "border-border/40 bg-muted/20",
     )}>
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</div>
-      <div className={cn("mt-0.5 text-sm font-bold", highlight === "warning" ? "text-warning" : "text-foreground")}>
+      <div className={cn("mt-0.5 text-sm font-bold",
+        highlight === "warning" ? "text-warning" :
+        highlight === "success" ? "text-success" :
+        "text-foreground",
+      )}>
         {value}
       </div>
     </div>
