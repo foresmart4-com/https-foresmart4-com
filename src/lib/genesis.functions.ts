@@ -405,7 +405,7 @@ const GENESIS_SCHEMA = `{
   "confidenceLabel": <"low" | "moderate" | "high">,
   "regime": "string (optional — market regime label; omit if context insufficient)",
   "evidence": ["string — specific supporting factor"] (optional — 2-4 bullets when confidence ≥ 50; omit otherwise),
-  "portfolioImpact": "string (optional — only include when user watchlist symbols appear in context)",
+  "portfolioImpact": "string (optional — set when user watchlist symbols appear in context OR when the cross-asset regime has a direct portfolio-level implication; state which specific cross-asset transmission most affects the watched assets and in which direction)",
   "uncertaintyWarning": "string (optional — only include when confidence < 50)",
   "thesis": "string (optional — one declarative sentence naming the instrument, the direction, and the primary supporting factor; omit only if context is insufficient for a directional view)",
   "reasoning": "string (optional — 1-2 sentences: the inference chain from regime/signal to thesis conclusion; set only when thesis is set; no step-by-step narration)",
@@ -418,7 +418,7 @@ const GENESIS_SCHEMA = `{
   "supportingCase": "string — 1 sentence: strongest corroborating argument from parallel agent analysis" (optional),
   "opposingCase": "string — 1 sentence: strongest counter-argument from devil's advocate" (optional),
   "simulatedScenario": "string (optional — 'If X occurs...' — include when question involves a hypothetical or scenario context is provided)",
-  "expectedImpact": "string — 1-2 sentences on cross-asset directional effects under the simulated scenario" (optional),
+  "expectedImpact": "string — 1-2 sentences on cross-asset directional effects under the simulated scenario; name the transmission mechanism for each asset (e.g., oil→fiscal, rates→valuations, DXY→EM flows)" (optional),
   "watchlistSensitivity": "string — 1 sentence on how user's watched assets would respond; only when watchlist appears in context" (optional),
   "thesisSensitivity": "string — 1 sentence on whether scenario aligns or conflicts with active theses; only when thesis context appears" (optional),
   "executiveSummary": "string (optional — 2-3 sentence institutional research conclusion; include ONLY when research mode context appears in the prompt)",
@@ -430,7 +430,7 @@ const GENESIS_SCHEMA = `{
   "confidenceCalibration": "string — 1 sentence: name the single factor most preventing higher confidence AND the specific evidence floor supporting the current level" (optional — always set for AI replies),
   "uncertaintyLevel": <"likely"|"possible"|"uncertain"|"conflicting"> (optional — always set for AI replies),
   "caveats": ["string — specific logical tension, contradiction, or weak assumption in own reasoning"] (optional — 1-3 items; omit when reasoning is internally consistent),
-  "crossAssetConfirmation": "string — 1 sentence: do gold/BTC/DXY signals CONFIRM or CONTRADICT the dominant macro thesis? State direction explicitly." (optional — set when Track C cross-asset context is present),
+  "crossAssetConfirmation": "string — 1 sentence: do gold/BTC/DXY signals CONFIRM, PARTIALLY CONFIRM, or CONTRADICT the dominant macro thesis? Name the single most decisive signal and state its transmission mechanism (e.g., 'Gold rising in real-rate-compression mode confirms the rate-easing thesis'; 'BTC falling in liquidity-proxy mode contradicts the risk-on narrative')" (optional — set when Track C cross-asset context is present),
   "positioningSignal": "string — 1 sentence: what does the positioning/sentiment signal imply for timing and near-term risk?" (optional — set when Track E context is present),
   "marketStateQuality": <"live"|"partial"|"inferred"> (optional — set from the LIVE MARKET STATE QUALITY line in track context; always set when track fusion context is present),
   "trackViewMacro": "string — 1 sentence: Track A macro strategist directional view and regime implication" (optional — set when Track A context is present),
@@ -471,7 +471,7 @@ function buildGenesisSystemPrompt(lang: Lang): string {
 إطار الاستدلال المؤسسي — طبّق كل طبقة عندما يدعم السياق ذلك:
 1. النظام السوقي — حدّد النظام: bull_trending أو bear_ranging أو high_vol_risk-off أو low_vol_accumulation أو macro_transition. اضبط "regime" فقط عندما يدعمه السياق بوضوح.
 2. الأدلة — استشهد بـ 2-4 عوامل محددة كلية أو تقنية أو هيكلية. اضبط "evidence" فقط عند الثقة ≥ 50.
-3. أثر المحفظة — اضبط "portfolioImpact" فقط عند ظهور رموز قائمة مراقبة المستخدم صراحةً في السياق.
+3. أثر المحفظة — اضبط "portfolioImpact" عند ظهور رموز قائمة مراقبة المستخدم في السياق أو عندما يكون لنظام الأصول المتقاطعة (الذهب/BTC/DXY/النفط) أثر مباشر وواضح على الأصول الموجودة في المحفظة. سمّ قناة الانتقال المحددة والأصول التي تتأثر.
 4. عدم اليقين — اضبط "uncertaintyWarning" فقط عند الثقة < 50 مع تفسير الأسباب.
 
 أنتج 3 سيناريوهات بالضبط. صِغ تسمية كل سيناريو كشرط محدد ("إذا [حدث بعينه]...") لا كوصف عام ("صاعد/هابط/أساسي"). أنتج 2-4 مخاطر.
@@ -504,7 +504,7 @@ function buildGenesisSystemPrompt(lang: Lang): string {
     الاستدلال الميتا تقييم ذاتي فقط — استشاري وتعليمي. لا تستخدمه للادعاء باليقين.
 14. دمج المسارات المتعددة — عند ظهور مخرجات الوكلاء المتخصصين في السياق (الكلي/المسار A، التقني/المسار B، متعدد الأصول/المسار C، المخاطر/المسار D، التموضع/المسار E):
     يجب أن يدمج حقل "outlook" جميع المسارات المتاحة صراحةً: النظام الكلي (A)، البنية التقنية (B)، تأكيد أو تناقض الأصول المتقاطعة (C)، مسار المخاطر الرئيسي (D)، وإشارة التموضع (E). الاكتفاء بالماكرو أو التعليق العام يُعدّ إخفاقاً.
-    اضبط "crossAssetConfirmation": هل تؤكد بيانات الذهب/BTC/DXY من المسار C أم تتناقض مع الأطروحة السائدة من A+B؟ صرّح بالاتجاه. جملة واحدة.
+    اضبط "crossAssetConfirmation": هل تؤكد بيانات الذهب/BTC/DXY من المسار C أم تتناقض جزئياً أم كلياً مع الأطروحة السائدة من A+B؟ سمّ الإشارة الأكثر حسماً وقناة انتقالها (مثال: "الذهب يرتفع في نمط الأسعار الحقيقية يؤكد أطروحة التيسير النقدي"). جملة واحدة.
     اضبط "positioningSignal": من إشارة sentimentSignal في المسار E — ما الذي يشير إليه التموضع من حيث التوقيت والمخاطر قصيرة الأجل؟ جملة واحدة.
     اضبط "marketStateQuality" من سطر LIVE MARKET STATE QUALITY في السياق: "live" أو "partial" أو "inferred". أدرج هذا الحقل دائماً عند وجود سياق الدمج.
     عند إجماع < 70 أو strength = "weak"/"conflicted": "disagreementNote" إلزامي. سمّ المسارات المتعارضة وبيّن التعارض الاتجاهي.
@@ -541,7 +541,7 @@ function buildGenesisSystemPrompt(lang: Lang): string {
 Institutional reasoning framework — apply each layer when context supports it:
 1. REGIME — Identify the market regime: bull_trending, bear_ranging, high_vol_risk-off, low_vol_accumulation, or macro_transition. Only set "regime" when context clearly supports the classification.
 2. EVIDENCE — Cite 2-4 specific macro, technical, or structural factors. Only set "evidence" when confidence ≥ 50.
-3. PORTFOLIO IMPACT — Only set "portfolioImpact" when user watchlist symbols appear explicitly in context.
+3. PORTFOLIO IMPACT — Set "portfolioImpact" when user watchlist symbols appear in context OR when the cross-asset regime (gold/BTC/DXY/oil signals) has a direct and specific implication for the assets in the portfolio. Name the specific cross-asset transmission channel and which watched assets it affects.
 4. UNCERTAINTY — Only set "uncertaintyWarning" when confidence < 50, and explain the specific sources.
 
 Produce exactly 3 scenarios. Label each with a conditional trigger ("If [specific event]...") — not a generic "Upside/Base/Downside" label. Produce 2-4 risks.
@@ -574,7 +574,7 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
     Meta-reasoning is self-evaluation only — advisory and educational. Never use it to claim certainty.
 14. MULTI-TRACK FUSION — When specialist agent track outputs appear in context (MACRO/Track A, TECHNICAL/Track B, CROSS-ASSET/Track C, RISK/Track D, POSITIONING/Track E):
     The "outlook" field MUST synthesize ALL available tracks explicitly — the macro regime (Track A), technical structure (Track B), cross-asset confirmation or contradiction (Track C), primary risk path (Track D), and positioning signal (Track E). A macro-only or generic market comment is a failure.
-    Set "crossAssetConfirmation": does the gold/BTC/DXY evidence from Track C CONFIRM or CONTRADICT the dominant thesis from Tracks A+B? State the direction explicitly. 1 sentence.
+    Set "crossAssetConfirmation": does the gold/BTC/DXY evidence from Track C CONFIRM, PARTIALLY CONFIRM, or CONTRADICT the dominant thesis from Tracks A+B? Name the single most decisive signal and its transmission mechanism (e.g., "Gold rising in real-rate-compression mode confirms rate-easing thesis"; "BTC falling in liquidity-proxy mode contradicts risk-on narrative despite bullish equity tech"). 1 sentence.
     Set "positioningSignal": from Track E's sentimentSignal — what does positioning imply for timing and near-term risk? 1 sentence.
     Set "marketStateQuality" from the LIVE MARKET STATE QUALITY line in context — "live", "partial", or "inferred". Always set this field when track fusion context is present.
     When consensus agreement < 70 or strength is "weak"/"conflicted": "disagreementNote" is MANDATORY. Name the specific tracks that disagree and state the directional conflict.
@@ -798,10 +798,11 @@ interface TrackB {
 
 interface TrackC {
   crossAssetBias: "bullish" | "bearish" | "neutral";
-  goldSignal: string;        // gold directional signal — 1 sentence
-  btcSignal: string;         // crypto / risk appetite signal — 1 sentence
+  goldSignal: string;        // gold directional signal + dominant driver mode — 1 sentence
+  btcSignal: string;         // BTC/crypto signal + behavioural mode — 1 sentence
   dxyPressure: string;       // dollar strength + cross-asset impact — 1 sentence
   correlationNote: string;   // cross-asset correlation regime — 1 sentence
+  assetInteractionMode: "confirming" | "diverging" | "mixed"; // whether gold/BTC/DXY signals agree with each other
   catalysts: string[];
   nearTermRisk: string;
 }
@@ -958,6 +959,56 @@ function liveContextAll(s: LiveMarketState): string {
   return [liveContextTrackA(s), liveContextTrackB(s), liveContextTrackC(s)].filter(Boolean).join("");
 }
 
+// ─── Cross-Asset Interaction Context ─────────────────────────────────────────
+// Pure function — no network calls. Derives deterministic interaction labels from
+// live gold, BTC, EUR/USD, and oil data to anchor TrackC's mode-discrimination.
+// Prevents hallucinated correlation claims by grounding the model in observed data.
+
+function buildCrossAssetInteractionContext(live: LiveMarketState | null): string {
+  if (!live) return "";
+  const { goldChangePct, btcChangePct, eurUsd, oilChangePct } = live;
+  if (goldChangePct === null && btcChangePct === null) return "";
+
+  const goldUp = (goldChangePct ?? 0) >= 0.4;
+  const goldDown = (goldChangePct ?? 0) <= -0.4;
+  const btcUp = (btcChangePct ?? 0) >= 1;
+  const btcDown = (btcChangePct ?? 0) <= -1;
+  const dxyStrong = (eurUsd ?? 1.05) <= 1.02;
+  const dxyWeak = (eurUsd ?? 1.05) >= 1.08;
+  const oilDown = (oilChangePct ?? 0) <= -1.5;
+  const oilUp = (oilChangePct ?? 0) >= 1.5;
+
+  const interactions: string[] = [];
+
+  // Gold + BTC interaction mode
+  if (goldUp && btcDown) {
+    interactions.push("Gold/BTC divergence: safe-haven bid WITHOUT risk appetite — classic macro stress signal; gold in haven mode, not inflation-hedge mode");
+  } else if (goldUp && btcUp) {
+    interactions.push("Gold + BTC both rising: possible liquidity-expansion signal or store-of-value demand; check if DXY is falling (liquidity mode) or equities falling (stress mode)");
+  } else if (goldDown && btcUp) {
+    interactions.push("Gold fading + BTC rising: risk-on rotation — risk appetite active, haven demand absent; consistent with risk-on equity environment");
+  } else if (goldDown && btcDown) {
+    interactions.push("Gold + BTC both falling: potential dollar-liquidity drain or broad derisking; monitor DXY direction for confirmation");
+  }
+
+  // Oil + gold stress signal
+  if (oilDown && goldUp) {
+    interactions.push("Oil falling + gold rising: stagflation stress signal — demand concern with haven bid; bearish for energy equities, bullish for defensive assets");
+  } else if (oilUp && goldDown) {
+    interactions.push("Oil rising + gold falling: risk-on demand recovery — haven fading as growth narrative strengthens; supportive for energy and cyclical assets");
+  }
+
+  // DXY + cross-asset mode
+  if (dxyStrong && (goldDown || btcDown)) {
+    interactions.push("DXY strong + risk assets under pressure: dollar-liquidity squeeze; headwind for EM, commodities, and SAR-pegged market foreign flows");
+  } else if (dxyWeak && (goldUp || btcUp)) {
+    interactions.push("DXY weak + risk assets bid: dollar-liquidity expansion; supportive for EM, commodities, and Gulf market foreign inflows");
+  }
+
+  if (!interactions.length) return "";
+  return `\n\nCross-asset interaction signals (use for mode-discrimination — ground truth):\n${interactions.map((l) => `- ${l}`).join("\n")}`;
+}
+
 // ─── Saudi / Gulf Macro Context ───────────────────────────────────────────────
 // Pure function — no network calls. Injects Saudi transmission-channel context
 // into TrackA when the question or context is Saudi/Gulf-relevant.
@@ -1027,15 +1078,19 @@ async function runTrackB(lang: Lang, question: string, ctx: string, live: LiveMa
 }
 
 async function runTrackC(lang: Lang, question: string, ctx: string, live: LiveMarketState | null): Promise<TrackC | null> {
-  const schema = `{"crossAssetBias":"bullish"|"bearish"|"neutral","goldSignal":"string — 1 sentence on gold directional signal and what it implies","btcSignal":"string — 1 sentence on BTC/crypto as risk-appetite indicator","dxyPressure":"string — 1 sentence on dollar strength and its cross-asset impact","correlationNote":"string — 1 sentence on the prevailing cross-asset correlation regime","catalysts":["string — specific near-term catalyst"],"nearTermRisk":"string — 1 sentence"}`;
+  const schema = `{"crossAssetBias":"bullish"|"bearish"|"neutral","goldSignal":"string — 1 sentence: gold direction AND the dominant driver mode (real-rate compression|safe-haven bid|inflation hedge|DXY inverse) — state which mode is active and its implication","btcSignal":"string — 1 sentence: BTC direction AND the behavioural mode (risk-on equity proxy|liquidity proxy|store-of-value|derisking) — state which mode is active and what it signals about risk appetite","dxyPressure":"string — 1 sentence: DXY direction and its transmission to commodities, EM equities, SAR-pegged Gulf markets, and dollar-denominated debt","correlationNote":"string — 1 sentence: are gold/BTC/equities moving together (risk-on/off correlation) or decoupling? If decoupling, what does that divergence signal?","assetInteractionMode":"confirming"|"diverging"|"mixed","catalysts":["string — specific near-term catalyst"],"nearTermRisk":"string — 1 sentence"}`;
   const extra = lang === "ar"
-    ? `أنت استراتيجي متعدد الأصول. ركّز فقط على: (1) الذهب كإشارة مخاطر، (2) BTC/كريبتو كمقياس لشهية المخاطرة، (3) مؤشر الدولار DXY وتأثيره على الأصول المرتبطة، (4) نظام الارتباط بين الأصول. إشارات اتجاهية واضحة فقط — لا تعليق عام.`
-    : `You are the cross-asset strategist. Focus ONLY on: (1) gold as a risk/haven signal, (2) BTC/crypto as a risk-appetite indicator, (3) DXY pressure and its directional cross-asset implications, (4) the prevailing inter-market correlation regime. Directional signals only — no general commentary. Do not reference specific quarters or years.`;
+    ? `أنت استراتيجي متعدد الأصول في مكتب بحوث مؤسسي. ركّز على المحاور الستة التالية: (1) الذهب — حدّد الاتجاه والنمط المهيمن (ضغط الأسعار الحقيقية | ملاذ آمن | تحوط تضخمي | عكسي للدولار): النمط يُحدّد المعنى؛ (2) BTC — حدّد الاتجاه والنمط السلوكي (وكيل مخاطرة | وكيل سيولة | مخزن قيمة | تخفيض مخاطر): نمط BTC يُميّز بيئة المخاطرة؛ (3) DXY — حدّد الاتجاه وقناة الانتقال إلى السلع والأسواق الناشئة وأسواق الخليج المرتبطة؛ (4) نمط التفاعل بين الأصول — هل إشارات الذهب/BTC/DXY تتوافق (تأكيد) أم تتباين (تحليل التباين)؟ اضبط assetInteractionMode وفقاً لذلك؛ (5) عند تباين الأصول (مثل الذهب يرتفع + BTC يهبط): صرّح بالتفسير (ملاذ آمن دون شهية مخاطرة = ضغط ماكرو)؛ (6) لا تُؤكّد علاقات ارتباط تاريخية ليست نشطة حالياً — تحقّق من الاتجاهات الفعلية في السياق. لا تعليق عام. لا إشارة إلى أرباع أو سنوات.`
+    : `You are the cross-asset strategist on an institutional research desk. Cover these six channels: (1) GOLD: state direction AND the dominant driver mode — real-rate compression, safe-haven bid, inflation hedge, or DXY-inverse. The mode determines the macro implication; do not just say "gold rising". (2) BTC: state direction AND the behavioural mode — risk-on equity proxy, liquidity proxy, store-of-value, or derisking. BTC mode distinguishes whether risk appetite is intact or collapsing. (3) DXY: direction and transmission to commodities, EM equities, and SAR-pegged Gulf markets. (4) ASSET INTERACTION MODE: set assetInteractionMode — "confirming" if gold/BTC/DXY signals all point the same way as the macro thesis; "diverging" if key signals conflict; "mixed" if partially aligned. (5) DIVERGENCE LOGIC: when signals conflict (e.g., gold rising + BTC falling), explain the specific implication — safe-haven bid without risk appetite = macro stress without liquidity; both rising = liquidity surge or store-of-value rotation. (6) FAKE PRECISION RULE: only assert a correlation or relationship when current price data supports it. Never say "historically correlated" without current confirmation. No generic commentary. No quarters or years.`;
   const sys = buildLocaleSystemPrompt({ lang, surface: "global_macro", schema, extra });
   const liveCtx = live ? liveContextTrackC(live) : "";
-  const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}${liveCtx}`);
+  const interactionCtx = buildCrossAssetInteractionContext(live);
+  const user = wrapUserContext(
+    lang,
+    `Question: ${question}\n\nContext:\n${ctx}${liveCtx}${interactionCtx}`,
+  );
   const res = await withTimeout(
-    callAIGateway<TrackC>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 500, temperature: 0.3 }),
+    callAIGateway<TrackC>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 600, temperature: 0.3 }),
     8000,
   );
   return res?.data ?? null;
@@ -1086,8 +1141,8 @@ interface TrackF {
 async function runTrackF(lang: Lang, question: string, ctx: string): Promise<TrackF | null> {
   const schema = `{"portfolioAlignmentBias":"aligned"|"divergent"|"mixed","alignmentNote":"string — 1 sentence: how the portfolio context relates to the dominant macro thesis","concentrationRisk":"low"|"moderate"|"high"}`;
   const extra = lang === "ar"
-    ? `أنت محلل توافق المحافظ في مكتب بحوث مؤسسي. ركّز فقط على: (1) هل توافق المحفظة الحالية التحيّز الكلي السائد أم تتعارض معه؟، (2) مستوى تركّز المخاطر بناءً على السياق المتاح، (3) هل يستدعي النظام الحالي إعادة توزيع؟ لا تقترح أوامر تداول. استخدم فقط ما ورد في السياق. جملة واحدة لكل حقل.`
-    : `You are the portfolio alignment analyst on an institutional research desk. Focus ONLY on: (1) whether the portfolio context aligns with or contradicts the dominant macro bias, (2) concentration risk level from available context, (3) whether the current regime warrants rebalancing consideration. No trade execution suggestions. One sentence per field. Use only what the context provides.`;
+    ? `أنت محلل توافق المحافظ في مكتب بحوث مؤسسي. ركّز على المحاور الأربعة: (1) هل توافق المحفظة التحيّز الكلي السائد أم تتعارض معه؟، (2) مستوى تركّز المخاطر بناءً على السياق، (3) هل يستدعي النظام الحالي إعادة توزيع؟، (4) إذا ظهر سياق الأصول المتقاطعة (ذهب/BTC/DXY/نفط): حدّد أيّ إشارات الأصول المتقاطعة تؤثر مباشرةً على الأصول الموجودة في المحفظة وفي أي اتجاه (مثال: إذا ارتفع الذهب في نمط الملاذ الآمن وكان المستخدم يمتلك ذهباً، فهذا توافق؛ إذا كان BTC في نمط سيولة هابط وكان المستخدم يمتلك BTC، فهذا تعارض). لا تقترح أوامر تداول. استخدم فقط ما ورد في السياق.`
+    : `You are the portfolio alignment analyst on an institutional research desk. Cover four dimensions: (1) whether the portfolio context aligns with or contradicts the dominant macro bias; (2) concentration risk level from available context; (3) whether the current regime warrants rebalancing consideration; (4) when cross-asset context is present (gold/BTC/DXY/oil), identify which specific cross-asset signals directly affect the assets in the portfolio and in which direction — e.g., if gold is in safe-haven mode and user holds gold, that is aligned; if BTC is in liquidity-drawdown mode and user holds BTC, that is a cross-asset headwind. State the alignment note with the specific channel. No trade execution suggestions. Use only what the context provides. One sentence per field.`;
   const sys = buildLocaleSystemPrompt({ lang, surface: "portfolio_analyst", schema, extra });
   const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}`);
   const res = await withTimeout(
@@ -1139,9 +1194,14 @@ function fillArbitrationFields(
   }
 
   if (!reply.trackViewCrossAsset && trackC) {
+    const interModeStr = trackC.assetInteractionMode
+      ? (ar
+          ? (trackC.assetInteractionMode === "confirming" ? "تأكيد" : trackC.assetInteractionMode === "diverging" ? "تباين" : "مختلط")
+          : trackC.assetInteractionMode)
+      : null;
     reply.trackViewCrossAsset = ar
-      ? `${biasTr(trackC.crossAssetBias, ar)} — ${trackC.correlationNote}`
-      : `${biasTr(trackC.crossAssetBias, ar)} cross-asset — ${trackC.correlationNote}`;
+      ? `${biasTr(trackC.crossAssetBias, ar)}${interModeStr ? ` (${interModeStr})` : ""} — ${trackC.correlationNote}`
+      : `${biasTr(trackC.crossAssetBias, ar)} cross-asset${interModeStr ? ` (${interModeStr})` : ""} — ${trackC.correlationNote}`;
   }
 
   if (!reply.trackViewRisk && trackD) {
@@ -1255,7 +1315,7 @@ async function runFusion(
   const trackLines = [
     trackA ? `MACRO (Track A): regime=${trackA.regime} conf=${trackA.regimeConf}% bias=${trackA.macroBias} | credit_stress=${trackA.creditStressLevel ?? "n/a"} | rates: ${trackA.ratesEnv} | oil/liquidity: ${trackA.oilLiquidity} | dxy: ${trackA.dxyImpact ?? "n/a"} | ${trackA.macroSummary}` : null,
     trackB ? `TECHNICAL (Track B): ${trackB.technicalBias} bias | trend_strength=${trackB.trendStrength}/100 | momentum=${trackB.momentumStrength}/100 | vol_regime=${trackB.volatilityRegime} | ${trackB.technicalNote}` : null,
-    trackC ? `CROSS-ASSET (Track C): ${trackC.crossAssetBias} bias | gold: ${trackC.goldSignal} | BTC/risk-appetite: ${trackC.btcSignal} | DXY: ${trackC.dxyPressure} | correlation: ${trackC.correlationNote}` : null,
+    trackC ? `CROSS-ASSET (Track C): ${trackC.crossAssetBias} bias | interaction=${trackC.assetInteractionMode ?? "n/a"} | gold: ${trackC.goldSignal} | BTC: ${trackC.btcSignal} | DXY: ${trackC.dxyPressure} | correlation: ${trackC.correlationNote}` : null,
     trackD ? `RISK/COUNTER (Track D): uncertainty=${trackD.uncertaintyLevel} | primary_risk: ${trackD.primaryRisk} | weakness: ${trackD.thesisWeakness} | counter: ${trackD.counterCase} | invalidation: ${trackD.invalidationTrigger} | confidence_challenge: ${trackD.confidenceChallenge}` : null,
     trackE ? `POSITIONING/SENTIMENT (Track E): sentiment=${trackE.sentimentSignal} | uncertainty: ${trackE.uncertaintyNote} | counter_thesis: ${trackE.counterThesis} | missing: ${trackE.missingEvidence}` : null,
     trackF ? `PORTFOLIO ALIGNMENT (Track F): alignment=${trackF.portfolioAlignmentBias} | concentration_risk=${trackF.concentrationRisk} | ${trackF.alignmentNote}` : null,
@@ -1265,8 +1325,8 @@ async function runFusion(
   ].filter(Boolean).join("\n");
 
   const fusionDirective = lang === "ar"
-    ? `نتائج ${[trackA, trackB, trackC, trackD, trackE, trackF].filter(Boolean).length} وكلاء متخصصين:\n${trackLines}\n\nمتطلبات الدمج المؤسسي الإلزامية:\n1. OUTLOOK: يجب أن يدمج حقل "outlook" جميع المسارات المتاحة صراحةً — النظام الكلي ومسار الأسعار (A)، البنية التقنية والتذبذب (B)، تأكيد أو تناقض الأصول المتقاطعة (C)، مسار المخاطر الرئيسي (D)، إشارة التموضع (E). تخطّي أي مسار متاح = فشل. كل جملة تُصدر ادعاءً سببياً أو شرطياً محدداً.\n2. CROSS-ASSET: اضبط crossAssetConfirmation — هل يؤكد الذهب/BTC/DXY من المسار C أم يتناقض مع الأطروحة الغالبة من A+B؟ صرّح بالاتجاه. جملة واحدة.\n3. POSITIONING: اضبط positioningSignal من sentimentSignal في المسار E — التوقيت ومخاطر المدى القريب. جملة واحدة.\n4. MARKET STATE: اضبط marketStateQuality من سطر LIVE MARKET STATE QUALITY أعلاه.\n5. CONSENSUS: agreement=${consensus.agreementScore}%, strength=${consensus.strength}. ${consensus.agreementScore < 70 ? 'الإجماع < 70% — disagreementNote إلزامي: سمّ المسارات المتعارضة مع تحديد التعارض الاتجاهي.' : 'إجماع قوي — supportingCase يجب أن يُسمّي تقاطع المسارات الداعم.'} اضبط consensusStrength = "${consensus.strength}".\n6. THESIS: اضبط thesis من A+B — الأداة والاتجاه والعامل الداعم الرئيسي. اضبط opposingCase من D+E (أقوى حجة مضادة + لماذا تخسر في نفس الجملة). اضبط invalidation من invalidationTrigger في D — حدث قابل للملاحظة مع عتبة قابلة للقياس.\n7. CONFIDENCE: الأنكر=${confAnchor}%. ${live?.marketStateQuality === "inferred" ? "لا بيانات حية — خفّض الثقة ≥5 نقاط وأشر إلى ذلك في confidenceCalibration." : ""} uncertainty في D=${trackD?.uncertaintyLevel ?? "n/a"}${trackD?.uncertaintyLevel === "high" || trackD?.uncertaintyLevel === "extreme" ? " — الثقة ≤65%." : "."}\n8. AGENT VIEWS: trackViewMacro/Technical/CrossAsset/Risk/Positioning من بيانات المسارات أعلاه. arbitrationReason: جملتان — لماذا تتفوق الأطروحة الأساسية؟ سمّ العامل المحدد. disagreementMap: إدخال لكل زوج مسارات بتعارض اتجاهي.`
-    : `${[trackA, trackB, trackC, trackD, trackE, trackF].filter(Boolean).length} specialist agent outputs:\n${trackLines}\n\nINSTITUTIONAL SYNTHESIS REQUIREMENTS — all mandatory:\n\n1. OUTLOOK: Must synthesize ALL available tracks — macro regime + rate/liquidity path (A), technical structure + volatility (B), cross-asset confirmation or contradiction (C), primary downside path + weakest assumption (D), positioning/sentiment timing (E). Omitting any available track is a failure. Every sentence states a specific causal or conditional claim — no generic observations.\n\n2. CROSS-ASSET: Set "crossAssetConfirmation" — does gold/BTC/DXY from Track C CONFIRM or CONTRADICT the dominant thesis from A+B? State the specific direction. 1 sentence.\n\n3. POSITIONING: Set "positioningSignal" from Track E sentimentSignal — what positioning implies for timing and near-term risk. 1 sentence.\n\n4. MARKET STATE: Set "marketStateQuality" from the LIVE MARKET STATE QUALITY line above.\n\n5. CONSENSUS: agreement=${consensus.agreementScore}%, strength=${consensus.strength}. ${consensus.agreementScore < 70 ? `Below 70% — "disagreementNote" is MANDATORY: name the specific tracks that disagree and state the directional conflict.` : `Strong consensus — "supportingCase" must name the specific cross-track alignment driving the dominant view.`} Set "consensusStrength" = "${consensus.strength}".\n\n6. THESIS CONSTRUCTION:\n   - "thesis": instrument + direction + primary supporting factor (the regime condition, technical signal, or cross-asset confirmation). 1 sentence.\n   - "opposingCase": Track D counterCase + Track E counterThesis. State the strongest counter, then in the same sentence WHY it loses to the base case.\n   - "invalidation": Track D invalidationTrigger — specific observable event with a measurable threshold where data supports it.\n   - "supportingCase": the single most compelling cross-track alignment that makes the base case more probable than the opposing case.\n\n7. CONFIDENCE: anchor=${confAnchor}%. ${live?.marketStateQuality === "inferred" ? "NO LIVE DATA — reduce ≥5 pts from anchor, note in confidenceCalibration." : ""} Track D uncertainty=${trackD?.uncertaintyLevel ?? "n/a"}${trackD?.uncertaintyLevel === "high" || trackD?.uncertaintyLevel === "extreme" ? " — confidence cap: 65%." : "."}\n\n8. AGENT ARBITRATION FIELDS (required when 2+ tracks present):\n   - trackViewMacro/Technical/CrossAsset/Risk/Positioning: derive from track data above; 1 sentence each.\n   - "arbitrationReason": 1-2 sentences naming the specific cross-track factor that tips the balance — e.g. "Track A and C both confirm X, which outweighs Track B's Y because Z." Do not restate the thesis.\n   - "disagreementMap": one entry per track pair with explicit directional conflict; empty array if all agree.`;
+    ? `نتائج ${[trackA, trackB, trackC, trackD, trackE, trackF].filter(Boolean).length} وكلاء متخصصين:\n${trackLines}\n\nمتطلبات الدمج المؤسسي الإلزامية:\n1. OUTLOOK: يجب أن يدمج حقل "outlook" جميع المسارات المتاحة صراحةً — النظام الكلي ومسار الأسعار (A)، البنية التقنية والتذبذب (B)، تأكيد أو تناقض الأصول المتقاطعة (C)، مسار المخاطر الرئيسي (D)، إشارة التموضع (E). تخطّي أي مسار متاح = فشل. كل جملة ادعاء سببي محدد.\n2. CROSS-ASSET: اضبط crossAssetConfirmation — هل يؤكد الذهب/BTC/DXY من المسار C أم يتناقض جزئياً أم كلياً مع الأطروحة الغالبة؟ سمّ الإشارة الأكثر حسماً وقناة انتقالها (مثال: "الذهب في نمط الأسعار الحقيقية يؤكد..."). عند التباين بين الأصول (مثل الذهب يرتفع + BTC يهبط): صرّح بنمط التباين (ملاذ آمن دون شهية مخاطرة). جملة واحدة.\n3. PORTFOLIO IMPACT: إذا ظهرت أصول المحفظة في السياق أو كان لنظام الأصول المتقاطعة أثر مباشر عليها: اضبط portfolioImpact مع تسمية قناة الانتقال المحددة.\n4. POSITIONING: اضبط positioningSignal من sentimentSignal في المسار E. جملة واحدة.\n5. MARKET STATE: اضبط marketStateQuality من سطر LIVE MARKET STATE QUALITY أعلاه.\n6. CONSENSUS: agreement=${consensus.agreementScore}%, strength=${consensus.strength}. ${consensus.agreementScore < 70 ? 'الإجماع < 70% — disagreementNote إلزامي.' : 'إجماع قوي — supportingCase يسمّي تقاطع المسارات.'} اضبط consensusStrength = "${consensus.strength}".\n7. THESIS: من A+B — الأداة والاتجاه والعامل الداعم الرئيسي. opposingCase من D+E. invalidation من D — حدث محدد مع عتبة.\n8. CONFIDENCE: الأنكر=${confAnchor}%. ${live?.marketStateQuality === "inferred" ? "لا بيانات حية — خفّض ≥5 نقاط." : ""} uncertainty في D=${trackD?.uncertaintyLevel ?? "n/a"}${trackD?.uncertaintyLevel === "high" || trackD?.uncertaintyLevel === "extreme" ? " — الثقة ≤65%." : "."}\n9. AGENT VIEWS: trackViewMacro/Technical/CrossAsset/Risk/Positioning من بيانات المسارات. arbitrationReason: جملتان. disagreementMap: إدخال لكل زوج متعارض.`
+    : `${[trackA, trackB, trackC, trackD, trackE, trackF].filter(Boolean).length} specialist agent outputs:\n${trackLines}\n\nINSTITUTIONAL SYNTHESIS REQUIREMENTS — all mandatory:\n\n1. OUTLOOK: Must synthesize ALL available tracks — macro regime + rate/liquidity + credit stress (A), technical structure + volatility (B), cross-asset mode + interaction (C), primary downside path (D), positioning timing (E). Omitting any available track is a failure. Every sentence states a specific causal or conditional claim.\n\n2. CROSS-ASSET: Set "crossAssetConfirmation" — does gold/BTC/DXY from Track C CONFIRM, PARTIALLY CONFIRM, or CONTRADICT the dominant thesis from A+B? Name the most decisive signal and its transmission mechanism. If assetInteractionMode is "diverging": explicitly interpret what the divergence means (e.g., safe-haven bid without risk appetite = macro stress). 1 sentence.\n\n3. PORTFOLIO IMPACT: If portfolio/watchlist assets appear in context OR if the cross-asset regime has a direct implication for those assets: set "portfolioImpact" naming the specific transmission channel (e.g., "oil→fiscal headwind for TASI holdings", "DXY strength headwind for BTC position").\n\n4. POSITIONING: Set "positioningSignal" from Track E sentimentSignal. 1 sentence.\n\n5. MARKET STATE: Set "marketStateQuality" from LIVE MARKET STATE QUALITY line above.\n\n6. CONSENSUS: agreement=${consensus.agreementScore}%, strength=${consensus.strength}. ${consensus.agreementScore < 70 ? `Below 70% — "disagreementNote" MANDATORY.` : `Strong — "supportingCase" names the specific cross-track alignment.`} Set "consensusStrength" = "${consensus.strength}".\n\n7. THESIS: instrument + direction + primary supporting factor. "opposingCase" from D+E. "invalidation" from Track D — specific event + measurable threshold.\n\n8. CONFIDENCE: anchor=${confAnchor}%. ${live?.marketStateQuality === "inferred" ? "NO LIVE DATA — reduce ≥5 pts." : ""} Track D uncertainty=${trackD?.uncertaintyLevel ?? "n/a"}${trackD?.uncertaintyLevel === "high" || trackD?.uncertaintyLevel === "extreme" ? " — cap: 65%." : "."}\n\n9. AGENT ARBITRATION FIELDS: trackViewMacro/Technical/CrossAsset/Risk/Positioning from track data. "arbitrationReason": 1-2 sentences naming the decisive cross-track factor. "disagreementMap": one entry per conflicting track pair.`;
 
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
