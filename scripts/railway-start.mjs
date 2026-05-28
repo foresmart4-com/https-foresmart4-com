@@ -21,11 +21,13 @@ if (typeof worker.fetch !== "function") {
   throw new Error("dist/server/index.js must export a default object with a fetch(request, env, ctx) handler.");
 }
 
-// Startup env diagnostics — logs boolean only, never the key value.
+// Startup env diagnostics — logs boolean presence only, never key values.
 console.info(
-  "[railway-start] AI env: hasGeminiKey=%s hasLovableKey=%s",
+  "[railway-start] AI env: hasGeminiKey=%s hasLovableKey=%s hasOpenAIKey=%s aiDisabled=%s",
   Boolean(process.env.GEMINI_API_KEY?.trim()),
   Boolean(process.env.LOVABLE_API_KEY?.trim()),
+  Boolean(process.env.OPENAI_API_KEY?.trim()),
+  process.env.AI_DISABLED === "true",
 );
 
 const contentTypes = {

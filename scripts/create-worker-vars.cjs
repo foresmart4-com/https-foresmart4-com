@@ -32,6 +32,10 @@ const SERVER_VARS = [
   "GEMINI_API_KEY",
   // AI gateway — fallback when GEMINI_API_KEY is absent; also used for Lovable platform webhooks
   "LOVABLE_API_KEY",
+  // OpenAI — deep reasoning fallback when Gemini is rate-limited or unavailable
+  "OPENAI_API_KEY",
+  // Kill switch — set to "true" to disable all AI calls server-side
+  "AI_DISABLED",
 
   // Supabase server-side
   "SUPABASE_URL",
@@ -85,7 +89,8 @@ for (const key of SERVER_VARS) {
 
 const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY?.trim());
 const hasLovableKey = Boolean(process.env.LOVABLE_API_KEY?.trim());
-console.log(`[create-worker-vars] AI env at build time: hasGeminiKey=${hasGeminiKey} hasLovableKey=${hasLovableKey}`);
+const hasOpenAIKey  = Boolean(process.env.OPENAI_API_KEY?.trim());
+console.log(`[create-worker-vars] AI env at build time: hasGeminiKey=${hasGeminiKey} hasLovableKey=${hasLovableKey} hasOpenAIKey=${hasOpenAIKey}`);
 
 if (!hasGeminiKey && !hasLovableKey) {
   console.warn("[create-worker-vars] WARNING: Neither GEMINI_API_KEY nor LOVABLE_API_KEY found in build env — Miniflare/preview will have no AI provider.");

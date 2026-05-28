@@ -1647,8 +1647,38 @@ export const askGenesis = createServerFn({ method: "POST" })
       providerIdentity: routing.providerIdentity,
     });
 
-    if (result.error === "rate_limited") return { reply: null, error: "rate_limited" as const, engine: "heuristic" as const };
-    if (result.error === "payment_required") return { reply: null, error: "payment_required" as const, engine: "heuristic" as const };
+    // rate_limited / payment_required — attempt OpenAI emergency fallback before surfacing
+    // the quota error to the user. Gemini free-tier RPM limits (15 RPM) are consumed by
+    // multi-track calls (3-7 per question), so quota exhaustion is the most common cause.
+    if (result.error === "rate_limited" || result.error === "payment_required") {
+      const openaiEmergKey = process.env.OPENAI_API_KEY?.trim();
+      const primaryIsOpenAIHere = routing.providerIdentity === "openai_deep";
+      if (openaiEmergKey && !primaryIsOpenAIHere) {
+        console.info(`[genesis] ${result.error} on ${provider ?? routing.providerIdentity} — attempting OpenAI emergency fallback`);
+        const emergRes = await withTimeout(
+          callAIGateway<GenesisReply>({
+            system: buildGenesisSystemPrompt(lang),
+            user,
+            language: lang,
+            jsonObject: true,
+            maxTokens: 4096,
+            temperature: 0.4,
+            providerIdentity: "openai_deep",
+          }),
+          12000,
+        );
+        if (emergRes?.data) {
+          const emergDirect = sanitizeReply(emergRes.data, lang);
+          if (emergDirect) {
+            if (!emergDirect.marketStateQuality) emergDirect.marketStateQuality = "inferred";
+            console.info("[genesis] OpenAI emergency fallback succeeded");
+            return { reply: emergDirect, error: null as null, engine: "ai" as const, provider: emergRes.provider, providerIdentity: "openai_deep" as ProviderIdentity, routingMode: "fallback" as RoutingMode };
+          }
+        }
+      }
+      // No OpenAI key or OpenAI also failed — surface the quota error to client
+      return { reply: null, error: result.error, engine: "heuristic" as const };
+    }
     // missing_key → AI was never available; show the "key not configured" warning.
     if (result.error === "missing_key") {
       return { reply: heuristicReply(lang, "missing_key"), error: null as null, engine: "heuristic" as const, providerIdentity: "heuristic_fallback" as ProviderIdentity };
