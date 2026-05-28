@@ -214,12 +214,12 @@ function GenesisPage() {
       // Portfolio brain context — exposure, concentration, regime alignment, thesis matches.
       const portfolioIntelCtx = portfolioIntel.compactContext;
 
-      // Thesis memory context — compressed entries + outcome accuracy for confidence calibration.
-      const outcomeStats = thesisMemory.outcomeStats();
-      const outcomeHint = outcomeStats.resolved > 0
-        ? ` | Thesis accuracy: ${outcomeStats.accuracy}% (${outcomeStats.resolved} resolved)`
-        : "";
-      const thesisCtx = thesisMemory.compressedContext(3) + outcomeHint;
+      // Thesis evolution context — extracts primary asset from question to prioritise
+      // same-asset prior thesis; includes evolution rule + calibration memory note.
+      const PRIMARY_ASSET_RE = /\b(BTC|ETH|XAU|GOLD|OIL|WTI|SPX|SPY|QQQ|TASI|2222|SABIC|AAPL|TSLA|NVDA|MSFT|AMZN|META|ARAMCO|EURUSD|USDJPY|GBPUSD)\b/i;
+      const assetMatch = PRIMARY_ASSET_RE.exec(trimmed);
+      const primaryAssetHint = assetMatch ? assetMatch[0].toUpperCase() : undefined;
+      const thesisCtx = thesisMemory.buildEvolutionContext(3, primaryAssetHint);
 
       // Signal history context — compact win-rate and dominant regime from learning layer.
       const sigMem = getMemory();
@@ -353,13 +353,17 @@ function GenesisPage() {
       // Save thesis to thesis memory if AI produced a directional view.
       if (res.reply.thesis && res.engine === "ai") {
         const regime = res.reply.regime ?? "";
+        // Infer direction from regime label, thesis text, or dominant bias
+        const thesisLower = res.reply.thesis.toLowerCase();
         const direction: ThesisEntry["direction"] =
-          regime.includes("bull") ? "bullish" :
-          regime.includes("bear") ? "bearish" : "neutral";
+          regime.includes("bull") || /\bbullish\b/.test(thesisLower) ? "bullish" :
+          regime.includes("bear") || /\bbearish\b/.test(thesisLower) ? "bearish" : "neutral";
+        // Asset: prefer AI's suggested action symbol, then question's primary asset, then MARKET
+        const savedAsset = res.reply.suggestedAction?.symbol ?? primaryAssetHint ?? "MARKET";
         thesisMemory.save({
           id: `th_${Date.now()}`,
           ts: Date.now(),
-          asset: res.reply.suggestedAction?.symbol ?? "MARKET",
+          asset: savedAsset,
           direction,
           thesis: res.reply.thesis,
           confidence: res.reply.confidence,

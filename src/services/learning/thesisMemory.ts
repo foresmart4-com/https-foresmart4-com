@@ -110,4 +110,70 @@ export const thesisMemory = {
     });
     return `Prior theses (${top.length}): ` + parts.join(" | ");
   },
+
+  /**
+   * Rich thesis evolution context for AI injection.
+   * Classifies the continuity relationship and provides explicit evolution rules.
+   * When assetHint is provided, prioritises same-asset prior theses.
+   * Includes calibration note when ≥3 theses have been resolved.
+   */
+  buildEvolutionContext(n: number, assetHint?: string): string {
+    const all = read();
+    if (!all.length) return "";
+    const now = Date.now();
+    const parts: string[] = [];
+
+    // Find the most relevant prior thesis: same asset first, then most recent
+    const assetKey = assetHint?.toUpperCase();
+    const sameAsset = assetKey ? all.filter(t => t.asset.toUpperCase() === assetKey).sort((a, b) => b.ts - a.ts) : [];
+    const primary = sameAsset[0] ?? [...all].sort((a, b) => b.ts - a.ts)[0];
+
+    if (primary) {
+      const ageDays = (now - primary.ts) / 86400000;
+      const age = ageDays < 0.5 ? "today" : ageDays < 1.5 ? "yesterday" : `${Math.round(ageDays)}d ago`;
+      const outcomeNote = primary.outcome && primary.outcome !== "pending" ? ` [resolved: ${primary.outcome}]` : "";
+      const assetMatch = assetKey && primary.asset.toUpperCase() === assetKey;
+
+      parts.push(
+        `Prior thesis${assetMatch ? ` for ${primary.asset}` : ""} (${age}, ${primary.direction} at ${primary.confidence}%${outcomeNote}): ` +
+        `"${primary.thesis.slice(0, 80)}"` +
+        (primary.invalidation ? `\nPrior invalidation trigger: "${primary.invalidation.slice(0, 80)}"` : ""),
+      );
+
+      parts.push(
+        `THESIS EVOLUTION RULE: ` +
+        `If your new thesis CONFIRMS this direction: state the specific new evidence that validates continuation — do not restate the prior view verbatim. ` +
+        `If your thesis REVISES or CONTRADICTS it: set viewChange to name exactly what macro or technical development justifies the change. ` +
+        `If the prior invalidation trigger above appears active or closer in current data: surface it as a caveat, not as a certainty.`,
+      );
+    }
+
+    // Calibration note from resolved outcome history
+    const stats = this.outcomeStats();
+    if (stats.resolved >= 3) {
+      const adj =
+        stats.accuracy < 30 ? "reduce confidence anchor by up to 8 pts — prior accuracy significantly below chance" :
+        stats.accuracy < 46 ? "reduce confidence anchor by 4 pts — prior accuracy below chance" :
+        stats.accuracy > 70 ? "confidence anchor may be up to 5 pts higher — prior accuracy above average" :
+        stats.accuracy > 54 ? "confidence anchor may be up to 3 pts higher — prior accuracy above chance" :
+        "no confidence adjustment — prior accuracy near chance level";
+      parts.push(`Calibration memory: ${stats.accuracy}% accuracy (${stats.resolved} resolved theses) — ${adj}.`);
+    }
+
+    // Other recent theses for different assets (background context)
+    const others = all
+      .filter(t => !assetKey || t.asset.toUpperCase() !== assetKey)
+      .sort((a, b) => b.ts - a.ts)
+      .slice(0, Math.max(0, n - 1));
+    if (others.length > 0) {
+      const otherStr = others.map(t => {
+        const ageDays = (now - t.ts) / 86400000;
+        const age = ageDays < 0.5 ? "today" : ageDays < 1.5 ? "yesterday" : `${Math.round(ageDays)}d ago`;
+        return `${t.asset} ${t.direction} ${t.confidence}% (${age})`;
+      }).join(", ");
+      parts.push(`Recent views on other assets: ${otherStr}`);
+    }
+
+    return parts.join("\n");
+  },
 };

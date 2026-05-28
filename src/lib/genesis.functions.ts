@@ -412,7 +412,7 @@ const GENESIS_SCHEMA = `{
   "catalysts": ["string — specific near-term data event, policy decision, or price level that would validate the thesis"] (optional — 2-3 concrete items; set only when thesis is set),
   "invalidation": "string (optional — one sentence: the specific observable event that breaks the thesis; include a measurable threshold where the data supports it — not a vague category; set only when thesis is set)",
   "confidenceDrivers": ["string — factor supporting confidence level"] (optional — 2-3 items; set only when confidence ≥ 50),
-  "viewChange": "string (optional — one sentence: the specific development that would materially shift the outlook; set only when thesis is set)",
+  "viewChange": "string (optional — one sentence: the specific development that would materially shift the outlook; when prior thesis context is present, this must name what specifically changed — not 'conditions changed' but the concrete macro/technical/cross-asset event that warranted the revision; set only when thesis is set)",
   "consensusStrength": <"strong"|"moderate"|"weak"|"conflicted"> (optional — include when multi-agent synthesis is provided),
   "disagreementNote": "string — 1 sentence on what agents disagree about; set only when conflicted or weak consensus" (optional),
   "supportingCase": "string — 1 sentence: strongest corroborating argument from parallel agent analysis" (optional),
@@ -427,9 +427,9 @@ const GENESIS_SCHEMA = `{
   "comparisonTable": [{"metric": "string — dimension being compared", "a": "string — asset/sector A value", "b": "string — asset/sector B value"}] (optional — 3-5 rows; include ONLY when comparing two assets or sectors in research mode),
   "researchType": <"asset"|"comparison"|"sector"|"thesis"|"market"> (optional — set when research mode context appears),
   "reasoningQuality": <"strong"|"adequate"|"weak"> (optional — self-evaluated logic quality; always set for AI replies),
-  "confidenceCalibration": "string — 1 sentence: name the single factor most preventing higher confidence AND the specific evidence floor supporting the current level" (optional — always set for AI replies),
+  "confidenceCalibration": "string — 1 sentence: name the single factor most preventing higher confidence AND the evidence floor supporting the current level; when calibration memory context is present, adjust by the stated amount (do not claim adjustment without the memory data to support it)" (optional — always set for AI replies),
   "uncertaintyLevel": <"likely"|"possible"|"uncertain"|"conflicting"> (optional — always set for AI replies),
-  "caveats": ["string — specific logical tension, contradiction, or weak assumption in own reasoning"] (optional — 1-3 items; omit when reasoning is internally consistent),
+  "caveats": ["string — specific logical tension, contradiction, or weak assumption in own reasoning; when prior invalidation trigger context is present, include a caveat if that condition appears active or closer"] (optional — 1-3 items; omit when reasoning is internally consistent),
   "crossAssetConfirmation": "string — 1 sentence: do gold/BTC/DXY signals CONFIRM, PARTIALLY CONFIRM, or CONTRADICT the dominant macro thesis? Name the single most decisive signal and state its transmission mechanism (e.g., 'Gold rising in real-rate-compression mode confirms the rate-easing thesis'; 'BTC falling in liquidity-proxy mode contradicts the risk-on narrative')" (optional — set when Track C cross-asset context is present),
   "positioningSignal": "string — 1 sentence: what does the positioning/sentiment signal imply for timing and near-term risk?" (optional — set when Track E context is present),
   "marketStateQuality": <"live"|"partial"|"inferred"> (optional — set from the LIVE MARKET STATE QUALITY line in track context; always set when track fusion context is present),
@@ -481,7 +481,7 @@ function buildGenesisSystemPrompt(lang: Lang): string {
 7. المحفزات — اضبط "catalysts" مع "thesis". 2-3 أحداث أو مستويات سعرية أو قرارات سياسة محددة قريبة الأجل تُثبت الأطروحة. لا بنود عامة كـ"تحسّن المشاعر".
 8. الإلغاء — اضبط "invalidation" مع "thesis". جملة واحدة: الحدث القابل للملاحظة الذي يكسر الأطروحة. سمّ عتبة قابلة للقياس حيثما أتاحت البيانات ذلك — لا مفاهيم مبهمة كـ"تدهور المشاعر".
 9. محركات الثقة — اضبط "confidenceDrivers" عند الثقة ≥ 50. 2-3 عوامل تدعم مستوى الثقة.
-10. تغيير الرأي — اضبط "viewChange" مع "thesis". جملة واحدة تُسمّي التطور المحدد (تحول سياسي، كسر سعري، إصدار بيانات) الذي يُغيّر التوقعات جوهرياً.
+10. تغيير الرأي — اضبط "viewChange" مع "thesis". جملة واحدة تُسمّي التطور المحدد (تحول سياسي، كسر سعري، إصدار بيانات) الذي يُغيّر التوقعات جوهرياً. عند وجود سياق أطروحة سابقة، يجب أن يُوضّح هذا الحقل ما الذي تغيّر تحديداً — لا "الظروف تغيّرت".
 11. محاكاة السيناريو — عند توفّر سياق محاكاة أو عند طرح السؤال بصيغة افتراضية ("إذا حدث X"، "ماذا لو"، "أثر"):
     اضبط "simulatedScenario": صِغ شرط "إذا حدث..." المدروس.
     اضبط "expectedImpact": جملة أو جملتان على الآثار الاتجاهية متعددة الأصول. تعليمي فقط.
@@ -526,7 +526,12 @@ function buildGenesisSystemPrompt(lang: Lang): string {
     - macro_transition: يجب إدراج caveats؛ الثقة 40-55%؛ فجوة احتمالية أوسع في السيناريوهات.
     - إذا كان ضغط الائتمان مرتفعاً أو حرجاً (creditStressLevel = high/extreme): سقف الثقة 60%؛ يجب أن تتضمن caveats ضغط التمويل.
     - إذا انخفض النفط وتعلّق السؤال بـ TASI/السعودية/أرامكو/الخليج: خفّض الثقة 5-8 نقاط؛ اذكر قناة الإيرادات المالية (breakeven ~75-80 دولار) في الأطروحة أو caveats.
-    - إذا ارتفع DXY وتعلّق السؤال بأسواق الخليج أو الأسواق الناشئة: أضف عائق العملة والتدفقات إلى الأطروحة وشرط الإلغاء.`
+    - إذا ارتفع DXY وتعلّق السؤال بأسواق الخليج أو الأسواق الناشئة: أضف عائق العملة والتدفقات إلى الأطروحة وشرط الإلغاء.
+16. تطور الأطروحة — عند ظهور "Prior thesis" أو "THESIS EVOLUTION RULE" في السياق:
+    - تأكيد: إذا أكّدت أطروحتك التوجه السابق، اذكر الأدلة الجديدة المحددة التي تدعم الاستمرارية. ممنوع: إعادة صياغة الأطروحة السابقة حرفياً أو القول "لم يتغير الرأي" دون ذكر دليل جديد.
+    - مراجعة: إذا تغيّر توجه أطروحتك أو ثقتك بشكل جوهري، اضبط viewChange ليُسمّي التطور الكلي أو التقني المحدد الذي يبرر المراجعة. استخدم "الرأي يتحول لأن [حدث/إشارة محددة]" لا "الظروف تغيّرت".
+    - فحص الإلغاء: إذا ظهر شرط إلغاء سابق في السياق وتشير البيانات الحالية إلى اقترابه أو تفعّله، أدرجه صراحةً كـ caveat بصيغة شرطية لا كحقيقة مؤكدة.
+    - المعايرة: إذا ظهر "Calibration memory" في السياق، طبّق تعديل الثقة المذكور على الأنكر. لا تدّعي تعديلاً على أساس البيانات دون توافر تلك البيانات في السياق.`
     : `Rules you must NEVER break:
 - Never suggest, confirm, or describe real buy/sell order execution, broker actions, or money movement.
 - Never claim certainty — always express confidence as a calibrated percentage.
@@ -551,7 +556,7 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
 7. CATALYSTS — Set "catalysts" with thesis. List 2-3 specific, near-term events or price levels that would validate the thesis. No generic "improved sentiment" items.
 8. INVALIDATION — Set "invalidation" with thesis. One sentence: the specific observable trigger that breaks the thesis. Name a measurable threshold where the data supports it — not a vague concept like "if sentiment deteriorates".
 9. CONFIDENCE DRIVERS — Set "confidenceDrivers" when confidence ≥ 50. List 2-3 factors that specifically support the confidence level.
-10. VIEW CHANGE — Set "viewChange" with thesis. One sentence naming the specific development (policy shift, price breach, data release) that would materially alter the outlook.
+10. VIEW CHANGE — Set "viewChange" with thesis. One sentence naming the specific development (policy shift, price breach, data release) that would materially alter the outlook. When prior thesis context is present, this must state specifically what changed — not "conditions evolved" but the concrete event.
 11. SCENARIO SIMULATION — When scenario simulation context is provided OR the question involves a hypothetical ("if X happens", "what if", "scenario", "impact of"):
     Set "simulatedScenario": state the 'If X occurs...' trigger being explored.
     Set "expectedImpact": 1-2 sentences on directional cross-asset effects. Educational only — no execution.
@@ -597,7 +602,12 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
     - macro_transition: MUST set caveats; confidence 40-55%; show wider scenario probability spread reflecting regime ambiguity.
     - HIGH/EXTREME credit stress (creditStressLevel): confidence cap 60%; caveats must include funding/spread stress as a specific risk.
     - IF oil falling AND question involves TASI/Saudi/Aramco/Gulf: reduce confidence 5-8 pts; state the fiscal-channel transmission (Saudi breakeven ~$75-80/bbl) in thesis or caveats.
-    - IF DXY rising sharply AND question involves Gulf/EM equities: add currency/flows headwind to thesis and to the invalidation condition.`;
+    - IF DXY rising sharply AND question involves Gulf/EM equities: add currency/flows headwind to thesis and to the invalidation condition.
+16. THESIS EVOLUTION — When "Prior thesis" or "THESIS EVOLUTION RULE" appears in the context:
+    - CONFIRMING: if your thesis confirms the prior direction, state the specific new evidence that validates continuation. Prohibited: restating the prior thesis verbatim, saying "view unchanged" without naming confirming evidence, copying prior thesis wording.
+    - REVISING: if your thesis changes direction or confidence materially, set viewChange to name the precise macro/technical development that justifies the revision. Use "The view shifts because [specific event/signal]" not "conditions have changed".
+    - INVALIDATION CHECK: if prior invalidation trigger is visible in context and current data suggests it is active or closer, surface it explicitly as a caveat — not as certainty but as a conditional risk.
+    - CALIBRATION: if "Calibration memory" context is present, apply the stated confidence adjustment to your anchor. Never assert calibration-based adjustment without the data to support it.`;
 
   const base = buildLocaleSystemPrompt({ lang, surface: "genesis_copilot", schema: GENESIS_SCHEMA, extra });
   // Prepend a hard JSON-only directive so Gemini never emits text outside the object.
