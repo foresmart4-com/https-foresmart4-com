@@ -83,11 +83,31 @@ export const thesisMemory = {
     };
   },
 
-  /** Compact string for AI context injection — truncated per entry to save tokens. */
-  compressedContext(n: number): string {
-    const entries = this.getRecent(n);
-    if (!entries.length) return "";
-    return `Prior theses (${entries.length}): ` +
-      entries.map((t) => `${t.asset} ${t.direction} ${t.confidence}%${t.outcome ? ` [${t.outcome}]` : ""} — "${t.thesis.slice(0, 45)}"`).join(" | ");
+  /**
+   * Age-weighted compact context for AI injection.
+   * Sorts by recency (2-day half-life) so fresh theses rank first.
+   * Includes age labels so the AI can judge how stale a prior view is.
+   * Optional assetHint boosts same-asset entries to the top.
+   */
+  compressedContext(n: number, assetHint?: string): string {
+    const all = read();
+    if (!all.length) return "";
+    const now = Date.now();
+    // Score: recency weight × asset-match boost
+    const scored = all.map((t) => {
+      const ageDays = (now - t.ts) / 86400000;
+      const recency = Math.exp((-ageDays * Math.LN2) / 2); // half-life 2 days
+      const assetBoost = assetHint && t.asset.toUpperCase() === assetHint.toUpperCase() ? 2 : 1;
+      return { ...t, _score: recency * assetBoost };
+    });
+    const top = [...scored].sort((a, b) => b._score - a._score).slice(0, n);
+    if (!top.length) return "";
+    const parts = top.map((t) => {
+      const ageDays = (now - t.ts) / 86400000;
+      const age = ageDays < 0.5 ? "today" : ageDays < 1.5 ? "yesterday" : `${Math.round(ageDays)}d ago`;
+      const outcomeStr = t.outcome ? ` [${t.outcome}]` : "";
+      return `${t.asset} ${t.direction} ${t.confidence}%${outcomeStr} (${age}): "${t.thesis.slice(0, 50)}"`;
+    });
+    return `Prior theses (${top.length}): ` + parts.join(" | ");
   },
 };

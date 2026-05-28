@@ -8,6 +8,8 @@ import { genesisMemory } from "./genesisMemory";
 import { thesisMemory } from "./thesisMemory";
 import { sessionIntelStore } from "./sessionIntelStore";
 
+const CONTINUITY_WINDOW_MS = 4 * 60 * 60_000; // 4 hours
+
 export interface MemorySnapshot {
   continuityScore: number;       // 0-100: how much context carries forward
   totalExchanges: number;
@@ -59,7 +61,8 @@ export const memoryIntelligence = {
 
   /**
    * Builds a compressed, age-weighted intelligence context string for AI injection.
-   * Includes: weighted summary line, weekly digest, and aged recent exchanges.
+   * Includes: weighted summary, weekly digest, aged recent exchanges, and a
+   * continuity signal when a fresh prior thesis exists (< 4h old).
    */
   buildIntelContext(): string {
     const parts: string[] = [];
@@ -69,8 +72,26 @@ export const memoryIntelligence = {
     }
     const digest = genesisMemory.weeklyDigestContext();
     if (digest) parts.push(digest);
-    const aged = genesisMemory.agedContext(4);
+    const aged = genesisMemory.agedContext(3);
     if (aged) parts.push(aged);
+
+    // Continuity signal — surface the most recent thesis when it is still fresh,
+    // so the AI acknowledges whether the current query extends or revises it.
+    const recent = thesisMemory.getRecent(1);
+    if (recent.length > 0) {
+      const t = recent[0];
+      const ageMins = (Date.now() - t.ts) / 60_000;
+      if (ageMins < CONTINUITY_WINDOW_MS / 60_000) {
+        const ageStr = ageMins < 60
+          ? `${Math.round(ageMins)}m ago`
+          : `${(ageMins / 60).toFixed(1)}h ago`;
+        parts.push(
+          `Prior view (${ageStr}): ${t.asset} ${t.direction} at ${t.confidence}% — "${t.thesis.slice(0, 60)}". ` +
+          `Acknowledge whether the current query confirms, extends, or revises this view.`,
+        );
+      }
+    }
+
     return parts.join("\n");
   },
 

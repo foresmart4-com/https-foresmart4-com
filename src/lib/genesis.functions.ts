@@ -713,6 +713,7 @@ function computeConsensus(
 // Confidence earned from evidence alignment across tracks — not model-asserted.
 // Returns a suggested integer (1-99) injected into the fusion directive as a calibration anchor.
 // Phase 4: accepts optional TrackF (portfolio alignment) and eceScore (ECE calibration from client).
+// Phase 15-16: accepts optional marketStateQuality to penalise inferred (no live data) anchors.
 function computeConfidenceFromTracks(
   trackA: TrackA | null,
   trackB: TrackB | null,
@@ -720,6 +721,7 @@ function computeConfidenceFromTracks(
   consensus: ConsensusResult,
   trackF?: TrackF | null,
   eceScore?: number,
+  marketStateQuality?: "live" | "partial" | "inferred",
 ): number {
   let score = 50;
   // Macro regime conviction
@@ -758,6 +760,10 @@ function computeConfidenceFromTracks(
     if (eceScore > 0.15) score -= 5;       // overconfident history → reduce anchor
     else if (eceScore < 0.05) score += 3;  // well-calibrated history → allow mild boost
   }
+  // Phase 15-16: Live data quality penalty — tracks reason from question context only
+  // when no live prices are available; the anchor should reflect that degraded evidence floor.
+  if (marketStateQuality === "inferred") score -= 5;
+  else if (marketStateQuality === "partial") score -= 2;
   return Math.max(10, Math.min(90, score));
 }
 
@@ -1178,7 +1184,7 @@ async function runFusion(
   live: LiveMarketState | null,
   eceScore?: number,
 ): Promise<GenesisReply | null> {
-  const confAnchor = computeConfidenceFromTracks(trackA, trackB, trackD, consensus, trackF, eceScore);
+  const confAnchor = computeConfidenceFromTracks(trackA, trackB, trackD, consensus, trackF, eceScore, live?.marketStateQuality);
   const msq = live?.marketStateQuality ?? "inferred";
   const msqDetail = live
     ? `${msq} (${live.sourcesLive} data sources confirmed: ${[live.btcPrice ? "BTC" : null, live.goldPrice ? "Gold" : null, live.eurUsd ? "EUR/USD" : null, live.spyPrice ? "SPY" : null, live.tltPrice ? "TLT" : null, live.oilPrice ? "Oil" : null].filter(Boolean).join(", ")})`

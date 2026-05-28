@@ -235,11 +235,15 @@ function GenesisPage() {
       // Cross-surface session bus — prior regime from this session if fresh.
       const sessionBus = sessionIntelStore.read();
       const sessionBusCtx = sessionBus
-        ? [
-            `Session regime: ${sessionBus.regime} at ${sessionBus.confidence}% confidence`,
-            sessionBus.dominantBias ? `${sessionBus.dominantBias} bias` : "",
-            sessionBus.primaryRisk ? `risk: ${sessionBus.primaryRisk.slice(0, 60)}` : "",
-          ].filter(Boolean).join(", ")
+        ? (() => {
+            const ageMins = Math.round((Date.now() - sessionBus.ts) / 60_000);
+            const ageStr = ageMins < 2 ? "just now" : ageMins < 60 ? `${ageMins}m ago` : `${(ageMins / 60).toFixed(1)}h ago`;
+            return [
+              `Session regime (${ageStr}): ${sessionBus.regime} at ${sessionBus.confidence}% confidence`,
+              sessionBus.dominantBias ? `${sessionBus.dominantBias} bias` : "",
+              sessionBus.primaryRisk ? `risk: ${sessionBus.primaryRisk.slice(0, 60)}` : "",
+            ].filter(Boolean).join(", ");
+          })()
         : "";
 
       // Scenario simulation context — question-aware keyword + regime matching.

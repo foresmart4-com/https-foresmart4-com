@@ -183,6 +183,18 @@ function detectConflicts(
     }
   }
 
+  // 6. Thesis memory direction contradicts current market regime
+  const thesisLow = layers.thesis.toLowerCase();
+  const thesisBull = /\bbullish\b/.test(thesisLow);
+  const thesisBear = /\bbearish\b/.test(thesisLow);
+  if ((thesisBull && riskOff) || (thesisBear && riskOn)) {
+    conflicts.push({
+      type: "stale_memory",
+      description: `Prior thesis direction (${thesisBull ? "bullish" : "bearish"}) may conflict with current ${marketIntel.regime} regime — verify continuity`,
+      severity: "low",
+    });
+  }
+
   return conflicts;
 }
 
@@ -274,23 +286,22 @@ function buildCoordinationNote(
 ): string {
   const parts: string[] = [];
 
-  // Surface highest-severity conflict first
-  const high = conflicts.find((c) => c.severity === "high");
-  const med  = conflicts.find((c) => c.severity === "medium");
-  const top  = high ?? med;
-  if (top && (priority === "contradiction" || priority === "safety" || priority === "confidence_warning")) {
-    parts.push(top.description.slice(0, 60));
+  // Surface all distinct conflict descriptions up to 2
+  const notable = conflicts.filter((c) => c.severity !== "low" || conflicts.length <= 2);
+  for (const c of notable.slice(0, 2)) {
+    parts.push(c.description.slice(0, 70));
   }
 
-  // List boosted layers for AI transparency
-  const boosted = Object.entries(routing)
-    .filter(([, v]) => v === "boosted")
-    .map(([k]) => k)
-    .slice(0, 3);
-  if (boosted.length) parts.push(`boosted: ${boosted.join(", ")}`);
+  // When stale memory detected, make it explicit for the AI
+  const stale = conflicts.filter((c) => c.type === "stale_memory");
+  if (stale.length > 0 && !notable.some((c) => c.type === "stale_memory")) {
+    parts.push(stale[0].description.slice(0, 70));
+  }
 
-  // Conflict count when multiple
-  if (conflicts.length > 1) parts.push(`${conflicts.length} conflicts arbitrated`);
+  // Priority signal when not standard
+  if (priority !== "standard" && parts.length === 0) {
+    parts.push(`priority=${priority}`);
+  }
 
   if (!parts.length) return "";
   const note = `Coord[${priority}]: ${parts.join(" | ")}`;
