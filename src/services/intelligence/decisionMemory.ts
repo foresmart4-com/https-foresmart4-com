@@ -195,12 +195,19 @@ function deriveMemoryState(
     return "debated_pattern";
   }
 
+  // Internal competition: both strength and competing signals are strong → debated_pattern
+  // prevents false framework_strength durable from single-source alignment
+  if (signals.competingScore >= 4 && signals.strengthScore >= 4) {
+    return "debated_pattern";
+  }
+
   const dominantScore = Math.max(
     signals.strengthScore, signals.failureScore, signals.regimeScore,
     signals.riskScore, signals.uncertaintyScore, signals.competingScore,
   );
 
-  if (dominantScore >= 6) return "durable_pattern";
+  // Threshold raised to 7 to prevent false durable_pattern from single-source alignment
+  if (dominantScore >= 7) return "durable_pattern";
   if (dominantScore >= 4) return "candidate_memory";
   if (dominantScore >= 2) return "weak_pattern";
   return "weak_pattern";

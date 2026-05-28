@@ -871,21 +871,21 @@ function GenesisPage() {
         liveAcquisition.competingFrameworkContext,
         // Institutional Models — Phase-51: framework alignment, competing philosophies
         institutionalModels.contextString,
-        // Historical validation — Phase-52: historical environment-framework assessment
+        // Historical validation — Phase-52: omit when environment signal is insufficient
         institutionalValidation.contextString,
-        // Institutional resilience — Phase-52: resilience observation when detected
+        // Institutional resilience — Phase-52: 100-char hard limit; single-sentence only
         institutionalValidation.resilienceObservation
-          ? `Institutional resilience: ${institutionalValidation.resilienceObservation.slice(0, 120)}`
+          ? `Institutional resilience: ${institutionalValidation.resilienceObservation.slice(0, 100)}`
           : "",
-        // Competing lesson — Phase-52: competing framework perspective; preserve disagreement
+        // Competing lesson — Phase-52: 100-char hard limit; preserve tension, no forced resolution
         institutionalValidation.competingObservation
-          ? `Competing lesson: ${institutionalValidation.competingObservation.slice(0, 120)}`
+          ? `Competing lesson: ${institutionalValidation.competingObservation.slice(0, 100)}`
           : "",
-        // Decision memory — Phase-53: governed session pattern; advisory only
-        decisionMemory.contextString,
-        // Risk lesson — Phase-53: specific risk from current analysis
+        // Decision memory — Phase-53: omit when signal is too weak to add analytical value
+        decisionMemory.memoryState !== "weak_pattern" ? decisionMemory.contextString : "",
+        // Risk lesson — Phase-53: 100-char hard limit; only present when class is risk-relevant
         decisionMemory.riskLesson
-          ? `Risk lesson: ${decisionMemory.riskLesson.slice(0, 120)}`
+          ? `Risk lesson: ${decisionMemory.riskLesson.slice(0, 100)}`
           : "",
       ].filter(Boolean).join(" | ");
 
@@ -1331,6 +1331,51 @@ function GenesisPage() {
                 }
               />
             </div>
+
+            {/* Institutional Intelligence Status — Phase-52/53: compact advisory status; no execution */}
+            {(institutionalValidationResult || decisionMemoryResult) && (
+              <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                <Compass className="h-3 w-3 shrink-0 text-muted-foreground/50" />
+                <span className="text-muted-foreground/60 font-semibold uppercase tracking-wider shrink-0">
+                  {ar ? "التحقق المؤسسي:" : "Inst. validation:"}
+                </span>
+                {institutionalValidationResult && institutionalValidationResult.validationState !== "insufficient_history" && (
+                  <span className={cn(
+                    "rounded border px-1.5 py-0.5 font-medium",
+                    institutionalValidationResult.validationState === "historically_resilient" || institutionalValidationResult.validationState === "preservation_effective"
+                      ? "border-success/30 text-success"
+                      : institutionalValidationResult.validationState === "historically_fragile" || institutionalValidationResult.validationState === "stress_vulnerable"
+                      ? "border-destructive/30 text-destructive"
+                      : "border-border/40 text-muted-foreground",
+                  )}>
+                    {institutionalValidationResult.validationState.replace(/_/g, " ")}
+                  </span>
+                )}
+                {decisionMemoryResult && decisionMemoryResult.memoryState !== "weak_pattern" && (
+                  <>
+                    <span className="text-muted-foreground/30">·</span>
+                    <span className={cn(
+                      "rounded border px-1.5 py-0.5 font-medium",
+                      decisionMemoryResult.memoryState === "durable_pattern" ? "border-primary/30 text-primary/70"
+                      : decisionMemoryResult.memoryState === "debated_pattern" ? "border-warning/30 text-warning"
+                      : decisionMemoryResult.memoryState === "governance_review" ? "border-destructive/30 text-destructive"
+                      : "border-border/40 text-muted-foreground",
+                    )}>
+                      {decisionMemoryResult.memoryState.replace(/_/g, " ")}
+                    </span>
+                  </>
+                )}
+                {decisionMemoryResult?.memoryState === "governance_review" && (
+                  <span className="flex items-center gap-1 text-destructive/70 font-medium">
+                    <ShieldAlert className="h-3 w-3" />
+                    {ar ? "مراجعة بشرية" : "human review"}
+                  </span>
+                )}
+                {decisionMemoryResult?.riskLesson && (
+                  <span className="text-warning/60">⚠ {ar ? "درس مخاطرة" : "risk noted"}</span>
+                )}
+              </div>
+            )}
 
             {profile.preferredAssets.length > 0 && (
               <div>
