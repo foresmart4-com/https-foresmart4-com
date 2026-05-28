@@ -77,6 +77,7 @@ import { computeProviderMonitoring, type ProviderMonitoringResult } from "@/serv
 import { computeAnswerQuality, type AnswerQualityResult } from "@/services/intelligence/answerQuality";
 import { computeProductionStability, type ProductionStabilityResult } from "@/services/intelligence/productionStability";
 import { computeAdaptiveMonitoring, type AdaptiveMonitoringResult } from "@/services/intelligence/adaptiveMonitoring";
+import { computeInvestmentSynthesis } from "@/services/intelligence/investmentSynthesis";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -869,6 +870,14 @@ function GenesisPage() {
       });
       setDecisionMemoryResult(decisionMemory);
 
+      // Phase-62: Investment Synthesis Engine — institutional committee framing for investment questions
+      const investmentSynthesis = computeInvestmentSynthesis({
+        question: trimmed,
+        marketContext,
+        firewallState: firewallResult.state,
+        ar,
+      });
+
       const decisionCtx = [
         `System calibration: ECE=${eceVal.toFixed(3)}${drift.isDrifting ? " ⚠ performance drift detected" : ""}`,
         topStrategy ? `Top strategy: ${topStrategy.strategy} win-rate ${(topStrategy.winRate * 100).toFixed(0)}% (${topStrategy.bestRegime ?? "any"} regime)` : "",
@@ -989,6 +998,10 @@ function GenesisPage() {
         adaptiveMonitoringResult.adaptiveState !== "healthy_recent_window" &&
         adaptiveMonitoringResult.adaptiveState !== "insufficient_window"
           ? adaptiveMonitoringResult.contextString
+          : "",
+        // Investment synthesis — Phase-62: institutional committee framing; omit when no investment intent
+        investmentSynthesis.synthesisMode !== "insufficient"
+          ? investmentSynthesis.contextString
           : "",
       ].filter(Boolean).join(" | ");
 

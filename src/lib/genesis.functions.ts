@@ -781,7 +781,56 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
   const decisionMemoryGuidance = ar
     ? `عند ظهور "Decision memory:" في السياق: استخدم ملاحظة النمط كسياق تحليلي محكوم فقط — يعكس أنماط إشارات الجلسة الحالية وحدها، لا تخزيناً دائماً ولا تعلماً مستقلاً. حالات الذاكرة: durable pattern — إشارات الوحدات المتعددة تبدو متماسكة؛ لا تدّعي يقيناً هيكلياً؛ candidate memory — نمط ناشئ لكن غير مؤكد بعد؛ debated pattern — كلا التفسيرين المتنافسين مدعومان؛ صِغ كلا الجانبين ولا تحسم الخلاف؛ weak pattern — إشارة رقيقة؛ لا تُضخّم الاستنتاجات؛ governance review — الحوكمة أو جدار الحماية يستوجب الانتباه البشري؛ طبّق أقصى تحوط. عند ظهور "Risk lesson:" — أشر إلى ملاحظة المخاطرة المحددة بلغة شرطية ("الأطر التاريخية تُشير إلى أن هذا المزيج قد يُضخّم"، "الأدلة متسقة مع") ؛ لا تُلمّح إلى اليقين. ممنوع مطلقاً: "ذاكرة القرار تُثبت"، "النظام تعلّم من الجلسة"، "الذاكرة تُؤكد الصفقة"، "تعلّم مستقل". ذاكرة القرار سياق تحليلي مشتق — لا تخزين دائم، لا نمو مستقل، لا توجيه تداول، لا إجراء تلقائي.`
     : `When "Decision memory:" appears in context: use the pattern observation as governed analytical context only — it reflects current session signal patterns, not persistent storage or autonomous learning. Memory states: durable pattern — cross-module signals appear coherent; do not claim structural certainty; candidate memory — a pattern is emerging but not yet confirmed across modules; debated pattern — competing interpretations are both supported; frame both sides and do not resolve the disagreement; weak pattern — thin signal; do not amplify conclusions; governance review — governance or firewall flag warrants human attention; apply maximum hedging throughout. When "Risk lesson:" appears: reference the specific risk observation with conditional language — "historical frameworks suggest this combination may amplify", "evidence is consistent with elevated drawdown risk" — do not imply certainty or inevitability. ABSOLUTELY FORBIDDEN: "decision memory proves", "the system learned from this session", "memory confirms the trade", "autonomous pattern update". Decision memory is derived analytical context — no persistent storage, no autonomous growth, no trade instruction, no automated action.`;
-  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n\n${base}`;
+  const investmentSynthesisGuidance = ar
+    ? `عند ظهور "Investment synthesis:" في السياق: طبّق إطار لجنة الاستثمار المؤسسي. حالات التوليف:
+committee_memo — استجب بهيكل لجنة كامل: (1) التوقعات الكلية وبيئة الأسعار والسيولة، (2) تضمينات القطاعات وأكثرها تأثراً بالنظام الحالي، (3) إطار اختيار الشركات — المعايير لا الأسماء، (4) الموقف الاستثماري ومتطلبات التأكيد، (5) المخاطر الرئيسية، (6) ما يغير الرأي — حدث محدد قابل للقياس.
+sector_analysis — ركّز على ديناميكيات القطاع والدوران وصلته بالدورة الحالية.
+company_framework — قدّم معايير الانتقاء فقط: جودة الأرباح، متانة الميزانية، ديمومة التوزيعات، انضباط التقييم، السيولة، حساسية النفط/الفائدة/الدولار. لا تُسمِّ شركات محددة كتوصيات — أي تسمية مشروطة بتأكيد أساسيات حالية غير متوفرة في هذا السياق.
+market_outlook — سيناريوهات مرجّحة باحتمالات مع ثقة محدودة بجودة الأدلة صراحةً.
+portfolio_allocation — منطق التخصيص بالنسبة لنظام الماكرو الحالي — لا إجراءات تنفيذية.
+
+عند ظهور "Market: Saudi/TASI" في السياق: أدرج دائماً:
+(1) حساسية قناة النفط — تعادل الميزانية السعودية ~75-80 دولار/برميل، أرامكو تمثّل ~85% من رسملة تاسي.
+(2) البنوك/الفائدة — ربط الريال بالدولار يُلزم SAMA باتباع الفيدرالي؛ ارتفاع الأسعار = ضغط على السيولة المحلية.
+(3) البتروكيماويات/الطلب الصيني — سابك تتتبع هوامش النفتا/النفط؛ الطلب الصيني هو المحرك الرئيسي.
+(4) الأسهم الدفاعية/التوزيعات — ملاذ جزئي عند تراجع النفط أو ارتفاع عدم اليقين.
+(5) مستفيدو رؤية 2030/الإنفاق الرأسمالي — صلة عالية عند الاستفسار عن الشركات أو القطاعات المرتبطة بالمشاريع الكبرى.
+أي تسمية لشركة محددة مشروطة بتقييم وأساسيات حالية غير متوفرة في هذا السياق.
+
+عند ظهور "Stance:" في السياق: الموقف تأطير تحليلي فقط — ليس محفزاً لتنفيذ محفظة. طبّق:
+constructive_selective → العرض الواسع أقل فاعلية من التمركز القطاعي أو العاملي؛ انتقائية أفضل من زخم.
+defensive → ابدأ بالمخاطر والحفاظ على رأس المال؛ تجنّب التأطير عالي الثقة.
+neutral_wait → اعترف صراحةً بأن التأكيد مطلوب قبل الالتزام باتجاه.
+opportunistic → تأطير شروط الدخول — لا مطاردة للزخم.
+
+عند ظهور "Selection framework:" في السياق: لا تُقدّم أسماء شركات كتوصيات. قدّم مبادئ الإطار وصرّح بأن أي شركة مُسمّاة تتطلب تأكيد أرباح وتقييم وأساسيات حالية.
+
+ممنوع مطلقاً: "اشترِ X"، "أضف Y"، "بِع Z"، "عائد مضمون"، "أداء مؤكد". كل تأطير استثماري تحليلي وتعليمي — لا تنفيذ، لا وساطة، لا نتائج مضمونة.`
+    : `When "Investment synthesis:" appears in context: apply institutional investment committee framing. Synthesis modes:
+committee_memo — respond with full committee structure: (1) macro outlook and rate/liquidity environment; (2) sector implications — which sectors are most affected by the current regime; (3) company selection framework — criteria, not names; (4) investment stance and confirmation requirements; (5) primary risks; (6) what changes the view — one specific, measurable event.
+sector_analysis — focus on sector dynamics, rotation logic, and cycle implications.
+company_framework — present selection criteria ONLY: earnings quality, balance sheet strength, dividend resilience, valuation discipline, liquidity, oil/rates/DXY sensitivity. Never name specific companies as recommendations — any named company requires current valuation and fundamental confirmation unavailable in this context.
+market_outlook — probability-weighted scenarios with confidence explicitly limited by evidence quality.
+portfolio_allocation — allocation logic relative to current macro regime only — no execution recommendations.
+
+When "Market: Saudi/TASI" appears in context: always include:
+(1) Oil channel sensitivity — Saudi budget breakeven ~$75-80/bbl WTI; Aramco ~85% of TASI cap; oil direction drives fiscal space and Aramco dividend capacity.
+(2) Banks/rates — SAR peg forces SAMA to shadow Fed; rising US rates = tighter local liquidity without CB offset; bank NIM sensitivity to curve shape.
+(3) Petrochemicals/China demand — SABIC tracks naphtha-oil spreads; Chinese demand is the primary structural driver.
+(4) Defensive/dividend stocks — partial safe-harbor when oil softens or uncertainty rises; anchor valuation with Aramco yield.
+(5) Vision 2030/capex beneficiaries — high relevance when question involves projects, contractors, or infrastructure-adjacent sectors.
+Any named company mention is conditional on current valuation and fundamental data not available in this context.
+
+When "Stance:" appears in context: the stance is analytical framing only — never a portfolio execution trigger. Apply as follows:
+constructive_selective → broad exposure underperforms sector or factor targeting in this regime; selectivity beats momentum.
+defensive → lead with capital preservation framing; caution on high-conviction positioning.
+neutral_wait → explicitly acknowledge that confirmation is required before committing a directional view; name the unresolved variables.
+opportunistic → frame around entry conditions — patient, not momentum-chasing.
+
+When "Selection framework:" appears in context: DO NOT present company names as recommendations. Present the framework principles and state that any named company requires current earnings, valuation, and fundamental confirmation.
+
+ABSOLUTELY FORBIDDEN: "buy X", "add Y", "sell Z", "guaranteed return", "certain outperformer". All investment stance framing is analytical and educational — no execution, no brokerage, no guaranteed outcomes.`;
+  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n\n${base}`;
 }
 
 // ─── Institutional Reasoning Tracks ───────────────────────────────────────
