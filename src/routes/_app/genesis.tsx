@@ -53,6 +53,8 @@ import { computeMacroEvent, type MacroEventResult, type EventSignificance } from
 import { computeCredibility, type CredibilityResult, type CredibilityLabel } from "@/services/credibility/credibilityEngine";
 import { computeDebate, type DebateResult, type DebateBalance } from "@/services/intelligence/debateEngine";
 import { computeApprovalWorkflow, type ApprovalWorkflowResult, type WorkflowState } from "@/services/governance/approvalWorkflow";
+import { computeOutcomeAttribution, type OutcomeAttributionResult } from "@/services/learning/outcomeAttribution";
+import { computeAdaptiveLearningGovernance, type AdaptiveLearningGovernanceResult } from "@/services/learning/adaptiveLearningGovernance";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -162,6 +164,8 @@ function GenesisPage() {
   const [credibilityResult, setCredibilityResult] = useState<CredibilityResult | null>(null); // Phase-34
   const [debateResult, setDebateResult] = useState<DebateResult | null>(null); // Phase-32
   const [workflowResult, setWorkflowResult] = useState<ApprovalWorkflowResult | null>(null); // Phase-35
+  const [attributionResult, setAttributionResult] = useState<OutcomeAttributionResult | null>(null); // Phase-37
+  const [learningGovResult, setLearningGovResult] = useState<AdaptiveLearningGovernanceResult | null>(null); // Phase-38
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
   const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -372,6 +376,36 @@ function GenesisPage() {
       });
       setWorkflowResult(workflow);
 
+      // Phase-37: Outcome Attribution Intelligence — explanatory only, no fake causality
+      const attribution = computeOutcomeAttribution({
+        outcomeSummary: thesisOutcomes,
+        calibrationScore: decisionScore.score,
+        trustState: trustStrategy.trustState.state,
+        credibilityLabel: credibility.label,
+        debateBalance: debate.debateBalance,
+        hasMaterialDisagreement: debate.hasMaterialDisagreement,
+        firewallState: firewallResult.state,
+        hasActiveVulnerability: portfolioRisk.hasActiveVulnerability,
+        regime: marketIntel.regime ?? "",
+        ar,
+      });
+      setAttributionResult(attribution);
+
+      // Phase-38: Adaptive Learning Governance — governed learning only, firewall cannot be bypassed
+      const learningGov = computeAdaptiveLearningGovernance({
+        outcomeSummary: thesisOutcomes,
+        calibrationScore: decisionScore.score,
+        trustState: trustStrategy.trustState.state,
+        firewallState: firewallResult.state,
+        attributionLabel: attribution.label,
+        eceVal,
+        isDrifting: drift.isDrifting,
+        thesisCount,
+        hasOvershootSignal: decisionScore.trustProfile.hasOvershootSignal,
+        ar,
+      });
+      setLearningGovResult(learningGov);
+
       const decisionCtx = [
         `System calibration: ECE=${eceVal.toFixed(3)}${drift.isDrifting ? " ⚠ performance drift detected" : ""}`,
         topStrategy ? `Top strategy: ${topStrategy.strategy} win-rate ${(topStrategy.winRate * 100).toFixed(0)}% (${topStrategy.bestRegime ?? "any"} regime)` : "",
@@ -407,6 +441,10 @@ function GenesisPage() {
         debate.confidenceImpact < 0 ? `Debate confidence impact: ${debate.confidenceImpact} pts (${debate.debateBalance.replace(/_/g, " ")})` : "",
         // Approval workflow — Phase-35: governed escalation state
         workflow.contextString,
+        // Attribution — Phase-37: outcome explanation, explanatory only
+        attribution.hasAttribution ? attribution.contextString : "",
+        // Learning governance — Phase-38: governed learning posture
+        learningGov.contextString,
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
