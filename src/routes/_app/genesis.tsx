@@ -69,6 +69,7 @@ import { computePortfolioConstruction, type PortfolioConstructionResult, type Po
 import { computeGovernanceOS, type GovernanceOSResult, type GovernanceState } from "@/services/governance/governanceOS";
 import { computeResearchSandbox, type ResearchSandboxResult } from "@/services/research/researchSandbox";
 import { computeGovernedKnowledgeAcquisition, type GovernedKnowledgeAcquisitionResult } from "@/services/knowledge/governedKnowledgeAcquisition";
+import { runLiveAcquisitionCycle, type LiveAcquisitionSummary } from "@/services/knowledge/liveKnowledgeAcquisition";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -195,6 +196,7 @@ function GenesisPage() {
   const [governanceOSResult, setGovernanceOSResult] = useState<GovernanceOSResult | null>(null); // Phase-47
   const [sandboxResult, setSandboxResult] = useState<ResearchSandboxResult | null>(null); // Phase-49
   const [knowledgeAcqResult, setKnowledgeAcqResult] = useState<GovernedKnowledgeAcquisitionResult | null>(null); // Phase-50A
+  const [liveAcquisitionResult, setLiveAcquisitionResult] = useState<LiveAcquisitionSummary | null>(null); // Phase-50B
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
   const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -708,6 +710,30 @@ function GenesisPage() {
       });
       setKnowledgeAcqResult(knowledgeAcq);
 
+      // Phase-50B: Live Governed Knowledge Acquisition — source-gated, no auto-ingestion
+      const liveAcquisition = runLiveAcquisitionCycle({
+        sandboxCandidates: sandbox.researchCandidates,
+        hasHistoricalAnalog: bookIntel.historicalAnalog !== null,
+        historicalAnalogLabel: bookIntel.historicalAnalog,
+        frameworkConflict:
+          governanceOS.activeConflicts.includes("scenario_debate_conflict") ||
+          governanceOS.activeConflicts.includes("evidence_confidence_mismatch"),
+        dominantSchool: bookIntel.topCards[0]?.thinkingSchool ?? null,
+        hasCompetingView: bookIntel.competingSchool !== null,
+        credibilityScore:
+          credibility.label === "high" ? 82 :
+          credibility.label === "medium" ? 55 :
+          credibility.label === "low" ? 22 : 40,
+        coverageRelevance:
+          coverage.relevanceState === "high_relevance" ? "high" :
+          coverage.relevanceState === "moderate_relevance" ? "medium" : "low",
+        governanceState: governanceOS.governanceState,
+        firewallState: firewallResult.state,
+        existingCorpusSize: 22,
+        ar,
+      });
+      setLiveAcquisitionResult(liveAcquisition);
+
       const decisionCtx = [
         `System calibration: ECE=${eceVal.toFixed(3)}${drift.isDrifting ? " ⚠ performance drift detected" : ""}`,
         topStrategy ? `Top strategy: ${topStrategy.strategy} win-rate ${(topStrategy.winRate * 100).toFixed(0)}% (${topStrategy.bestRegime ?? "any"} regime)` : "",
@@ -785,6 +811,10 @@ function GenesisPage() {
           : "",
         // Knowledge Acquisition — Phase-50A: governed acquisition pipeline state
         knowledgeAcq.contextString,
+        // Live Acquisition — Phase-50B: candidate evaluation; no auto-ingestion
+        liveAcquisition.primaryContextString,
+        // Competing framework — Phase-50B: detected when competing schools identified
+        liveAcquisition.competingFrameworkContext,
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
