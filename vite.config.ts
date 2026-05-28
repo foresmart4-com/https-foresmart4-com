@@ -12,4 +12,9 @@ export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
   },
+  // Recharts chart bundle (~374 kB) and the main entry (~847 kB) are intentionally large.
+  // Raise the warning threshold so the build output only flags genuinely unexpected chunks.
+  vite: {
+    build: { chunkSizeWarningLimit: 900 },
+  },
 });
