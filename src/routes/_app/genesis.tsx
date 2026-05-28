@@ -58,6 +58,8 @@ import { computeAdaptiveLearningGovernance, type AdaptiveLearningGovernanceResul
 import { computeStrategicApproval, type StrategicApprovalResult, type StrategicApprovalLabel } from "@/services/intelligence/strategicApproval";
 import { computeMarketOrchestrator, type MarketOrchestratorResult, type MarketOrchestratorState } from "@/services/intelligence/marketOrchestrator";
 import { computeCrossMarketRegime, type CrossMarketRegimeResult, type CrossMarketRegimeLabel } from "@/services/intelligence/crossMarketRegime";
+import { computeThesisLab, type ThesisLabResult, type ThesisLabState } from "@/services/intelligence/thesisLab";
+import { computeScenarioIntelligence, type ScenarioIntelligenceResult, type ScenarioLabel } from "@/services/intelligence/scenarioIntelligence";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -172,6 +174,8 @@ function GenesisPage() {
   const [strategicApprovalResult, setStrategicApprovalResult] = useState<StrategicApprovalResult | null>(null); // Phase-36
   const [marketOrchestratorResult, setMarketOrchestratorResult] = useState<MarketOrchestratorResult | null>(null); // Phase-40
   const [crossMarketRegimeResult, setCrossMarketRegimeResult] = useState<CrossMarketRegimeResult | null>(null); // Phase-41
+  const [thesisLabResult, setThesisLabResult] = useState<ThesisLabResult | null>(null); // Phase-42
+  const [scenarioIntelResult, setScenarioIntelResult] = useState<ScenarioIntelligenceResult | null>(null); // Phase-46
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
   const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -480,6 +484,49 @@ function GenesisPage() {
       });
       setCrossMarketRegimeResult(crossMarket);
 
+      // Phase-42: Thesis Laboratory — competing theses, fragile thesis detection
+      const thesisLab = computeThesisLab({
+        theses: thesisMemory.all(),
+        outcomeSummary: thesisOutcomes,
+        strategicBias: strategicSynthesis.bias,
+        hasStrategicConflict: strategicSynthesis.hasConflict,
+        firewallState: firewallResult.state,
+        debateBalance: debate.debateBalance,
+        hasMaterialDisagreement: debate.hasMaterialDisagreement,
+        credibilityLabel: credibility.label,
+        calibrationScore: decisionScore.score,
+        trustState: trustStrategy.trustState.state,
+        attributionLabel: attribution.label,
+        marketRegime: marketIntel.regime,
+        hasActiveVulnerability: portfolioRisk.hasActiveVulnerability,
+        ar,
+      });
+      setThesisLabResult(thesisLab);
+
+      // Phase-46: Scenario Intelligence — multi-scenario evaluation with thesis interaction
+      const scenarioIntel = computeScenarioIntelligence({
+        marketRegime: marketIntel.regime,
+        riskOnScore: marketIntel.riskOnScore,
+        stressLevel: marketIntel.stressLevel,
+        stressScore: marketIntel.stressScore,
+        breadthBullPct: marketIntel.breadth.bullPct,
+        strategicBias: strategicSynthesis.bias,
+        hasStrategicConflict: strategicSynthesis.hasConflict,
+        firewallState: firewallResult.state,
+        debateBalance: debate.debateBalance,
+        hasMaterialDisagreement: debate.hasMaterialDisagreement,
+        macroSignificance: macroEvent.significance,
+        portfolioRiskLabel: portfolioRisk.riskLabel,
+        hasActiveVulnerability: portfolioRisk.hasActiveVulnerability,
+        orchestratorState: marketOrchestrator.state,
+        crossMarketLabel: crossMarket.label,
+        thesisState: thesisLab.thesisState,
+        calibrationScore: decisionScore.score,
+        trustState: trustStrategy.trustState.state,
+        ar,
+      });
+      setScenarioIntelResult(scenarioIntel);
+
       const decisionCtx = [
         `System calibration: ECE=${eceVal.toFixed(3)}${drift.isDrifting ? " ⚠ performance drift detected" : ""}`,
         topStrategy ? `Top strategy: ${topStrategy.strategy} win-rate ${(topStrategy.winRate * 100).toFixed(0)}% (${topStrategy.bestRegime ?? "any"} regime)` : "",
@@ -525,6 +572,14 @@ function GenesisPage() {
         marketOrchestrator.contextString,
         // Cross-market regime — Phase-41: cross-segment alignment
         crossMarket.contextString,
+        // Thesis lab — Phase-42: thesis state and competing views
+        thesisLab.contextString,
+        // Scenario intelligence — Phase-46: dominant scenario + opposing
+        scenarioIntel.contextString,
+        // Scenario confidence pressure — only when material
+        scenarioIntel.scenarioConfidencePressure !== 0
+          ? `Scenario confidence pressure: ${scenarioIntel.scenarioConfidencePressure > 0 ? "+" : ""}${scenarioIntel.scenarioConfidencePressure} pts (${scenarioIntel.dominantScenario.replace(/_/g, " ")})`
+          : "",
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
@@ -1273,6 +1328,18 @@ function GenesisPage() {
         />
       )}
 
+      {/* ─── Thesis Lab + Scenario — Phase 42+46 ────────────────────────── */}
+      {(thesisLabResult || scenarioIntelResult) && (
+        thesisLabResult?.thesisState !== "emerging_thesis" ||
+        (scenarioIntelResult?.scenarioProbability === "favored" || scenarioIntelResult?.hasStressSignal)
+      ) && (
+        <ThesisScenarioStatusLine
+          thesis={thesisLabResult}
+          scenario={scenarioIntelResult}
+          ar={ar}
+        />
+      )}
+
       {/* ─── Proactive Research Signals — Phase 21 ──────────────────────── */}
       {researchCandidates.length > 0 && (
         <ProactiveResearchPanel
@@ -1730,6 +1797,83 @@ function MarketOSStatusLine({
         <>
           <span className="text-border/60">|</span>
           <span className="text-muted-foreground/60 italic truncate">{orchestrator.pressureSummary}</span>
+        </>
+      )}
+      <span className="ms-auto text-muted-foreground/40 italic text-[9px]">
+        {ar ? "استشاري" : "advisory"}
+      </span>
+    </div>
+  );
+}
+
+// ─── Phase 42+46: Thesis Lab + Scenario Status Line ──────────────────────────
+
+const THESIS_STATE_STYLE: Record<ThesisLabState, { border: string; bg: string; text: string; dot: string }> = {
+  supported_thesis:   { border: "border-success/40",     bg: "bg-success/5",   text: "text-success",            dot: "bg-success" },
+  monitored_thesis:   { border: "border-border/50",      bg: "bg-muted/8",     text: "text-foreground/70",      dot: "bg-muted-foreground/60" },
+  competing_theses:   { border: "border-primary/50",     bg: "bg-primary/8",   text: "text-primary",            dot: "bg-primary" },
+  fragile_thesis:     { border: "border-warning/50",     bg: "bg-warning/5",   text: "text-warning",            dot: "bg-warning" },
+  invalidated_thesis: { border: "border-destructive/40", bg: "bg-destructive/5", text: "text-destructive",      dot: "bg-destructive" },
+  emerging_thesis:    { border: "border-border/30",      bg: "bg-muted/5",     text: "text-muted-foreground/60",dot: "bg-muted-foreground/30" },
+};
+
+const THESIS_LABEL_AR: Record<ThesisLabState, string> = {
+  supported_thesis:   "أطروحة مدعومة",
+  monitored_thesis:   "أطروحة مراقبة",
+  competing_theses:   "أطروحات متنافسة",
+  fragile_thesis:     "أطروحة هشّة",
+  invalidated_thesis: "أطروحة مُبطَلة",
+  emerging_thesis:    "أطروحة ناشئة",
+};
+
+const SCENARIO_LABEL_AR: Record<ScenarioLabel, string> = {
+  bullish_scenario:     "سيناريو صعودي",
+  bearish_scenario:     "سيناريو هبوطي",
+  neutral_scenario:     "سيناريو محايد",
+  rotational_scenario:  "سيناريو دوراني",
+  stress_scenario:      "سيناريو ضغط",
+  uncertainty_scenario: "سيناريو عدم يقين",
+};
+
+function ThesisScenarioStatusLine({
+  thesis,
+  scenario,
+  ar,
+}: {
+  thesis: ThesisLabResult | null;
+  scenario: ScenarioIntelligenceResult | null;
+  ar: boolean;
+}) {
+  const state = thesis?.thesisState ?? "emerging_thesis";
+  const s = THESIS_STATE_STYLE[state];
+  const thesisLabel = ar ? THESIS_LABEL_AR[state] : state.replace(/_/g, " ");
+  const scenarioLabel = scenario
+    ? (ar ? SCENARIO_LABEL_AR[scenario.dominantScenario] : scenario.dominantScenario.replace(/_/g, " "))
+    : null;
+
+  return (
+    <div className={cn("mb-2 flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px]", s.border, s.bg)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)} />
+      <span className={cn("font-bold uppercase tracking-wide", s.text)}>
+        {ar ? "المختبر" : "Thesis"} — {thesisLabel}
+      </span>
+      {scenarioLabel && scenario?.scenarioProbability !== "insufficient" && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/70 truncate">
+            {ar ? "السيناريو: " : "scenario: "}{scenarioLabel}
+            {scenario?.scenarioProbability === "favored" && (
+              <span className="text-success/80 ms-1">{ar ? "(مرجَّح)" : "(favored)"}</span>
+            )}
+          </span>
+        </>
+      )}
+      {scenario?.opposingScenario && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/55 italic truncate">
+            {ar ? "معارض: " : "vs: "}{ar ? SCENARIO_LABEL_AR[scenario.opposingScenario] : scenario.opposingScenario.replace(/_/g, " ")}
+          </span>
         </>
       )}
       <span className="ms-auto text-muted-foreground/40 italic text-[9px]">
