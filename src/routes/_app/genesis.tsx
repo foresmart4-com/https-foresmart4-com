@@ -48,6 +48,8 @@ import { computePortfolioRisk, type PortfolioRiskResult, type PortfolioRiskLabel
 import { retrieveKnowledge } from "@/services/knowledge/knowledgeRetrieval";
 import { computePaperSynthesis, type PaperSynthesis, type PaperThesisState } from "@/services/paper/paperThesisEngine";
 import { computeFirewall, type FirewallResult, type FirewallState } from "@/services/governance/decisionFirewall";
+import { computeResearchCoverage, type ResearchCoverageResult, type RelevanceState } from "@/services/research/researchCoverageEngine";
+import { computeMacroEvent, type MacroEventResult, type EventSignificance } from "@/services/macro/macroEventEngine";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -152,6 +154,8 @@ function GenesisPage() {
   const [profileVersion, setProfileVersion] = useState(0);
   const [dismissedResearch, setDismissedResearch] = useState<Set<string>>(() => new Set());
   const [activeFrameworks, setActiveFrameworks] = useState<string[]>([]); // Phase-28: knowledge frameworks active on last send
+  const [coverageResult, setCoverageResult] = useState<ResearchCoverageResult | null>(null); // Phase-31
+  const [macroEventResult, setMacroEventResult] = useState<MacroEventResult | null>(null); // Phase-33
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
   const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -306,6 +310,25 @@ function GenesisPage() {
         p.preferredMarkets?.length ? `Preferred markets: ${p.preferredMarkets.join(", ")}` : "",
       ].filter(Boolean).join(" | ");
 
+      // Phase-31: Research Coverage Intelligence — question-reactive, pure function
+      const coverage = computeResearchCoverage({
+        question: trimmed,
+        regime: marketIntel.regime ?? "",
+        watchlistSymbols: watchlistItems.map((a) => a.symbol),
+        watchlistCategories: watchlistItems.map((a) => a.category),
+        ar,
+      });
+      setCoverageResult(coverage);
+
+      // Phase-33: Macro Event Intelligence — question-reactive, pure function
+      const macroEvent = computeMacroEvent(
+        trimmed,
+        marketIntel.regime ?? "",
+        watchlistItems.map((a) => a.category),
+        ar,
+      );
+      setMacroEventResult(macroEvent);
+
       const decisionCtx = [
         `System calibration: ECE=${eceVal.toFixed(3)}${drift.isDrifting ? " ⚠ performance drift detected" : ""}`,
         topStrategy ? `Top strategy: ${topStrategy.strategy} win-rate ${(topStrategy.winRate * 100).toFixed(0)}% (${topStrategy.bestRegime ?? "any"} regime)` : "",
@@ -327,6 +350,10 @@ function GenesisPage() {
         // Decision firewall — Phase-30: governance state + narrative mandate
         firewallResult.contextString,
         firewallResult.hasActiveConstraint ? firewallResult.narrativeHint : "",
+        // Research coverage — Phase-31: topic relevance awareness
+        coverage.contextString,
+        // Macro event — Phase-33: event significance + transmission channels
+        macroEvent.contextString,
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
@@ -1033,6 +1060,16 @@ function GenesisPage() {
         <FirewallStatusLine result={firewallResult} ar={ar} />
       )}
 
+      {/* ─── Research Coverage — Phase 31 ───────────────────────────────── */}
+      {coverageResult?.hasHighRelevance && (
+        <ResearchCoverageStatusLine result={coverageResult} ar={ar} />
+      )}
+
+      {/* ─── Macro Event — Phase 33 ─────────────────────────────────────── */}
+      {macroEventResult?.hasSignificantEvent && (
+        <MacroEventStatusLine result={macroEventResult} ar={ar} />
+      )}
+
       {/* ─── Proactive Research Signals — Phase 21 ──────────────────────── */}
       {researchCandidates.length > 0 && (
         <ProactiveResearchPanel
@@ -1174,6 +1211,86 @@ function ThinkingState({ ar }: { ar: boolean }) {
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {[0, 1, 2].map((i) => <div key={i} className="h-20 animate-pulse rounded-xl bg-muted/40" />)}
       </div>
+    </div>
+  );
+}
+
+// ─── Phase 31: Research Coverage Status Line ──────────────────────────────────
+
+const COVERAGE_STYLE: Record<RelevanceState, { border: string; bg: string; text: string; dot: string }> = {
+  high_relevance:      { border: "border-primary/40",  bg: "bg-primary/5",  text: "text-primary",          dot: "bg-primary" },
+  medium_relevance:    { border: "border-border/50",   bg: "bg-muted/8",    text: "text-foreground/70",     dot: "bg-muted-foreground/60" },
+  low_relevance:       { border: "border-border/30",   bg: "bg-muted/5",    text: "text-muted-foreground",  dot: "bg-muted-foreground/40" },
+  uncertain_relevance: { border: "border-border/20",   bg: "bg-muted/3",    text: "text-muted-foreground/60", dot: "bg-muted-foreground/30" },
+};
+
+function ResearchCoverageStatusLine({ result, ar }: { result: ResearchCoverageResult; ar: boolean }) {
+  const s = COVERAGE_STYLE[result.relevanceState];
+  const stateLabel = ar
+    ? ({ high_relevance: "عالية", medium_relevance: "متوسطة", low_relevance: "منخفضة", uncertain_relevance: "غير محددة" }[result.relevanceState])
+    : result.relevanceState.replace(/_/g, " ");
+  const topTopic = result.primaryTopic
+    ? (ar ? result.primaryTopic.labelAr : result.primaryTopic.labelEn)
+    : "";
+
+  return (
+    <div className={cn("mb-2 flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px]", s.border, s.bg)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)} />
+      <span className={cn("font-bold uppercase tracking-wide", s.text)}>
+        {ar ? "تغطية البحث" : "Market Awareness"} — {stateLabel}
+      </span>
+      {topTopic && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/70 truncate">{topTopic}</span>
+        </>
+      )}
+      <span className="ms-auto text-muted-foreground/40 italic text-[9px]">
+        {ar ? "استشاري" : "advisory"}
+      </span>
+    </div>
+  );
+}
+
+// ─── Phase 33: Macro Event Status Line ────────────────────────────────────────
+
+const MACRO_EVENT_STYLE: Record<EventSignificance, { border: string; bg: string; text: string; dot: string }> = {
+  critical:   { border: "border-warning/50",  bg: "bg-warning/5",   text: "text-warning",         dot: "bg-warning" },
+  meaningful: { border: "border-primary/40",  bg: "bg-primary/5",   text: "text-primary",          dot: "bg-primary" },
+  secondary:  { border: "border-border/40",   bg: "bg-muted/8",     text: "text-muted-foreground", dot: "bg-muted-foreground/50" },
+  uncertain:  { border: "border-border/20",   bg: "bg-muted/3",     text: "text-muted-foreground/60", dot: "bg-muted-foreground/30" },
+};
+
+function MacroEventStatusLine({ result, ar }: { result: MacroEventResult; ar: boolean }) {
+  const s = MACRO_EVENT_STYLE[result.significance];
+  const sigLabel = ar
+    ? ({ critical: "حرج", meaningful: "ذو معنى", secondary: "ثانوي", uncertain: "غير محدد" }[result.significance])
+    : result.significance;
+  const eventLabel = result.primaryEvent
+    ? (result.primaryEvent.replace(/_/g, " "))
+    : "";
+
+  return (
+    <div className={cn("mb-2 flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px]", s.border, s.bg)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)} />
+      <span className={cn("font-bold uppercase tracking-wide", s.text)}>
+        {ar ? "حدث كلي" : "Macro Relevance"} — {sigLabel}
+      </span>
+      {eventLabel && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/70 truncate">{eventLabel}</span>
+        </>
+      )}
+      {result.transmissionChannels[0] && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/60 truncate italic">{result.transmissionChannels[0]}</span>
+        </>
+      )}
+      <span className="ms-auto text-muted-foreground/40 italic text-[9px]">
+        {ar ? "استشاري" : "advisory"}
+      </span>
     </div>
   );
 }

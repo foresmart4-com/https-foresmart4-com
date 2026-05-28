@@ -708,7 +708,13 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
   const firewallGuidance = ar
     ? `عند ظهور "Firewall" في السياق: المحظور — استخدم لغة محوطة جداً، لا تأطير إجرائي، صرّح بمحدودية الثقة. المقيَّد — لغة شرطية فقط، اعترف بالقيود الموضحة. التحذيري — صِغ جملاً شرطية، أشر لعدم اليقين. ممنوع تحت الحظر/التقييد: "قناعة قوية"، "فرصة مؤكدة"، "يجب التصرف الآن".`
     : `When "Firewall" appears in context: blocked — use highly hedged language, no action framing, state confidence is explicitly limited; constrained — conditional language only, acknowledge the stated limitation; caution — maintain conditional framing, note uncertainty. FORBIDDEN under blocked/constrained: "strong conviction", "definitive opportunity", "must act now", "certain outcome".`;
-  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n\n${base}`;
+  const coverageGuidance = ar
+    ? `عند ظهور "Research coverage:" في السياق: استخدمه لتحديد أولويات الموضوعات التحليلية. high_relevance — يمكن توسيع تحليل هذا الموضوع؛ uncertain_relevance — اعترف بمحدودية السياق المتاح. ممنوع: "يجب التحرك فوراً"، "فرصة مؤكدة"، "تأثير مضمون". كل موضوع بحثي استشاري وتعليمي فقط.`
+    : `When "Research coverage:" appears in context: use it to prioritise analytical topics. high_relevance — the topic warrants expanded analysis; uncertain_relevance — acknowledge limited available context. FORBIDDEN: "must act now", "guaranteed opportunity", "certain impact". All research coverage is advisory and educational only.`;
+  const macroEventGuidance = ar
+    ? `عند ظهور "Macro event:" في السياق: critical — أوضح قنوات الانتقال المتعددة مع لغة شرطية؛ meaningful — أشر للقناة الأساسية؛ secondary — اعترف بمحدودية الصلة الكلية. الأهمية ≠ توقع الاتجاه. ممنوع: "مؤكد التأثير"، "سيرتفع/ينخفض بالضرورة"، "يجب الاستجابة الآن". جميع مخرجات الأحداث الكلية استشارية وتعليمية.`
+    : `When "Macro event:" appears in context: critical — explain multiple transmission channels with conditional language; meaningful — note the primary channel; secondary — acknowledge limited macro linkage. Significance ≠ directional prediction. FORBIDDEN: "certain impact", "will definitely rise/fall", "must respond immediately". All macro event output is advisory and educational only.`;
+  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n\n${base}`;
 }
 
 // ─── Institutional Reasoning Tracks ───────────────────────────────────────
