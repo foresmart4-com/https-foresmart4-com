@@ -1600,6 +1600,66 @@ function GenesisPage() {
               </div>
             )}
 
+            {/* Knowledge Source Review — Phase-58: governed acquisition pipeline status */}
+            {knowledgeAcqResult && (
+              <div>
+                <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5">
+                  <Layers className="h-3 w-3" />
+                  {ar ? "مراجعة مصادر المعرفة" : "Knowledge Source Review"}
+                </div>
+                <div className="space-y-1">
+                  {knowledgeAcqResult.evaluatedState !== "candidate" && (
+                    <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                      <span className={cn(
+                        "rounded border px-1.5 py-0.5 font-medium",
+                        knowledgeAcqResult.evaluatedState === "governance_review" ? "border-primary/30 text-primary/70"
+                        : knowledgeAcqResult.evaluatedState === "credible" ? "border-success/30 text-success"
+                        : knowledgeAcqResult.evaluatedState === "rejected" ? "border-destructive/30 text-destructive"
+                        : "border-warning/30 text-warning",
+                      )}>
+                        {knowledgeAcqResult.evaluatedState.replace(/_/g, " ")}
+                      </span>
+                      <span className="text-muted-foreground/50">{knowledgeAcqResult.pipelineStage.replace(/_/g, " ")}</span>
+                      {knowledgeAcqResult.activeFilters.length > 0 && (
+                        <span className="text-warning/70">⚠ {knowledgeAcqResult.activeFilters.length} {ar ? "فلتر" : `filter${knowledgeAcqResult.activeFilters.length !== 1 ? "s" : ""}`}</span>
+                      )}
+                      {knowledgeAcqResult.canEnterCorpus && (
+                        <span className="text-primary/60 font-medium">{ar ? "بانتظار مراجعة بشرية" : "awaiting human review"}</span>
+                      )}
+                    </div>
+                  )}
+                  {liveAcquisitionResult && liveAcquisitionResult.awaitingReview > 0 && (
+                    <div className="text-[10px] text-muted-foreground/60">
+                      ⏳ {liveAcquisitionResult.awaitingReview} {ar ? "مرشح بانتظار المراجعة · لا استيعاب تلقائي" : "candidate awaiting review · no auto-ingestion"}
+                    </div>
+                  )}
+                  {sandboxResult && sandboxResult.researchCandidates.length > 0 && (
+                    <div className="truncate text-[10px] text-muted-foreground/60">
+                      {ar ? "مرشح بحثي: " : "Research candidate: "}{sandboxResult.researchCandidates[0].slice(0, 55)}
+                    </div>
+                  )}
+                  {bookIntelligenceResult?.historicalAnalog && (
+                    <div className="text-[10px] text-muted-foreground/60">
+                      {ar ? "نظير: " : "Analog: "}{ar && bookIntelligenceResult.historicalAnalogAr ? bookIntelligenceResult.historicalAnalogAr : bookIntelligenceResult.historicalAnalog}
+                    </div>
+                  )}
+                  {bookIntelligenceResult?.competingSchool && (
+                    <div className="truncate text-[10px] italic text-muted-foreground/50">
+                      {ar ? "مدرسة منافسة: " : "Competing school: "}{bookIntelligenceResult.competingSchool.slice(0, 55)}
+                    </div>
+                  )}
+                  {knowledgeAcqResult.governanceNotes.length > 0 && (
+                    <div className="text-[9px] italic text-muted-foreground/45">
+                      {knowledgeAcqResult.governanceNotes[0].slice(0, 75)}
+                    </div>
+                  )}
+                </div>
+                <p className="mt-1 text-[9px] italic text-muted-foreground/50">
+                  {ar ? "لا استيعاب تلقائي — المراجعة البشرية إلزامية" : "No auto-ingestion — human review required"}
+                </p>
+              </div>
+            )}
+
             {/* Intelligence Graph — Phase 9 */}
             {graphSummary.nodeCount > 0 && (
               <div>
@@ -1669,6 +1729,98 @@ function GenesisPage() {
                 ))}
               </div>
             </div>
+
+            {/* Model Calibration Dashboard — Phase-59: governed quality and calibration status */}
+            {exchanges.length > 0 && (
+              <div>
+                <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5">
+                  <Gauge className="h-3 w-3" />
+                  {ar ? "حالة المعايرة" : "Calibration Status"}
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  <MemoryStat
+                    label={ar ? "معايرة الثقة" : "Calibration"}
+                    value={decisionScore.score.replace(/_/g, " ")}
+                    highlight={
+                      decisionScore.score === "well_calibrated" ? "success"
+                      : decisionScore.score === "weakly_calibrated" ? "warning"
+                      : undefined
+                    }
+                  />
+                  {answerQualityResult && answerQualityResult.qualityState !== "insufficient_quality_signal" && (
+                    <MemoryStat
+                      label={ar ? "جودة الاستدلال" : "Reasoning"}
+                      value={
+                        answerQualityResult.qualityState === "robust_reasoning" ? (ar ? "متين" : "robust")
+                        : answerQualityResult.qualityState === "coherent_but_thin" ? (ar ? "رقيق" : "thin")
+                        : answerQualityResult.qualityState === "debated_reasoning" ? (ar ? "متنازع" : "debated")
+                        : answerQualityResult.qualityState === "confidence_risk" ? (ar ? "خطر ثقة" : "conf. risk")
+                        : (ar ? "محكوم" : "constrained")
+                      }
+                      highlight={
+                        answerQualityResult.qualityState === "robust_reasoning" ? "success"
+                        : answerQualityResult.qualityState === "confidence_risk" || answerQualityResult.qualityState === "governance_constrained" ? "warning"
+                        : undefined
+                      }
+                    />
+                  )}
+                  {providerMonitoringResult.providerHealth !== "insufficient_signal" && (
+                    <MemoryStat
+                      label={ar ? "صحة المزوّد" : "Provider"}
+                      value={
+                        providerMonitoringResult.providerHealth === "healthy" ? (ar ? "سليم" : "healthy")
+                        : providerMonitoringResult.providerHealth === "degraded" ? (ar ? "متدهور" : "degraded")
+                        : providerMonitoringResult.providerHealth === "fallback_heavy" ? (ar ? "احتياطي" : "fallback")
+                        : (ar ? "JSON بطيء" : "parse issues")
+                      }
+                      highlight={
+                        providerMonitoringResult.providerHealth === "healthy" ? "success"
+                        : "warning"
+                      }
+                    />
+                  )}
+                  {decisionMemoryResult && decisionMemoryResult.memoryState !== "weak_pattern" && (
+                    <MemoryStat
+                      label={ar ? "نمط القرار" : "Mem. pattern"}
+                      value={
+                        decisionMemoryResult.memoryState === "durable_pattern" ? (ar ? "متين" : "durable")
+                        : decisionMemoryResult.memoryState === "candidate_memory" ? (ar ? "ناشئ" : "emerging")
+                        : decisionMemoryResult.memoryState === "debated_pattern" ? (ar ? "متنازع" : "debated")
+                        : (ar ? "مراجعة" : "gov. review")
+                      }
+                      highlight={
+                        decisionMemoryResult.memoryState === "governance_review" ? "warning"
+                        : decisionMemoryResult.memoryState === "durable_pattern" ? "success"
+                        : undefined
+                      }
+                    />
+                  )}
+                  {governanceOSResult && governanceOSResult.governanceState !== "coherent" && (
+                    <MemoryStat
+                      label={ar ? "الحوكمة" : "Governance"}
+                      value={
+                        governanceOSResult.governanceState === "human_review_priority" ? (ar ? "بشري" : "human review")
+                        : governanceOSResult.governanceState === "conflict_detected" ? (ar ? "تعارض" : "conflict")
+                        : governanceOSResult.governanceState === "elevated_uncertainty" ? (ar ? "شك" : "uncertainty")
+                        : (ar ? "تنبّه" : "caution")
+                      }
+                      highlight={
+                        governanceOSResult.governanceState === "human_review_priority" || governanceOSResult.governanceState === "conflict_detected" ? "warning"
+                        : undefined
+                      }
+                    />
+                  )}
+                </div>
+                {decisionScore.trustProfile.hasOvershootSignal && (
+                  <p className="mt-1.5 text-[9px] text-warning/70">
+                    ⚠ {ar ? "إشارة مبالغة في الثقة ملاحظة — الترسيخ المحافظ مناسب" : "Confidence overshoot signal noted — conservative anchoring appropriate"}
+                  </p>
+                )}
+                <p className="mt-1 text-[9px] italic text-muted-foreground/50">
+                  {ar ? "مؤشرات استشارية فقط — لا قرارات تداول" : "Advisory indicators only — no trading decisions"}
+                </p>
+              </div>
+            )}
 
             {drift.isDrifting && (
               <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning">
