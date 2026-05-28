@@ -5,6 +5,20 @@ import { callAIGateway, safeParseJson, resolveAIProvider, type AIProvider } from
 import { buildLocaleSystemPrompt, wrapUserContext } from "@/lib/ai/locale";
 import type { Lang } from "@/lib/ai/locale";
 import { routeGenesisAI, buildAvailabilityFromEnv, type ProviderIdentity, type RoutingMode } from "@/services/ai/providerRouter";
+import {
+  buildInstitutionalReasoningContext,
+  deriveReasoningState,
+  type ReasoningState,
+} from "@/services/institutional/institutionalReasoning";
+import {
+  buildSectorIntelligenceContext,
+} from "@/services/institutional/sectorIntelligence";
+import {
+  buildCommitteeDebateContext,
+  deriveCommitteeStance,
+  isCompanySelectionQuestion,
+  type CommitteeStance,
+} from "@/services/institutional/committeeDebate";
 
 export interface GenesisScenario {
   label: string;
@@ -84,6 +98,22 @@ export interface GenesisReply {
   trackViewPortfolio?: string;   // Track F: portfolio alignment — 1-sentence
   // Phase 22: Strategic Intelligence
   strategicBias?: "constructive" | "opportunistic" | "neutral" | "defensive" | "uncertain";
+  // Phase 63: Institutional Reasoning Hardening
+  reasoningState?: ReasoningState;
+  macroChain?: string;      // macro chain narrative — rates→liquidity→inflation→credit→growth→earnings→valuation→risk appetite
+  bullCase?: string;        // bull case: macro chain links supporting upside + evidence required
+  bearCase?: string;        // bear case: macro chain links creating downside risk + activation conditions
+  baseCase?: string;        // base case: which case currently dominates and why
+  dominantCaseJustification?: string;  // single factor tipping the balance
+  missingEvidence?: string; // what observable data would most change the conclusion
+  thesisChanger?: string;   // specific macro development that would flip the dominant case
+  // Phase 64: Sector Intelligence
+  sectorLens?: string;      // sector rotation and sensitivity narrative for current regime
+  // Phase 65: Committee Debate
+  committeeStance?: CommitteeStance;
+  selectionFramework?: string;  // criteria-based framework (not company names)
+  committeeBullCase?: string;   // bull committee argument
+  committeeBearCase?: string;   // bear committee argument
 }
 
 const AskInput = z.object({
@@ -311,6 +341,30 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
       const VALID = new Set(["constructive", "opportunistic", "neutral", "defensive", "uncertain"]);
       return VALID.has(v as string) ? (v as GenesisReply["strategicBias"]) : undefined;
     })(),
+    // Phase 63: Institutional Reasoning Hardening
+    reasoningState: (() => {
+      const v = obj.reasoningState;
+      const VALID = new Set<string>(["high_coherence","debated_framework","thin_evidence","macro_conflict","valuation_conflict","uncertainty_dominant"]);
+      return VALID.has(v as string) ? (v as ReasoningState) : undefined;
+    })(),
+    macroChain: cleanStr(obj.macroChain),
+    bullCase: cleanStr(obj.bullCase),
+    bearCase: cleanStr(obj.bearCase),
+    baseCase: cleanStr(obj.baseCase),
+    dominantCaseJustification: cleanStr(obj.dominantCaseJustification),
+    missingEvidence: cleanStr(obj.missingEvidence),
+    thesisChanger: cleanStr(obj.thesisChanger),
+    // Phase 64: Sector Intelligence
+    sectorLens: cleanStr(obj.sectorLens),
+    // Phase 65: Committee Debate
+    committeeStance: (() => {
+      const v = obj.committeeStance;
+      const VALID = new Set<string>(["selective_over_broad","defensive","conditional_opportunity","wait_for_confirmation","insufficient_edge"]);
+      return VALID.has(v as string) ? (v as CommitteeStance) : undefined;
+    })(),
+    selectionFramework: cleanStr(obj.selectionFramework),
+    committeeBullCase: cleanStr(obj.committeeBullCase),
+    committeeBearCase: cleanStr(obj.committeeBearCase),
   };
 }
 
@@ -462,7 +516,20 @@ const GENESIS_SCHEMA = `{
     "price": number (optional, required for create_alert),
     "condition": "above"|"below" (optional, required for create_alert — above if bullish, below if risk stop)
   } | null,
-  "disclaimer": "string"
+  "disclaimer": "string",
+  "reasoningState": <"high_coherence"|"debated_framework"|"thin_evidence"|"macro_conflict"|"valuation_conflict"|"uncertainty_dominant"> (optional — set when Institutional Reasoning Framework context is present),
+  "macroChain": "string — 2-3 sentence narrative walking the macro chain links relevant to this question; set only when Institutional Reasoning Framework context is present" (optional),
+  "bullCase": "string — 1-2 sentences: macro chain links supporting the bull scenario and evidence required to hold" (optional — set when Institutional Reasoning Framework context is present),
+  "bearCase": "string — 1-2 sentences: macro chain links creating downside risk and activation conditions" (optional — set when Institutional Reasoning Framework context is present),
+  "baseCase": "string — 1 sentence: which case currently dominates, citing the strongest macro chain link" (optional — set when Institutional Reasoning Framework context is present),
+  "dominantCaseJustification": "string — 1 sentence: the single factor that tips the balance between bull and bear" (optional — set when Institutional Reasoning Framework context is present),
+  "missingEvidence": "string — 1 sentence: the specific observable data point that would most change the conclusion" (optional — set when Institutional Reasoning Framework context is present),
+  "thesisChanger": "string — 1 sentence: the specific macro development that would flip the dominant case" (optional — set when Institutional Reasoning Framework context is present),
+  "sectorLens": "string — 2-3 sentences: sector winners and losers in the current regime with causal linkage to specific macro factors" (optional — set when Sector Intelligence Context is present),
+  "committeeStance": <"selective_over_broad"|"defensive"|"conditional_opportunity"|"wait_for_confirmation"|"insufficient_edge"> (optional — set when Investment Committee Context is present),
+  "selectionFramework": "string — 2 sentences: criteria-based framework for the current regime; no company names as recommendations" (optional — set when Investment Committee Context is present),
+  "committeeBullCase": "string — 1 sentence: the bull committee argument for this opportunity" (optional — set when Investment Committee Context is present),
+  "committeeBearCase": "string — 1 sentence: the bear committee argument against this opportunity" (optional — set when Investment Committee Context is present)
 }`;
 
 function buildGenesisSystemPrompt(lang: Lang): string {
@@ -830,7 +897,97 @@ opportunistic → frame around entry conditions — patient, not momentum-chasin
 When "Selection framework:" appears in context: DO NOT present company names as recommendations. Present the framework principles and state that any named company requires current earnings, valuation, and fundamental confirmation.
 
 ABSOLUTELY FORBIDDEN: "buy X", "add Y", "sell Z", "guaranteed return", "certain outperformer". All investment stance framing is analytical and educational — no execution, no brokerage, no guaranteed outcomes.`;
-  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n\n${base}`;
+
+  // ── Phase 63: Institutional Reasoning Hardening ──────────────────────────
+  const institutionalReasoningGuidance = ar
+    ? `عند ظهور "Institutional Reasoning Framework:" في السياق:
+طبّق بنية الاستدلال الكامل عبر الروابط الثمانية للسلسلة الكلية: الأسعار → السيولة → التضخم → ظروف الائتمان → توقعات النمو → دورة الأرباح → ضغط التقييم → شهية المخاطرة.
+حالات الاستدلال:
+- high_coherence: الروابط الكلية والتقنية والأصول المتقاطعة متوافقة — ثقة معتدلة-مرتفعة مبررة.
+- debated_framework: رأي مهيمن مع حجج مضادة فعّالة — صِغ الجانبين، اشرح أيهما يكسب بالأدلة.
+- thin_evidence: الأدلة رقيقة — اعترف بالفجوات بوضوح؛ ثقة ≤55%؛ إطار شرطي إلزامي.
+- macro_conflict: الإشارات متعارضة — صِغ الجانبين بالتفصيل؛ لا جزم بالاتجاه دون مبرر.
+- valuation_conflict: ضغط ائتمان حرج — سقف الثقة 60%؛ مخاطر الفروقات في الأطروحة أو التحفظات.
+- uncertainty_dominant: الانتشار الاحتمالي أكثر صدقاً من الأطروحة الاتجاهية؛ ثقة ≤50%.
+الحقول المطلوبة عند ظهور هذا الإطار:
+اضبط "reasoningState" من إحدى قيم الحالات أعلاه.
+اضبط "macroChain": سرد مكثّف يمشي عبر روابط السلسلة الكلية ذات الصلة — لا تتخطّ إلى الاستنتاج.
+اضبط "bullCase": اذكر ببند واحد أو جملتين روابط السلسلة الكلية الداعمة للحالة الصاعدة والأدلة المطلوبة.
+اضبط "bearCase": روابط السلسلة الكلية المولِّدة للمخاطر الهبوطية وشرط التفعيل.
+اضبط "baseCase": الحالة المهيمنة حالياً — استند إلى الرابط الكلي الأقوى.
+اضبط "dominantCaseJustification": العامل الواحد الذي يُرجّح الكفة بين الصاعد والهابط.
+اضبط "missingEvidence": نقطة البيانات القابلة للملاحظة التي ستُغيّر الاستنتاج بشكل أكبر.
+اضبط "thesisChanger": التطور الكلي المحدد (تحرك أسعار، حدث ائتماني، مستوى نفط، خيبة أرباح) الذي سيقلب الحالة المهيمنة.
+ممنوع مطلقاً: تسميات نظام مبهمة دون استدلال سببي؛ استنتاجات عامة دون ربط الروابط؛ إدعاء يقين عند ضعف الأدلة.`
+    : `When "Institutional Reasoning Framework:" appears in context:
+Apply full reasoning structure across all eight macro chain links: rates → liquidity → inflation → credit conditions → growth expectations → earnings cycle → valuation pressure → risk appetite.
+Reasoning states:
+- high_coherence: macro, technical, and cross-asset links are aligned — moderate-to-high confidence is justified.
+- debated_framework: dominant view exists but active counter-arguments; frame both sides, explain which wins on evidence weight.
+- thin_evidence: evidence base is thin — acknowledge gaps explicitly; confidence ≤ 55%; conditional framing mandatory.
+- macro_conflict: conflicting signals active — frame both sides in detail; no single-direction certainty without specific justification.
+- valuation_conflict: extreme credit stress dominates — confidence ceiling 60%; spread risk must appear in thesis or caveats.
+- uncertainty_dominant: scenario probability spread is more honest than a directional thesis; confidence ≤ 50%.
+Required fields when this framework appears:
+Set "reasoningState" to one of the state values above.
+Set "macroChain": concise narrative walking through the relevant macro chain links — do not skip to conclusion.
+Set "bullCase": one bullet or two sentences naming the macro chain links supporting the bull scenario and the evidence that must hold.
+Set "bearCase": macro chain links creating downside risk and the activation conditions.
+Set "baseCase": the currently dominant case — cite the specific macro chain link where evidence is strongest.
+Set "dominantCaseJustification": the single factor that tips the balance between bull and bear.
+Set "missingEvidence": the specific observable data point that would most change the conclusion.
+Set "thesisChanger": the specific macro development (rate move, credit event, oil level, earnings miss) that would flip the dominant case.
+ABSOLUTELY FORBIDDEN: vague regime labels without causal reasoning; generic conclusions without linking the chain; claiming certainty when evidence is thin.`;
+
+  // ── Phase 64: Sector Intelligence ────────────────────────────────────────
+  const sectorIntelligenceGuidance = ar
+    ? `عند ظهور "Sector Intelligence Context:" في السياق:
+طبّق منطق دوران القطاعات والحساسية بالكامل — لا تُدرج قطاعات دون تفسير لماذا يجعلها النظام الحالي رابحاً أو خاسراً.
+متطلبات استدلال القطاعات:
+- سمّ رابط الماكرو المحدد (الأسعار، النفط، الائتمان، DXY، الطلب الصيني) الذي يقود كل حكم قطاعي.
+- صِغ منطق الدوران: النظام الكلي → دورة الأرباح → حساسية القطاع → التموضع النسبي.
+- للأسئلة السعودية: أدرج دائماً قناة النفط → الإيرادات المالية السعودية والتقييد الائتماني لـ SAMA/الفيدرالي أولاً.
+- تأثيرات السيولة: عند قوة DXY، القطاعات المرتبطة بالأسواق الناشئة والسلع تواجه عائقين مزدوجين.
+- تأثيرات السياسات: رأس المال لرؤية 2030 ممول بالنفط — الفائض/العجز المالي هو مفتاح التشغيل.
+اضبط "sectorLens": جملتان أو ثلاث جمل تُلخّص الرابحين والخاسرين القطاعيين في النظام الحالي مع الربط السببي.
+ممنوع: إدراج قطاعات دون استدلال؛ ملخصات قطاعية عامة؛ إغفال قناة النفط للأسئلة السعودية.`
+    : `When "Sector Intelligence Context:" appears in context:
+Apply full sector rotation and sensitivity logic — never list sectors without explaining WHY the current regime makes them winners or losers.
+Sector reasoning requirements:
+- Name the specific macro link (rates, oil, credit, DXY, China demand) driving each sector call.
+- Frame rotation logic: macro regime → earnings cycle → sector sensitivity → relative positioning.
+- For Saudi questions: always address the oil→fiscal channel and SAMA/Fed linkage first.
+- Liquidity effects: when DXY is strong, EM and commodity-linked sectors face dual headwinds.
+- Policy effects: Vision 2030 capex is oil-funded; fiscal surplus/deficit is the toggle.
+Set "sectorLens": 2-3 sentences summarising the sector winners and losers in the current regime with causal linkage.
+FORBIDDEN: listing sectors without reasoning; generic sector summaries; omitting oil channel for Saudi questions.`;
+
+  // ── Phase 65: Committee Debate ────────────────────────────────────────────
+  const committeeDebateGuidance = ar
+    ? `عند ظهور "Investment Committee Context:" في السياق:
+لا تقفز مباشرةً إلى أسماء الشركات — طبّق بنية لجنة الاستثمار بالترتيب:
+1. إطار الانتقاء: قدّم معايير قبل الأسماء. المعايير السبعة: جودة الأرباح، متانة الميزانية، انضباط التقييم، السيولة، قيادة السوق، صمود الهبوط، الحساسية الكلية.
+2. نقاش اللجنة: اللجنة الصاعدة — لماذا الاستثمار (ذيل رياح الماكرو، الأرباح، التقييم، المحفز). اللجنة الهابطة — لماذا التجنب (مخاطر الماكرو، التقييم، الائتمان، ما تُهمله الحالة الصاعدة).
+3. موقف اللجنة النهائي — اختر واحداً من: selective_over_broad | conditional_opportunity | defensive | wait_for_confirmation | insufficient_edge.
+4. أي اسم شركة مُذكر: استشهادي فقط — مشروط بتأكيد أساسيات حالية غير متوفرة في هذا السياق.
+اضبط "committeeStance" من القيم المذكورة.
+اضبط "selectionFramework": جملتان توضّحان المعايير — لا أسماء شركات كتوصيات.
+اضبط "committeeBullCase": جملة واحدة للحجة الصاعدة للجنة.
+اضبط "committeeBearCase": جملة واحدة للحجة الهابطة للجنة.
+ممنوع مطلقاً: "اشترِ X الآن"، "الأفضل أداءً"، "عائد مضمون"، توصيات شركات محددة. كل المخرجات تحليلية واستشارية.`
+    : `When "Investment Committee Context:" appears in context:
+Do NOT jump to company names — apply the investment committee structure in order:
+1. Selection framework: present criteria before names. Seven required filters: earnings quality, balance sheet strength, valuation discipline, liquidity, market leadership, downside resilience, macro sensitivity.
+2. Committee debate: Bull committee — why invest (specific macro tailwind, earnings floor, valuation entry, near-term catalyst). Bear committee — why avoid (macro risk, valuation risk, credit risk, what the bull case underweights).
+3. Final committee stance — choose one: selective_over_broad | conditional_opportunity | defensive | wait_for_confirmation | insufficient_edge.
+4. Any named company: illustrative only — conditional on current fundamental review unavailable in this context.
+Set "committeeStance" to one of the values above.
+Set "selectionFramework": 2 sentences stating the criteria — no company names as recommendations.
+Set "committeeBullCase": 1 sentence for the bull committee argument.
+Set "committeeBearCase": 1 sentence for the bear committee argument.
+ABSOLUTELY FORBIDDEN: "buy X now", "top performer", "guaranteed return", specific company recommendations. All output is analytical and advisory.`;
+
+  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n\n${base}`;
 }
 
 // ─── Institutional Reasoning Tracks ───────────────────────────────────────
@@ -1518,6 +1675,35 @@ function fillArbitrationFields(
   }
 }
 
+// ─── Phase 63-65: Institutional field deterministic backfill ─────────────────
+// Ensures reasoningState and committeeStance are always set when applicable,
+// even if the AI omitted them. Pure function — no AI calls.
+function fillInstitutionalFields(
+  reply: GenesisReply,
+  trackA: TrackA | null,
+  trackD: TrackD | null,
+  consensus: ConsensusResult,
+  question: string,
+): void {
+  // Phase 63: reasoningState — always derive deterministically
+  if (!reply.reasoningState) {
+    reply.reasoningState = deriveReasoningState(
+      trackA ? { regime: trackA.regime, ratesEnv: trackA.ratesEnv, oilLiquidity: trackA.oilLiquidity, dxyImpact: trackA.dxyImpact, creditStressLevel: trackA.creditStressLevel, macroBias: trackA.macroBias, regimeConf: trackA.regimeConf, macroSummary: trackA.macroSummary } : null,
+      trackD ? { uncertaintyLevel: trackD.uncertaintyLevel, primaryRisk: trackD.primaryRisk, thesisWeakness: trackD.thesisWeakness, counterCase: trackD.counterCase, invalidationTrigger: trackD.invalidationTrigger, confidenceChallenge: trackD.confidenceChallenge } : null,
+      { dominantBias: consensus.dominantBias, agreementScore: consensus.agreementScore, strength: consensus.strength, conflictNote: consensus.conflictNote },
+    );
+  }
+
+  // Phase 65: committeeStance — derive when question is company-selection oriented
+  if (!reply.committeeStance && isCompanySelectionQuestion(question)) {
+    reply.committeeStance = deriveCommitteeStance(
+      trackA ? { regime: trackA.regime, macroBias: trackA.macroBias, creditStressLevel: trackA.creditStressLevel, regimeConf: trackA.regimeConf } : null,
+      trackD ? { uncertaintyLevel: trackD.uncertaintyLevel, primaryRisk: trackD.primaryRisk, thesisWeakness: trackD.thesisWeakness } : null,
+      { dominantBias: consensus.dominantBias, agreementScore: consensus.agreementScore, strength: consensus.strength },
+    );
+  }
+}
+
 async function runFusion(
   lang: Lang,
   question: string,
@@ -1555,11 +1741,50 @@ async function runFusion(
     ? `نتائج ${[trackA, trackB, trackC, trackD, trackE, trackF].filter(Boolean).length} وكلاء متخصصين:\n${trackLines}\n\nمتطلبات الدمج المؤسسي الإلزامية:\n1. OUTLOOK: يجب أن يدمج حقل "outlook" جميع المسارات المتاحة صراحةً — النظام الكلي ومسار الأسعار (A)، البنية التقنية والتذبذب (B)، تأكيد أو تناقض الأصول المتقاطعة (C)، مسار المخاطر الرئيسي (D)، إشارة التموضع (E). تخطّي أي مسار متاح = فشل. كل جملة ادعاء سببي محدد.\n2. CROSS-ASSET: اضبط crossAssetConfirmation — هل يؤكد الذهب/BTC/DXY من المسار C أم يتناقض جزئياً أم كلياً مع الأطروحة الغالبة؟ سمّ الإشارة الأكثر حسماً وقناة انتقالها (مثال: "الذهب في نمط الأسعار الحقيقية يؤكد..."). عند التباين بين الأصول (مثل الذهب يرتفع + BTC يهبط): صرّح بنمط التباين (ملاذ آمن دون شهية مخاطرة). جملة واحدة.\n3. PORTFOLIO IMPACT: إذا ظهرت أصول المحفظة في السياق أو كان لنظام الأصول المتقاطعة أثر مباشر عليها: اضبط portfolioImpact مع تسمية قناة الانتقال المحددة.\n4. POSITIONING: اضبط positioningSignal من sentimentSignal في المسار E. جملة واحدة.\n5. MARKET STATE: اضبط marketStateQuality من سطر LIVE MARKET STATE QUALITY أعلاه.\n6. CONSENSUS: agreement=${consensus.agreementScore}%, strength=${consensus.strength}. ${consensus.agreementScore < 70 ? 'الإجماع < 70% — disagreementNote إلزامي.' : 'إجماع قوي — supportingCase يسمّي تقاطع المسارات.'} اضبط consensusStrength = "${consensus.strength}".\n7. THESIS: من A+B — الأداة والاتجاه والعامل الداعم الرئيسي. opposingCase من D+E. invalidation من D — حدث محدد مع عتبة.\n8. CONFIDENCE: الأنكر=${confAnchor}%. ${live?.marketStateQuality === "inferred" ? "لا بيانات حية — خفّض ≥5 نقاط." : ""} uncertainty في D=${trackD?.uncertaintyLevel ?? "n/a"}${trackD?.uncertaintyLevel === "high" || trackD?.uncertaintyLevel === "extreme" ? " — الثقة ≤65%." : "."}\n9. AGENT VIEWS: trackViewMacro/Technical/CrossAsset/Risk/Positioning من بيانات المسارات. arbitrationReason: جملتان. disagreementMap: إدخال لكل زوج متعارض.`
     : `${[trackA, trackB, trackC, trackD, trackE, trackF].filter(Boolean).length} specialist agent outputs:\n${trackLines}\n\nINSTITUTIONAL SYNTHESIS REQUIREMENTS — all mandatory:\n\n1. OUTLOOK: Must synthesize ALL available tracks — macro regime + rate/liquidity + credit stress (A), technical structure + volatility (B), cross-asset mode + interaction (C), primary downside path (D), positioning timing (E). Omitting any available track is a failure. Every sentence states a specific causal or conditional claim.\n\n2. CROSS-ASSET: Set "crossAssetConfirmation" — does gold/BTC/DXY from Track C CONFIRM, PARTIALLY CONFIRM, or CONTRADICT the dominant thesis from A+B? Name the most decisive signal and its transmission mechanism. If assetInteractionMode is "diverging": explicitly interpret what the divergence means (e.g., safe-haven bid without risk appetite = macro stress). 1 sentence.\n\n3. PORTFOLIO IMPACT: If portfolio/watchlist assets appear in context OR if the cross-asset regime has a direct implication for those assets: set "portfolioImpact" naming the specific transmission channel (e.g., "oil→fiscal headwind for TASI holdings", "DXY strength headwind for BTC position").\n\n4. POSITIONING: Set "positioningSignal" from Track E sentimentSignal. 1 sentence.\n\n5. MARKET STATE: Set "marketStateQuality" from LIVE MARKET STATE QUALITY line above.\n\n6. CONSENSUS: agreement=${consensus.agreementScore}%, strength=${consensus.strength}. ${consensus.agreementScore < 70 ? `Below 70% — "disagreementNote" MANDATORY.` : `Strong — "supportingCase" names the specific cross-track alignment.`} Set "consensusStrength" = "${consensus.strength}".\n\n7. THESIS: instrument + direction + primary supporting factor. "opposingCase" from D+E. "invalidation" from Track D — specific event + measurable threshold.\n\n8. CONFIDENCE: anchor=${confAnchor}%. ${live?.marketStateQuality === "inferred" ? "NO LIVE DATA — reduce ≥5 pts." : ""} Track D uncertainty=${trackD?.uncertaintyLevel ?? "n/a"}${trackD?.uncertaintyLevel === "high" || trackD?.uncertaintyLevel === "extreme" ? " — cap: 65%." : "."}\n\n9. AGENT ARBITRATION FIELDS: trackViewMacro/Technical/CrossAsset/Risk/Positioning from track data. "arbitrationReason": 1-2 sentences naming the decisive cross-track factor. "disagreementMap": one entry per conflicting track pair.`;
 
+  // ── Phase 63-65: Institutional module context injection ──────────────────
+  // All pure/deterministic — no AI calls, O(1), bounded output.
+  const trackASlice = trackA ? {
+    regime: trackA.regime,
+    ratesEnv: trackA.ratesEnv,
+    oilLiquidity: trackA.oilLiquidity,
+    dxyImpact: trackA.dxyImpact,
+    creditStressLevel: trackA.creditStressLevel,
+    macroBias: trackA.macroBias,
+    regimeConf: trackA.regimeConf,
+    macroSummary: trackA.macroSummary,
+  } : null;
+  const trackDSlice = trackD ? {
+    uncertaintyLevel: trackD.uncertaintyLevel,
+    primaryRisk: trackD.primaryRisk,
+    thesisWeakness: trackD.thesisWeakness,
+    counterCase: trackD.counterCase,
+    invalidationTrigger: trackD.invalidationTrigger,
+    confidenceChallenge: trackD.confidenceChallenge,
+  } : null;
+  const consensusSlice = {
+    dominantBias: consensus.dominantBias,
+    agreementScore: consensus.agreementScore,
+    strength: consensus.strength,
+    conflictNote: consensus.conflictNote,
+  };
+  const liveSlice = live ? {
+    oilPrice: live.oilPrice,
+    oilChangePct: live.oilChangePct,
+    eurUsd: live.eurUsd,
+  } : null;
+
+  const institutionalCtx = buildInstitutionalReasoningContext(trackASlice, trackDSlice, consensusSlice);
+  const sectorCtx = buildSectorIntelligenceContext(question + "\n" + ctx, trackASlice, liveSlice);
+  const committeeCtx = buildCommitteeDebateContext(question, trackASlice, trackDSlice, consensusSlice);
+
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
     `User question: ${question}`,
     ctx ? `\nLive market context:\n${ctx}` : "",
     `\n\n${fusionDirective}`,
+    institutionalCtx ? `\n\n${institutionalCtx}` : "",
+    sectorCtx ? `\n\n${sectorCtx}` : "",
+    committeeCtx ? `\n\n${committeeCtx}` : "",
   ].join("");
   const user = wrapUserContext(lang, userBody);
 
@@ -1579,6 +1804,7 @@ async function runFusion(
         !recovered.headline.includes("غير مكتملة")
       ) {
         fillArbitrationFields(recovered, trackA, trackB, trackC, trackD, trackE, trackF, consensus, lang);
+        fillInstitutionalFields(recovered, trackA, trackD, consensus, question);
         console.info("[genesis:fusion] parse_error recovery succeeded");
         return recovered;
       }
@@ -1599,6 +1825,9 @@ async function runFusion(
 
   // Deterministic backfill — fills every missing Phase-12 field from raw track outputs
   fillArbitrationFields(sanitized, trackA, trackB, trackC, trackD, trackE, trackF, consensus, lang);
+
+  // Phase 63-65: Deterministic institutional field backfill
+  fillInstitutionalFields(sanitized, trackA, trackD, consensus, question);
 
   const _finalSet = _p12.filter(k => { const v = (sanitized as Record<string,unknown>)[k]; return v != null && v !== "" && !(Array.isArray(v) && (v as unknown[]).length === 0); });
   console.log(`[genesis:p12] post-fill: ${_finalSet.join(",")||"none"}`);

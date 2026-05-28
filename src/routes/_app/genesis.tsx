@@ -3210,6 +3210,167 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
             </div>
           )}
 
+          {/* Phase 63-65: Institutional intelligence badges */}
+          {(reply.reasoningState || reply.sectorLens || reply.committeeStance) && engine === "ai" && (
+            <div className="flex flex-wrap gap-1.5">
+              {/* Bull/Bear balance badge — from reasoningState */}
+              {reply.reasoningState && (
+                <span className={cn(
+                  "flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold ring-1",
+                  reply.reasoningState === "high_coherence"
+                    ? "bg-success/10 text-success ring-success/25"
+                    : reply.reasoningState === "uncertainty_dominant" || reply.reasoningState === "macro_conflict"
+                      ? "bg-destructive/10 text-destructive ring-destructive/30"
+                      : reply.reasoningState === "valuation_conflict"
+                        ? "bg-warning/10 text-warning ring-warning/30"
+                        : "bg-muted/40 text-muted-foreground ring-border",
+                )}>
+                  <Scale className="h-2.5 w-2.5" />
+                  {ar
+                    ? ({
+                        high_coherence: "تماسك عالٍ",
+                        debated_framework: "إطار متنازع",
+                        thin_evidence: "أدلة رقيقة",
+                        macro_conflict: "تعارض كلي",
+                        valuation_conflict: "تعارض تقييم",
+                        uncertainty_dominant: "سيادة عدم اليقين",
+                      }[reply.reasoningState] ?? reply.reasoningState)
+                    : reply.reasoningState.replace(/_/g, " ")}
+                </span>
+              )}
+              {/* Sector lens badge */}
+              {reply.sectorLens && (
+                <span className="flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold ring-1 bg-primary/8 text-primary ring-primary/25">
+                  <Layers className="h-2.5 w-2.5" />
+                  {ar ? "عدسة قطاعية" : "Sector Lens"}
+                </span>
+              )}
+              {/* Committee stance badge */}
+              {reply.committeeStance && (
+                <span className={cn(
+                  "flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold ring-1",
+                  reply.committeeStance === "selective_over_broad"
+                    ? "bg-success/10 text-success ring-success/25"
+                    : reply.committeeStance === "defensive" || reply.committeeStance === "insufficient_edge"
+                      ? "bg-destructive/10 text-destructive ring-destructive/30"
+                      : reply.committeeStance === "wait_for_confirmation"
+                        ? "bg-warning/10 text-warning ring-warning/30"
+                        : "bg-primary/8 text-primary ring-primary/25",
+                )}>
+                  <Compass className="h-2.5 w-2.5" />
+                  {ar
+                    ? ({
+                        selective_over_broad: "انتقائي",
+                        defensive: "دفاعي",
+                        conditional_opportunity: "فرصة مشروطة",
+                        wait_for_confirmation: "انتظار تأكيد",
+                        insufficient_edge: "حافة غير كافية",
+                      }[reply.committeeStance] ?? reply.committeeStance)
+                    : reply.committeeStance.replace(/_/g, " ")}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Phase 63: Bull/Bear/Base case panel */}
+          {(reply.bullCase || reply.bearCase || reply.baseCase) && engine === "ai" && (
+            <div className="rounded-xl border border-border/40 bg-muted/15 px-4 py-3 space-y-2">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <Scale className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  {ar ? "الحالات الثلاث" : "Bull / Bear / Base"}
+                </div>
+              </div>
+              {reply.bullCase && (
+                <div className="flex items-start gap-2 text-xs">
+                  <TrendingUp className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/60" />
+                  <div>
+                    <span className="font-semibold text-success/70">{ar ? "الصاعد: " : "Bull: "}</span>
+                    <span className="text-foreground/80">{reply.bullCase}</span>
+                  </div>
+                </div>
+              )}
+              {reply.bearCase && (
+                <div className="flex items-start gap-2 text-xs">
+                  <TrendingDown className="h-3.5 w-3.5 mt-0.5 shrink-0 text-destructive/60" />
+                  <div>
+                    <span className="font-semibold text-destructive/70">{ar ? "الهابط: " : "Bear: "}</span>
+                    <span className="text-foreground/80">{reply.bearCase}</span>
+                  </div>
+                </div>
+              )}
+              {reply.baseCase && (
+                <div className="flex items-start gap-2 text-xs">
+                  <Minus className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
+                  <div>
+                    <span className="font-semibold text-primary/70">{ar ? "الأساسي: " : "Base: "}</span>
+                    <span className="text-foreground/80">{reply.baseCase}</span>
+                  </div>
+                </div>
+              )}
+              {reply.dominantCaseJustification && (
+                <p className="text-[11px] italic text-muted-foreground border-t border-border/30 pt-1.5 mt-1">
+                  {reply.dominantCaseJustification}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Phase 64: Sector lens narrative */}
+          {reply.sectorLens && engine === "ai" && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Layers className="h-3.5 w-3.5 text-primary/60" />
+                <div className="text-[10px] uppercase tracking-wider text-primary/70 font-semibold">
+                  {ar ? "تحليل القطاعات" : "Sector Intelligence"}
+                </div>
+              </div>
+              <p className="text-xs leading-relaxed text-foreground/80">{reply.sectorLens}</p>
+            </div>
+          )}
+
+          {/* Phase 65: Committee debate panel */}
+          {(reply.committeeBullCase || reply.committeeBearCase || reply.selectionFramework) && engine === "ai" && (
+            <div className="rounded-xl border border-border/40 bg-muted/15 px-4 py-3 space-y-2">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <Compass className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  {ar ? "نقاش لجنة الاستثمار" : "Committee Debate"}
+                </div>
+                <span className="ms-1 rounded-md border border-border/50 bg-muted/30 px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold text-muted-foreground">
+                  {ar ? "تعليمي" : "Advisory"}
+                </span>
+              </div>
+              {reply.selectionFramework && (
+                <div className="flex items-start gap-2 text-xs">
+                  <Brain className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
+                  <div>
+                    <span className="font-semibold text-primary/70">{ar ? "الإطار: " : "Framework: "}</span>
+                    <span className="text-foreground/80">{reply.selectionFramework}</span>
+                  </div>
+                </div>
+              )}
+              {reply.committeeBullCase && (
+                <div className="flex items-start gap-2 text-xs">
+                  <TrendingUp className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/60" />
+                  <div>
+                    <span className="font-semibold text-success/70">{ar ? "الصاعد: " : "Bull: "}</span>
+                    <span className="text-foreground/80">{reply.committeeBullCase}</span>
+                  </div>
+                </div>
+              )}
+              {reply.committeeBearCase && (
+                <div className="flex items-start gap-2 text-xs">
+                  <TrendingDown className="h-3.5 w-3.5 mt-0.5 shrink-0 text-destructive/60" />
+                  <div>
+                    <span className="font-semibold text-destructive/70">{ar ? "الهابط: " : "Bear: "}</span>
+                    <span className="text-foreground/80">{reply.committeeBearCase}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Phase 8: Executive Summary — top of research report */}
           {reply.executiveSummary && (
             <div className="rounded-xl border border-primary/40 bg-primary/8 px-4 py-3">
