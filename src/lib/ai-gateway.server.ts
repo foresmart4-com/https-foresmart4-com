@@ -5,7 +5,7 @@
 
 // ─── Provider resolution ───────────────────────────────────────────────────
 
-export type AIProvider = "gemini" | "lovable";
+export type AIProvider = "gemini" | "lovable" | "openai";
 
 export interface ProviderConfig {
   provider: AIProvider;
@@ -15,15 +15,28 @@ export interface ProviderConfig {
   normalizeModel: (model: string) => string;
 }
 
+/** Shared OpenAI provider config. Key is resolved at call time, never cached. */
+function buildOpenAIConfig(key: string): ProviderConfig {
+  return {
+    provider: "openai",
+    key,
+    gatewayUrl: "https://api.openai.com/v1/chat/completions",
+    // Map any google/* or gemini-* model name to gpt-4o for the OpenAI surface.
+    normalizeModel: (m: string) =>
+      m.startsWith("google/") || m.startsWith("gemini-") ? "gpt-4o" : m.startsWith("gpt-") ? m : "gpt-4o",
+  };
+}
+
 /**
  * Resolves the active AI provider from environment variables.
- * Priority: GEMINI_API_KEY (direct Gemini API) > LOVABLE_API_KEY (Lovable gateway).
- * Returns null when neither key is present — callers must handle gracefully.
+ * Priority: GEMINI_API_KEY (direct Gemini API) > LOVABLE_API_KEY (Lovable gateway) > OPENAI_API_KEY.
+ * Returns null when no key is present — callers must handle gracefully.
  */
 export function resolveAIProvider(): ProviderConfig | null {
   const geminiKey = process.env.GEMINI_API_KEY?.trim();
   const lovableKey = process.env.LOVABLE_API_KEY?.trim();
-  console.info("[ai-gateway] resolveAIProvider hasGeminiKey=%s hasLovableKey=%s", Boolean(geminiKey), Boolean(lovableKey));
+  const openaiKey = process.env.OPENAI_API_KEY?.trim();
+  console.info("[ai-gateway] resolveAIProvider hasGeminiKey=%s hasLovableKey=%s hasOpenAIKey=%s", Boolean(geminiKey), Boolean(lovableKey), Boolean(openaiKey));
   if (geminiKey) {
     return {
       provider: "gemini",
@@ -42,7 +55,27 @@ export function resolveAIProvider(): ProviderConfig | null {
       normalizeModel: (m: string) => m, // Lovable gateway uses "google/gemini-*" prefixed names
     };
   }
+  if (openaiKey) {
+    return buildOpenAIConfig(openaiKey);
+  }
   return null;
+}
+
+/**
+ * Resolves a provider by routing identity.
+ * Used by callAIGateway when a specific provider is requested by the router.
+ * Falls back to resolveAIProvider() when the identity does not map to a specific key.
+ */
+function resolveProviderByIdentity(identity: string): ProviderConfig | null {
+  if (identity === "openai_deep") {
+    const openaiKey = process.env.OPENAI_API_KEY?.trim();
+    if (openaiKey) return buildOpenAIConfig(openaiKey);
+    // OpenAI requested but key missing — fall through to auto-resolution
+    console.warn("[ai-gateway] openai_deep requested but OPENAI_API_KEY not configured; falling back");
+    return resolveAIProvider();
+  }
+  // gemini_fast, gemini_deep, heuristic_fallback, unavailable → auto-resolve
+  return resolveAIProvider();
 }
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -91,10 +124,18 @@ export interface AICallOptions {
    * Defaults to "en" for back-compat.
    */
   language?: Lang;
+  /**
+   * Provider routing identity from providerRouter.ts.
+   * When set to "openai_deep", routes this call to the OpenAI provider.
+   * When absent or set to any other identity, auto-resolves via GEMINI_API_KEY priority.
+   */
+  providerIdentity?: string;
 }
 
 export async function callAIGateway<T>(opts: AICallOptions): Promise<AICallResult<T>> {
-  const providerCfg = resolveAIProvider();
+  const providerCfg = opts.providerIdentity
+    ? resolveProviderByIdentity(opts.providerIdentity)
+    : resolveAIProvider();
   if (!providerCfg) {
     console.warn(
       "[ai-gateway] No AI provider configured — set GEMINI_API_KEY (primary) or LOVABLE_API_KEY (fallback). hasGeminiKey=%s hasLovableKey=%s",

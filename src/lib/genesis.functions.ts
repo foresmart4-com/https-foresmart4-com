@@ -1473,6 +1473,7 @@ async function runFusion(
   consensus: ConsensusResult,
   live: LiveMarketState | null,
   eceScore?: number,
+  providerIdentity?: string,
 ): Promise<GenesisReply | null> {
   const confAnchor = computeConfidenceFromTracks(trackA, trackB, trackD, consensus, trackF, eceScore, live?.marketStateQuality);
   const msq = live?.marketStateQuality ?? "inferred";
@@ -1505,7 +1506,7 @@ async function runFusion(
   const user = wrapUserContext(lang, userBody);
 
   const res = await withTimeout(
-    callAIGateway<GenesisReply>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 4096, temperature: 0.4 }),
+    callAIGateway<GenesisReply>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 4096, temperature: 0.4, providerIdentity }),
     12000,
   );
   if (!res || res.error || !res.data) return null;
@@ -1513,7 +1514,7 @@ async function runFusion(
   // Safe debug: log Phase-12 field coverage before and after sanitize (no secrets)
   const _p12 = ["trackViewMacro","trackViewTechnical","trackViewCrossAsset","trackViewRisk","trackViewPositioning","arbitrationReason","disagreementMap","marketStateQuality"] as const;
   const _preSet = _p12.filter(k => { const v = (res.data as Record<string,unknown>)[k]; return v != null && v !== "" && !(Array.isArray(v) && (v as unknown[]).length === 0); });
-  console.log(`[genesis:p12] Gemini populated: ${_preSet.join(",")||"none"}`);
+  console.log(`[genesis:p12] fusion provider=${res.provider ?? providerIdentity ?? "auto"} populated: ${_preSet.join(",")||"none"}`);
 
   const sanitized = sanitizeReply(res.data, lang);
   if (!sanitized) return null;
@@ -1596,7 +1597,7 @@ export const askGenesis = createServerFn({ method: "POST" })
 
     // Attempt fusion when at least one track succeeded.
     if (tracksUsed >= 1) {
-      const fused = await runFusion(lang, data.question, data.marketContext, trackA, trackB, trackC, trackD, trackE, trackF, consensus, live, data.eceScore);
+      const fused = await runFusion(lang, data.question, data.marketContext, trackA, trackB, trackC, trackD, trackE, trackF, consensus, live, data.eceScore, routing.providerIdentity);
       if (fused?.headline) {
         fused.marketStateQuality = live?.marketStateQuality ?? fused.marketStateQuality ?? "inferred";
         return { reply: fused, error: null as null, engine: "ai" as const, tracksUsed, provider, dominantBias: consensus.dominantBias, providerIdentity: routing.providerIdentity, routingMode: routing.routingMode };
@@ -1617,6 +1618,7 @@ export const askGenesis = createServerFn({ method: "POST" })
       jsonObject: true,
       maxTokens: routing.maxTokensHint > 0 ? routing.maxTokensHint : 4096,
       temperature: routing.temperatureHint > 0 ? routing.temperatureHint : 0.4,
+      providerIdentity: routing.providerIdentity,
     });
 
     if (result.error === "rate_limited") return { reply: null, error: "rate_limited" as const, engine: "heuristic" as const };

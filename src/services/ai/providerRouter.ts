@@ -185,7 +185,19 @@ export function routeGenesisAI(
     return buildDecision("heuristic_fallback", "heuristic_mode", "heuristic", 0, 0.0, availability, true);
   }
 
-  // ── Gemini path (primary provider) ────────────────────────────────────────
+  // ── Both Gemini + OpenAI available: split by depth ───────────────────────
+  // Gemini handles fast/lightweight analysis; OpenAI handles deep synthesis.
+  if (hasGemini && hasOpenAI) {
+    if (depth === "fast") {
+      const model = fastModelOverride ?? DEFAULT_FAST_MODEL;
+      return buildDecision("gemini_fast", "fast_reasoning", model, 800, 0.3, availability, false);
+    } else {
+      const model = deepModelOverride ?? DEFAULT_OPENAI_MODEL;
+      return buildDecision("openai_deep", "deep_reasoning", model, 4096, 0.4, availability, false);
+    }
+  }
+
+  // ── Gemini only path ──────────────────────────────────────────────────────
   if (hasGemini) {
     if (depth === "fast") {
       const model = fastModelOverride ?? DEFAULT_FAST_MODEL;
@@ -196,7 +208,7 @@ export function routeGenesisAI(
     }
   }
 
-  // ── OpenAI path (future provider — deep reasoning only) ───────────────────
+  // ── OpenAI only path (deep reasoning) ────────────────────────────────────
   if (hasOpenAI) {
     const model = deepModelOverride ?? DEFAULT_OPENAI_MODEL;
     return buildDecision("openai_deep", "deep_reasoning", model, 4096, 0.4, availability, false);
