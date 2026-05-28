@@ -70,6 +70,7 @@ import { computeGovernanceOS, type GovernanceOSResult, type GovernanceState } fr
 import { computeResearchSandbox, type ResearchSandboxResult } from "@/services/research/researchSandbox";
 import { computeGovernedKnowledgeAcquisition, type GovernedKnowledgeAcquisitionResult } from "@/services/knowledge/governedKnowledgeAcquisition";
 import { runLiveAcquisitionCycle, type LiveAcquisitionSummary } from "@/services/knowledge/liveKnowledgeAcquisition";
+import { computeInstitutionalModels, type InstitutionalModelsResult } from "@/services/intelligence/institutionalModels";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -197,6 +198,7 @@ function GenesisPage() {
   const [sandboxResult, setSandboxResult] = useState<ResearchSandboxResult | null>(null); // Phase-49
   const [knowledgeAcqResult, setKnowledgeAcqResult] = useState<GovernedKnowledgeAcquisitionResult | null>(null); // Phase-50A
   const [liveAcquisitionResult, setLiveAcquisitionResult] = useState<LiveAcquisitionSummary | null>(null); // Phase-50B
+  const [institutionalModelsResult, setInstitutionalModelsResult] = useState<InstitutionalModelsResult | null>(null); // Phase-51
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
   const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -634,6 +636,22 @@ function GenesisPage() {
       });
       setPortfolioConstructionResult(portfolioConstruction);
 
+      // Phase-51: Institutional Models Intelligence — framework alignment, competing philosophies
+      const institutionalModels = computeInstitutionalModels({
+        question: trimmed,
+        marketRegime: marketIntel.regime,
+        stressLevel: marketIntel.stressLevel,
+        riskOnScore: marketIntel.riskOnScore,
+        concentrationScore: portfolioIntel.concentrationScore,
+        macroCycle: globalMacro.macroCycle,
+        behavioralLabel: behavioralMarket.label,
+        portfolioConstructionLabel: portfolioConstruction.label,
+        firewallState: firewallResult.state,
+        crossMarketLabel: crossMarket.label,
+        ar,
+      });
+      setInstitutionalModelsResult(institutionalModels);
+
       // Phase-47: Governance OS — cross-layer supervision, conflict arbitration
       const governanceOS = computeGovernanceOS({
         firewallState: firewallResult.state,
@@ -815,6 +833,8 @@ function GenesisPage() {
         liveAcquisition.primaryContextString,
         // Competing framework — Phase-50B: detected when competing schools identified
         liveAcquisition.competingFrameworkContext,
+        // Institutional Models — Phase-51: framework alignment, competing philosophies
+        institutionalModels.contextString,
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
