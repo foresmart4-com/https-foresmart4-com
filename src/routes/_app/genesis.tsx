@@ -52,6 +52,7 @@ import { computeResearchCoverage, type ResearchCoverageResult, type RelevanceSta
 import { computeMacroEvent, type MacroEventResult, type EventSignificance } from "@/services/macro/macroEventEngine";
 import { computeCredibility, type CredibilityResult, type CredibilityLabel } from "@/services/credibility/credibilityEngine";
 import { computeDebate, type DebateResult, type DebateBalance } from "@/services/intelligence/debateEngine";
+import { computeApprovalWorkflow, type ApprovalWorkflowResult, type WorkflowState } from "@/services/governance/approvalWorkflow";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -160,6 +161,7 @@ function GenesisPage() {
   const [macroEventResult, setMacroEventResult] = useState<MacroEventResult | null>(null); // Phase-33
   const [credibilityResult, setCredibilityResult] = useState<CredibilityResult | null>(null); // Phase-34
   const [debateResult, setDebateResult] = useState<DebateResult | null>(null); // Phase-32
+  const [workflowResult, setWorkflowResult] = useState<ApprovalWorkflowResult | null>(null); // Phase-35
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
   const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -353,6 +355,23 @@ function GenesisPage() {
       });
       setDebateResult(debate);
 
+      // Phase-35: Approval Workflow Intelligence — governed escalation classification
+      const workflow = computeApprovalWorkflow({
+        question: trimmed,
+        firewallState: firewallResult.state,
+        credibilityLabel: credibility.label,
+        debateBalance: debate.debateBalance,
+        hasMaterialDisagreement: debate.hasMaterialDisagreement,
+        calibrationScore: decisionScore.score,
+        trustState: trustStrategy.trustState.state,
+        macroEventSignificance: macroEvent.significance,
+        coverageRelevance: coverage.relevanceState,
+        hasActiveVulnerability: portfolioRisk.hasActiveVulnerability,
+        watchlistSymbols: watchlistItems.map((a) => a.symbol),
+        ar,
+      });
+      setWorkflowResult(workflow);
+
       const decisionCtx = [
         `System calibration: ECE=${eceVal.toFixed(3)}${drift.isDrifting ? " ⚠ performance drift detected" : ""}`,
         topStrategy ? `Top strategy: ${topStrategy.strategy} win-rate ${(topStrategy.winRate * 100).toFixed(0)}% (${topStrategy.bestRegime ?? "any"} regime)` : "",
@@ -386,6 +405,8 @@ function GenesisPage() {
         debate.contextString,
         // Debate confidence impact — injected only when material
         debate.confidenceImpact < 0 ? `Debate confidence impact: ${debate.confidenceImpact} pts (${debate.debateBalance.replace(/_/g, " ")})` : "",
+        // Approval workflow — Phase-35: governed escalation state
+        workflow.contextString,
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
@@ -1112,6 +1133,11 @@ function GenesisPage() {
         <DebateStatusLine result={debateResult} ar={ar} />
       )}
 
+      {/* ─── Approval Workflow — Phase 35 ───────────────────────────────── */}
+      {workflowResult && workflowResult.state !== "observation" && (
+        <WorkflowStatusLine result={workflowResult} ar={ar} />
+      )}
+
       {/* ─── Proactive Research Signals — Phase 21 ──────────────────────── */}
       {researchCandidates.length > 0 && (
         <ProactiveResearchPanel
@@ -1398,6 +1424,55 @@ function DebateStatusLine({ result, ar }: { result: DebateResult; ar: boolean })
           <span className="text-border/60">|</span>
           <span className="text-muted-foreground/60 italic truncate">
             {ar ? `تأثير الثقة: ${result.confidenceImpact} نقطة` : `confidence ${result.confidenceImpact} pts`}
+          </span>
+        </>
+      )}
+      <span className="ms-auto text-muted-foreground/40 italic text-[9px]">
+        {ar ? "استشاري" : "advisory"}
+      </span>
+    </div>
+  );
+}
+
+// ─── Phase 35: Approval Workflow Status Line ─────────────────────────────────
+
+const WORKFLOW_STYLE: Record<WorkflowState, { border: string; bg: string; text: string; dot: string }> = {
+  approval_required:   { border: "border-primary/50",   bg: "bg-primary/8",   text: "text-primary",           dot: "bg-primary" },
+  monitored_thesis:    { border: "border-success/40",   bg: "bg-success/5",   text: "text-success",           dot: "bg-success" },
+  research_item:       { border: "border-border/50",    bg: "bg-muted/8",     text: "text-foreground/70",     dot: "bg-muted-foreground/60" },
+  insufficient_quality:{ border: "border-border/30",    bg: "bg-muted/5",     text: "text-muted-foreground",  dot: "bg-muted-foreground/40" },
+  observation:         { border: "border-border/20",    bg: "bg-muted/3",     text: "text-muted-foreground/60", dot: "bg-muted-foreground/30" },
+};
+
+const WORKFLOW_LABEL_AR: Record<WorkflowState, string> = {
+  approval_required:    "يتطلب مراجعة",
+  monitored_thesis:     "أطروحة مراقبة",
+  research_item:        "بند بحثي",
+  insufficient_quality: "جودة غير كافية",
+  observation:          "ملاحظة",
+};
+
+function WorkflowStatusLine({ result, ar }: { result: ApprovalWorkflowResult; ar: boolean }) {
+  const s = WORKFLOW_STYLE[result.state];
+  const label = ar ? WORKFLOW_LABEL_AR[result.state] : result.state.replace(/_/g, " ");
+
+  return (
+    <div className={cn("mb-2 flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px]", s.border, s.bg)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)} />
+      <span className={cn("font-bold uppercase tracking-wide", s.text)}>
+        {ar ? "سير العمل" : "Workflow"} — {label}
+      </span>
+      {result.escalationGuard && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/70 truncate">{result.escalationGuard}</span>
+        </>
+      )}
+      {result.requiresHumanReview && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className={cn("font-semibold", s.text)}>
+            {ar ? "مراجعة بشرية موصى بها" : "human review recommended"}
           </span>
         </>
       )}
