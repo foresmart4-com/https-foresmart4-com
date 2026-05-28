@@ -44,6 +44,7 @@ import { inferThesisOutcomes, type OutcomeSummary } from "@/services/learning/ou
 import { computeDecisionScore, type DecisionScoreResult, type CalibrationScore } from "@/services/learning/decisionScoring";
 import { overallStats, ece as eceWindow } from "@/services/learning/selfLearningEngine";
 import { computeTrustAndStrategy, type TrustStrategyResult, type StrategyPosture } from "@/services/intelligence/trustStrategyEngine";
+import { computePortfolioRisk, type PortfolioRiskResult, type PortfolioRiskLabel } from "@/services/portfolio/portfolioRiskEngine";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -242,6 +243,14 @@ function GenesisPage() {
     ar,
   }), [decisionScore, strategicSynthesis, thesisOutcomes, eceVal, ar]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Portfolio risk assessment — Phase-27 classification + stress vulnerability mapping.
+  const portfolioRisk = useMemo(() => computePortfolioRisk(
+    watchlistItems,
+    portfolioIntel,
+    researchCandidates,
+    ar,
+  ), [watchlistItems, portfolioIntel, researchCandidates, ar]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const marketContext = assets
     .slice(0, 10)
     .map((a) => `${a.symbol}: ${a.price} (${a.changePct >= 0 ? "+" : ""}${a.changePct.toFixed(2)}%)`)
@@ -367,7 +376,7 @@ function GenesisPage() {
           watchlist:   watchlistCtx,
           thesis:      thesisCtx,
           session:     sessionCtx,
-          portfolio:   portfolioIntelCtx,
+          portfolio:   [portfolioIntelCtx, portfolioRisk.riskContext].filter(Boolean).join(" | "),
           bus:         sessionBusCtx,
           signal:      signalCtx,
           marketIntel: marketIntel.compactContext,
@@ -907,7 +916,7 @@ function GenesisPage() {
 
       {/* ─── Portfolio Brain Panel ──────────────────────────────────────── */}
       {portfolioIntel.compactContext && (
-        <PortfolioBrainPanel intel={portfolioIntel} ar={ar} />
+        <PortfolioBrainPanel intel={portfolioIntel} ar={ar} risk={portfolioRisk} />
       )}
 
       {/* ─── Macro Scenario Panel ───────────────────────────────────────── */}
@@ -2239,7 +2248,16 @@ function ScenarioSimPanel({ sim, ar }: { sim: ScenarioSimResult; ar: boolean }) 
 
 // ─── Portfolio Brain Panel ────────────────────────────────────────────────────
 
-function PortfolioBrainPanel({ intel, ar }: { intel: PortfolioIntelSummary; ar: boolean }) {
+const RISK_LABEL_STYLE: Record<PortfolioRiskLabel, string> = {
+  balanced:         "border-success/40 bg-success/8 text-success",
+  concentrated:     "border-warning/40 bg-warning/8 text-warning",
+  defensive:        "border-primary/40 bg-primary/8 text-primary",
+  growth_sensitive: "border-destructive/30 bg-destructive/8 text-destructive",
+  macro_vulnerable: "border-warning/50 bg-warning/10 text-warning",
+  unclear:          "border-border/40 bg-muted/10 text-muted-foreground",
+};
+
+function PortfolioBrainPanel({ intel, ar, risk }: { intel: PortfolioIntelSummary; ar: boolean; risk?: PortfolioRiskResult | null }) {
   const hasWarning = intel.riskOverlap.detected || !intel.regimeAlignment.aligned;
   const topCats = intel.categoryExposure.slice(0, 3);
 
@@ -2251,6 +2269,12 @@ function PortfolioBrainPanel({ intel, ar }: { intel: PortfolioIntelSummary; ar: 
           <PieChart className="h-3 w-3 shrink-0" />
           {ar ? "دماغ المحفظة" : "Portfolio Brain"}
         </div>
+        {/* Phase-27: Risk label badge */}
+        {risk && risk.riskLabel !== "unclear" && (
+          <span className={cn("rounded-md border px-1.5 py-0.5 text-[9px] font-bold", RISK_LABEL_STYLE[risk.riskLabel])}>
+            {risk.riskLabel.replace(/_/g, " ")}
+          </span>
+        )}
 
         {/* Category breakdown */}
         {topCats.map((e) => (
@@ -2321,6 +2345,20 @@ function PortfolioBrainPanel({ intel, ar }: { intel: PortfolioIntelSummary; ar: 
           </>
         )}
       </div>
+
+      {/* Phase-27: Active vulnerability note */}
+      {risk?.hasActiveVulnerability && risk.dominantVulnerability && (
+        <div className="mt-1.5 flex items-start gap-1.5 text-[10px] text-warning/70 italic border-t border-border/20 pt-1.5">
+          <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+          <span>{risk.dominantVulnerability}</span>
+        </div>
+      )}
+      {risk?.hedgeNote && risk.hasActiveVulnerability && (
+        <div className="flex items-start gap-1.5 text-[10px] text-success/60 italic">
+          <CheckCircle2 className="h-3 w-3 mt-0.5 shrink-0" />
+          <span>{risk.hedgeNote}</span>
+        </div>
+      )}
     </div>
   );
 }

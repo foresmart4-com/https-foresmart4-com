@@ -480,7 +480,7 @@ function buildGenesisSystemPrompt(lang: Lang): string {
 إطار الاستدلال المؤسسي — طبّق كل طبقة عندما يدعم السياق ذلك:
 1. النظام السوقي — حدّد النظام: bull_trending أو bear_ranging أو high_vol_risk-off أو low_vol_accumulation أو macro_transition. اضبط "regime" فقط عندما يدعمه السياق بوضوح.
 2. الأدلة — استشهد بـ 2-4 عوامل محددة كلية أو تقنية أو هيكلية. اضبط "evidence" فقط عند الثقة ≥ 50.
-3. أثر المحفظة — اضبط "portfolioImpact" عند ظهور رموز قائمة مراقبة المستخدم في السياق أو عندما يكون لنظام الأصول المتقاطعة (الذهب/BTC/DXY/النفط) أثر مباشر وواضح على الأصول الموجودة في المحفظة. سمّ قناة الانتقال المحددة والأصول التي تتأثر.
+3. أثر المحفظة — اضبط "portfolioImpact" عند ظهور رموز قائمة المراقبة في السياق أو عند وجود أثر مباشر للإشارات الكلية/متعددة الأصول على المحفظة. عند ظهور "Portfolio risk:" في السياق: سمّ الثغرة المحددة (مثال: "أسهم السعودية عرضة لقناة النفط→الإيرادات"، "مراكز الكريبتو تُظهر ضعف وكيل سيولة BTC")، واعترف بأي تحوط جزئي مُلاحَظ. لغة القرار المسموح بها فقط: مراجعة / مراقبة / تحقيق / ثغرة محتملة / حساسية المحفظة. ممنوع: أعِد التوازن الآن / تخلّص من التعرض / اشترِ التحوط.
 4. عدم اليقين — اضبط "uncertaintyWarning" فقط عند الثقة < 50 مع تفسير الأسباب.
 
 أنتج 3 سيناريوهات بالضبط. صِغ تسمية كل سيناريو كشرط محدد ("إذا [حدث بعينه]...") لا كوصف عام ("صاعد/هابط/أساسي"). أنتج 2-4 مخاطر.
@@ -593,7 +593,7 @@ function buildGenesisSystemPrompt(lang: Lang): string {
 Institutional reasoning framework — apply each layer when context supports it:
 1. REGIME — Identify the market regime: bull_trending, bear_ranging, high_vol_risk-off, low_vol_accumulation, or macro_transition. Only set "regime" when context clearly supports the classification.
 2. EVIDENCE — Cite 2-4 specific macro, technical, or structural factors. Only set "evidence" when confidence ≥ 50.
-3. PORTFOLIO IMPACT — Set "portfolioImpact" when user watchlist symbols appear in context OR when the cross-asset regime (gold/BTC/DXY/oil signals) has a direct and specific implication for the assets in the portfolio. Name the specific cross-asset transmission channel and which watched assets it affects.
+3. PORTFOLIO IMPACT — Set "portfolioImpact" when user watchlist symbols appear in context OR when cross-asset/macro signals have a direct implication for portfolio holdings. When "Portfolio risk:" context is present: name the specific portfolio vulnerability (e.g. "Saudi holdings exposed to oil→fiscal channel", "crypto holdings show BTC liquidity-proxy weakness"), acknowledge any partial hedge noted in context. Decision language ONLY: review / monitor / investigate / potential vulnerability / portfolio sensitivity. FORBIDDEN: rebalance now / sell exposure / buy hedge.
 4. UNCERTAINTY — Only set "uncertaintyWarning" when confidence < 50, and explain the specific sources.
 
 Produce exactly 3 scenarios. Label each with a conditional trigger ("If [specific event]...") — not a generic "Upside/Base/Downside" label. Produce 2-4 risks.
