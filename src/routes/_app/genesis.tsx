@@ -55,6 +55,7 @@ import { computeDebate, type DebateResult, type DebateBalance } from "@/services
 import { computeApprovalWorkflow, type ApprovalWorkflowResult, type WorkflowState } from "@/services/governance/approvalWorkflow";
 import { computeOutcomeAttribution, type OutcomeAttributionResult } from "@/services/learning/outcomeAttribution";
 import { computeAdaptiveLearningGovernance, type AdaptiveLearningGovernanceResult } from "@/services/learning/adaptiveLearningGovernance";
+import { computeStrategicApproval, type StrategicApprovalResult, type StrategicApprovalLabel } from "@/services/intelligence/strategicApproval";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -166,6 +167,7 @@ function GenesisPage() {
   const [workflowResult, setWorkflowResult] = useState<ApprovalWorkflowResult | null>(null); // Phase-35
   const [attributionResult, setAttributionResult] = useState<OutcomeAttributionResult | null>(null); // Phase-37
   const [learningGovResult, setLearningGovResult] = useState<AdaptiveLearningGovernanceResult | null>(null); // Phase-38
+  const [strategicApprovalResult, setStrategicApprovalResult] = useState<StrategicApprovalResult | null>(null); // Phase-36
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
   const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -406,6 +408,27 @@ function GenesisPage() {
       });
       setLearningGovResult(learningGov);
 
+      // Phase-36: Strategic Approval Intelligence — human-governed, no execution
+      const strategicApproval = computeStrategicApproval({
+        workflowState: workflow.state,
+        firewallState: firewallResult.state,
+        credibilityLabel: credibility.label,
+        hasMaterialDisagreement: debate.hasMaterialDisagreement,
+        debateBalance: debate.debateBalance,
+        trustState: trustStrategy.trustState.state,
+        calibrationScore: decisionScore.score,
+        attributionLabel: attribution.label,
+        learningGovernance: learningGov.label,
+        macroSignificance: macroEvent.significance,
+        hasActiveVulnerability: portfolioRisk.hasActiveVulnerability,
+        riskLabel: portfolioRisk.riskLabel,
+        strategicBias: strategicSynthesis.bias,
+        hasConflict: strategicSynthesis.hasConflict,
+        regime: marketIntel.regime ?? "",
+        ar,
+      });
+      setStrategicApprovalResult(strategicApproval);
+
       const decisionCtx = [
         `System calibration: ECE=${eceVal.toFixed(3)}${drift.isDrifting ? " ⚠ performance drift detected" : ""}`,
         topStrategy ? `Top strategy: ${topStrategy.strategy} win-rate ${(topStrategy.winRate * 100).toFixed(0)}% (${topStrategy.bestRegime ?? "any"} regime)` : "",
@@ -445,6 +468,8 @@ function GenesisPage() {
         attribution.hasAttribution ? attribution.contextString : "",
         // Learning governance — Phase-38: governed learning posture
         learningGov.contextString,
+        // Strategic approval — Phase-36: human-governed significance level
+        strategicApproval.contextString,
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
@@ -1176,6 +1201,11 @@ function GenesisPage() {
         <WorkflowStatusLine result={workflowResult} ar={ar} />
       )}
 
+      {/* ─── Strategic Approval — Phase 36 ──────────────────────────────── */}
+      {strategicApprovalResult && strategicApprovalResult.approval !== "informational" && strategicApprovalResult.approval !== "monitored" && (
+        <StrategicApprovalStatusLine result={strategicApprovalResult} ar={ar} />
+      )}
+
       {/* ─── Proactive Research Signals — Phase 21 ──────────────────────── */}
       {researchCandidates.length > 0 && (
         <ProactiveResearchPanel
@@ -1511,6 +1541,58 @@ function WorkflowStatusLine({ result, ar }: { result: ApprovalWorkflowResult; ar
           <span className="text-border/60">|</span>
           <span className={cn("font-semibold", s.text)}>
             {ar ? "مراجعة بشرية موصى بها" : "human review recommended"}
+          </span>
+        </>
+      )}
+      <span className="ms-auto text-muted-foreground/40 italic text-[9px]">
+        {ar ? "استشاري" : "advisory"}
+      </span>
+    </div>
+  );
+}
+
+// ─── Phase 36: Strategic Approval Status Line ────────────────────────────────
+
+const STRATEGIC_APPROVAL_STYLE: Record<StrategicApprovalLabel, { border: string; bg: string; text: string; dot: string }> = {
+  high_significance:  { border: "border-primary/60",     bg: "bg-primary/10",    text: "text-primary",           dot: "bg-primary" },
+  strategic_review:   { border: "border-success/40",     bg: "bg-success/5",     text: "text-success",           dot: "bg-success" },
+  constrained_review: { border: "border-warning/40",     bg: "bg-warning/5",     text: "text-warning",           dot: "bg-warning" },
+  monitored:          { border: "border-border/40",      bg: "bg-muted/8",       text: "text-foreground/70",     dot: "bg-muted-foreground/50" },
+  informational:      { border: "border-border/20",      bg: "bg-muted/3",       text: "text-muted-foreground/60", dot: "bg-muted-foreground/30" },
+};
+
+const STRATEGIC_APPROVAL_LABEL_AR: Record<StrategicApprovalLabel, string> = {
+  high_significance:  "أهمية عالية",
+  strategic_review:   "مراجعة استراتيجية",
+  constrained_review: "مراجعة مقيَّدة",
+  monitored:          "مراقبة",
+  informational:      "إعلامي",
+};
+
+function StrategicApprovalStatusLine({ result, ar }: { result: StrategicApprovalResult; ar: boolean }) {
+  const s = STRATEGIC_APPROVAL_STYLE[result.approval];
+  const label = ar ? STRATEGIC_APPROVAL_LABEL_AR[result.approval] : result.approval.replace(/_/g, " ");
+  const topElevated = result.elevatedBy[0] ?? null;
+  const topConstrained = result.constrainedBy[0] ?? null;
+  const detail = topConstrained ?? topElevated ?? null;
+
+  return (
+    <div className={cn("mb-2 flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px]", s.border, s.bg)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)} />
+      <span className={cn("font-bold uppercase tracking-wide", s.text)}>
+        {ar ? "الموافقة الاستراتيجية" : "Strategic Significance"} — {label}
+      </span>
+      {detail && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/70 truncate">{detail}</span>
+        </>
+      )}
+      {result.humanReviewJustified && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className={cn("font-semibold", s.text)}>
+            {ar ? "المراجعة البشرية مناسبة" : "human review appropriate"}
           </span>
         </>
       )}
