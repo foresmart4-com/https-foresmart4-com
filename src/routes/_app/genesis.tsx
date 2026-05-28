@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { evaluateReply, scoreToQuality, type MetaReasoningResult } from "@/services/reasoning/metaReasoning";
 import { coordinateIntelligence, type CoordinationResult } from "@/services/intelligence/coordinatorEngine";
+import { computeProactiveResearch, type ResearchCandidate } from "@/services/research/proactiveEngine";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -140,6 +141,7 @@ function GenesisPage() {
   const [continuityScore, setContinuityScore] = useState(() => memoryIntelligence.snapshot().continuityScore);
   const [coordinationResult, setCoordinationResult] = useState<CoordinationResult | null>(null);
   const [profileVersion, setProfileVersion] = useState(0);
+  const [dismissedResearch, setDismissedResearch] = useState<Set<string>>(() => new Set());
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
   const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -167,6 +169,22 @@ function GenesisPage() {
     () => computeScenarioSim("", marketIntel, watchlistItems, []),
     [marketIntel, watchlistItems], // eslint-disable-line react-hooks/exhaustive-deps
   );
+
+  // Proactive research candidates — computed from existing data, no extra API calls.
+  // Recomputes whenever market data or watchlist changes. Session bus read is synchronous localStorage.
+  const researchCandidates = useMemo(() => {
+    const all = computeProactiveResearch({
+      assets: assets.map((a) => ({ symbol: a.symbol, changePct: a.changePct, category: a.category })),
+      watchlistItems,
+      theses: thesisMemory.all(),
+      sessionBus: sessionIntelStore.read(),
+      portfolioAlignment: portfolioIntel.regimeAlignment,
+      portfolioHasContext: Boolean(portfolioIntel.compactContext),
+      ar,
+    });
+    return all.filter((c) => !dismissedResearch.has(c.id));
+  }, [assets, watchlistItems, ar, portfolioIntel, dismissedResearch]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const marketContext = assets
     .slice(0, 10)
     .map((a) => `${a.symbol}: ${a.price} (${a.changePct >= 0 ? "+" : ""}${a.changePct.toFixed(2)}%)`)
@@ -799,6 +817,16 @@ function GenesisPage() {
         <CoordinationPanel result={coordinationResult} ar={ar} />
       )}
 
+      {/* ─── Proactive Research Signals — Phase 21 ──────────────────────── */}
+      {researchCandidates.length > 0 && (
+        <ProactiveResearchPanel
+          candidates={researchCandidates}
+          ar={ar}
+          onSelect={(prompt) => { setQuestion(prompt); }}
+          onDismiss={(id) => setDismissedResearch((prev) => new Set([...prev, id]))}
+        />
+      )}
+
       {/* ─── Exchanges ──────────────────────────────────────────────────── */}
       <div className="space-y-6">
         {exchanges.length === 0 && !busy && (
@@ -930,6 +958,89 @@ function ThinkingState({ ar }: { ar: boolean }) {
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {[0, 1, 2].map((i) => <div key={i} className="h-20 animate-pulse rounded-xl bg-muted/40" />)}
       </div>
+    </div>
+  );
+}
+
+const SEVERITY_COLOR: Record<ResearchCandidate["severity"], string> = {
+  high: "border-warning/40 bg-warning/5",
+  medium: "border-primary/30 bg-primary/5",
+  low: "border-border/40 bg-muted/10",
+};
+const SEVERITY_ICON_COLOR: Record<ResearchCandidate["severity"], string> = {
+  high: "text-warning",
+  medium: "text-primary",
+  low: "text-muted-foreground",
+};
+
+function ProactiveResearchPanel({
+  candidates,
+  ar,
+  onSelect,
+  onDismiss,
+}: {
+  candidates: ResearchCandidate[];
+  ar: boolean;
+  onSelect: (prompt: string) => void;
+  onDismiss: (id: string) => void;
+}) {
+  return (
+    <div className="rounded-xl border border-border/50 bg-muted/10 px-4 py-3 space-y-2.5">
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+        <Eye className="h-3 w-3" />
+        {ar ? "إشارات بحثية استباقية" : "Proactive Research Signals"}
+        <span className="ms-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+          {ar ? "استشاري فقط" : "Advisory only"}
+        </span>
+      </div>
+
+      {candidates.map((c) => (
+        <div
+          key={c.id}
+          className={cn(
+            "rounded-lg border px-3 py-2.5 space-y-1.5",
+            SEVERITY_COLOR[c.severity],
+          )}
+        >
+          <div className="flex items-start gap-2">
+            <AlertTriangle className={cn("h-3.5 w-3.5 mt-0.5 shrink-0", SEVERITY_ICON_COLOR[c.severity])} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[11px] font-bold text-foreground/90">{c.asset}</span>
+                <span className="rounded-md border border-border/50 bg-muted/30 px-1.5 py-0.5 text-[9px] text-muted-foreground font-medium">
+                  {c.trigger.replace(/-/g, " ")}
+                </span>
+                <span className="text-[10px] text-muted-foreground/70">{c.confidence}%</span>
+              </div>
+              <p className="text-[11px] text-foreground/70 leading-relaxed mt-0.5">{c.reason}</p>
+              {c.caveat && (
+                <p className="text-[10px] text-muted-foreground/60 italic mt-0.5">{c.caveat}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 pt-0.5">
+            <button
+              onClick={() => onSelect(c.suggestedPrompt)}
+              className="flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors"
+            >
+              <Brain className="h-3 w-3" />
+              {ar ? "بحث" : "Research"}
+            </button>
+            <button
+              onClick={() => onDismiss(c.id)}
+              className="ms-auto text-[10px] text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+            >
+              {ar ? "تجاهل" : "Dismiss"}
+            </button>
+          </div>
+        </div>
+      ))}
+
+      <p className="text-[10px] text-muted-foreground/50 italic text-center">
+        {ar
+          ? "جميع الإشارات استشارية وتعليمية — لا تنفيذ تلقائي"
+          : "All signals are advisory and educational — no automatic execution"}
+      </p>
     </div>
   );
 }
