@@ -66,6 +66,7 @@ import { computeEconomicGraph, type EconomicGraphResult } from "@/services/intel
 import { computeBookIntelligence, type BookIntelligenceResult } from "@/services/knowledge/bookIntelligence";
 import { computeBehavioralMarket, type BehavioralMarketResult, type BehavioralLabel } from "@/services/intelligence/behavioralMarket";
 import { computePortfolioConstruction, type PortfolioConstructionResult, type PortfolioConstructionLabel } from "@/services/portfolio/portfolioConstruction";
+import { computeGovernanceOS, type GovernanceOSResult, type GovernanceState } from "@/services/governance/governanceOS";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -189,6 +190,7 @@ function GenesisPage() {
   const [bookIntelligenceResult, setBookIntelligenceResult] = useState<BookIntelligenceResult | null>(null); // Book Intelligence
   const [behavioralMarketResult, setBehavioralMarketResult] = useState<BehavioralMarketResult | null>(null); // Phase-44
   const [portfolioConstructionResult, setPortfolioConstructionResult] = useState<PortfolioConstructionResult | null>(null); // Phase-48
+  const [governanceOSResult, setGovernanceOSResult] = useState<GovernanceOSResult | null>(null); // Phase-47
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
   const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -626,6 +628,35 @@ function GenesisPage() {
       });
       setPortfolioConstructionResult(portfolioConstruction);
 
+      // Phase-47: Governance OS — cross-layer supervision, conflict arbitration
+      const governanceOS = computeGovernanceOS({
+        firewallState: firewallResult.state,
+        workflowState: workflow.state,
+        trustState: trustStrategy.trustState.state,
+        calibrationScore: decisionScore.score,
+        debateBalance: debate.debateBalance,
+        hasMaterialDisagreement: debate.hasMaterialDisagreement,
+        strategicBias: strategicSynthesis.bias,
+        hasStrategicConflict: strategicSynthesis.hasConflict,
+        thesisState: thesisLab.thesisState,
+        dominantScenario: scenarioIntel.dominantScenario,
+        scenarioUncertaintyLevel: scenarioIntel.uncertaintyLevel,
+        scenarioProbability: scenarioIntel.scenarioProbability,
+        macroCycle: globalMacro.macroCycle,
+        behavioralLabel: behavioralMarket.label,
+        portfolioConstructionLabel: portfolioConstruction.label,
+        portfolioRequiresHumanReview: portfolioConstruction.requiresHumanReview,
+        crossMarketLabel: crossMarket.label,
+        orchestratorState: marketOrchestrator.state,
+        attributionLabel: attribution.label,
+        learningGovernance: learningGov.label,
+        strategicApproval: strategicApproval.approval,
+        hasActiveVulnerability: portfolioRisk.hasActiveVulnerability,
+        macroSignificanceCritical: macroEvent.significance === "critical",
+        ar,
+      });
+      setGovernanceOSResult(governanceOS);
+
       const decisionCtx = [
         `System calibration: ECE=${eceVal.toFixed(3)}${drift.isDrifting ? " ⚠ performance drift detected" : ""}`,
         topStrategy ? `Top strategy: ${topStrategy.strategy} win-rate ${(topStrategy.winRate * 100).toFixed(0)}% (${topStrategy.bestRegime ?? "any"} regime)` : "",
@@ -689,6 +720,12 @@ function GenesisPage() {
         behavioralMarket.contextString,
         // Portfolio construction — Phase-48: concentration, hedge, correlation
         portfolioConstruction.contextString,
+        // Governance OS — Phase-47: cross-layer supervision
+        governanceOS.contextString,
+        // Governance confidence modifier — only when non-zero
+        governanceOS.confidenceModifier !== 0
+          ? `Governance confidence: ${governanceOS.confidenceModifier} pts (${governanceOS.governanceState.replace(/_/g, " ")})`
+          : "",
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
@@ -1449,6 +1486,11 @@ function GenesisPage() {
         <BookIntelStatusLine result={bookIntelligenceResult} ar={ar} />
       )}
 
+      {/* ─── Governance OS — Phase 47 ───────────────────────────────────── */}
+      {governanceOSResult && governanceOSResult.governanceState !== "coherent" && (
+        <GovernanceOSStatusLine result={governanceOSResult} ar={ar} />
+      )}
+
       {/* ─── Behavioral + Portfolio Construction — Phase 44+48 ───────────── */}
       {(behavioralMarketResult || portfolioConstructionResult) && (
         behavioralMarketResult?.label !== "unclear_behavior" ||
@@ -2182,6 +2224,65 @@ function BehavioralPortfolioStatusLine({
       )}
       <span className="ms-auto text-muted-foreground/40 italic text-[9px]">
         {ar ? "استشاري" : "advisory"}
+      </span>
+    </div>
+  );
+}
+
+// ─── Phase 47: Governance OS Status Line ─────────────────────────────────────
+
+const GOVERNANCE_STYLE: Record<GovernanceState, { border: string; bg: string; text: string; dot: string }> = {
+  coherent:              { border: "border-success/30",     bg: "bg-success/5",     text: "text-success/70",         dot: "bg-success/60" },
+  caution_required:      { border: "border-border/50",      bg: "bg-muted/8",       text: "text-foreground/70",      dot: "bg-muted-foreground/60" },
+  conflict_detected:     { border: "border-warning/50",     bg: "bg-warning/5",     text: "text-warning",            dot: "bg-warning" },
+  elevated_uncertainty:  { border: "border-primary/40",     bg: "bg-primary/8",     text: "text-primary",            dot: "bg-primary" },
+  human_review_priority: { border: "border-destructive/50", bg: "bg-destructive/5", text: "text-destructive",        dot: "bg-destructive" },
+};
+
+const GOVERNANCE_LABEL_AR: Record<GovernanceState, string> = {
+  coherent:              "متسق",
+  caution_required:      "يستوجب الحذر",
+  conflict_detected:     "تعارض مكتشف",
+  elevated_uncertainty:  "عدم يقين مرتفع",
+  human_review_priority: "أولوية مراجعة بشرية",
+};
+
+function GovernanceOSStatusLine({ result, ar }: { result: GovernanceOSResult; ar: boolean }) {
+  const s = GOVERNANCE_STYLE[result.governanceState];
+  const stateLabel = ar
+    ? GOVERNANCE_LABEL_AR[result.governanceState]
+    : result.governanceState.replace(/_/g, " ");
+  const topConflict = result.activeConflicts[0]?.replace(/_/g, " ") ?? null;
+  const topNote = result.governanceNotes[0] ?? null;
+
+  return (
+    <div className={cn("mb-2 flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px]", s.border, s.bg)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)} />
+      <span className={cn("font-bold uppercase tracking-wide", s.text)}>
+        {ar ? "حوكمة" : "Governance OS"} — {stateLabel}
+      </span>
+      {topConflict && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/70 truncate">{topConflict}</span>
+        </>
+      )}
+      {result.requiresHumanReview && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className={cn("font-semibold", s.text)}>
+            {ar ? "مراجعة بشرية مطلوبة" : "human review required"}
+          </span>
+        </>
+      )}
+      {!topConflict && topNote && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/60 italic truncate">{topNote.slice(0, 60)}</span>
+        </>
+      )}
+      <span className="ms-auto text-muted-foreground/40 italic text-[9px]">
+        {ar ? "استشاري" : "supervisory"}
       </span>
     </div>
   );
