@@ -39,6 +39,7 @@ import {
 import { evaluateReply, scoreToQuality, type MetaReasoningResult } from "@/services/reasoning/metaReasoning";
 import { coordinateIntelligence, type CoordinationResult } from "@/services/intelligence/coordinatorEngine";
 import { computeProactiveResearch, type ResearchCandidate } from "@/services/research/proactiveEngine";
+import { computeStrategicSynthesis, type StrategicSynthesis, type StrategicBias } from "@/services/intelligence/strategicEngine";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -185,6 +186,19 @@ function GenesisPage() {
     return all.filter((c) => !dismissedResearch.has(c.id));
   }, [assets, watchlistItems, ar, portfolioIntel, dismissedResearch]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Strategic synthesis — combines session bus, thesis history, proactive signals, portfolio.
+  // Pure computation, no I/O. Recalculates when underlying data changes.
+  const strategicSynthesis = useMemo(() => computeStrategicSynthesis({
+    sessionBus: sessionIntelStore.read(),
+    theses: thesisMemory.all(),
+    proactiveCandidates: researchCandidates,
+    portfolioAligned: portfolioIntel.regimeAlignment.aligned,
+    portfolioNote: portfolioIntel.regimeAlignment.note,
+    portfolioHasContext: Boolean(portfolioIntel.compactContext),
+    marketRegime: marketIntel.regime ?? "",
+    ar,
+  }), [researchCandidates, portfolioIntel, marketIntel, ar]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const marketContext = assets
     .slice(0, 10)
     .map((a) => `${a.symbol}: ${a.price} (${a.changePct >= 0 ? "+" : ""}${a.changePct.toFixed(2)}%)`)
@@ -219,6 +233,8 @@ function GenesisPage() {
         `System calibration: ECE=${eceVal.toFixed(3)}${drift.isDrifting ? " ⚠ performance drift detected" : ""}`,
         topStrategy ? `Top strategy: ${topStrategy.strategy} win-rate ${(topStrategy.winRate * 100).toFixed(0)}% (${topStrategy.bestRegime ?? "any"} regime)` : "",
         `Confidence modifier: ${confModifier.toFixed(2)}x (${confModifier >= 1 ? "above" : "below"} baseline)`,
+        // Strategic synthesis — bias + opportunity/risk framing + conflict note
+        strategicSynthesis.decisionContext,
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
@@ -817,6 +833,11 @@ function GenesisPage() {
         <CoordinationPanel result={coordinationResult} ar={ar} />
       )}
 
+      {/* ─── Strategic Bias — Phase 22 ──────────────────────────────────── */}
+      {(strategicSynthesis.bias !== "neutral" || strategicSynthesis.hasConflict) && (
+        <StrategicBiasPanel synthesis={strategicSynthesis} ar={ar} />
+      )}
+
       {/* ─── Proactive Research Signals — Phase 21 ──────────────────────── */}
       {researchCandidates.length > 0 && (
         <ProactiveResearchPanel
@@ -1041,6 +1062,71 @@ function ProactiveResearchPanel({
           ? "جميع الإشارات استشارية وتعليمية — لا تنفيذ تلقائي"
           : "All signals are advisory and educational — no automatic execution"}
       </p>
+    </div>
+  );
+}
+
+const BIAS_STYLE: Record<StrategicBias, { border: string; bg: string; text: string; dot: string }> = {
+  constructive: { border: "border-success/40",  bg: "bg-success/5",  text: "text-success",          dot: "bg-success" },
+  opportunistic:{ border: "border-primary/40",  bg: "bg-primary/5",  text: "text-primary",           dot: "bg-primary" },
+  neutral:      { border: "border-border/40",   bg: "bg-muted/5",    text: "text-muted-foreground",  dot: "bg-muted-foreground/50" },
+  defensive:    { border: "border-warning/40",  bg: "bg-warning/5",  text: "text-warning",           dot: "bg-warning" },
+  uncertain:    { border: "border-border/40",   bg: "bg-muted/5",    text: "text-muted-foreground/70", dot: "bg-muted-foreground/40" },
+};
+
+const BIAS_LABEL_AR: Record<StrategicBias, string> = {
+  constructive:  "بنّاء",
+  opportunistic: "انتهازي",
+  neutral:       "محايد",
+  defensive:     "دفاعي",
+  uncertain:     "غير محدد",
+};
+
+function StrategicBiasPanel({ synthesis, ar }: { synthesis: StrategicSynthesis; ar: boolean }) {
+  const s = BIAS_STYLE[synthesis.bias];
+  const label = ar ? BIAS_LABEL_AR[synthesis.bias] : synthesis.bias;
+  const hasDrivers = synthesis.opportunityDrivers.length > 0 || synthesis.riskDrivers.length > 0;
+
+  return (
+    <div className={cn("rounded-xl border px-4 py-3 space-y-2", s.border, s.bg)}>
+      <div className="flex items-center gap-2">
+        <span className={cn("h-2 w-2 rounded-full shrink-0", s.dot)} />
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+          {ar ? "التحيّز الاستراتيجي" : "Strategic Bias"}
+        </span>
+        <span className={cn("ms-1 rounded-md border px-2 py-0.5 text-[10px] font-bold", s.border, s.text)}>
+          {label}
+        </span>
+        <span className="ms-auto text-[9px] text-muted-foreground/50 italic">
+          {ar ? "استشاري فقط" : "Advisory only"}
+        </span>
+      </div>
+
+      <p className="text-[11px] text-foreground/70 leading-relaxed">{synthesis.biasReason}</p>
+
+      {hasDrivers && (
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px]">
+          {synthesis.opportunityDrivers.slice(0, 2).map((d, i) => (
+            <div key={`opp-${i}`} className="flex items-start gap-1 text-success/80">
+              <TrendingUp className="h-2.5 w-2.5 mt-0.5 shrink-0" />
+              <span>{d}</span>
+            </div>
+          ))}
+          {synthesis.riskDrivers.slice(0, 2).map((r, i) => (
+            <div key={`risk-${i}`} className="flex items-start gap-1 text-warning/80">
+              <TrendingDown className="h-2.5 w-2.5 mt-0.5 shrink-0" />
+              <span>{r}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {synthesis.conflictNote && (
+        <div className="flex items-start gap-1.5 text-[10px] text-warning/70 italic">
+          <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+          <span>{synthesis.conflictNote}</span>
+        </div>
+      )}
     </div>
   );
 }

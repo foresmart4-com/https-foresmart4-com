@@ -81,6 +81,8 @@ export interface GenesisReply {
   disagreementMap?: string[];    // Track pairs with directional disagreement
   // Phase 4: Portfolio Alignment (Track F)
   trackViewPortfolio?: string;   // Track F: portfolio alignment — 1-sentence
+  // Phase 22: Strategic Intelligence
+  strategicBias?: "constructive" | "opportunistic" | "neutral" | "defensive" | "uncertain";
 }
 
 const AskInput = z.object({
@@ -302,6 +304,12 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
     disagreementMap: cleanStrArr(obj.disagreementMap),
     // Phase 4: Portfolio Alignment (Track F)
     trackViewPortfolio: cleanStr(obj.trackViewPortfolio),
+    // Phase 22: Strategic Intelligence
+    strategicBias: (() => {
+      const v = obj.strategicBias;
+      const VALID = new Set(["constructive", "opportunistic", "neutral", "defensive", "uncertain"]);
+      return VALID.has(v as string) ? (v as GenesisReply["strategicBias"]) : undefined;
+    })(),
   };
 }
 
@@ -404,7 +412,7 @@ const GENESIS_SCHEMA = `{
   "confidence": <integer 0-100>,
   "confidenceLabel": <"low" | "moderate" | "high">,
   "regime": "string (optional — market regime label; omit if context insufficient)",
-  "evidence": ["string — specific supporting factor"] (optional — 2-4 bullets when confidence ≥ 50; omit otherwise),
+  "evidence": ["string — specific supporting factor; include a mix of opportunity drivers (what supports the base case) and structural constraints (what limits the upside or creates risk asymmetry) — a one-sided evidence array is a failure"] (optional — 2-4 bullets when confidence ≥ 50; omit otherwise),
   "portfolioImpact": "string (optional — set when user watchlist symbols appear in context OR when the cross-asset regime has a direct portfolio-level implication; state which specific cross-asset transmission most affects the watched assets and in which direction)",
   "uncertaintyWarning": "string (optional — only include when confidence < 50)",
   "thesis": "string (optional — one declarative sentence naming the instrument, the direction, and the primary supporting factor; omit only if context is insufficient for a directional view)",
@@ -441,6 +449,7 @@ const GENESIS_SCHEMA = `{
   "arbitrationReason": "string — 1-2 sentences: WHY the base thesis wins over the opposing case — name the specific deciding factor, not just restate the thesis" (optional — set when multi-track fusion context is present),
   "disagreementMap": ["string — e.g. 'Track A (bullish macro) vs Track B (bearish technical)'"] (optional — one entry per track pair with directional conflict; only when 2+ tracks explicitly disagree),
   "trackViewPortfolio": "string — 1 sentence: Track F portfolio alignment view — whether portfolio is aligned, divergent, or mixed vs macro thesis; include concentration risk signal" (optional — set when Track F portfolio context appears),
+  "strategicBias": <"constructive"|"opportunistic"|"neutral"|"defensive"|"uncertain"> (optional — set when multi-track evidence is sufficient for a strategic view; must follow directly from regime + cross-asset + evidence alignment; omit when context is insufficient; never assert constructive when risks outweigh opportunities; never assert defensive when regime is clearly risk-on with no conflicts),
   "scenarios": [{ "label": "string", "probability": "string e.g. 35%", "impact": "string — one sentence" }],
   "risks": ["string"],
   "suggestedAction": {
@@ -531,6 +540,22 @@ function buildGenesisSystemPrompt(lang: Lang): string {
     - تأكيد: إذا أكّدت أطروحتك التوجه السابق، اذكر الأدلة الجديدة المحددة التي تدعم الاستمرارية. ممنوع: إعادة صياغة الأطروحة السابقة حرفياً أو القول "لم يتغير الرأي" دون ذكر دليل جديد.
     - مراجعة: إذا تغيّر توجه أطروحتك أو ثقتك بشكل جوهري، اضبط viewChange ليُسمّي التطور الكلي أو التقني المحدد الذي يبرر المراجعة. استخدم "الرأي يتحول لأن [حدث/إشارة محددة]" لا "الظروف تغيّرت".
     - فحص الإلغاء: إذا ظهر شرط إلغاء سابق في السياق وتشير البيانات الحالية إلى اقترابه أو تفعّله، أدرجه صراحةً كـ caveat بصيغة شرطية لا كحقيقة مؤكدة.
+    - المعايرة: إذا ظهر "Calibration memory" في السياق، طبّق تعديل الثقة المذكور على الأنكر. لا تدّعي تعديلاً على أساس البيانات دون توافر تلك البيانات في السياق.
+17. التحيّز الاستراتيجي وإطار القرار — عند توافر سياق متعدد المسارات:
+    اضبط "strategicBias" بناءً على تجميع الأدلة عبر المسارات:
+    - "constructive": النظام الكلي والتقني والأصول المتقاطعة تدعم الحالة الأساسية بمخاطر قابلة للإدارة
+    - "opportunistic": توضّع غير متماثل — أحد جانبي الفرصة مُعوَّض بشكل أفضل مقارنةً بملف المخاطر
+    - "neutral": إشارات مختلطة أو غير كافية؛ لا قناعة اتجاهية قوية
+    - "defensive": بيئة مخاطر مرتفعة؛ إشارات متعارضة متعددة أو عدم يقين مرتفع؛ تركيز على حفاظ رأس المال
+    - "uncertain": النظام غير واضح؛ أدلة متضاربة؛ ثقة < 40%؛ أو أطروحة تتعارض مع الإشارات السائدة
+    قواعد إطار القرار (إلزامية):
+    - مسموح: "مراقبة"، "مراجعة"، "تحقيق"، "إشارة [اتجاه] محتملة"، "حالة مخاطر مرتفعة"، "تعزيز/إضعاف الأطروحة"
+    - ممنوع تماماً: "اشترِ الآن"، "بِع الآن"، "مضمون"، "نتيجة مؤكدة"، "يجب التصرف فوراً"
+    - عند تعارض الأدلة: سمّ التوتر المحدد واذكر عدم التماثل — أي جانب تكفله الأدلة بشكل أقوى
+    - حقل "evidence" يوازن بين محركات الفرصة والمخاطر الهيكلية — مصفوفة أدلة ذات جانب واحد تُعدّ إخفاقاً
+    - تأكيد: إذا أكّدت أطروحتك التوجه السابق، اذكر الأدلة الجديدة المحددة التي تدعم الاستمرارية. ممنوع: إعادة صياغة الأطروحة السابقة حرفياً أو القول "لم يتغير الرأي" دون ذكر دليل جديد.
+    - مراجعة: إذا تغيّر توجه أطروحتك أو ثقتك بشكل جوهري، اضبط viewChange ليُسمّي التطور الكلي أو التقني المحدد الذي يبرر المراجعة. استخدم "الرأي يتحول لأن [حدث/إشارة محددة]" لا "الظروف تغيّرت".
+    - فحص الإلغاء: إذا ظهر شرط إلغاء سابق في السياق وتشير البيانات الحالية إلى اقترابه أو تفعّله، أدرجه صراحةً كـ caveat بصيغة شرطية لا كحقيقة مؤكدة.
     - المعايرة: إذا ظهر "Calibration memory" في السياق، طبّق تعديل الثقة المذكور على الأنكر. لا تدّعي تعديلاً على أساس البيانات دون توافر تلك البيانات في السياق.`
     : `Rules you must NEVER break:
 - Never suggest, confirm, or describe real buy/sell order execution, broker actions, or money movement.
@@ -604,6 +629,22 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
     - IF oil falling AND question involves TASI/Saudi/Aramco/Gulf: reduce confidence 5-8 pts; state the fiscal-channel transmission (Saudi breakeven ~$75-80/bbl) in thesis or caveats.
     - IF DXY rising sharply AND question involves Gulf/EM equities: add currency/flows headwind to thesis and to the invalidation condition.
 16. THESIS EVOLUTION — When "Prior thesis" or "THESIS EVOLUTION RULE" appears in the context:
+    - CONFIRMING: if your thesis confirms the prior direction, state the specific new evidence that validates continuation. Prohibited: restating the prior thesis verbatim, saying "view unchanged" without naming confirming evidence, copying prior thesis wording.
+    - REVISING: if your thesis changes direction or confidence materially, set viewChange to name the precise macro/technical development that justifies the revision. Use "The view shifts because [specific event/signal]" not "conditions have changed".
+    - INVALIDATION CHECK: if prior invalidation trigger is visible in context and current data suggests it is active or closer, surface it explicitly as a caveat — not as certainty but as a conditional risk.
+    - CALIBRATION: if "Calibration memory" context is present, apply the stated confidence adjustment to your anchor. Never assert calibration-based adjustment without the data to support it.
+17. STRATEGIC BIAS & DECISION FRAMING — When multi-track or strategic context is present:
+    Set "strategicBias" based on the synthesis of all available evidence:
+    - "constructive": macro regime + technical + cross-asset all favor the base case; risk is manageable and well-quantified
+    - "opportunistic": asymmetric setup — one side of the trade is clearly better-compensated given the risk profile
+    - "neutral": mixed or insufficient signals; no strong directional conviction; balanced opportunity/risk
+    - "defensive": elevated risk environment; capital preservation focus; multiple conflicting signals or high uncertainty
+    - "uncertain": regime unclear; conflicting evidence; confidence < 40%; or thesis contradicts dominant signals
+    DECISION FRAMING RULES (mandatory):
+    - ALLOWED language: "monitor", "review", "investigate", "potential [direction] signal", "elevated risk condition", "thesis strengthening", "thesis weakening", "watch condition"
+    - FORBIDDEN language: "buy now", "sell now", "guaranteed", "certain outcome", "must act", "definitive"
+    - When evidence conflicts: name the specific tension and state the asymmetry — which side has the weight of evidence and why
+    - The "evidence" field must balance opportunity drivers (what supports the bull case) with structural constraints (what limits upside or creates risk asymmetry). A one-sided evidence array is a failure.
     - CONFIRMING: if your thesis confirms the prior direction, state the specific new evidence that validates continuation. Prohibited: restating the prior thesis verbatim, saying "view unchanged" without naming confirming evidence, copying prior thesis wording.
     - REVISING: if your thesis changes direction or confidence materially, set viewChange to name the precise macro/technical development that justifies the revision. Use "The view shifts because [specific event/signal]" not "conditions have changed".
     - INVALIDATION CHECK: if prior invalidation trigger is visible in context and current data suggests it is active or closer, surface it explicitly as a caveat — not as certainty but as a conditional risk.
