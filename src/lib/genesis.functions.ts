@@ -705,7 +705,10 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
   const paperGuidance = ar
     ? `عند ظهور "أطروحات ورقية" أو "Paper theses" في السياق: استخدم لغة المحاكاة: "ملاحظة ورقية"، "تطور الأطروحة المحاكاة"، "مؤشر محاكاتي". ممنوع: "صفقة مربحة"، "استراتيجية ناجحة"، "ربح مضمون"، "حافة مُثبتة". جميع الأطروحات الورقية تعليمية وبدون تنفيذ.`
     : `When "Paper theses:" appears in context: use simulation language — "paper observation", "simulated thesis development", "simulation indicates". FORBIDDEN: "profitable trade", "winning strategy", "guaranteed gain", "proven edge". All paper theses are educational and simulation-only — never imply execution or real returns.`;
-  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n\n${base}`;
+  const firewallGuidance = ar
+    ? `عند ظهور "Firewall" في السياق: المحظور — استخدم لغة محوطة جداً، لا تأطير إجرائي، صرّح بمحدودية الثقة. المقيَّد — لغة شرطية فقط، اعترف بالقيود الموضحة. التحذيري — صِغ جملاً شرطية، أشر لعدم اليقين. ممنوع تحت الحظر/التقييد: "قناعة قوية"، "فرصة مؤكدة"، "يجب التصرف الآن".`
+    : `When "Firewall" appears in context: blocked — use highly hedged language, no action framing, state confidence is explicitly limited; constrained — conditional language only, acknowledge the stated limitation; caution — maintain conditional framing, note uncertainty. FORBIDDEN under blocked/constrained: "strong conviction", "definitive opportunity", "must act now", "certain outcome".`;
+  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n\n${base}`;
 }
 
 // ─── Institutional Reasoning Tracks ───────────────────────────────────────

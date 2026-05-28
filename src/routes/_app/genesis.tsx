@@ -47,6 +47,7 @@ import { computeTrustAndStrategy, type TrustStrategyResult, type StrategyPosture
 import { computePortfolioRisk, type PortfolioRiskResult, type PortfolioRiskLabel } from "@/services/portfolio/portfolioRiskEngine";
 import { retrieveKnowledge } from "@/services/knowledge/knowledgeRetrieval";
 import { computePaperSynthesis, type PaperSynthesis, type PaperThesisState } from "@/services/paper/paperThesisEngine";
+import { computeFirewall, type FirewallResult, type FirewallState } from "@/services/governance/decisionFirewall";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -263,6 +264,18 @@ function GenesisPage() {
     ar,
   ), [thesisOutcomes, marketIntel, ar]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Decision firewall — Phase-30: evaluates all intelligence signals into a governance state.
+  const firewallResult = useMemo(() => computeFirewall({
+    decisionScore,
+    trustStrategy,
+    strategicSynthesis,
+    outcomeSummary: thesisOutcomes,
+    portfolioRisk,
+    sessionConf: sessionIntelStore.read()?.confidence ?? 0,
+    isDrifting: drift.isDrifting,
+    ar,
+  }), [decisionScore, trustStrategy, strategicSynthesis, thesisOutcomes, portfolioRisk, ar]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const marketContext = assets
     .slice(0, 10)
     .map((a) => `${a.symbol}: ${a.price} (${a.changePct >= 0 ? "+" : ""}${a.changePct.toFixed(2)}%)`)
@@ -311,6 +324,9 @@ function GenesisPage() {
           : "",
         // Trust & strategy context — Phase-25 trust state + Phase-26 strategy posture
         trustStrategy.hasSignificantSignal ? trustStrategy.contextString : "",
+        // Decision firewall — Phase-30: governance state + narrative mandate
+        firewallResult.contextString,
+        firewallResult.hasActiveConstraint ? firewallResult.narrativeHint : "",
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
@@ -1012,6 +1028,11 @@ function GenesisPage() {
         <StrategicBiasPanel synthesis={strategicSynthesis} ar={ar} strategyPosture={trustStrategy.strategyPosture} postureLabel={trustStrategy.postureForUI} />
       )}
 
+      {/* ─── Decision Firewall — Phase 30 ───────────────────────────────── */}
+      {firewallResult.hasActiveConstraint && (
+        <FirewallStatusLine result={firewallResult} ar={ar} />
+      )}
+
       {/* ─── Proactive Research Signals — Phase 21 ──────────────────────── */}
       {researchCandidates.length > 0 && (
         <ProactiveResearchPanel
@@ -1167,6 +1188,38 @@ const SEVERITY_ICON_COLOR: Record<ResearchCandidate["severity"], string> = {
   medium: "text-primary",
   low: "text-muted-foreground",
 };
+
+const FIREWALL_STYLE: Record<FirewallState, { border: string; bg: string; text: string; dot: string }> = {
+  cleared:     { border: "border-success/30",     bg: "bg-success/5",     text: "text-success",          dot: "bg-success" },
+  caution:     { border: "border-primary/30",     bg: "bg-primary/5",     text: "text-primary",           dot: "bg-primary" },
+  constrained: { border: "border-warning/40",     bg: "bg-warning/5",     text: "text-warning",           dot: "bg-warning" },
+  blocked:     { border: "border-destructive/40", bg: "bg-destructive/5", text: "text-destructive",       dot: "bg-destructive" },
+};
+
+function FirewallStatusLine({ result, ar }: { result: FirewallResult; ar: boolean }) {
+  const s = FIREWALL_STYLE[result.state];
+  const stateLabel = ar
+    ? ({ caution: "تحذير", constrained: "مقيَّد", blocked: "محظور", cleared: "نظيف" }[result.state])
+    : result.state;
+
+  return (
+    <div className={cn("mb-2 flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px]", s.border, s.bg)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)} />
+      <span className={cn("font-bold uppercase tracking-wide", s.text)}>
+        {ar ? "جدار الحماية" : "Decision Firewall"} — {stateLabel}
+      </span>
+      {result.reasons[0] && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/70 truncate">{result.reasons[0]}</span>
+        </>
+      )}
+      <span className="ms-auto text-muted-foreground/40 italic text-[9px]">
+        {ar ? "استشاري" : "advisory"}
+      </span>
+    </div>
+  );
+}
 
 function ProactiveResearchPanel({
   candidates,
