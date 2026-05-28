@@ -73,6 +73,8 @@ import { runLiveAcquisitionCycle, type LiveAcquisitionSummary } from "@/services
 import { computeInstitutionalModels, type InstitutionalModelsResult } from "@/services/intelligence/institutionalModels";
 import { computeInstitutionalValidation, type InstitutionalValidationResult } from "@/services/intelligence/institutionalValidation";
 import { computeDecisionMemory, type DecisionMemoryResult } from "@/services/intelligence/decisionMemory";
+import { computeProviderMonitoring, type ProviderMonitoringResult } from "@/services/intelligence/providerMonitoring";
+import { computeAnswerQuality, type AnswerQualityResult } from "@/services/intelligence/answerQuality";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -203,6 +205,7 @@ function GenesisPage() {
   const [institutionalModelsResult, setInstitutionalModelsResult] = useState<InstitutionalModelsResult | null>(null); // Phase-51
   const [institutionalValidationResult, setInstitutionalValidationResult] = useState<InstitutionalValidationResult | null>(null); // Phase-52
   const [decisionMemoryResult, setDecisionMemoryResult] = useState<DecisionMemoryResult | null>(null); // Phase-53
+  // Phase-56/57 results derived via useMemo — declared below after firewallResult
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
   const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -326,6 +329,37 @@ function GenesisPage() {
     isDrifting: drift.isDrifting,
     ar,
   }), [decisionScore, trustStrategy, strategicSynthesis, thesisOutcomes, portfolioRisk, ar]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Provider monitoring — Phase-56: session provider reliability; pure derivation from exchanges
+  const providerMonitoringResult = useMemo((): ProviderMonitoringResult => computeProviderMonitoring({
+    totalExchanges: exchanges.length,
+    heuristicCount: exchanges.filter(e => e.engine === "heuristic").length,
+    openAIFallbackCount: exchanges.filter(e => e.providerIdentity === "openai_deep").length,
+    aiSuccessCount: exchanges.filter(e => e.engine === "ai" && e.providerIdentity !== "openai_deep").length,
+    ar,
+  }), [exchanges, ar]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Answer quality — Phase-57: evaluate AI answer quality from last AI exchange signals
+  const answerQualityResult = useMemo((): AnswerQualityResult | null => {
+    const lastAI = [...exchanges].reverse().find(e => e.engine === "ai");
+    if (!lastAI) return null;
+    return computeAnswerQuality({
+      reasoningQuality: lastAI.reply.reasoningQuality ?? null,
+      confidence: lastAI.reply.confidence,
+      confidenceLabel: lastAI.reply.confidenceLabel,
+      uncertaintyLevel: lastAI.reply.uncertaintyLevel ?? null,
+      hasCaveats: (lastAI.reply.caveats?.length ?? 0) > 0,
+      hasOpposingCase: Boolean(lastAI.reply.opposingCase),
+      hasInvalidation: Boolean(lastAI.reply.invalidation),
+      engine: lastAI.engine,
+      debateBalance: debateResult?.debateBalance ?? null,
+      hasMaterialDisagreement: debateResult?.hasMaterialDisagreement ?? false,
+      firewallState: firewallResult.state,
+      governanceState: governanceOSResult?.governanceState ?? "coherent",
+      calibrationScore: decisionScore.score,
+      ar,
+    });
+  }, [exchanges, debateResult, firewallResult, governanceOSResult, decisionScore, ar]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const marketContext = assets
     .slice(0, 10)
@@ -887,6 +921,16 @@ function GenesisPage() {
         decisionMemory.riskLesson
           ? `Risk lesson: ${decisionMemory.riskLesson.slice(0, 100)}`
           : "",
+        // Provider health — Phase-56: session reliability signal; omit when insufficient
+        providerMonitoringResult.providerHealth !== "insufficient_signal"
+          ? providerMonitoringResult.contextString
+          : "",
+        // Reasoning quality — Phase-57: previous AI answer quality; omit when heuristic
+        answerQualityResult?.contextString ?? "",
+        // Confidence note — Phase-57: calibration lesson when confidence risk detected
+        answerQualityResult?.qualityState === "confidence_risk" && answerQualityResult.confidenceLesson
+          ? `Confidence note: ${answerQualityResult.confidenceLesson.slice(0, 100)}`
+          : "",
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
@@ -1373,6 +1417,42 @@ function GenesisPage() {
                 )}
                 {decisionMemoryResult?.riskLesson && (
                   <span className="text-warning/60">⚠ {ar ? "درس مخاطرة" : "risk noted"}</span>
+                )}
+              </div>
+            )}
+
+            {/* Provider Health + Answer Quality — Phase-56/57: compact advisory status */}
+            {(providerMonitoringResult.providerHealth !== "insufficient_signal" || (answerQualityResult && answerQualityResult.qualityState !== "insufficient_quality_signal")) && (
+              <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                <Activity className="h-3 w-3 shrink-0 text-muted-foreground/50" />
+                <span className="text-muted-foreground/60 font-semibold uppercase tracking-wider shrink-0">
+                  {ar ? "صحة AI:" : "AI Health:"}
+                </span>
+                <span className={cn(
+                  "rounded border px-1.5 py-0.5 font-medium",
+                  providerMonitoringResult.providerHealth === "healthy" ? "border-success/30 text-success"
+                  : providerMonitoringResult.providerHealth === "fallback_heavy" || providerMonitoringResult.providerHealth === "parse_sensitive" ? "border-destructive/30 text-destructive"
+                  : providerMonitoringResult.providerHealth === "degraded" ? "border-warning/30 text-warning"
+                  : "border-border/40 text-muted-foreground",
+                )}>
+                  {providerMonitoringResult.providerHealth.replace(/_/g, " ")}
+                </span>
+                {answerQualityResult && answerQualityResult.qualityState !== "insufficient_quality_signal" && (
+                  <>
+                    <span className="text-muted-foreground/30">·</span>
+                    <span className="text-muted-foreground/60 font-semibold uppercase tracking-wider shrink-0">
+                      {ar ? "الاستدلال:" : "Reasoning:"}
+                    </span>
+                    <span className={cn(
+                      "rounded border px-1.5 py-0.5 font-medium",
+                      answerQualityResult.qualityState === "robust_reasoning" ? "border-success/30 text-success"
+                      : answerQualityResult.qualityState === "confidence_risk" || answerQualityResult.qualityState === "governance_constrained" ? "border-destructive/30 text-destructive"
+                      : answerQualityResult.qualityState === "debated_reasoning" ? "border-warning/30 text-warning"
+                      : "border-border/40 text-muted-foreground",
+                    )}>
+                      {answerQualityResult.qualityState.replace(/_/g, " ")}
+                    </span>
+                  </>
                 )}
               </div>
             )}
