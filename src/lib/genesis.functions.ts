@@ -699,7 +699,10 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
   const jsonOnlyPrefix = ar
     ? "حرج: أنتج كائن JSON خالصاً ومكتملاً فقط. لا نص قبل JSON ولا نص بعده. لا markdown. JSON فقط."
     : "CRITICAL: Output a single complete raw JSON object only — no text before it, no text after it, no markdown fences.";
-  return `${jsonOnlyPrefix}\n\n${base}`;
+  const knowledgeGuidance = ar
+    ? `عند ظهور "Framework context:" في سياق المستخدم: أشر إلى الإطار بلغة محوطة: "كثيراً ما يُشير الأدب المؤسسي"، "الإطار يقترح"، "متسق اقتصادياً مع". ممنوع: "يُثبت"، "مؤكد تاريخياً"، "يضمن". البيانات الحية تتقدم دائماً على الأطر النظرية.`
+    : `When "Framework context:" appears in user context: reference it using hedged language — "institutional literature often notes", "framework suggests", "economically consistent with", "historically associated with". FORBIDDEN: "proves", "historically certain", "guarantees". Current live data always takes precedence over theoretical frameworks. Never cite a framework as live market evidence.`;
+  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n\n${base}`;
 }
 
 // ─── Institutional Reasoning Tracks ───────────────────────────────────────

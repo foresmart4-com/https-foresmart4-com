@@ -45,6 +45,7 @@ import { computeDecisionScore, type DecisionScoreResult, type CalibrationScore }
 import { overallStats, ece as eceWindow } from "@/services/learning/selfLearningEngine";
 import { computeTrustAndStrategy, type TrustStrategyResult, type StrategyPosture } from "@/services/intelligence/trustStrategyEngine";
 import { computePortfolioRisk, type PortfolioRiskResult, type PortfolioRiskLabel } from "@/services/portfolio/portfolioRiskEngine";
+import { retrieveKnowledge } from "@/services/knowledge/knowledgeRetrieval";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -148,6 +149,7 @@ function GenesisPage() {
   const [coordinationResult, setCoordinationResult] = useState<CoordinationResult | null>(null);
   const [profileVersion, setProfileVersion] = useState(0);
   const [dismissedResearch, setDismissedResearch] = useState<Set<string>>(() => new Set());
+  const [activeFrameworks, setActiveFrameworks] = useState<string[]>([]); // Phase-28: knowledge frameworks active on last send
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
   const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -354,9 +356,17 @@ function GenesisPage() {
 
       // Research Terminal context — Phase 8.
       const intent = detectResearchIntent(trimmed, watchlistItems, thesisMemory.all());
-      const researchHint = researchMode
-        ? (intent.compactHint || `Research mode (market): produce full institutional research report. Populate executiveSummary, keyDrivers, watchItems. Set researchType="market".`)
-        : intent.compactHint;
+
+      // Phase-28: Research Knowledge Library — retrieve relevant economic frameworks.
+      // Pure keyword match, O(13 cards), <1ms. Injects only when a keyword matches.
+      const knowledge = retrieveKnowledge(trimmed, marketIntel.regime ?? "");
+      setActiveFrameworks(knowledge.frameworkNames);
+      const researchHint = [
+        researchMode
+          ? (intent.compactHint || `Research mode (market): produce full institutional research report. Populate executiveSummary, keyDrivers, watchItems. Set researchType="market".`)
+          : intent.compactHint,
+        knowledge.contextString,       // empty string when no match — filtered by coordinator
+      ].filter(Boolean).join("\n") || undefined;
 
       // Intelligence Graph recall — Phase 9: historical asset/thesis/risk context from prior sessions.
       const graphCtx = intelligenceGraph.compactContext(trimmed, watchlistItems);
@@ -816,6 +826,26 @@ function GenesisPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Knowledge Frameworks — Phase 28 */}
+            {activeFrameworks.length > 0 && (
+              <div>
+                <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5">
+                  <BookOpen className="h-3 w-3" />
+                  {ar ? "أطر معرفية نشطة" : "Active knowledge frameworks"}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {activeFrameworks.map((f) => (
+                    <span key={f} className="rounded-md border border-primary/30 bg-primary/8 px-2 py-0.5 text-[10px] text-primary/70 font-medium">
+                      {f}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-1 text-[9px] text-muted-foreground/50 italic">
+                  {ar ? "أطر استشارية فقط — البيانات الحية تتقدم" : "Advisory frameworks only — live data takes precedence"}
+                </p>
               </div>
             )}
 
