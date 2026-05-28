@@ -61,6 +61,8 @@ import { computeCrossMarketRegime, type CrossMarketRegimeResult, type CrossMarke
 import { computeThesisLab, type ThesisLabResult, type ThesisLabState } from "@/services/intelligence/thesisLab";
 import { computeScenarioIntelligence, type ScenarioIntelligenceResult, type ScenarioLabel } from "@/services/intelligence/scenarioIntelligence";
 import { getProviderDisplayLabel, type ProviderIdentity, type RoutingMode } from "@/services/ai/providerRouter";
+import { computeGlobalMacroMemory, type GlobalMacroMemoryResult, type MacroCycleState } from "@/services/macro/globalMacroMemory";
+import { computeEconomicGraph, type EconomicGraphResult } from "@/services/intelligence/economicGraph";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -179,6 +181,8 @@ function GenesisPage() {
   const [crossMarketRegimeResult, setCrossMarketRegimeResult] = useState<CrossMarketRegimeResult | null>(null); // Phase-41
   const [thesisLabResult, setThesisLabResult] = useState<ThesisLabResult | null>(null); // Phase-42
   const [scenarioIntelResult, setScenarioIntelResult] = useState<ScenarioIntelligenceResult | null>(null); // Phase-46
+  const [globalMacroResult, setGlobalMacroResult] = useState<GlobalMacroMemoryResult | null>(null); // Phase-43
+  const [economicGraphResult, setEconomicGraphResult] = useState<EconomicGraphResult | null>(null); // Phase-45
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
   const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -530,6 +534,41 @@ function GenesisPage() {
       });
       setScenarioIntelResult(scenarioIntel);
 
+      // Phase-43: Global Macro Memory — long-horizon macro cycle + region detection
+      const globalMacro = computeGlobalMacroMemory({
+        question: trimmed,
+        marketRegime: marketIntel.regime,
+        riskOnScore: marketIntel.riskOnScore,
+        stressLevel: marketIntel.stressLevel,
+        stressScore: marketIntel.stressScore,
+        macroEventType: macroEvent.primaryEvent,
+        macroSignificance: macroEvent.significance,
+        orchestratorState: marketOrchestrator.state,
+        crossMarketLabel: crossMarket.label,
+        strategicBias: strategicSynthesis.bias,
+        rotationSignal: marketIntel.rotation.signal,
+        ar,
+      });
+      setGlobalMacroResult(globalMacro);
+
+      // Phase-45: Economic Intelligence Graph — transmission channel analysis
+      const econGraph = computeEconomicGraph({
+        stressLevel: marketIntel.stressLevel,
+        stressScore: marketIntel.stressScore,
+        riskOnScore: marketIntel.riskOnScore,
+        macroEventType: macroEvent.primaryEvent,
+        macroSignificance: macroEvent.significance,
+        rotationSignal: marketIntel.rotation.signal,
+        crossMarketLabel: crossMarket.label,
+        orchestratorState: marketOrchestrator.state,
+        strategicBias: strategicSynthesis.bias,
+        hasConflict: strategicSynthesis.hasConflict,
+        macroCycleState: globalMacro.macroCycle,
+        dominantRegion: globalMacro.dominantRegion,
+        ar,
+      });
+      setEconomicGraphResult(econGraph);
+
       const decisionCtx = [
         `System calibration: ECE=${eceVal.toFixed(3)}${drift.isDrifting ? " ⚠ performance drift detected" : ""}`,
         topStrategy ? `Top strategy: ${topStrategy.strategy} win-rate ${(topStrategy.winRate * 100).toFixed(0)}% (${topStrategy.bestRegime ?? "any"} regime)` : "",
@@ -583,6 +622,10 @@ function GenesisPage() {
         scenarioIntel.scenarioConfidencePressure !== 0
           ? `Scenario confidence pressure: ${scenarioIntel.scenarioConfidencePressure > 0 ? "+" : ""}${scenarioIntel.scenarioConfidencePressure} pts (${scenarioIntel.dominantScenario.replace(/_/g, " ")})`
           : "",
+        // Global macro memory — Phase-43: cycle + region + policy signal
+        globalMacro.contextString,
+        // Economic graph — Phase-45: dominant channel + network direction
+        econGraph.contextString,
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
@@ -1333,6 +1376,11 @@ function GenesisPage() {
         />
       )}
 
+      {/* ─── Global Macro + Economic Graph — Phase 43+45 ───────────────── */}
+      {globalMacroResult && globalMacroResult.macroCycle !== "uncertain_cycle" && (
+        <GlobalMacroStatusLine macro={globalMacroResult} graph={economicGraphResult} ar={ar} />
+      )}
+
       {/* ─── Thesis Lab + Scenario — Phase 42+46 ────────────────────────── */}
       {(thesisLabResult || scenarioIntelResult) && (
         thesisLabResult?.thesisState !== "emerging_thesis" ||
@@ -1878,6 +1926,69 @@ function ThesisScenarioStatusLine({
           <span className="text-border/60">|</span>
           <span className="text-muted-foreground/55 italic truncate">
             {ar ? "معارض: " : "vs: "}{ar ? SCENARIO_LABEL_AR[scenario.opposingScenario] : scenario.opposingScenario.replace(/_/g, " ")}
+          </span>
+        </>
+      )}
+      <span className="ms-auto text-muted-foreground/40 italic text-[9px]">
+        {ar ? "استشاري" : "advisory"}
+      </span>
+    </div>
+  );
+}
+
+// ─── Phase 43+45: Global Macro Memory + Economic Graph Status Line ───────────
+
+const MACRO_CYCLE_STYLE: Record<MacroCycleState, { border: string; bg: string; text: string; dot: string }> = {
+  stable_cycle:     { border: "border-success/40",     bg: "bg-success/5",    text: "text-success",            dot: "bg-success" },
+  easing_cycle:     { border: "border-primary/40",     bg: "bg-primary/8",    text: "text-primary",            dot: "bg-primary" },
+  tightening_cycle: { border: "border-warning/50",     bg: "bg-warning/5",    text: "text-warning",            dot: "bg-warning" },
+  transition_cycle: { border: "border-border/50",      bg: "bg-muted/8",      text: "text-foreground/70",      dot: "bg-muted-foreground/60" },
+  fragmented_cycle: { border: "border-destructive/30", bg: "bg-destructive/5",text: "text-destructive/80",     dot: "bg-destructive/70" },
+  uncertain_cycle:  { border: "border-border/20",      bg: "bg-muted/3",      text: "text-muted-foreground/50",dot: "bg-muted-foreground/30" },
+};
+
+const MACRO_CYCLE_LABEL_AR: Record<MacroCycleState, string> = {
+  stable_cycle:     "دورة مستقرة",
+  easing_cycle:     "دورة تيسير",
+  tightening_cycle: "دورة تشديد",
+  transition_cycle: "دورة انتقالية",
+  fragmented_cycle: "دورة مجزأة",
+  uncertain_cycle:  "دورة غير محددة",
+};
+
+function GlobalMacroStatusLine({
+  macro,
+  graph,
+  ar,
+}: {
+  macro: GlobalMacroMemoryResult;
+  graph: EconomicGraphResult | null;
+  ar: boolean;
+}) {
+  const s = MACRO_CYCLE_STYLE[macro.macroCycle];
+  const cycleLabel = ar ? MACRO_CYCLE_LABEL_AR[macro.macroCycle] : macro.macroCycle.replace(/_/g, " ");
+
+  return (
+    <div className={cn("mb-2 flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px]", s.border, s.bg)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)} />
+      <span className={cn("font-bold uppercase tracking-wide", s.text)}>
+        {ar ? "الكلي العالمي" : "Macro"} — {cycleLabel}
+      </span>
+      <span className="text-border/60">|</span>
+      <span className="text-muted-foreground/70 truncate">{macro.dominantRegion}</span>
+      {macro.policySignal !== "neutral" && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/60 italic truncate">
+            {macro.policySignal.replace(/_/g, " ")} {ar ? "سياسة" : "policy"}
+          </span>
+        </>
+      )}
+      {graph?.dominantChannel && graph.networkStrength !== "weak" && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/55 italic truncate">
+            {graph.dominantChannel.replace(/_to_/g, "→").replace(/_/g, " ")}
           </span>
         </>
       )}
