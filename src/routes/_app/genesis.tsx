@@ -64,6 +64,8 @@ import { getProviderDisplayLabel, type ProviderIdentity, type RoutingMode } from
 import { computeGlobalMacroMemory, type GlobalMacroMemoryResult, type MacroCycleState } from "@/services/macro/globalMacroMemory";
 import { computeEconomicGraph, type EconomicGraphResult } from "@/services/intelligence/economicGraph";
 import { computeBookIntelligence, type BookIntelligenceResult } from "@/services/knowledge/bookIntelligence";
+import { computeBehavioralMarket, type BehavioralMarketResult, type BehavioralLabel } from "@/services/intelligence/behavioralMarket";
+import { computePortfolioConstruction, type PortfolioConstructionResult, type PortfolioConstructionLabel } from "@/services/portfolio/portfolioConstruction";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -185,6 +187,8 @@ function GenesisPage() {
   const [globalMacroResult, setGlobalMacroResult] = useState<GlobalMacroMemoryResult | null>(null); // Phase-43
   const [economicGraphResult, setEconomicGraphResult] = useState<EconomicGraphResult | null>(null); // Phase-45
   const [bookIntelligenceResult, setBookIntelligenceResult] = useState<BookIntelligenceResult | null>(null); // Book Intelligence
+  const [behavioralMarketResult, setBehavioralMarketResult] = useState<BehavioralMarketResult | null>(null); // Phase-44
+  const [portfolioConstructionResult, setPortfolioConstructionResult] = useState<PortfolioConstructionResult | null>(null); // Phase-48
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
   const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -583,6 +587,45 @@ function GenesisPage() {
       });
       setBookIntelligenceResult(bookIntel);
 
+      // Phase-44: Behavioral Market Intelligence — crowd behavior, sentiment, positioning
+      const behavioralMarket = computeBehavioralMarket({
+        riskOnScore: marketIntel.riskOnScore,
+        stressLevel: marketIntel.stressLevel,
+        stressScore: marketIntel.stressScore,
+        breadthBullPct: marketIntel.breadth.bullPct,
+        rotationSignal: marketIntel.rotation.signal,
+        debateBalance: debate.debateBalance,
+        hasMaterialDisagreement: debate.hasMaterialDisagreement,
+        strategicBias: strategicSynthesis.bias,
+        hasStrategicConflict: strategicSynthesis.hasConflict,
+        macroSignificance: macroEvent.significance,
+        firewallState: firewallResult.state,
+        calibrationScore: decisionScore.score,
+        trustState: trustStrategy.trustState.state,
+        orchestratorState: marketOrchestrator.state,
+        crossMarketLabel: crossMarket.label,
+        macroCycle: globalMacro.macroCycle,
+        ar,
+      });
+      setBehavioralMarketResult(behavioralMarket);
+
+      // Phase-48: Portfolio Construction Intelligence — concentration, hedge, correlation
+      const portfolioConstruction = computePortfolioConstruction({
+        riskLabel: portfolioRisk.riskLabel,
+        hasActiveVulnerability: portfolioRisk.hasActiveVulnerability,
+        hasHedgeOffset: portfolioRisk.hedgeNote !== null,
+        concentrationScore: portfolioIntel.concentrationScore,
+        regimeAligned: portfolioIntel.regimeAlignment.aligned,
+        watchlistCount: watchlistItems.length,
+        behavioralLabel: behavioralMarket.label,
+        macroCycle: globalMacro.macroCycle,
+        firewallState: firewallResult.state,
+        stressLevel: marketIntel.stressLevel,
+        crossMarketLabel: crossMarket.label,
+        ar,
+      });
+      setPortfolioConstructionResult(portfolioConstruction);
+
       const decisionCtx = [
         `System calibration: ECE=${eceVal.toFixed(3)}${drift.isDrifting ? " ⚠ performance drift detected" : ""}`,
         topStrategy ? `Top strategy: ${topStrategy.strategy} win-rate ${(topStrategy.winRate * 100).toFixed(0)}% (${topStrategy.bestRegime ?? "any"} regime)` : "",
@@ -642,6 +685,10 @@ function GenesisPage() {
         econGraph.contextString,
         // Book intelligence — institutional lesson + historical analog
         bookIntel.contextString,
+        // Behavioral market — Phase-44: crowd behavior and sentiment
+        behavioralMarket.contextString,
+        // Portfolio construction — Phase-48: concentration, hedge, correlation
+        portfolioConstruction.contextString,
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
@@ -1402,6 +1449,18 @@ function GenesisPage() {
         <BookIntelStatusLine result={bookIntelligenceResult} ar={ar} />
       )}
 
+      {/* ─── Behavioral + Portfolio Construction — Phase 44+48 ───────────── */}
+      {(behavioralMarketResult || portfolioConstructionResult) && (
+        behavioralMarketResult?.label !== "unclear_behavior" ||
+        (portfolioConstructionResult?.label !== "resilient_portfolio" && portfolioConstructionResult?.label !== "insufficient_portfolio_data")
+      ) && (
+        <BehavioralPortfolioStatusLine
+          behavioral={behavioralMarketResult}
+          portfolio={portfolioConstructionResult}
+          ar={ar}
+        />
+      )}
+
       {/* ─── Thesis Lab + Scenario — Phase 42+46 ────────────────────────── */}
       {(thesisLabResult || scenarioIntelResult) && (
         thesisLabResult?.thesisState !== "emerging_thesis" ||
@@ -2045,6 +2104,80 @@ function BookIntelStatusLine({ result, ar }: { result: BookIntelligenceResult; a
         <>
           <span className="text-border/60">|</span>
           <span className="text-muted-foreground/50 italic truncate text-[9px]">{result.competingSchool.slice(0, 50)}</span>
+        </>
+      )}
+      <span className="ms-auto text-muted-foreground/40 italic text-[9px]">
+        {ar ? "استشاري" : "advisory"}
+      </span>
+    </div>
+  );
+}
+
+// ─── Phase 44+48: Behavioral Market + Portfolio Construction Status Line ─────
+
+const BEHAVIORAL_STYLE: Record<BehavioralLabel, { border: string; bg: string; text: string; dot: string }> = {
+  fear_dominant:       { border: "border-destructive/40", bg: "bg-destructive/5", text: "text-destructive/80",    dot: "bg-destructive/70" },
+  greed_dominant:      { border: "border-warning/50",     bg: "bg-warning/5",     text: "text-warning",           dot: "bg-warning" },
+  crowded_positioning: { border: "border-primary/50",     bg: "bg-primary/8",     text: "text-primary",           dot: "bg-primary" },
+  narrative_driven:    { border: "border-border/50",      bg: "bg-muted/8",       text: "text-foreground/70",     dot: "bg-muted-foreground/60" },
+  balanced_behavior:   { border: "border-success/30",     bg: "bg-success/5",     text: "text-success/70",        dot: "bg-success/60" },
+  unclear_behavior:    { border: "border-border/20",      bg: "bg-muted/3",       text: "text-muted-foreground/50",dot: "bg-muted-foreground/30" },
+};
+
+const BEHAVIORAL_LABEL_AR: Record<BehavioralLabel, string> = {
+  fear_dominant:       "خوف سائد",
+  greed_dominant:      "طمع سائد",
+  crowded_positioning: "تموضع مكتظ",
+  narrative_driven:    "رواية سائدة",
+  balanced_behavior:   "سلوك متوازن",
+  unclear_behavior:    "غير محدد",
+};
+
+const PORTFOLIO_LABEL_AR: Record<PortfolioConstructionLabel, string> = {
+  resilient_portfolio:         "محفظة مرنة",
+  concentrated_portfolio:      "محفظة مركّزة",
+  unbalanced_portfolio:        "محفظة غير متوازنة",
+  hedge_needed_review:         "تحوط يستحق المراجعة",
+  correlation_risk:            "مخاطر ارتباط",
+  insufficient_portfolio_data: "بيانات غير كافية",
+};
+
+function BehavioralPortfolioStatusLine({
+  behavioral,
+  portfolio,
+  ar,
+}: {
+  behavioral: BehavioralMarketResult | null;
+  portfolio: PortfolioConstructionResult | null;
+  ar: boolean;
+}) {
+  const bLabel = behavioral?.label ?? "unclear_behavior";
+  const s = BEHAVIORAL_STYLE[bLabel];
+  const behavLabel = ar ? BEHAVIORAL_LABEL_AR[bLabel] : bLabel.replace(/_/g, " ");
+  const portLabel = portfolio
+    ? (ar ? PORTFOLIO_LABEL_AR[portfolio.label] : portfolio.label.replace(/_/g, " "))
+    : null;
+
+  return (
+    <div className={cn("mb-2 flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px]", s.border, s.bg)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)} />
+      <span className={cn("font-bold uppercase tracking-wide", s.text)}>
+        {ar ? "السلوك" : "Behavior"} — {behavLabel}
+      </span>
+      {portLabel && portfolio?.label !== "insufficient_portfolio_data" && portfolio?.label !== "resilient_portfolio" && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/70 truncate">
+            {ar ? "المحفظة: " : "portfolio: "}{portLabel}
+          </span>
+        </>
+      )}
+      {portfolio?.requiresHumanReview && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-warning font-semibold">
+            {ar ? "مراجعة بشرية موصى بها" : "human review recommended"}
+          </span>
         </>
       )}
       <span className="ms-auto text-muted-foreground/40 italic text-[9px]">
