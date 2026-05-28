@@ -13,9 +13,8 @@ function createSupabaseClient() {
       ...(!SUPABASE_URL ? ['SUPABASE_URL'] : []),
       ...(!SUPABASE_PUBLISHABLE_KEY ? ['SUPABASE_PUBLISHABLE_KEY'] : []),
     ];
-    const message = `Missing Supabase environment variable(s): ${missing.join(', ')}. Connect Supabase in Lovable Cloud.`;
-    console.error(`[Supabase] ${message}`);
-    throw new Error(message);
+    console.warn(`[Supabase] Missing variable(s): ${missing.join(', ')} — running in offline mode (auth disabled).`);
+    return null;
   }
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -29,12 +28,29 @@ function createSupabaseClient() {
 
 let _supabase: ReturnType<typeof createSupabaseClient> | undefined;
 
+// Minimal no-op stub used when Supabase env vars are absent (preview / CI).
+// Returns empty resolved promises so auth hooks settle cleanly with null user.
+function makeOfflineStub(): ReturnType<Exclude<ReturnType<typeof createSupabaseClient>, null>> {
+  const noop = () => Promise.resolve({ data: {}, error: null });
+  const auth = {
+    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+    getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+    signInWithPassword: noop,
+    signUp: noop,
+    signOut: () => Promise.resolve({ error: null }),
+    resetPasswordForEmail: noop,
+    updateUser: noop,
+  };
+  return { auth, from: () => ({ select: noop, insert: noop, update: noop, delete: noop, eq: () => ({ select: noop }) }), rpc: noop } as never;
+}
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
-export const supabase = new Proxy({} as ReturnType<typeof createSupabaseClient>, {
+export const supabase = new Proxy({} as Exclude<ReturnType<typeof createSupabaseClient>, null>, {
   get(_, prop, receiver) {
     if (!_supabase) _supabase = createSupabaseClient();
-    return Reflect.get(_supabase, prop, receiver);
+    const client = _supabase ?? makeOfflineStub();
+    return Reflect.get(client as object, prop, receiver);
   },
 });
 
