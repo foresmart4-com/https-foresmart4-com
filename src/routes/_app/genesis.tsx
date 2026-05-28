@@ -34,7 +34,7 @@ import {
   TrendingUp, TrendingDown, Minus, Navigation, Eye, Bell,
   ChevronRight, RefreshCw, Scale, PieChart,
   ThumbsUp, ThumbsDown, ChevronDown, Trash2, Database, Zap, XCircle,
-  BookOpen, FileText, Layers, Clock, Network, FlaskConical, Gauge, ShieldAlert,
+  BookOpen, FileText, Layers, Clock, Network, FlaskConical, Gauge, ShieldAlert, Compass,
 } from "lucide-react";
 import { evaluateReply, scoreToQuality, type MetaReasoningResult } from "@/services/reasoning/metaReasoning";
 import { coordinateIntelligence, type CoordinationResult } from "@/services/intelligence/coordinatorEngine";
@@ -42,7 +42,8 @@ import { computeProactiveResearch, type ResearchCandidate } from "@/services/res
 import { computeStrategicSynthesis, type StrategicSynthesis, type StrategicBias } from "@/services/intelligence/strategicEngine";
 import { inferThesisOutcomes, type OutcomeSummary } from "@/services/learning/outcomeEngine";
 import { computeDecisionScore, type DecisionScoreResult, type CalibrationScore } from "@/services/learning/decisionScoring";
-import { overallStats } from "@/services/learning/selfLearningEngine";
+import { overallStats, ece as eceWindow } from "@/services/learning/selfLearningEngine";
+import { computeTrustAndStrategy, type TrustStrategyResult, type StrategyPosture } from "@/services/intelligence/trustStrategyEngine";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -228,6 +229,19 @@ function GenesisPage() {
     });
   }, [eceVal, thesisOutcomes, confModifier, ar]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Trust & strategy intelligence — Phase-25 TrustState + Phase-26 StrategyPosture.
+  // Uses 7-day windowed ECE for trend comparison. Pure computation, no I/O.
+  const trustStrategy = useMemo(() => computeTrustAndStrategy({
+    decisionScore,
+    strategicSynthesis,
+    outcomeSummary: thesisOutcomes,
+    recentEceVal: eceWindow(7 * 24 * 60 * 60 * 1000),
+    overallEceVal: eceVal,
+    isDrifting: drift.isDrifting,
+    marketRegime: marketIntel.regime ?? "",
+    ar,
+  }), [decisionScore, strategicSynthesis, thesisOutcomes, eceVal, ar]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const marketContext = assets
     .slice(0, 10)
     .map((a) => `${a.symbol}: ${a.price} (${a.changePct >= 0 ? "+" : ""}${a.changePct.toFixed(2)}%)`)
@@ -274,6 +288,8 @@ function GenesisPage() {
         decisionScore.calibrationPressure !== 0
           ? `Calibration pressure: ${decisionScore.calibrationPressure > 0 ? "+" : ""}${decisionScore.calibrationPressure} pts (${decisionScore.score}${decisionScore.trustProfile.hasOvershootSignal ? ", overshoot detected" : ""})`
           : "",
+        // Trust & strategy context — Phase-25 trust state + Phase-26 strategy posture
+        trustStrategy.hasSignificantSignal ? trustStrategy.contextString : "",
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
@@ -906,7 +922,7 @@ function GenesisPage() {
 
       {/* ─── Strategic Bias — Phase 22 ──────────────────────────────────── */}
       {(strategicSynthesis.bias !== "neutral" || strategicSynthesis.hasConflict) && (
-        <StrategicBiasPanel synthesis={strategicSynthesis} ar={ar} />
+        <StrategicBiasPanel synthesis={strategicSynthesis} ar={ar} strategyPosture={trustStrategy.strategyPosture} postureLabel={trustStrategy.postureForUI} />
       )}
 
       {/* ─── Proactive Research Signals — Phase 21 ──────────────────────── */}
@@ -1153,14 +1169,24 @@ const BIAS_LABEL_AR: Record<StrategicBias, string> = {
   uncertain:     "غير محدد",
 };
 
-function StrategicBiasPanel({ synthesis, ar }: { synthesis: StrategicSynthesis; ar: boolean }) {
+function StrategicBiasPanel({
+  synthesis,
+  ar,
+  strategyPosture,
+  postureLabel,
+}: {
+  synthesis: StrategicSynthesis;
+  ar: boolean;
+  strategyPosture?: { posture: StrategyPosture; postureReason: string; suitabilityNote: string } | null;
+  postureLabel?: string;
+}) {
   const s = BIAS_STYLE[synthesis.bias];
   const label = ar ? BIAS_LABEL_AR[synthesis.bias] : synthesis.bias;
   const hasDrivers = synthesis.opportunityDrivers.length > 0 || synthesis.riskDrivers.length > 0;
 
   return (
     <div className={cn("rounded-xl border px-4 py-3 space-y-2", s.border, s.bg)}>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <span className={cn("h-2 w-2 rounded-full shrink-0", s.dot)} />
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
           {ar ? "التحيّز الاستراتيجي" : "Strategic Bias"}
@@ -1168,6 +1194,11 @@ function StrategicBiasPanel({ synthesis, ar }: { synthesis: StrategicSynthesis; 
         <span className={cn("ms-1 rounded-md border px-2 py-0.5 text-[10px] font-bold", s.border, s.text)}>
           {label}
         </span>
+        {postureLabel && (
+          <span className="rounded-md border border-primary/30 bg-primary/8 px-2 py-0.5 text-[9px] font-semibold text-primary/70">
+            {postureLabel}
+          </span>
+        )}
         <span className="ms-auto text-[9px] text-muted-foreground/50 italic">
           {ar ? "استشاري فقط" : "Advisory only"}
         </span>
@@ -1196,6 +1227,13 @@ function StrategicBiasPanel({ synthesis, ar }: { synthesis: StrategicSynthesis; 
         <div className="flex items-start gap-1.5 text-[10px] text-warning/70 italic">
           <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
           <span>{synthesis.conflictNote}</span>
+        </div>
+      )}
+
+      {strategyPosture && strategyPosture.posture !== "unclassified" && strategyPosture.suitabilityNote && (
+        <div className="flex items-start gap-1.5 text-[10px] text-muted-foreground/70 border-t border-border/30 pt-1.5">
+          <Compass className="h-3 w-3 mt-0.5 shrink-0 text-primary/40" />
+          <span>{strategyPosture.suitabilityNote}</span>
         </div>
       )}
     </div>
