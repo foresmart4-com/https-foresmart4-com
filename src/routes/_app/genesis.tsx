@@ -40,6 +40,7 @@ import { evaluateReply, scoreToQuality, type MetaReasoningResult } from "@/servi
 import { coordinateIntelligence, type CoordinationResult } from "@/services/intelligence/coordinatorEngine";
 import { computeProactiveResearch, type ResearchCandidate } from "@/services/research/proactiveEngine";
 import { computeStrategicSynthesis, type StrategicSynthesis, type StrategicBias } from "@/services/intelligence/strategicEngine";
+import { inferThesisOutcomes, type OutcomeSummary } from "@/services/learning/outcomeEngine";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -199,6 +200,15 @@ function GenesisPage() {
     ar,
   }), [researchCandidates, portfolioIntel, marketIntel, ar]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Thesis outcome assessment — deterministic, recomputed when proactive signals or watchlist changes.
+  // Conservative: only classifies clear outcomes; defaults to outcome_unclear. No persistence.
+  const thesisOutcomes = useMemo(() => inferThesisOutcomes(
+    thesisMemory.all(),
+    sessionIntelStore.read(),
+    researchCandidates,
+    ar,
+  ), [researchCandidates, ar]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const marketContext = assets
     .slice(0, 10)
     .map((a) => `${a.symbol}: ${a.price} (${a.changePct >= 0 ? "+" : ""}${a.changePct.toFixed(2)}%)`)
@@ -235,6 +245,10 @@ function GenesisPage() {
         `Confidence modifier: ${confModifier.toFixed(2)}x (${confModifier >= 1 ? "above" : "below"} baseline)`,
         // Strategic synthesis — bias + opportunity/risk framing + conflict note
         strategicSynthesis.decisionContext,
+        // Outcome pressure note — conservative adjustment from prior thesis pattern
+        thesisOutcomes.confidencePressure !== 0
+          ? `Outcome pressure: ${thesisOutcomes.confidencePressure > 0 ? "+" : ""}${thesisOutcomes.confidencePressure} pts from thesis pattern (${thesisOutcomes.confirmed} confirmed, ${thesisOutcomes.weakened} weakened, ${thesisOutcomes.invalidated} invalidated)`
+          : "",
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
@@ -253,7 +267,11 @@ function GenesisPage() {
       const PRIMARY_ASSET_RE = /\b(BTC|ETH|XAU|GOLD|OIL|WTI|SPX|SPY|QQQ|TASI|2222|SABIC|AAPL|TSLA|NVDA|MSFT|AMZN|META|ARAMCO|EURUSD|USDJPY|GBPUSD)\b/i;
       const assetMatch = PRIMARY_ASSET_RE.exec(trimmed);
       const primaryAssetHint = assetMatch ? assetMatch[0].toUpperCase() : undefined;
-      const thesisCtx = thesisMemory.buildEvolutionContext(3, primaryAssetHint);
+      const thesisCtx = thesisMemory.buildEvolutionContextWithOutcomes(
+        3,
+        primaryAssetHint,
+        thesisOutcomes.contextString,
+      );
 
       // Signal history context — compact win-rate and dominant regime from learning layer.
       const sigMem = getMemory();
@@ -670,27 +688,46 @@ function GenesisPage() {
               </div>
             )}
 
-            {/* Saved theses */}
+            {/* Saved theses + outcome summary */}
             {thesisCount > 0 && (
               <div>
-                <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  {ar ? `الأطروحات المحفوظة (${thesisCount})` : `Saved theses (${thesisCount})`}
+                <div className="mb-1.5 flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  <span>{ar ? `الأطروحات المحفوظة (${thesisCount})` : `Saved theses (${thesisCount})`}</span>
+                  {thesisOutcomes.hasActionableOutcome && (
+                    <span className="normal-case tracking-normal text-[9px] font-normal flex items-center gap-1">
+                      {thesisOutcomes.confirmed > 0 && (
+                        <span className="text-success">✓{thesisOutcomes.confirmed}</span>
+                      )}
+                      {thesisOutcomes.weakened > 0 && (
+                        <span className="text-warning">⚠{thesisOutcomes.weakened}</span>
+                      )}
+                      {thesisOutcomes.invalidated > 0 && (
+                        <span className="text-destructive">✗{thesisOutcomes.invalidated}</span>
+                      )}
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {thesisMemory.getRecent(6).map((t) => (
-                    <span
-                      key={t.id}
-                      title={t.thesis}
-                      className={cn(
-                        "rounded-md border px-2 py-0.5 text-xs font-mono cursor-default",
-                        t.direction === "bullish" ? "border-success/40 bg-success/10 text-success" :
-                        t.direction === "bearish" ? "border-destructive/40 bg-destructive/10 text-destructive" :
-                        "border-border/60 bg-muted/40 text-muted-foreground",
-                      )}
-                    >
-                      {t.asset} {t.direction === "bullish" ? "↑" : t.direction === "bearish" ? "↓" : "→"} {t.confidence}%
-                    </span>
-                  ))}
+                  {thesisMemory.getRecent(6).map((t) => {
+                    const outcome = thesisOutcomes.assessments.find(a => a.thesisId === t.id);
+                    return (
+                      <span
+                        key={t.id}
+                        title={`${t.thesis}${outcome ? ` [${outcome.label}]` : ""}`}
+                        className={cn(
+                          "rounded-md border px-2 py-0.5 text-xs font-mono cursor-default",
+                          t.direction === "bullish" ? "border-success/40 bg-success/10 text-success" :
+                          t.direction === "bearish" ? "border-destructive/40 bg-destructive/10 text-destructive" :
+                          "border-border/60 bg-muted/40 text-muted-foreground",
+                        )}
+                      >
+                        {t.asset} {t.direction === "bullish" ? "↑" : t.direction === "bearish" ? "↓" : "→"} {t.confidence}%
+                        {outcome?.label === "thesis_confirmed" && <span className="ms-1 text-success/70">✓</span>}
+                        {outcome?.label === "thesis_weakened" && <span className="ms-1 text-warning/70">⚠</span>}
+                        {outcome?.label === "thesis_invalidated" && <span className="ms-1 text-destructive/70">✗</span>}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             )}

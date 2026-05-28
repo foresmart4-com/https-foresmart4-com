@@ -176,4 +176,15 @@ export const thesisMemory = {
 
     return parts.join("\n");
   },
+
+  /**
+   * Appends an outcome context string to the evolution context when outcomes
+   * have been externally computed by outcomeEngine.
+   * Outcome context is always fresh — never stale auto-resolved values.
+   */
+  buildEvolutionContextWithOutcomes(n: number, assetHint: string | undefined, outcomeContext: string): string {
+    const base = this.buildEvolutionContext(n, assetHint);
+    if (!outcomeContext) return base;
+    return base ? `${base}\n${outcomeContext}` : outcomeContext;
+  },
 };

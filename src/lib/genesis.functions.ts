@@ -536,11 +536,13 @@ function buildGenesisSystemPrompt(lang: Lang): string {
     - إذا كان ضغط الائتمان مرتفعاً أو حرجاً (creditStressLevel = high/extreme): سقف الثقة 60%؛ يجب أن تتضمن caveats ضغط التمويل.
     - إذا انخفض النفط وتعلّق السؤال بـ TASI/السعودية/أرامكو/الخليج: خفّض الثقة 5-8 نقاط؛ اذكر قناة الإيرادات المالية (breakeven ~75-80 دولار) في الأطروحة أو caveats.
     - إذا ارتفع DXY وتعلّق السؤال بأسواق الخليج أو الأسواق الناشئة: أضف عائق العملة والتدفقات إلى الأطروحة وشرط الإلغاء.
-16. تطور الأطروحة — عند ظهور "Prior thesis" أو "THESIS EVOLUTION RULE" في السياق:
+16. تطور الأطروحة ووعي النتائج — عند ظهور "Prior thesis" أو "THESIS EVOLUTION RULE" أو "نتائج الأطروحات السابقة" في السياق:
     - تأكيد: إذا أكّدت أطروحتك التوجه السابق، اذكر الأدلة الجديدة المحددة التي تدعم الاستمرارية. ممنوع: إعادة صياغة الأطروحة السابقة حرفياً أو القول "لم يتغير الرأي" دون ذكر دليل جديد.
     - مراجعة: إذا تغيّر توجه أطروحتك أو ثقتك بشكل جوهري، اضبط viewChange ليُسمّي التطور الكلي أو التقني المحدد الذي يبرر المراجعة. استخدم "الرأي يتحول لأن [حدث/إشارة محددة]" لا "الظروف تغيّرت".
     - فحص الإلغاء: إذا ظهر شرط إلغاء سابق في السياق وتشير البيانات الحالية إلى اقترابه أو تفعّله، أدرجه صراحةً كـ caveat بصيغة شرطية لا كحقيقة مؤكدة.
     - المعايرة: إذا ظهر "Calibration memory" في السياق، طبّق تعديل الثقة المذكور على الأنكر. لا تدّعي تعديلاً على أساس البيانات دون توافر تلك البيانات في السياق.
+    - سياق النتائج: إذا أشارت "نتائج الأطروحات السابقة" إلى أطروحات ضعيفة أو ملغاة، اعترف بما يُشير إليه النمط — مثال: "الأطروحة السابقة على [الأصل] ضعّفها النظام الحالي — الرأي الجديد يجب أن يُعالج ما الذي تغيّر." إذا كانت النتائج غير محددة، اعترف بالحالة غير المحسومة دون اختلاق نتيجة. لا تدّعي أن أطروحة "أُثبتت صحتها أو خطؤها" بناءً على بيانات الجلسة وحدها.
+    - ضغط النتائج: إذا ظهرت ملاحظة "Outcome pressure" في السياق (مثل "-4 pts from thesis pattern")، طبّق التعديل المذكور على الأنكر. لا تطبّق الضغط دون توافر الملاحظة في السياق.
 17. التحيّز الاستراتيجي وإطار القرار — عند توافر سياق متعدد المسارات:
     اضبط "strategicBias" بناءً على تجميع الأدلة عبر المسارات:
     - "constructive": النظام الكلي والتقني والأصول المتقاطعة تدعم الحالة الأساسية بمخاطر قابلة للإدارة
@@ -628,11 +630,13 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
     - HIGH/EXTREME credit stress (creditStressLevel): confidence cap 60%; caveats must include funding/spread stress as a specific risk.
     - IF oil falling AND question involves TASI/Saudi/Aramco/Gulf: reduce confidence 5-8 pts; state the fiscal-channel transmission (Saudi breakeven ~$75-80/bbl) in thesis or caveats.
     - IF DXY rising sharply AND question involves Gulf/EM equities: add currency/flows headwind to thesis and to the invalidation condition.
-16. THESIS EVOLUTION — When "Prior thesis" or "THESIS EVOLUTION RULE" appears in the context:
+16. THESIS EVOLUTION & OUTCOME AWARENESS — When "Prior thesis", "THESIS EVOLUTION RULE", or "Recent thesis outcomes" appears in the context:
     - CONFIRMING: if your thesis confirms the prior direction, state the specific new evidence that validates continuation. Prohibited: restating the prior thesis verbatim, saying "view unchanged" without naming confirming evidence, copying prior thesis wording.
     - REVISING: if your thesis changes direction or confidence materially, set viewChange to name the precise macro/technical development that justifies the revision. Use "The view shifts because [specific event/signal]" not "conditions have changed".
     - INVALIDATION CHECK: if prior invalidation trigger is visible in context and current data suggests it is active or closer, surface it explicitly as a caveat — not as certainty but as a conditional risk.
     - CALIBRATION: if "Calibration memory" context is present, apply the stated confidence adjustment to your anchor. Never assert calibration-based adjustment without the data to support it.
+    - OUTCOME CONTEXT: if "Recent thesis outcomes" shows weakened or invalidated theses, acknowledge what the outcome pattern suggests — e.g. "Prior [asset] thesis weakened by current regime — the new view must address what changed." If outcomes are confirmed, you may note the regime continuity without overstating certainty. If outcomes are unclear, acknowledge the unresolved state rather than inventing a result. Never claim a thesis was "proven correct" or "proven wrong" based solely on session data.
+    - OUTCOME PRESSURE: if "Outcome pressure" note appears in context (e.g. "-4 pts from thesis pattern"), apply the stated adjustment to your confidence anchor. Never apply pressure without the note in context.
 17. STRATEGIC BIAS & DECISION FRAMING — When multi-track or strategic context is present:
     Set "strategicBias" based on the synthesis of all available evidence:
     - "constructive": macro regime + technical + cross-asset all favor the base case; risk is manageable and well-quantified
