@@ -1182,43 +1182,42 @@ export const askGenesis = createServerFn({ method: "POST" })
       return { reply: null, error: "rate_limited" as const, engine: "heuristic" as const };
     }
 
-    // ── Multi-agent parallel path (detailed mode) — Phase 11: live market + 5 specialist agents ──
-    if (data.responseStyle === "detailed") {
-      // Fetch live market state in parallel with the specialist tracks (6s timeout)
-      const [liveSettled, settledA, settledB, settledC, settledD, settledE] = await Promise.allSettled([
-        withTimeout(buildLiveMarketState(), 6000),           // Live Market Intelligence
-        runTrackA(lang, data.question, data.marketContext, null),  // Macro Analyst (live injected after)
-        runTrackB(lang, data.question, data.marketContext, null),  // Technical Analyst
-        runTrackC(lang, data.question, data.marketContext, null),  // Cross-Asset Strategist
-        runTrackD(lang, data.question, data.marketContext, null),  // Risk Officer
-        runTrackE(lang, data.question, data.marketContext, null),  // Devil's Advocate
-      ]);
+    // ── Multi-agent parallel path — Phase 11: live market + 5 specialist agents ──
+    // Always runs unconditionally: Phase-12 arbitration fields require specialist track outputs.
+    // Fetch live market state in parallel with the specialist tracks (6s timeout)
+    const [liveSettled, settledA, settledB, settledC, settledD, settledE] = await Promise.allSettled([
+      withTimeout(buildLiveMarketState(), 6000),           // Live Market Intelligence
+      runTrackA(lang, data.question, data.marketContext, null),  // Macro Analyst (live injected after)
+      runTrackB(lang, data.question, data.marketContext, null),  // Technical Analyst
+      runTrackC(lang, data.question, data.marketContext, null),  // Cross-Asset Strategist
+      runTrackD(lang, data.question, data.marketContext, null),  // Risk Officer
+      runTrackE(lang, data.question, data.marketContext, null),  // Devil's Advocate
+    ]);
 
-      const live = (liveSettled.status === "fulfilled" ? liveSettled.value : null) ?? null;
-      const trackA = settledA.status === "fulfilled" ? settledA.value : null;
-      const trackB = settledB.status === "fulfilled" ? settledB.value : null;
-      const trackC = settledC.status === "fulfilled" ? settledC.value : null;
-      const trackD = settledD.status === "fulfilled" ? settledD.value : null;
-      const trackE = settledE.status === "fulfilled" ? settledE.value : null;
-      const tracksUsed = [trackA, trackB, trackC, trackD, trackE].filter(Boolean).length;
+    const live = (liveSettled.status === "fulfilled" ? liveSettled.value : null) ?? null;
+    const trackA = settledA.status === "fulfilled" ? settledA.value : null;
+    const trackB = settledB.status === "fulfilled" ? settledB.value : null;
+    const trackC = settledC.status === "fulfilled" ? settledC.value : null;
+    const trackD = settledD.status === "fulfilled" ? settledD.value : null;
+    const trackE = settledE.status === "fulfilled" ? settledE.value : null;
+    const tracksUsed = [trackA, trackB, trackC, trackD, trackE].filter(Boolean).length;
 
-      // Pure consensus engine — no AI call, runs on track outputs only.
-      const consensus = computeConsensus(trackA, trackB, trackC, trackD, trackE);
+    // Pure consensus engine — no AI call, runs on track outputs only.
+    const consensus = computeConsensus(trackA, trackB, trackC, trackD, trackE);
 
-      // Attempt fusion when at least one track succeeded.
-      if (tracksUsed >= 1) {
-        const fused = await runFusion(lang, data.question, data.marketContext, trackA, trackB, trackC, trackD, trackE, consensus, live);
-        if (fused?.headline) {
-          // Stamp marketStateQuality from live state (authoritative — not AI-guessed)
-          // Always set so the header badge is visible for every AI reply.
-          fused.marketStateQuality = live?.marketStateQuality ?? fused.marketStateQuality ?? "inferred";
-          return { reply: fused, error: null as null, engine: "ai" as const, tracksUsed, provider };
-        }
+    // Attempt fusion when at least one track succeeded.
+    if (tracksUsed >= 1) {
+      const fused = await runFusion(lang, data.question, data.marketContext, trackA, trackB, trackC, trackD, trackE, consensus, live);
+      if (fused?.headline) {
+        // Stamp marketStateQuality from live state (authoritative — not AI-guessed)
+        // Always set so the header badge is visible for every AI reply.
+        fused.marketStateQuality = live?.marketStateQuality ?? fused.marketStateQuality ?? "inferred";
+        return { reply: fused, error: null as null, engine: "ai" as const, tracksUsed, provider };
       }
-      // Graceful fallback to single-call if all tracks failed or fusion failed.
     }
+    // Graceful fallback to single-call if all tracks failed or fusion failed.
 
-    // ── Standard single-call path (brief mode or detailed fallback) ───────
+    // ── Standard single-call path (fallback: all tracks timed out or fusion failed) ───────
     const user = wrapUserContext(lang, [
       `User question: ${data.question}`,
       data.marketContext ? `\nLive market context:\n${data.marketContext}` : "",
