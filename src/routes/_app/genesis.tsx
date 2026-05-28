@@ -56,6 +56,8 @@ import { computeApprovalWorkflow, type ApprovalWorkflowResult, type WorkflowStat
 import { computeOutcomeAttribution, type OutcomeAttributionResult } from "@/services/learning/outcomeAttribution";
 import { computeAdaptiveLearningGovernance, type AdaptiveLearningGovernanceResult } from "@/services/learning/adaptiveLearningGovernance";
 import { computeStrategicApproval, type StrategicApprovalResult, type StrategicApprovalLabel } from "@/services/intelligence/strategicApproval";
+import { computeMarketOrchestrator, type MarketOrchestratorResult, type MarketOrchestratorState } from "@/services/intelligence/marketOrchestrator";
+import { computeCrossMarketRegime, type CrossMarketRegimeResult, type CrossMarketRegimeLabel } from "@/services/intelligence/crossMarketRegime";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -168,6 +170,8 @@ function GenesisPage() {
   const [attributionResult, setAttributionResult] = useState<OutcomeAttributionResult | null>(null); // Phase-37
   const [learningGovResult, setLearningGovResult] = useState<AdaptiveLearningGovernanceResult | null>(null); // Phase-38
   const [strategicApprovalResult, setStrategicApprovalResult] = useState<StrategicApprovalResult | null>(null); // Phase-36
+  const [marketOrchestratorResult, setMarketOrchestratorResult] = useState<MarketOrchestratorResult | null>(null); // Phase-40
+  const [crossMarketRegimeResult, setCrossMarketRegimeResult] = useState<CrossMarketRegimeResult | null>(null); // Phase-41
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
   const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -429,6 +433,53 @@ function GenesisPage() {
       });
       setStrategicApprovalResult(strategicApproval);
 
+      // Phase-40: Market OS Orchestration — deterministic, no execution
+      const marketOrchestrator = computeMarketOrchestrator({
+        marketRegime: marketIntel.regime,
+        regimeConf: marketIntel.regimeConf,
+        riskOnScore: marketIntel.riskOnScore,
+        stressLevel: marketIntel.stressLevel,
+        stressScore: marketIntel.stressScore,
+        rotationSignal: marketIntel.rotation.signal,
+        regimeTransition: marketIntel.regimeTransition,
+        divergenceDetected: marketIntel.divergence.detected,
+        breadthBullPct: marketIntel.breadth.bullPct,
+        strategicBias: strategicSynthesis.bias,
+        hasConflict: strategicSynthesis.hasConflict,
+        debateBalance: debate.debateBalance,
+        hasMaterialDisagreement: debate.hasMaterialDisagreement,
+        firewallState: firewallResult.state,
+        portfolioRiskLabel: portfolioRisk.riskLabel,
+        macroSignificance: macroEvent.significance,
+        trustState: trustStrategy.trustState.state,
+        ar,
+      });
+      setMarketOrchestratorResult(marketOrchestrator);
+
+      // Phase-41: Cross-Market Regime Intelligence — deterministic, no execution
+      const crossMarket = computeCrossMarketRegime({
+        marketRegime: marketIntel.regime,
+        regimeConf: marketIntel.regimeConf,
+        riskOnScore: marketIntel.riskOnScore,
+        stressLevel: marketIntel.stressLevel,
+        rotationSignal: marketIntel.rotation.signal,
+        regimeTransition: marketIntel.regimeTransition,
+        divergenceDetected: marketIntel.divergence.detected,
+        divergenceDescription: marketIntel.divergence.description,
+        breadthBullPct: marketIntel.breadth.bullPct,
+        leadingCategories: marketIntel.rotation.leading,
+        laggingCategories: marketIntel.rotation.lagging,
+        strategicBias: strategicSynthesis.bias,
+        hasConflict: strategicSynthesis.hasConflict,
+        debateBalance: debate.debateBalance,
+        hasMaterialDisagreement: debate.hasMaterialDisagreement,
+        macroSignificance: macroEvent.significance,
+        macroEventType: macroEvent.primaryEvent,
+        portfolioRiskLabel: portfolioRisk.riskLabel,
+        ar,
+      });
+      setCrossMarketRegimeResult(crossMarket);
+
       const decisionCtx = [
         `System calibration: ECE=${eceVal.toFixed(3)}${drift.isDrifting ? " ⚠ performance drift detected" : ""}`,
         topStrategy ? `Top strategy: ${topStrategy.strategy} win-rate ${(topStrategy.winRate * 100).toFixed(0)}% (${topStrategy.bestRegime ?? "any"} regime)` : "",
@@ -470,6 +521,10 @@ function GenesisPage() {
         learningGov.contextString,
         // Strategic approval — Phase-36: human-governed significance level
         strategicApproval.contextString,
+        // Market OS — Phase-40: market orchestration state
+        marketOrchestrator.contextString,
+        // Cross-market regime — Phase-41: cross-segment alignment
+        crossMarket.contextString,
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
@@ -1206,6 +1261,18 @@ function GenesisPage() {
         <StrategicApprovalStatusLine result={strategicApprovalResult} ar={ar} />
       )}
 
+      {/* ─── Market OS + Cross-Market Regime — Phase 40+41 ──────────────── */}
+      {(marketOrchestratorResult || crossMarketRegimeResult) && (
+        marketOrchestratorResult?.state !== "fragmented_market" ||
+        (crossMarketRegimeResult?.label !== "weak_signal_regime" && crossMarketRegimeResult?.label !== "partially_aligned")
+      ) && (
+        <MarketOSStatusLine
+          orchestrator={marketOrchestratorResult}
+          crossMarket={crossMarketRegimeResult}
+          ar={ar}
+        />
+      )}
+
       {/* ─── Proactive Research Signals — Phase 21 ──────────────────────── */}
       {researchCandidates.length > 0 && (
         <ProactiveResearchPanel
@@ -1594,6 +1661,75 @@ function StrategicApprovalStatusLine({ result, ar }: { result: StrategicApproval
           <span className={cn("font-semibold", s.text)}>
             {ar ? "المراجعة البشرية مناسبة" : "human review appropriate"}
           </span>
+        </>
+      )}
+      <span className="ms-auto text-muted-foreground/40 italic text-[9px]">
+        {ar ? "استشاري" : "advisory"}
+      </span>
+    </div>
+  );
+}
+
+// ─── Phase 40+41: Market OS + Cross-Market Status Line ───────────────────────
+
+const ORCHESTRATOR_STYLE: Record<MarketOrchestratorState, { border: string; bg: string; text: string; dot: string }> = {
+  coordinated_market: { border: "border-success/40",     bg: "bg-success/5",   text: "text-success",            dot: "bg-success" },
+  regime_rotation:    { border: "border-primary/50",     bg: "bg-primary/8",   text: "text-primary",            dot: "bg-primary" },
+  transition_market:  { border: "border-border/50",      bg: "bg-muted/8",     text: "text-foreground/70",      dot: "bg-muted-foreground/60" },
+  unstable_market:    { border: "border-warning/50",     bg: "bg-warning/5",   text: "text-warning",            dot: "bg-warning" },
+  fragmented_market:  { border: "border-border/30",      bg: "bg-muted/5",     text: "text-muted-foreground/60",dot: "bg-muted-foreground/30" },
+};
+
+const ORCHESTRATOR_LABEL_AR: Record<MarketOrchestratorState, string> = {
+  coordinated_market: "أسواق منسّقة",
+  regime_rotation:    "دوران النظام",
+  transition_market:  "أسواق في تحوّل",
+  unstable_market:    "أسواق غير مستقرة",
+  fragmented_market:  "أسواق مفككة",
+};
+
+const CROSS_MARKET_LABEL_AR: Record<CrossMarketRegimeLabel, string> = {
+  aligned_regime:    "نظام متوافق",
+  partially_aligned: "توافق جزئي",
+  conflicting_regime:"نظام متضارب",
+  weak_signal_regime:"إشارة ضعيفة",
+  regime_divergence: "تباعد النظام",
+};
+
+function MarketOSStatusLine({
+  orchestrator,
+  crossMarket,
+  ar,
+}: {
+  orchestrator: MarketOrchestratorResult | null;
+  crossMarket: CrossMarketRegimeResult | null;
+  ar: boolean;
+}) {
+  const state = orchestrator?.state ?? "fragmented_market";
+  const s = ORCHESTRATOR_STYLE[state];
+  const orchLabel = ar ? ORCHESTRATOR_LABEL_AR[state] : state.replace(/_/g, " ");
+  const crossLabel = crossMarket
+    ? ar ? CROSS_MARKET_LABEL_AR[crossMarket.label] : crossMarket.label.replace(/_/g, " ")
+    : null;
+
+  return (
+    <div className={cn("mb-2 flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px]", s.border, s.bg)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)} />
+      <span className={cn("font-bold uppercase tracking-wide", s.text)}>
+        {ar ? "الأسواق" : "Market OS"} — {orchLabel}
+      </span>
+      {crossLabel && crossMarket?.label !== "weak_signal_regime" && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/70 truncate">
+            {ar ? "النظام العابر: " : "cross-market: "}{crossLabel}
+          </span>
+        </>
+      )}
+      {orchestrator?.pressureSummary && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/60 italic truncate">{orchestrator.pressureSummary}</span>
         </>
       )}
       <span className="ms-auto text-muted-foreground/40 italic text-[9px]">
