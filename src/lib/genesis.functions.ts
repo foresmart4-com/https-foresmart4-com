@@ -702,7 +702,10 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
   const knowledgeGuidance = ar
     ? `عند ظهور "Framework context:" في سياق المستخدم: أشر إلى الإطار بلغة محوطة: "كثيراً ما يُشير الأدب المؤسسي"، "الإطار يقترح"، "متسق اقتصادياً مع". ممنوع: "يُثبت"، "مؤكد تاريخياً"، "يضمن". البيانات الحية تتقدم دائماً على الأطر النظرية.`
     : `When "Framework context:" appears in user context: reference it using hedged language — "institutional literature often notes", "framework suggests", "economically consistent with", "historically associated with". FORBIDDEN: "proves", "historically certain", "guarantees". Current live data always takes precedence over theoretical frameworks. Never cite a framework as live market evidence.`;
-  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n\n${base}`;
+  const paperGuidance = ar
+    ? `عند ظهور "أطروحات ورقية" أو "Paper theses" في السياق: استخدم لغة المحاكاة: "ملاحظة ورقية"، "تطور الأطروحة المحاكاة"، "مؤشر محاكاتي". ممنوع: "صفقة مربحة"، "استراتيجية ناجحة"، "ربح مضمون"، "حافة مُثبتة". جميع الأطروحات الورقية تعليمية وبدون تنفيذ.`
+    : `When "Paper theses:" appears in context: use simulation language — "paper observation", "simulated thesis development", "simulation indicates". FORBIDDEN: "profitable trade", "winning strategy", "guaranteed gain", "proven edge". All paper theses are educational and simulation-only — never imply execution or real returns.`;
+  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n\n${base}`;
 }
 
 // ─── Institutional Reasoning Tracks ───────────────────────────────────────

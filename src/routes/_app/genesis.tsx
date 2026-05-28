@@ -46,6 +46,7 @@ import { overallStats, ece as eceWindow } from "@/services/learning/selfLearning
 import { computeTrustAndStrategy, type TrustStrategyResult, type StrategyPosture } from "@/services/intelligence/trustStrategyEngine";
 import { computePortfolioRisk, type PortfolioRiskResult, type PortfolioRiskLabel } from "@/services/portfolio/portfolioRiskEngine";
 import { retrieveKnowledge } from "@/services/knowledge/knowledgeRetrieval";
+import { computePaperSynthesis, type PaperSynthesis, type PaperThesisState } from "@/services/paper/paperThesisEngine";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -253,6 +254,15 @@ function GenesisPage() {
     ar,
   ), [watchlistItems, portfolioIntel, researchCandidates, ar]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Paper thesis simulation — Phase-29 lifecycle states from existing Phase-23 assessments.
+  // Uses thesisMemory as bounded paper memory; no new storage.
+  const paperSynthesis = useMemo(() => computePaperSynthesis(
+    thesisMemory.all(),
+    thesisOutcomes.assessments,
+    marketIntel.regime ?? "",
+    ar,
+  ), [thesisOutcomes, marketIntel, ar]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const marketContext = assets
     .slice(0, 10)
     .map((a) => `${a.symbol}: ${a.price} (${a.changePct >= 0 ? "+" : ""}${a.changePct.toFixed(2)}%)`)
@@ -319,10 +329,12 @@ function GenesisPage() {
       const PRIMARY_ASSET_RE = /\b(BTC|ETH|XAU|GOLD|OIL|WTI|SPX|SPY|QQQ|TASI|2222|SABIC|AAPL|TSLA|NVDA|MSFT|AMZN|META|ARAMCO|EURUSD|USDJPY|GBPUSD)\b/i;
       const assetMatch = PRIMARY_ASSET_RE.exec(trimmed);
       const primaryAssetHint = assetMatch ? assetMatch[0].toUpperCase() : undefined;
+      // Merge outcome context + paper simulation summary into thesis layer
+      const paperCtx = paperSynthesis.hasMeaningfulEvolution ? paperSynthesis.evolutionSummary : "";
       const thesisCtx = thesisMemory.buildEvolutionContextWithOutcomes(
         3,
         primaryAssetHint,
-        thesisOutcomes.contextString,
+        [thesisOutcomes.contextString, paperCtx].filter(Boolean).join("\n"),
       );
 
       // Signal history context — compact win-rate and dominant regime from learning layer.
@@ -798,6 +810,42 @@ function GenesisPage() {
                     );
                   })}
                 </div>
+              </div>
+            )}
+
+            {/* Paper Thesis Evolution — Phase 29 */}
+            {paperSynthesis.hasMeaningfulEvolution && (
+              <div>
+                <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5">
+                  <FlaskConical className="h-3 w-3" />
+                  {ar ? "تطور الأطروحة الورقية" : "Thesis Evolution"}
+                </div>
+                <div className="space-y-1">
+                  {paperSynthesis.activePapers.filter(p => p.paperState !== "paper_active").slice(0, 4).map((p) => (
+                    <div key={p.id} className="flex items-start gap-2 text-[10px]">
+                      <span className={cn("shrink-0 font-bold text-[11px]",
+                        p.paperState === "paper_strengthening" ? "text-success" :
+                        p.paperState === "paper_weakened" ? "text-warning" :
+                        p.paperState === "paper_invalidated" ? "text-destructive" :
+                        "text-muted-foreground",
+                      )}>
+                        {p.paperState === "paper_strengthening" ? "↑" :
+                         p.paperState === "paper_weakened" ? "⚠" :
+                         p.paperState === "paper_invalidated" ? "✗" : "·"}
+                      </span>
+                      <div className="min-w-0">
+                        <span className="font-mono font-semibold text-foreground/80">{p.asset}</span>
+                        <span className="ms-1 text-muted-foreground/60">
+                          {p.direction === "bullish" ? "↑" : p.direction === "bearish" ? "↓" : "→"}
+                        </span>
+                        <span className="ms-1 text-muted-foreground/60 truncate">{p.stateNote.slice(0, 55)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-1 text-[9px] text-muted-foreground/50 italic">
+                  {ar ? "محاكاة تعليمية فقط — لا تنفيذ" : "Simulation only — no execution"}
+                </p>
               </div>
             )}
 
