@@ -176,3 +176,44 @@ export const aiMarketInsights = createServerFn({ method: "POST" })
     });
     return callAIGateway<MarketInsightsOutput>({ system: sys, user, jsonObject: true, maxTokens: 500, language: lang });
   });
+
+// ─── Phase 4: Brain Synthesis ──────────────────────────────────────────────
+// Accepts Genesis consensus output from the session intelligence bus and
+// produces a portfolio-level synthesis. Educational only — no execution.
+
+const BrainSynthesisInput = z.object({
+  language: z.enum(["ar", "en"]).default("en"),
+  regime: z.string().max(80).default(""),
+  dominantBias: z.enum(["bullish", "bearish", "neutral"]).default("neutral"),
+  consensusStrength: z.enum(["strong", "moderate", "weak", "conflicted"]).default("moderate"),
+  primaryRisk: z.string().max(300).default(""),
+  topThesis: z.string().max(300).default(""),
+  tracksUsed: z.number().int().min(0).max(6).default(0),
+});
+
+export interface BrainSynthesisOutput {
+  sectorRotation: string;    // capital flow narrative — where regime directs sector allocation
+  regimeSuggestion: string;  // regime-appropriate portfolio strategy adjustment
+  rebalancingNote: string;   // whether current regime warrants rebalancing consideration
+}
+
+export const aiBrainSynthesis = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => BrainSynthesisInput.parse(input))
+  .handler(async ({ data }) => {
+    const lang = resolveLang(data);
+    const schema = `{ "sectorRotation": string, "regimeSuggestion": string, "rebalancingNote": string }`;
+    const extra = lang === "ar"
+      ? `أنت محلل محافظ مؤسسي. ركّز على: (1) توزيع رأس المال عبر القطاعات بناءً على النظام السوقي، (2) الاستراتيجية المناسبة للمحفظة في هذا النظام، (3) هل يبرر النظام الحالي إعادة توازن؟ لا تقترح أوامر تداول محددة. كل حقل جملة واحدة إلى جملتين. تعليمي فقط.`
+      : `You are an institutional portfolio analyst. Focus on: (1) capital allocation direction across sectors based on the regime, (2) regime-appropriate portfolio strategy adjustment, (3) whether the current regime warrants rebalancing consideration. No specific trade execution suggestions. One to two sentences per field. Educational only.`;
+    const sys = buildLocaleSystemPrompt({ lang, surface: "portfolio_analyst", schema, extra });
+    const user = JSON.stringify({
+      regime: data.regime,
+      dominantBias: data.dominantBias,
+      consensusStrength: data.consensusStrength,
+      primaryRisk: data.primaryRisk,
+      topThesis: data.topThesis,
+      tracksUsed: data.tracksUsed,
+    });
+    return callAIGateway<BrainSynthesisOutput>({ system: sys, user, jsonObject: true, maxTokens: 400, language: lang });
+  });

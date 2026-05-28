@@ -15,6 +15,7 @@ export interface ThesisEntry {
   uncertainty: string | null;  // uncertainty note if low confidence
   invalidation: string | null; // condition that would invalidate the thesis
   catalyst: string | null;     // primary near-term catalyst to watch
+  regimeAtSave?: string;       // market regime label when thesis was generated
   outcome?: "correct" | "incorrect" | "mixed" | "pending"; // user-resolved outcome
   resolvedAt?: number;         // timestamp when outcome was recorded
 }

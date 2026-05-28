@@ -15,7 +15,7 @@ const MAX_EDGES = 150;
 
 export type NodeType =
   | "asset" | "thesis" | "catalyst" | "risk"
-  | "regime" | "scenario" | "portfolio_context"
+  | "regime" | "regime_transition" | "scenario" | "portfolio_context"
   | "research_report" | "outcome";
 
 export type EdgeType =
@@ -247,6 +247,32 @@ export const intelligenceGraph = {
       activeRisks:  g.nodes.filter((n) => n.type === "risk"   && ageWeight(n.ts) > STALE_THRESHOLD).length,
       hasContradictions: g.edges.some((e) => e.type === "contradicts"),
     };
+  },
+
+  /**
+   * Record a regime transition as a graph node pair.
+   * Safe to call on every genesis reply — deduplicates by label.
+   */
+  recordRegimeTransition(prevRegime: string, newRegime: string, confidence: number): void {
+    if (!prevRegime || !newRegime || prevRegime === newRegime) return;
+    const prevId = this.upsertNode({
+      type: "regime", label: prevRegime.slice(0, 40).replace(/_/g, " "),
+      content: prevRegime, confidence, regime: prevRegime,
+    });
+    const newId = this.upsertNode({
+      type: "regime", label: newRegime.slice(0, 40).replace(/_/g, " "),
+      content: newRegime, confidence, regime: newRegime,
+    });
+    const transLabel = `${prevRegime}→${newRegime}`.slice(0, 40);
+    const transId = this.upsertNode({
+      type: "regime_transition",
+      label: transLabel,
+      content: `Regime shifted from ${prevRegime} to ${newRegime}`,
+      confidence,
+      regime: newRegime,
+    });
+    this.addEdge(prevId, transId, "relates_to");
+    this.addEdge(transId, newId, "relates_to");
   },
 
   clear(): void {

@@ -55,6 +55,8 @@ interface Exchange {
   reply: GenesisReply;
   engine: "ai" | "heuristic";
   provider?: string;
+  tracksUsed?: number;
+  dominantBias?: "bullish" | "bearish" | "neutral";
   actionState: "pending" | "confirmed" | "dismissed" | "deferred" | null;
   feedback: "helpful" | "unhelpful" | null;
   comparisonPair: [string, string] | null;
@@ -233,7 +235,11 @@ function GenesisPage() {
       // Cross-surface session bus — prior regime from this session if fresh.
       const sessionBus = sessionIntelStore.read();
       const sessionBusCtx = sessionBus
-        ? `Session regime (cross-surface): ${sessionBus.regime} at ${sessionBus.confidence}% confidence`
+        ? [
+            `Session regime: ${sessionBus.regime} at ${sessionBus.confidence}% confidence`,
+            sessionBus.dominantBias ? `${sessionBus.dominantBias} bias` : "",
+            sessionBus.primaryRisk ? `risk: ${sessionBus.primaryRisk.slice(0, 60)}` : "",
+          ].filter(Boolean).join(", ")
         : "";
 
       // Scenario simulation context — question-aware keyword + regime matching.
@@ -287,7 +293,7 @@ function GenesisPage() {
       // Prune context with coordinator-adjusted weights (2800 chars max).
       const fullContext = pruneContext(coordResult.layers, 2800);
 
-      const res = await ask({ data: { question: trimmed, language: lang, marketContext: fullContext, responseStyle: p.responseStyle ?? "brief" } });
+      const res = await ask({ data: { question: trimmed, language: lang, marketContext: fullContext, responseStyle: p.responseStyle ?? "brief", eceScore: eceVal } });
 
       if (res.error === "rate_limited") {
         toast.error(ar ? "تم تجاوز الحد، حاول لاحقاً" : "Rate limit exceeded, try again shortly");
@@ -302,9 +308,25 @@ function GenesisPage() {
       // Track interaction
       memoryAgent.trackGenesisQuestion();
 
-      // Cross-surface session bus — write regime + confidence so other surfaces can read it.
+      // Phase 4: Cross-surface session bus — write full IntelligenceEvent (8 fields).
       if (res.reply.regime && res.reply.confidence > 0) {
-        sessionIntelStore.write({ regime: res.reply.regime, confidence: res.reply.confidence });
+        const prevBus = sessionIntelStore.read();
+        const prevRegime = prevBus?.regime ?? null;
+        sessionIntelStore.write({
+          regime: res.reply.regime,
+          confidence: res.reply.confidence,
+          primaryRisk: res.reply.trackViewRisk ?? null,
+          dominantBias: (res as { dominantBias?: "bullish" | "bearish" | "neutral" }).dominantBias ?? null,
+          topThesis: res.reply.thesis ?? null,
+          invalidationTrigger: res.reply.invalidation ?? null,
+          tracksUsed: (res as { tracksUsed?: number }).tracksUsed ?? 0,
+          msq: res.reply.marketStateQuality ?? "inferred",
+        });
+        // Record regime transition in intelligence graph when regime changes.
+        if (prevRegime && prevRegime !== res.reply.regime) {
+          intelligenceGraph.recordRegimeTransition(prevRegime, res.reply.regime, res.reply.confidence);
+          setGraphSummary(intelligenceGraph.summary());
+        }
       }
 
       // Adaptive preference: track which asset Genesis discussed so it surfaces in preferred assets.
@@ -340,6 +362,7 @@ function GenesisPage() {
           uncertainty: res.reply.uncertaintyWarning ?? null,
           invalidation: res.reply.invalidation ?? null,
           catalyst: res.reply.catalysts?.[0] ?? null,
+          regimeAtSave: res.reply.regime ?? undefined,
         });
         setThesisCount(thesisMemory.all().length);
       }
@@ -352,6 +375,8 @@ function GenesisPage() {
           reply: res.reply!,
           engine: res.engine,
           provider: (res as { provider?: string }).provider,
+          tracksUsed: (res as { tracksUsed?: number }).tracksUsed,
+          dominantBias: (res as { dominantBias?: "bullish" | "bearish" | "neutral" }).dominantBias,
           actionState: res.reply?.suggestedAction?.type && res.reply.suggestedAction.type !== "none" ? "pending" : null,
           feedback: null,
           comparisonPair: intent.comparisonPair,
@@ -912,7 +937,7 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
   onFeedback: (rating: "helpful" | "unhelpful") => void;
   comparisonPair: [string, string] | null;
 }) {
-  const { reply, engine, actionState } = exchange;
+  const { reply, engine, actionState, tracksUsed } = exchange;
   // ECE feedback: compress confidence toward reality when calibration error is high.
   // eceFactor ranges from 0.85 (ECE=0.3+) to 1.0 (perfectly calibrated).
   const eceFactor = eceVal > 0 ? Math.max(0.85, 1 - eceVal * 0.5) : 1;
@@ -989,6 +1014,19 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
                 {ar
                   ? reply.marketStateQuality === "live" ? "بيانات حية" : reply.marketStateQuality === "partial" ? "جزئي" : "مستنتج"
                   : reply.marketStateQuality}
+              </span>
+            )}
+            {tracksUsed != null && engine === "ai" && (
+              <span className={cn(
+                "flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold ring-1",
+                tracksUsed >= 5
+                  ? "bg-primary/10 text-primary ring-primary/25"
+                  : "bg-muted/40 text-muted-foreground ring-border",
+              )}>
+                <Brain className="h-2.5 w-2.5" />
+                {tracksUsed >= 5
+                  ? (ar ? `${tracksUsed} وكلاء` : `${tracksUsed} agents`)
+                  : (ar ? `سريع ${tracksUsed}×` : `Express ${tracksUsed}×`)}
               </span>
             )}
           </div>
@@ -1128,6 +1166,15 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
                   <div>
                     <span className="font-semibold text-primary/70">{ar ? "التموضع (E): " : "Positioning (E): "}</span>
                     <span className="text-foreground/80">{reply.trackViewPositioning}</span>
+                  </div>
+                </div>
+              )}
+              {reply.trackViewPortfolio && (
+                <div className="flex items-start gap-2 text-xs">
+                  <PieChart className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/50" />
+                  <div>
+                    <span className="font-semibold text-success/70">{ar ? "المحفظة (F): " : "Portfolio (F): "}</span>
+                    <span className="text-foreground/80">{reply.trackViewPortfolio}</span>
                   </div>
                 </div>
               )}

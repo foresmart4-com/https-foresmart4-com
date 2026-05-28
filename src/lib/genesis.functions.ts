@@ -79,6 +79,8 @@ export interface GenesisReply {
   trackViewPositioning?: string; // Track E: positioning analyst — 1-sentence view
   arbitrationReason?: string;    // Why base thesis wins over opposing case — 1-2 sentences
   disagreementMap?: string[];    // Track pairs with directional disagreement
+  // Phase 4: Portfolio Alignment (Track F)
+  trackViewPortfolio?: string;   // Track F: portfolio alignment — 1-sentence
 }
 
 const AskInput = z.object({
@@ -86,6 +88,8 @@ const AskInput = z.object({
   language: z.enum(["ar", "en"]).default("en"),
   marketContext: z.string().max(3000).default(""),
   responseStyle: z.enum(["brief", "detailed"]).default("brief"),
+  // Phase 4: ECE calibration score from client-side selfLearningEngine (0-1, default 0 = no history)
+  eceScore: z.number().min(0).max(1).default(0),
 });
 
 // Server-side per-user rate limit: 20 requests per 5 minutes (per Worker isolate).
@@ -296,6 +300,8 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
     trackViewPositioning: cleanStr(obj.trackViewPositioning),
     arbitrationReason: cleanStr(obj.arbitrationReason),
     disagreementMap: cleanStrArr(obj.disagreementMap),
+    // Phase 4: Portfolio Alignment (Track F)
+    trackViewPortfolio: cleanStr(obj.trackViewPortfolio),
   };
 }
 
@@ -434,6 +440,7 @@ const GENESIS_SCHEMA = `{
   "trackViewPositioning": "string — 1 sentence: Track E positioning analyst view on timing and near-term directional risk" (optional — set when Track E context is present),
   "arbitrationReason": "string — 1-2 sentences: WHY the base thesis wins over the opposing case — name the specific deciding factor, not just restate the thesis" (optional — set when multi-track fusion context is present),
   "disagreementMap": ["string — e.g. 'Track A (bullish macro) vs Track B (bearish technical)'"] (optional — one entry per track pair with directional conflict; only when 2+ tracks explicitly disagree),
+  "trackViewPortfolio": "string — 1 sentence: Track F portfolio alignment view — whether portfolio is aligned, divergent, or mixed vs macro thesis; include concentration risk signal" (optional — set when Track F portfolio context appears),
   "scenarios": [{ "label": "string", "probability": "string e.g. 35%", "impact": "string — one sentence" }],
   "risks": ["string"],
   "suggestedAction": {
@@ -511,7 +518,8 @@ function buildGenesisSystemPrompt(lang: Lang): string {
     اضبط "trackViewRisk": القلق الأساسي للمسار D في جملة واحدة — المخاطرة أو عدم اليقين الذي يُقيّد الأطروحة الأساسية أكثر من غيره.
     اضبط "trackViewPositioning": وجهة نظر المسار E في جملة واحدة — ما يُشير إليه التموضع والمشاعر بشأن المسار الاتجاهي قريب الأجل.
     اضبط "arbitrationReason": جملة أو جملتان — لماذا تتفوق الأطروحة الأساسية على الحالة المضادة؟ سمّ العامل المحدد الحاسم. لا تُعد صياغة الأطروحة — بل اشرح ما الذي يُرجّح الكفة.
-    اضبط "disagreementMap": قيد واحد لكل زوج من المسارات ذات التعارض الاتجاهي الصريح، مثال: "المسار A (صاعد — كلي) vs المسار B (هابط — تقني)". أدرج فقط الأزواج التي يختلف فيها التصنيف الاتجاهي.`
+    اضبط "disagreementMap": قيد واحد لكل زوج من المسارات ذات التعارض الاتجاهي الصريح، مثال: "المسار A (صاعد — كلي) vs المسار B (هابط — تقني)". أدرج فقط الأزواج التي يختلف فيها التصنيف الاتجاهي.
+    اضبط "trackViewPortfolio": وجهة نظر المسار F في جملة واحدة — هل المحفظة متوافقة أم متعارضة أم مختلطة بالنسبة للأطروحة الكلية السائدة، مع الإشارة إلى مستوى مخاطر التركّز. أدرج فقط عند ظهور سياق توافق المحفظة (المسار F) في مخرجات الوكلاء المتخصصين.`
     : `Rules you must NEVER break:
 - Never suggest, confirm, or describe real buy/sell order execution, broker actions, or money movement.
 - Never claim certainty — always express confidence as a calibrated percentage.
@@ -574,7 +582,8 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
     Set "trackViewRisk": Track D's primary concern in 1 sentence — the specific risk or uncertainty that most constrains the base thesis.
     Set "trackViewPositioning": Track E's view in 1 sentence — what positioning and sentiment imply for the near-term directional path.
     Set "arbitrationReason": 1-2 sentences — WHY the base thesis wins over the opposing case. Name the specific deciding factor (e.g. "Track A and Track C both confirm X, which outweighs Track B's Y because Z"). Do not restate the thesis — explain what breaks the tie.
-    Set "disagreementMap": one string per track pair with explicit directional conflict, e.g. "Track A (bullish macro) vs Track B (bearish technical)". Only include pairs where the directional labels differ.`;
+    Set "disagreementMap": one string per track pair with explicit directional conflict, e.g. "Track A (bullish macro) vs Track B (bearish technical)". Only include pairs where the directional labels differ.
+    Set "trackViewPortfolio": Track F's portfolio alignment view in 1 sentence — whether the portfolio context is aligned, divergent, or mixed relative to the dominant macro thesis, and the concentration risk level. Only set when Portfolio Alignment (Track F) context appears in the specialist agent outputs.`;
 
   const base = buildLocaleSystemPrompt({ lang, surface: "genesis_copilot", schema: GENESIS_SCHEMA, extra });
   // Prepend a hard JSON-only directive so Gemini never emits text outside the object.
@@ -703,11 +712,14 @@ function computeConsensus(
 
 // Confidence earned from evidence alignment across tracks — not model-asserted.
 // Returns a suggested integer (1-99) injected into the fusion directive as a calibration anchor.
+// Phase 4: accepts optional TrackF (portfolio alignment) and eceScore (ECE calibration from client).
 function computeConfidenceFromTracks(
   trackA: TrackA | null,
   trackB: TrackB | null,
   trackD: TrackD | null,
   consensus: ConsensusResult,
+  trackF?: TrackF | null,
+  eceScore?: number,
 ): number {
   let score = 50;
   // Macro regime conviction
@@ -734,6 +746,17 @@ function computeConfidenceFromTracks(
     if (trackD.uncertaintyLevel === "extreme") score -= 14;
     else if (trackD.uncertaintyLevel === "high") score -= 8;
     else if (trackD.uncertaintyLevel === "low") score += 6;
+  }
+  // Phase 4: Portfolio alignment modifier (Track F)
+  if (trackF) {
+    if (trackF.portfolioAlignmentBias === "aligned") score += 3;
+    else if (trackF.portfolioAlignmentBias === "divergent") score -= 4;
+    // mixed: neutral, no adjustment
+  }
+  // Phase 4: ECE-aware calibration — ±5pt cap, guards against overconfidence loops
+  if (eceScore != null && eceScore > 0) {
+    if (eceScore > 0.15) score -= 5;       // overconfident history → reduce anchor
+    else if (eceScore < 0.05) score += 3;  // well-calibrated history → allow mild boost
   }
   return Math.max(10, Math.min(90, score));
 }
@@ -987,6 +1010,28 @@ async function runTrackE(lang: Lang, question: string, ctx: string, live: LiveMa
   return res?.data ?? null;
 }
 
+// ─── Phase 4: Portfolio Alignment Agent (TrackF) ──────────────────────────────
+
+interface TrackF {
+  portfolioAlignmentBias: "aligned" | "divergent" | "mixed";
+  alignmentNote: string;     // 1 sentence: how portfolio relates to dominant macro thesis
+  concentrationRisk: "low" | "moderate" | "high";
+}
+
+async function runTrackF(lang: Lang, question: string, ctx: string): Promise<TrackF | null> {
+  const schema = `{"portfolioAlignmentBias":"aligned"|"divergent"|"mixed","alignmentNote":"string — 1 sentence: how the portfolio context relates to the dominant macro thesis","concentrationRisk":"low"|"moderate"|"high"}`;
+  const extra = lang === "ar"
+    ? `أنت محلل توافق المحافظ في مكتب بحوث مؤسسي. ركّز فقط على: (1) هل توافق المحفظة الحالية التحيّز الكلي السائد أم تتعارض معه؟، (2) مستوى تركّز المخاطر بناءً على السياق المتاح، (3) هل يستدعي النظام الحالي إعادة توزيع؟ لا تقترح أوامر تداول. استخدم فقط ما ورد في السياق. جملة واحدة لكل حقل.`
+    : `You are the portfolio alignment analyst on an institutional research desk. Focus ONLY on: (1) whether the portfolio context aligns with or contradicts the dominant macro bias, (2) concentration risk level from available context, (3) whether the current regime warrants rebalancing consideration. No trade execution suggestions. One sentence per field. Use only what the context provides.`;
+  const sys = buildLocaleSystemPrompt({ lang, surface: "portfolio_analyst", schema, extra });
+  const user = wrapUserContext(lang, `Question: ${question}\n\nContext:\n${ctx}`);
+  const res = await withTimeout(
+    callAIGateway<TrackF>({ system: sys, user, language: lang, jsonObject: true, maxTokens: 300, temperature: 0.3 }),
+    8000,
+  );
+  return res?.data ?? null;
+}
+
 // ─── Phase 12: Deterministic Arbitration Field Derivation ─────────────────────
 // Always populates Phase-12 fields from raw track outputs when Gemini omits them.
 // Root cause: Gemini compliance with new schema fields is inconsistent; this makes
@@ -1004,6 +1049,7 @@ function fillArbitrationFields(
   trackC: TrackC | null,
   trackD: TrackD | null,
   trackE: TrackE | null,
+  trackF: TrackF | null,
   consensus: ConsensusResult,
   lang: Lang,
 ): void {
@@ -1039,6 +1085,19 @@ function fillArbitrationFields(
 
   if (!reply.trackViewPositioning && trackE) {
     reply.trackViewPositioning = trackE.sentimentSignal;
+  }
+
+  // Phase 4: Portfolio Alignment (Track F) — deterministic backfill
+  if (!reply.trackViewPortfolio && trackF) {
+    const alignTr = lang === "ar"
+      ? ({ aligned: "متوافق", divergent: "متعارض", mixed: "مختلط" }[trackF.portfolioAlignmentBias] ?? trackF.portfolioAlignmentBias)
+      : (trackF.portfolioAlignmentBias.charAt(0).toUpperCase() + trackF.portfolioAlignmentBias.slice(1));
+    const concTr = lang === "ar"
+      ? ({ low: "منخفض", moderate: "معتدل", high: "مرتفع" }[trackF.concentrationRisk] ?? trackF.concentrationRisk)
+      : (trackF.concentrationRisk.charAt(0).toUpperCase() + trackF.concentrationRisk.slice(1));
+    reply.trackViewPortfolio = lang === "ar"
+      ? `توافق ${alignTr} — تركّز ${concTr}؛ ${trackF.alignmentNote}`
+      : `${alignTr} portfolio alignment — ${concTr} concentration risk; ${trackF.alignmentNote}`;
   }
 
   // arbitrationReason: explain why dominant bias wins by naming the aligning tracks
@@ -1103,10 +1162,12 @@ async function runFusion(
   trackC: TrackC | null,
   trackD: TrackD | null,
   trackE: TrackE | null,
+  trackF: TrackF | null,
   consensus: ConsensusResult,
   live: LiveMarketState | null,
+  eceScore?: number,
 ): Promise<GenesisReply | null> {
-  const confAnchor = computeConfidenceFromTracks(trackA, trackB, trackD, consensus);
+  const confAnchor = computeConfidenceFromTracks(trackA, trackB, trackD, consensus, trackF, eceScore);
   const msq = live?.marketStateQuality ?? "inferred";
   const msqDetail = live
     ? `${msq} (${live.sourcesLive} data sources confirmed: ${[live.btcPrice ? "BTC" : null, live.goldPrice ? "Gold" : null, live.eurUsd ? "EUR/USD" : null, live.spyPrice ? "SPY" : null, live.tltPrice ? "TLT" : null, live.oilPrice ? "Oil" : null].filter(Boolean).join(", ")})`
@@ -1118,7 +1179,8 @@ async function runFusion(
     trackC ? `CROSS-ASSET (Track C): ${trackC.crossAssetBias} bias | gold: ${trackC.goldSignal} | BTC/risk-appetite: ${trackC.btcSignal} | DXY: ${trackC.dxyPressure} | correlation: ${trackC.correlationNote}` : null,
     trackD ? `RISK/COUNTER (Track D): uncertainty=${trackD.uncertaintyLevel} | primary_risk: ${trackD.primaryRisk} | weakness: ${trackD.thesisWeakness} | counter: ${trackD.counterCase} | invalidation: ${trackD.invalidationTrigger} | confidence_challenge: ${trackD.confidenceChallenge}` : null,
     trackE ? `POSITIONING/SENTIMENT (Track E): sentiment=${trackE.sentimentSignal} | uncertainty: ${trackE.uncertaintyNote} | counter_thesis: ${trackE.counterThesis} | missing: ${trackE.missingEvidence}` : null,
-    `CONSENSUS (${[trackA, trackB, trackC, trackD, trackE].filter(Boolean).length}/5 agents): dominant=${consensus.dominantBias}, agreement=${consensus.agreementScore}%, strength=${consensus.strength}${consensus.conflictNote ? ` — ${consensus.conflictNote}` : ""}`,
+    trackF ? `PORTFOLIO ALIGNMENT (Track F): alignment=${trackF.portfolioAlignmentBias} | concentration_risk=${trackF.concentrationRisk} | ${trackF.alignmentNote}` : null,
+    `CONSENSUS (${[trackA, trackB, trackC, trackD, trackE, trackF].filter(Boolean).length}/6 agents): dominant=${consensus.dominantBias}, agreement=${consensus.agreementScore}%, strength=${consensus.strength}${consensus.conflictNote ? ` — ${consensus.conflictNote}` : ""}`,
     `EVIDENCE-CALIBRATED CONFIDENCE ANCHOR: ${confAnchor}% — derived from track evidence alignment. Use this as calibration reference; justify deviation in confidenceCalibration.`,
     `LIVE MARKET STATE QUALITY: ${msqDetail}`,
   ].filter(Boolean).join("\n");
@@ -1153,7 +1215,7 @@ async function runFusion(
   console.log(`[genesis:p12] post-sanitize: ${_postSet.join(",")||"none"}`);
 
   // Deterministic backfill — fills every missing Phase-12 field from raw track outputs
-  fillArbitrationFields(sanitized, trackA, trackB, trackC, trackD, trackE, consensus, lang);
+  fillArbitrationFields(sanitized, trackA, trackB, trackC, trackD, trackE, trackF, consensus, lang);
 
   const _finalSet = _p12.filter(k => { const v = (sanitized as Record<string,unknown>)[k]; return v != null && v !== "" && !(Array.isArray(v) && (v as unknown[]).length === 0); });
   console.log(`[genesis:p12] post-fill: ${_finalSet.join(",")||"none"}`);
@@ -1182,16 +1244,22 @@ export const askGenesis = createServerFn({ method: "POST" })
       return { reply: null, error: "rate_limited" as const, engine: "heuristic" as const };
     }
 
-    // ── Multi-agent parallel path — Phase 11: live market + 5 specialist agents ──
-    // Always runs unconditionally: Phase-12 arbitration fields require specialist track outputs.
-    // Fetch live market state in parallel with the specialist tracks (6s timeout)
-    const [liveSettled, settledA, settledB, settledC, settledD, settledE] = await Promise.allSettled([
-      withTimeout(buildLiveMarketState(), 6000),           // Live Market Intelligence
-      runTrackA(lang, data.question, data.marketContext, null),  // Macro Analyst (live injected after)
-      runTrackB(lang, data.question, data.marketContext, null),  // Technical Analyst
-      runTrackC(lang, data.question, data.marketContext, null),  // Cross-Asset Strategist
-      runTrackD(lang, data.question, data.marketContext, null),  // Risk Officer
-      runTrackE(lang, data.question, data.marketContext, null),  // Devil's Advocate
+    // ── Phase 4: Express vs Detailed mode ──────────────────────────────────────
+    // brief → tracks A+C+D only (express, target <8s).
+    // detailed → all 6 tracks A–F (full analysis).
+    const isExpress = data.responseStyle === "brief";
+
+    // ── Multi-agent parallel path ── live market + specialist agents ──────────
+    // Always runs unconditionally: Phase-12 arbitration fields require track outputs.
+    // Tracks skipped in express mode resolve to null via Promise.resolve(null).
+    const [liveSettled, settledA, settledB, settledC, settledD, settledE, settledF] = await Promise.allSettled([
+      withTimeout(buildLiveMarketState(), 6000),
+      runTrackA(lang, data.question, data.marketContext, null),
+      isExpress ? Promise.resolve(null) : runTrackB(lang, data.question, data.marketContext, null),
+      runTrackC(lang, data.question, data.marketContext, null),
+      runTrackD(lang, data.question, data.marketContext, null),
+      isExpress ? Promise.resolve(null) : runTrackE(lang, data.question, data.marketContext, null),
+      isExpress ? Promise.resolve(null) : runTrackF(lang, data.question, data.marketContext),
     ]);
 
     const live = (liveSettled.status === "fulfilled" ? liveSettled.value : null) ?? null;
@@ -1200,19 +1268,18 @@ export const askGenesis = createServerFn({ method: "POST" })
     const trackC = settledC.status === "fulfilled" ? settledC.value : null;
     const trackD = settledD.status === "fulfilled" ? settledD.value : null;
     const trackE = settledE.status === "fulfilled" ? settledE.value : null;
-    const tracksUsed = [trackA, trackB, trackC, trackD, trackE].filter(Boolean).length;
+    const trackF = settledF.status === "fulfilled" ? settledF.value : null;
+    const tracksUsed = [trackA, trackB, trackC, trackD, trackE, trackF].filter(Boolean).length;
 
     // Pure consensus engine — no AI call, runs on track outputs only.
     const consensus = computeConsensus(trackA, trackB, trackC, trackD, trackE);
 
     // Attempt fusion when at least one track succeeded.
     if (tracksUsed >= 1) {
-      const fused = await runFusion(lang, data.question, data.marketContext, trackA, trackB, trackC, trackD, trackE, consensus, live);
+      const fused = await runFusion(lang, data.question, data.marketContext, trackA, trackB, trackC, trackD, trackE, trackF, consensus, live, data.eceScore);
       if (fused?.headline) {
-        // Stamp marketStateQuality from live state (authoritative — not AI-guessed)
-        // Always set so the header badge is visible for every AI reply.
         fused.marketStateQuality = live?.marketStateQuality ?? fused.marketStateQuality ?? "inferred";
-        return { reply: fused, error: null as null, engine: "ai" as const, tracksUsed, provider };
+        return { reply: fused, error: null as null, engine: "ai" as const, tracksUsed, provider, dominantBias: consensus.dominantBias };
       }
     }
     // Graceful fallback to single-call if all tracks failed or fusion failed.

@@ -1,7 +1,7 @@
 /** Genesis conversation history — localStorage ring buffer (max 50 entries). */
 const KEY = "foresmart.genesis.history.v1";
 const DIGEST_KEY = "foresmart.genesis.digest.v1";
-const MAX = 50;
+const MAX = 100;
 const DECAY_HALF_LIFE_DAYS = 3; // weight halves every 3 days
 
 export interface GenesisHistoryEntry {
