@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { callAIGateway, safeParseJson, resolveAIProvider, type AIProvider } from "@/lib/ai-gateway.server";
 import { buildLocaleSystemPrompt, wrapUserContext } from "@/lib/ai/locale";
 import type { Lang } from "@/lib/ai/locale";
+import { routeGenesisAI, buildAvailabilityFromEnv, type ProviderIdentity, type RoutingMode } from "@/services/ai/providerRouter";
 
 export interface GenesisScenario {
   label: string;
@@ -1528,6 +1529,19 @@ export const askGenesis = createServerFn({ method: "POST" })
     // detailed → all 6 tracks A–F (full analysis).
     const isExpress = data.responseStyle === "brief";
 
+    // ── Hybrid AI Router — governed provider routing ────────────────────────
+    const availability = buildAvailabilityFromEnv({
+      GEMINI_API_KEY:    process.env.GEMINI_API_KEY,
+      LOVABLE_API_KEY:   process.env.LOVABLE_API_KEY,
+      OPENAI_API_KEY:    process.env.OPENAI_API_KEY,
+      AI_DISABLED:       process.env.AI_DISABLED,
+      GENESIS_FAST_MODEL: process.env.GENESIS_FAST_MODEL,
+      GENESIS_DEEP_MODEL: process.env.GENESIS_DEEP_MODEL,
+      GENESIS_AI_MODE:   process.env.GENESIS_AI_MODE,
+    });
+    const routing = routeGenesisAI(isExpress ? "fast" : "deep", availability);
+    console.info(`[genesis:router] identity=${routing.providerIdentity} mode=${routing.routingMode} fallback=${routing.isFallback}`);
+
     // ── Multi-agent parallel path ── live market + specialist agents ──────────
     // Always runs unconditionally: Phase-12 arbitration fields require track outputs.
     // Tracks skipped in express mode resolve to null via Promise.resolve(null).
@@ -1558,7 +1572,7 @@ export const askGenesis = createServerFn({ method: "POST" })
       const fused = await runFusion(lang, data.question, data.marketContext, trackA, trackB, trackC, trackD, trackE, trackF, consensus, live, data.eceScore);
       if (fused?.headline) {
         fused.marketStateQuality = live?.marketStateQuality ?? fused.marketStateQuality ?? "inferred";
-        return { reply: fused, error: null as null, engine: "ai" as const, tracksUsed, provider, dominantBias: consensus.dominantBias };
+        return { reply: fused, error: null as null, engine: "ai" as const, tracksUsed, provider, dominantBias: consensus.dominantBias, providerIdentity: routing.providerIdentity, routingMode: routing.routingMode };
       }
     }
     // Graceful fallback to single-call if all tracks failed or fusion failed.
@@ -1574,20 +1588,20 @@ export const askGenesis = createServerFn({ method: "POST" })
       user,
       language: lang,
       jsonObject: true,
-      maxTokens: 4096,
-      temperature: 0.4,
+      maxTokens: routing.maxTokensHint > 0 ? routing.maxTokensHint : 4096,
+      temperature: routing.temperatureHint > 0 ? routing.temperatureHint : 0.4,
     });
 
     if (result.error === "rate_limited") return { reply: null, error: "rate_limited" as const, engine: "heuristic" as const };
     if (result.error === "payment_required") return { reply: null, error: "payment_required" as const, engine: "heuristic" as const };
     // missing_key → AI was never available; show the "key not configured" warning.
     if (result.error === "missing_key") {
-      return { reply: heuristicReply(lang, "missing_key"), error: null as null, engine: "heuristic" as const };
+      return { reply: heuristicReply(lang, "missing_key"), error: null as null, engine: "heuristic" as const, providerIdentity: "heuristic_fallback" as ProviderIdentity };
     }
     // ai_error / network_error → Gemini is configured but the call failed; use a
     // heuristic labelled as a temporary outage, not "key not configured".
     if (result.error === "ai_error" || result.error === "network_error") {
-      return { reply: heuristicReply(lang, "ai_unavailable"), error: null as null, engine: "heuristic" as const };
+      return { reply: heuristicReply(lang, "ai_unavailable"), error: null as null, engine: "heuristic" as const, providerIdentity: "heuristic_fallback" as ProviderIdentity };
     }
 
     // error is null or parse_error — result.data is set on success, raw always carries
@@ -1598,7 +1612,7 @@ export const askGenesis = createServerFn({ method: "POST" })
     if (direct) {
       // Badge always visible: brief-mode has no live data so always "inferred"
       if (!direct.marketStateQuality) direct.marketStateQuality = "inferred";
-      return { reply: direct, error: null as null, engine: "ai" as const, provider };
+      return { reply: direct, error: null as null, engine: "ai" as const, provider, providerIdentity: routing.providerIdentity, routingMode: routing.routingMode };
     }
 
     // Sanitize rejected the parsed object (headline missing / JSON-like) — log it
@@ -1608,10 +1622,10 @@ export const askGenesis = createServerFn({ method: "POST" })
       const recovered = recoverGenesisReply(result.raw, lang);
       if (recovered) {
         if (!recovered.marketStateQuality) recovered.marketStateQuality = "inferred";
-        return { reply: recovered, error: null as null, engine: "ai" as const, provider };
+        return { reply: recovered, error: null as null, engine: "ai" as const, provider, providerIdentity: routing.providerIdentity, routingMode: routing.routingMode };
       }
     }
 
     // Full recovery failed — show heuristic labelled appropriately.
-    return { reply: heuristicReply(lang, provider ? "ai_unavailable" : "missing_key"), error: null as null, engine: "heuristic" as const };
+    return { reply: heuristicReply(lang, provider ? "ai_unavailable" : "missing_key"), error: null as null, engine: "heuristic" as const, providerIdentity: "heuristic_fallback" as ProviderIdentity };
   });

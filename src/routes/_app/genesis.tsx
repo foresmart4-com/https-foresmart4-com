@@ -60,6 +60,7 @@ import { computeMarketOrchestrator, type MarketOrchestratorResult, type MarketOr
 import { computeCrossMarketRegime, type CrossMarketRegimeResult, type CrossMarketRegimeLabel } from "@/services/intelligence/crossMarketRegime";
 import { computeThesisLab, type ThesisLabResult, type ThesisLabState } from "@/services/intelligence/thesisLab";
 import { computeScenarioIntelligence, type ScenarioIntelligenceResult, type ScenarioLabel } from "@/services/intelligence/scenarioIntelligence";
+import { getProviderDisplayLabel, type ProviderIdentity, type RoutingMode } from "@/services/ai/providerRouter";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -77,6 +78,8 @@ interface Exchange {
   reply: GenesisReply;
   engine: "ai" | "heuristic";
   provider?: string;
+  providerIdentity?: ProviderIdentity;
+  routingMode?: RoutingMode;
   tracksUsed?: number;
   dominantBias?: "bullish" | "bearish" | "neutral";
   actionState: "pending" | "confirmed" | "dismissed" | "deferred" | null;
@@ -776,6 +779,8 @@ function GenesisPage() {
           reply: res.reply!,
           engine: res.engine,
           provider: (res as { provider?: string }).provider,
+          providerIdentity: (res as { providerIdentity?: ProviderIdentity }).providerIdentity,
+          routingMode: (res as { routingMode?: RoutingMode }).routingMode,
           tracksUsed: (res as { tracksUsed?: number }).tracksUsed,
           dominantBias: (res as { dominantBias?: "bullish" | "bearish" | "neutral" }).dominantBias,
           actionState: res.reply?.suggestedAction?.type && res.reply.suggestedAction.type !== "none" ? "pending" : null,
@@ -2140,8 +2145,14 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
                 : "bg-muted/40 text-muted-foreground ring-border"
             )}>
               {engine === "ai"
-                ? (exchange.provider === "gemini" ? "Gemini AI" : exchange.provider === "lovable" ? "Lovable AI" : "AI")
-                : (ar ? "محلي" : "Heuristic")}
+                ? (exchange.providerIdentity
+                    ? getProviderDisplayLabel(exchange.providerIdentity, ar)
+                    : exchange.provider === "gemini" ? "Gemini AI"
+                    : exchange.provider === "lovable" ? "Lovable AI"
+                    : "AI")
+                : (exchange.providerIdentity === "heuristic_fallback"
+                    ? getProviderDisplayLabel("heuristic_fallback", ar)
+                    : ar ? "محلي" : "Heuristic")}
             </span>
             {reply.researchType && (
               <span className="flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary ring-1 ring-primary/20">
