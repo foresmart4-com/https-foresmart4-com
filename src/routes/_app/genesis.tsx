@@ -75,6 +75,8 @@ import { computeInstitutionalValidation, type InstitutionalValidationResult } fr
 import { computeDecisionMemory, type DecisionMemoryResult } from "@/services/intelligence/decisionMemory";
 import { computeProviderMonitoring, type ProviderMonitoringResult } from "@/services/intelligence/providerMonitoring";
 import { computeAnswerQuality, type AnswerQualityResult } from "@/services/intelligence/answerQuality";
+import { computeProductionStability, type ProductionStabilityResult } from "@/services/intelligence/productionStability";
+import { computeAdaptiveMonitoring, type AdaptiveMonitoringResult } from "@/services/intelligence/adaptiveMonitoring";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -360,6 +362,51 @@ function GenesisPage() {
       ar,
     });
   }, [exchanges, debateResult, firewallResult, governanceOSResult, decisionScore, ar]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Production stability — Phase-60: all-session stability audit; detects streaks and drift
+  const productionStabilityResult = useMemo((): ProductionStabilityResult | null => {
+    if (exchanges.length < 3) return null;
+    let consecutiveHeuristicAtEnd = 0;
+    for (let i = exchanges.length - 1; i >= 0; i--) {
+      if (exchanges[i].engine === "heuristic") consecutiveHeuristicAtEnd++;
+      else break;
+    }
+    return computeProductionStability({
+      totalExchanges: exchanges.length,
+      heuristicCount: exchanges.filter(e => e.engine === "heuristic").length,
+      openAIFallbackCount: exchanges.filter(e => e.providerIdentity === "openai_deep").length,
+      consecutiveHeuristicAtEnd,
+      longSession: exchanges.length > 15,
+      ar,
+    });
+  }, [exchanges, ar]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Adaptive monitoring — Phase-61: recent-window weighted monitoring (last 5 exchanges)
+  const ADAPTIVE_WINDOW = 5;
+  const adaptiveMonitoringResult = useMemo((): AdaptiveMonitoringResult | null => {
+    if (exchanges.length < 3) return null;
+    const recent = exchanges.slice(-ADAPTIVE_WINDOW);
+    const recentAI = recent.filter(e => e.engine === "ai");
+    const allAI = exchanges.filter(e => e.engine === "ai");
+    const recentConfidences = recentAI.map(e => e.reply.confidence);
+    const allConfidences = allAI.map(e => e.reply.confidence);
+    return computeAdaptiveMonitoring({
+      windowSize: recent.length,
+      recentHeuristicCount: recent.filter(e => e.engine === "heuristic").length,
+      recentOpenAICount: recent.filter(e => e.providerIdentity === "openai_deep").length,
+      recentAISuccessCount: recentAI.filter(e => e.providerIdentity !== "openai_deep").length,
+      allSessionHeuristicRate: exchanges.length > 0
+        ? exchanges.filter(e => e.engine === "heuristic").length / exchanges.length
+        : 0,
+      recentConfidenceAvg: recentConfidences.length > 0
+        ? recentConfidences.reduce((a, b) => a + b, 0) / recentConfidences.length
+        : null,
+      allSessionConfidenceAvg: allConfidences.length > 0
+        ? allConfidences.reduce((a, b) => a + b, 0) / allConfidences.length
+        : null,
+      ar,
+    });
+  }, [exchanges, ar]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const marketContext = assets
     .slice(0, 10)
@@ -931,6 +978,18 @@ function GenesisPage() {
         answerQualityResult?.qualityState === "confidence_risk" && answerQualityResult.confidenceLesson
           ? `Confidence note: ${answerQualityResult.confidenceLesson.slice(0, 100)}`
           : "",
+        // Runtime stability — Phase-60: all-session pattern; omit when stable
+        productionStabilityResult &&
+        productionStabilityResult.stabilityState !== "stable_runtime" &&
+        productionStabilityResult.stabilityState !== "insufficient_signal"
+          ? productionStabilityResult.contextString
+          : "",
+        // Adaptive monitoring — Phase-61: recent-window signal; omit when healthy
+        adaptiveMonitoringResult &&
+        adaptiveMonitoringResult.adaptiveState !== "healthy_recent_window" &&
+        adaptiveMonitoringResult.adaptiveState !== "insufficient_window"
+          ? adaptiveMonitoringResult.contextString
+          : "",
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
@@ -1451,6 +1510,53 @@ function GenesisPage() {
                       : "border-border/40 text-muted-foreground",
                     )}>
                       {answerQualityResult.qualityState.replace(/_/g, " ")}
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Runtime Stability + Adaptive Monitoring — Phase-60/61: compact stability status */}
+            {(
+              (productionStabilityResult && productionStabilityResult.stabilityState !== "stable_runtime" && productionStabilityResult.stabilityState !== "insufficient_signal") ||
+              (adaptiveMonitoringResult && adaptiveMonitoringResult.adaptiveState !== "healthy_recent_window" && adaptiveMonitoringResult.adaptiveState !== "insufficient_window")
+            ) && (
+              <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                <Clock className="h-3 w-3 shrink-0 text-muted-foreground/50" />
+                {productionStabilityResult && productionStabilityResult.stabilityState !== "stable_runtime" && productionStabilityResult.stabilityState !== "insufficient_signal" && (
+                  <>
+                    <span className="text-muted-foreground/60 font-semibold uppercase tracking-wider shrink-0">
+                      {ar ? "وقت التشغيل:" : "Runtime:"}
+                    </span>
+                    <span className={cn(
+                      "rounded border px-1.5 py-0.5 font-medium",
+                      productionStabilityResult.stabilityState === "recovery_heavy" || productionStabilityResult.stabilityState === "degraded_runtime"
+                        ? "border-destructive/30 text-destructive"
+                        : productionStabilityResult.stabilityState === "monitoring_drift" || productionStabilityResult.stabilityState === "context_pressure"
+                        ? "border-warning/30 text-warning"
+                        : "border-border/40 text-muted-foreground",
+                    )}>
+                      {productionStabilityResult.stabilityState.replace(/_/g, " ")}
+                    </span>
+                  </>
+                )}
+                {adaptiveMonitoringResult && adaptiveMonitoringResult.adaptiveState !== "healthy_recent_window" && adaptiveMonitoringResult.adaptiveState !== "insufficient_window" && (
+                  <>
+                    {productionStabilityResult && productionStabilityResult.stabilityState !== "stable_runtime" && productionStabilityResult.stabilityState !== "insufficient_signal" && (
+                      <span className="text-muted-foreground/30">·</span>
+                    )}
+                    <span className="text-muted-foreground/60 font-semibold uppercase tracking-wider shrink-0">
+                      {ar ? "الأخير:" : "Recent:"}
+                    </span>
+                    <span className={cn(
+                      "rounded border px-1.5 py-0.5 font-medium",
+                      adaptiveMonitoringResult.adaptiveState === "fallback_window" || adaptiveMonitoringResult.adaptiveState === "unstable_recent_behavior"
+                        ? "border-destructive/30 text-destructive"
+                        : adaptiveMonitoringResult.adaptiveState === "confidence_shift"
+                        ? "border-warning/30 text-warning"
+                        : "border-border/40 text-muted-foreground",
+                    )}>
+                      {adaptiveMonitoringResult.adaptiveState.replace(/_/g, " ")}
                     </span>
                   </>
                 )}
