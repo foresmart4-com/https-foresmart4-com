@@ -63,6 +63,7 @@ import { computeScenarioIntelligence, type ScenarioIntelligenceResult, type Scen
 import { getProviderDisplayLabel, type ProviderIdentity, type RoutingMode } from "@/services/ai/providerRouter";
 import { computeGlobalMacroMemory, type GlobalMacroMemoryResult, type MacroCycleState } from "@/services/macro/globalMacroMemory";
 import { computeEconomicGraph, type EconomicGraphResult } from "@/services/intelligence/economicGraph";
+import { computeBookIntelligence, type BookIntelligenceResult } from "@/services/knowledge/bookIntelligence";
 
 export const Route = createFileRoute("/_app/genesis")({
   component: GenesisPage,
@@ -183,6 +184,7 @@ function GenesisPage() {
   const [scenarioIntelResult, setScenarioIntelResult] = useState<ScenarioIntelligenceResult | null>(null); // Phase-46
   const [globalMacroResult, setGlobalMacroResult] = useState<GlobalMacroMemoryResult | null>(null); // Phase-43
   const [economicGraphResult, setEconomicGraphResult] = useState<EconomicGraphResult | null>(null); // Phase-45
+  const [bookIntelligenceResult, setBookIntelligenceResult] = useState<BookIntelligenceResult | null>(null); // Book Intelligence
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
   const profile = useMemo(() => memoryAgent.getProfile(), [profileVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -569,6 +571,18 @@ function GenesisPage() {
       });
       setEconomicGraphResult(econGraph);
 
+      // Book Intelligence — governed corpus retrieval with historical analog detection
+      const bookIntel = computeBookIntelligence({
+        question: trimmed,
+        marketRegime: marketIntel.regime,
+        macroCycleState: globalMacro.macroCycle,
+        dominantRegion: globalMacro.dominantRegion,
+        activeThemes: globalMacro.activeThemes,
+        dominantChannel: econGraph.dominantChannel,
+        ar,
+      });
+      setBookIntelligenceResult(bookIntel);
+
       const decisionCtx = [
         `System calibration: ECE=${eceVal.toFixed(3)}${drift.isDrifting ? " ⚠ performance drift detected" : ""}`,
         topStrategy ? `Top strategy: ${topStrategy.strategy} win-rate ${(topStrategy.winRate * 100).toFixed(0)}% (${topStrategy.bestRegime ?? "any"} regime)` : "",
@@ -626,6 +640,8 @@ function GenesisPage() {
         globalMacro.contextString,
         // Economic graph — Phase-45: dominant channel + network direction
         econGraph.contextString,
+        // Book intelligence — institutional lesson + historical analog
+        bookIntel.contextString,
       ].filter(Boolean).join(" | ");
 
       // Memory intelligence context — age-weighted, digest-compressed, continuity-aware.
@@ -1381,6 +1397,11 @@ function GenesisPage() {
         <GlobalMacroStatusLine macro={globalMacroResult} graph={economicGraphResult} ar={ar} />
       )}
 
+      {/* ─── Book Intelligence — historical analog ───────────────────────── */}
+      {bookIntelligenceResult?.historicalAnalog && (
+        <BookIntelStatusLine result={bookIntelligenceResult} ar={ar} />
+      )}
+
       {/* ─── Thesis Lab + Scenario — Phase 42+46 ────────────────────────── */}
       {(thesisLabResult || scenarioIntelResult) && (
         thesisLabResult?.thesisState !== "emerging_thesis" ||
@@ -1990,6 +2011,40 @@ function GlobalMacroStatusLine({
           <span className="text-muted-foreground/55 italic truncate">
             {graph.dominantChannel.replace(/_to_/g, "→").replace(/_/g, " ")}
           </span>
+        </>
+      )}
+      <span className="ms-auto text-muted-foreground/40 italic text-[9px]">
+        {ar ? "استشاري" : "advisory"}
+      </span>
+    </div>
+  );
+}
+
+// ─── Book Intelligence Status Line ───────────────────────────────────────────
+
+function BookIntelStatusLine({ result, ar }: { result: BookIntelligenceResult; ar: boolean }) {
+  const analog = ar ? result.historicalAnalogAr : result.historicalAnalog;
+  const framework = result.topCards[0]?.title ?? null;
+
+  return (
+    <div className="mb-2 flex items-center gap-2 rounded-lg border border-border/40 bg-muted/5 px-3 py-1.5 text-[10px]">
+      <span className="h-1.5 w-1.5 rounded-full shrink-0 bg-muted-foreground/40" />
+      <span className="font-bold uppercase tracking-wide text-muted-foreground/70">
+        {ar ? "ذاكرة الكتب" : "Book Intel"}
+        {framework && <span className="ms-1 normal-case font-normal text-muted-foreground/50">— {framework}</span>}
+      </span>
+      {analog && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/60 italic truncate">
+            {ar ? "نظير: " : "analog: "}{analog}
+          </span>
+        </>
+      )}
+      {result.competingSchool && (
+        <>
+          <span className="text-border/60">|</span>
+          <span className="text-muted-foreground/50 italic truncate text-[9px]">{result.competingSchool.slice(0, 50)}</span>
         </>
       )}
       <span className="ms-auto text-muted-foreground/40 italic text-[9px]">
