@@ -19,6 +19,14 @@ import {
   isCompanySelectionQuestion,
   type CommitteeStance,
 } from "@/services/institutional/committeeDebate";
+import {
+  assessInvestmentQuality,
+  enrichReplyFromTracks,
+  serverDetectInvestmentIntent,
+  serverDetectSaudiQuestion,
+  serverDetectCompanyQuestion,
+  type InvestmentQualityState,
+} from "@/services/institutional/qualityGate";
 
 export interface GenesisScenario {
   label: string;
@@ -1704,6 +1712,103 @@ function fillInstitutionalFields(
   }
 }
 
+// ─── Investment enforcement directive builder ─────────────────────────────────
+// Generates a compact REQUIRED-FIELDS directive injected directly into the
+// fusion prompt when investment intent is detected. More effective than relying
+// on system-prompt trigger strings.
+function buildInvestmentEnforcementDirective(
+  isInvestment: boolean,
+  isSaudi: boolean,
+  isCompanyQ: boolean,
+  lang: Lang,
+): string {
+  if (!isInvestment) return "";
+
+  const ar = lang === "ar";
+  const lines: string[] = [];
+
+  if (ar) {
+    lines.push("متطلبات الإجابة الاستثمارية المؤسسية — إلزامية للسؤال الحالي:");
+    lines.push("يجب أن يحتوي الرد JSON على هذه الحقول بقيم حقيقية غير فارغة:");
+    lines.push('- "macroChain": سرد مكثّف (2-3 جمل) يمشي عبر روابط السلسلة الكلية: الأسعار → السيولة → الائتمان → التقييم.');
+    lines.push('- "bullCase": جملتان — الروابط الكلية الداعمة للحالة الصاعدة والأدلة المطلوبة للتأكيد.');
+    lines.push('- "bearCase": جملتان — الروابط الكلية التي تولّد مخاطر هبوطية وشرط التفعيل.');
+    lines.push('- "baseCase": جملة واحدة — الحالة المهيمنة حالياً مع الرابط الكلي الأقوى.');
+    lines.push('- "missingEvidence": جملة واحدة — نقطة البيانات المحددة التي ستُغيّر الاستنتاج أكثر من أي بيانات أخرى.');
+    lines.push('- "thesisChanger": جملة واحدة — التطور الكلي المحدد (تحرك أسعار، حدث ائتماني، مستوى نفط، أرباح) الذي يقلب الحالة المهيمنة.');
+    lines.push('- "sectorLens": 2-3 جمل — الرابحون والخاسرون القطاعيون في النظام الحالي مع الربط السببي بعوامل الماكرو.');
+    if (isCompanyQ) {
+      lines.push('- "selectionFramework": جملتان — المعايير المحددة للنظام الحالي (لا أسماء شركات كتوصيات).');
+      lines.push('- "committeeBullCase": جملة واحدة — الحجة الصاعدة للجنة الاستثمار.');
+      lines.push('- "committeeBearCase": جملة واحدة — الحجة الهابطة للجنة الاستثمار.');
+    }
+    if (isSaudi) {
+      lines.push("متطلبات السوق السعودي الإضافية — يجب معالجة جميع القنوات الخمس:");
+      lines.push("1. قناة النفط: سعر النفط الحالي مقارنةً بنقطة التعادل السعودية (~75-80$/ب).");
+      lines.push("2. البنوك/الأسعار/SAMA/الفيدرالي: ربط الريال بالدولار → SAMA تتبع الفيدرالي → تأثير السيولة المحلية.");
+      lines.push("3. البتروكيماويات/الطلب الصيني: هوامش سابك والطلب الصيني — اتجاه؟");
+      lines.push("4. الدفاعيات/التوزيعات: أرامكو يُرسّخ التقييم — هل التمركز الدفاعي مبرر؟");
+      lines.push("5. التعرض الانتقائي مقابل الواسع: أي القطاعات أفضل أداءً في النظام الحالي ولماذا؟");
+    }
+    lines.push("لا تجعل هذه الحقول فارغة — هذا سؤال استثماري يستلزم إجابة مؤسسية كاملة.");
+  } else {
+    lines.push("INSTITUTIONAL INVESTMENT ANSWER REQUIREMENTS — mandatory for this question:");
+    lines.push("The JSON response MUST include these fields with substantive non-empty values:");
+    lines.push('"macroChain": 2-3 sentence narrative walking the macro chain links: rates → liquidity → credit → valuation pressure → risk appetite.');
+    lines.push('"bullCase": 2 sentences — macro chain links supporting the upside case and evidence required to hold.');
+    lines.push('"bearCase": 2 sentences — macro chain links creating downside risk and the activation condition.');
+    lines.push('"baseCase": 1 sentence — currently dominant case with the strongest macro chain link cited.');
+    lines.push('"missingEvidence": 1 sentence — the specific data point that would most change the conclusion.');
+    lines.push('"thesisChanger": 1 sentence — the specific macro development (rate move, credit event, oil level, earnings miss) that flips the dominant case.');
+    lines.push('"sectorLens": 2-3 sentences — sector winners and losers in the current regime with causal linkage to specific macro factors.');
+    if (isCompanyQ) {
+      lines.push('"selectionFramework": 2 sentences — criteria specific to the current regime (NO company names as recommendations).');
+      lines.push('"committeeBullCase": 1 sentence — the bull committee argument.');
+      lines.push('"committeeBearCase": 1 sentence — the bear committee argument.');
+    }
+    if (isSaudi) {
+      lines.push("SAUDI MARKET REQUIRED CHANNELS — all five must be addressed:");
+      lines.push("1. Oil channel: current oil vs Saudi fiscal breakeven (~$75-80/bbl WTI) — state direction and fiscal implication.");
+      lines.push("2. Banks/rates/SAMA/Fed: SAR peg → SAMA shadows Fed → local liquidity tightening or easing effect.");
+      lines.push("3. Petrochemicals/China demand: SABIC margin and China PMI direction — state regime implication.");
+      lines.push("4. Defensives/dividends: Aramco yield anchors TASI valuation — is defensive positioning warranted?");
+      lines.push("5. Selective vs broad: which specific sectors are favored/disfavored in the current regime and why.");
+    }
+    lines.push("Do NOT leave these fields empty or omit them — this is an investment question requiring full institutional answer depth.");
+  }
+
+  return lines.join("\n");
+}
+
+// ─── Compact fallback institutional context (single-call path) ─────────────────
+// Provides minimal institutional framing when fusion is unavailable.
+// Pure function — no AI calls, no network.
+function buildFallbackInstitutionalContext(
+  question: string,
+  isInvestment: boolean,
+  isSaudi: boolean,
+  isCompanyQ: boolean,
+  lang: Lang,
+): string {
+  if (!isInvestment) return "";
+  const ar = lang === "ar";
+  const parts: string[] = [];
+
+  if (ar) {
+    parts.push("سياق الاستثمار: لا بيانات وكلاء متخصصين متوفرة — استدلال من السياق المتاح فقط.");
+    parts.push("مطلوب: سلسلة ماكرو (الأسعار→السيولة→الائتمان→التقييم)، حالة صاعدة، حالة هابطة، حالة أساسية، أدلة مفقودة، مُغيِّر الأطروحة، عدسة قطاعية.");
+    if (isSaudi) parts.push("تاسي/السعودية: يجب معالجة قناة النفط وBnkas/SAMA/الفيدرالي والبتروكيماويات والدفاعيات ورؤية 2030.");
+    if (isCompanyQ) parts.push("سؤال شركات: إطار انتقاء (7 معايير) + نقاش لجنة الاستثمار + موقف اللجنة. لا توصيات محددة بأسماء شركات.");
+  } else {
+    parts.push("Investment context: no specialist agent data available — reasoning from question context only.");
+    parts.push("Required fields: macroChain (rates→liquidity→credit→valuation), bullCase, bearCase, baseCase, missingEvidence, thesisChanger, sectorLens.");
+    if (isSaudi) parts.push("TASI/Saudi: must address oil channel, Banks/SAMA/Fed linkage, petrochemicals/China, defensives/dividends, Vision 2030.");
+    if (isCompanyQ) parts.push("Company question: selection framework (7 criteria) + committee debate + committeeStance. No specific company recommendations.");
+  }
+
+  return parts.join(" ");
+}
+
 async function runFusion(
   lang: Lang,
   question: string,
@@ -1777,10 +1882,18 @@ async function runFusion(
   const sectorCtx = buildSectorIntelligenceContext(question + "\n" + ctx, trackASlice, liveSlice);
   const committeeCtx = buildCommitteeDebateContext(question, trackASlice, trackDSlice, consensusSlice);
 
+  // ── P0 Quality: Investment enforcement directive ─────────────────────────────
+  const isInvestment = serverDetectInvestmentIntent(question, ctx);
+  const isSaudi = serverDetectSaudiQuestion(question, ctx);
+  const isCompanyQ = serverDetectCompanyQuestion(question);
+  const investEnforcement = buildInvestmentEnforcementDirective(isInvestment, isSaudi, isCompanyQ, lang);
+
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
     `User question: ${question}`,
     ctx ? `\nLive market context:\n${ctx}` : "",
+    // Investment enforcement FIRST — most prominent position before the long fusion block
+    investEnforcement ? `\n\n${investEnforcement}` : "",
     `\n\n${fusionDirective}`,
     institutionalCtx ? `\n\n${institutionalCtx}` : "",
     sectorCtx ? `\n\n${sectorCtx}` : "",
@@ -1805,6 +1918,12 @@ async function runFusion(
       ) {
         fillArbitrationFields(recovered, trackA, trackB, trackC, trackD, trackE, trackF, consensus, lang);
         fillInstitutionalFields(recovered, trackA, trackD, consensus, question);
+        if (isInvestment) {
+          const tASlice2 = trackA ? { regime: trackA.regime, macroSummary: trackA.macroSummary, ratesEnv: trackA.ratesEnv, oilLiquidity: trackA.oilLiquidity, dxyImpact: trackA.dxyImpact, creditStressLevel: trackA.creditStressLevel, macroBias: trackA.macroBias, regimeConf: trackA.regimeConf } : null;
+          const tDSlice2 = trackD ? { uncertaintyLevel: trackD.uncertaintyLevel, primaryRisk: trackD.primaryRisk, counterCase: trackD.counterCase, invalidationTrigger: trackD.invalidationTrigger, confidenceChallenge: trackD.confidenceChallenge, thesisWeakness: trackD.thesisWeakness } : null;
+          const cSlice2 = { dominantBias: consensus.dominantBias, agreementScore: consensus.agreementScore, strength: consensus.strength };
+          enrichReplyFromTracks(recovered, tASlice2, tDSlice2, cSlice2, true, isSaudi, isCompanyQ, lang);
+        }
         console.info("[genesis:fusion] parse_error recovery succeeded");
         return recovered;
       }
@@ -1828,6 +1947,22 @@ async function runFusion(
 
   // Phase 63-65: Deterministic institutional field backfill
   fillInstitutionalFields(sanitized, trackA, trackD, consensus, question);
+
+  // P0 Quality gate: assess and enrich if below acceptable threshold
+  const _qualityGateIsInvestment = isInvestment;
+  const _qualityGateIsSaudi = isSaudi;
+  const _qualityGateIsCompanyQ = isCompanyQ;
+  const qualityState = assessInvestmentQuality(sanitized, _qualityGateIsInvestment, _qualityGateIsSaudi, _qualityGateIsCompanyQ);
+  console.log(`[genesis:quality] state=${qualityState} isInv=${_qualityGateIsInvestment} isSaudi=${_qualityGateIsSaudi} isCompanyQ=${_qualityGateIsCompanyQ}`);
+
+  if (_qualityGateIsInvestment && (qualityState === "rejected_shallow" || qualityState === "missing_required_fields" || qualityState === "shallow_but_usable")) {
+    // Deterministic enrichment from track data — fills every missing required field
+    const tASlice = trackA ? { regime: trackA.regime, macroSummary: trackA.macroSummary, ratesEnv: trackA.ratesEnv, oilLiquidity: trackA.oilLiquidity, dxyImpact: trackA.dxyImpact, creditStressLevel: trackA.creditStressLevel, macroBias: trackA.macroBias, regimeConf: trackA.regimeConf } : null;
+    const tDSlice = trackD ? { uncertaintyLevel: trackD.uncertaintyLevel, primaryRisk: trackD.primaryRisk, counterCase: trackD.counterCase, invalidationTrigger: trackD.invalidationTrigger, confidenceChallenge: trackD.confidenceChallenge, thesisWeakness: trackD.thesisWeakness } : null;
+    const cSlice = { dominantBias: consensus.dominantBias, agreementScore: consensus.agreementScore, strength: consensus.strength };
+    enrichReplyFromTracks(sanitized, tASlice, tDSlice, cSlice, true, _qualityGateIsSaudi, _qualityGateIsCompanyQ, lang);
+    console.log(`[genesis:quality] enriched reply (was ${qualityState})`);
+  }
 
   const _finalSet = _p12.filter(k => { const v = (sanitized as Record<string,unknown>)[k]; return v != null && v !== "" && !(Array.isArray(v) && (v as unknown[]).length === 0); });
   console.log(`[genesis:p12] post-fill: ${_finalSet.join(",")||"none"}`);
@@ -1910,9 +2045,17 @@ export const askGenesis = createServerFn({ method: "POST" })
     // Graceful fallback to single-call if all tracks failed or fusion failed.
 
     // ── Standard single-call path (fallback: all tracks timed out or fusion failed) ───────
+    // P0 Quality: inject minimal institutional context even in fallback path
+    const _fbIsInvestment = serverDetectInvestmentIntent(data.question, data.marketContext);
+    const _fbIsSaudi = serverDetectSaudiQuestion(data.question, data.marketContext);
+    const _fbIsCompanyQ = serverDetectCompanyQuestion(data.question);
+    const _fbFallbackCtx = buildFallbackInstitutionalContext(data.question, _fbIsInvestment, _fbIsSaudi, _fbIsCompanyQ, lang);
+    const _fbEnforcementCtx = buildInvestmentEnforcementDirective(_fbIsInvestment, _fbIsSaudi, _fbIsCompanyQ, lang);
     const user = wrapUserContext(lang, [
       `User question: ${data.question}`,
       data.marketContext ? `\nLive market context:\n${data.marketContext}` : "",
+      _fbEnforcementCtx ? `\n\n${_fbEnforcementCtx}` : "",
+      _fbFallbackCtx ? `\n\n${_fbFallbackCtx}` : "",
     ].join(""));
 
     const result = await callAIGateway<GenesisReply>({
@@ -1975,6 +2118,15 @@ export const askGenesis = createServerFn({ method: "POST" })
     if (direct) {
       // Badge always visible: brief-mode has no live data so always "inferred"
       if (!direct.marketStateQuality) direct.marketStateQuality = "inferred";
+      // P0 Quality gate: enrich single-call fallback replies for investment questions
+      if (_fbIsInvestment) {
+        // No track data in fallback — pass null tracks; enrichReplyFromTracks handles this gracefully
+        const _qualState = assessInvestmentQuality(direct, true, _fbIsSaudi, _fbIsCompanyQ);
+        if (_qualState !== "acceptable_institutional") {
+          enrichReplyFromTracks(direct, null, null, { dominantBias: "neutral", agreementScore: 50, strength: "weak" }, true, _fbIsSaudi, _fbIsCompanyQ, lang);
+          console.log(`[genesis:quality] single-call enriched (was ${_qualState})`);
+        }
+      }
       return { reply: direct, error: null as null, engine: "ai" as const, provider, providerIdentity: routing.providerIdentity, routingMode: routing.routingMode };
     }
 
@@ -1991,6 +2143,9 @@ export const askGenesis = createServerFn({ method: "POST" })
         !recovered.headline.includes("غير مكتملة")
       ) {
         if (!recovered.marketStateQuality) recovered.marketStateQuality = "inferred";
+        if (_fbIsInvestment) {
+          enrichReplyFromTracks(recovered, null, null, { dominantBias: "neutral", agreementScore: 50, strength: "weak" }, true, _fbIsSaudi, _fbIsCompanyQ, lang);
+        }
         console.info(`[genesis] provider=${provider} response normalized — returning recovered analysis`);
         return { reply: recovered, error: null as null, engine: "ai" as const, provider, providerIdentity: routing.providerIdentity, routingMode: routing.routingMode };
       }

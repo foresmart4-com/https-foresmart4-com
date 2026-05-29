@@ -3371,6 +3371,35 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
             </div>
           )}
 
+          {/* Phase 63: Macro chain narrative */}
+          {reply.macroChain && engine === "ai" && (
+            <div className="rounded-xl border border-border/30 bg-muted/10 px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <TrendingUp className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  {ar ? "السلسلة الكلية" : "Macro Chain"}
+                </div>
+              </div>
+              <p className="text-xs leading-relaxed text-foreground/80">{reply.macroChain}</p>
+              {(reply.missingEvidence || reply.thesisChanger) && (
+                <div className="mt-2 space-y-1 border-t border-border/20 pt-2">
+                  {reply.missingEvidence && (
+                    <p className="text-[11px] text-muted-foreground">
+                      <span className="font-semibold">{ar ? "أدلة مفقودة: " : "Missing evidence: "}</span>
+                      {reply.missingEvidence}
+                    </p>
+                  )}
+                  {reply.thesisChanger && (
+                    <p className="text-[11px] text-muted-foreground">
+                      <span className="font-semibold">{ar ? "المُغيِّر: " : "Thesis changer: "}</span>
+                      {reply.thesisChanger}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Phase 8: Executive Summary — top of research report */}
           {reply.executiveSummary && (
             <div className="rounded-xl border border-primary/40 bg-primary/8 px-4 py-3">
