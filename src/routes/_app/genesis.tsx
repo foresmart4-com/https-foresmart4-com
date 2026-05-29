@@ -3409,6 +3409,97 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
             </div>
           )}
 
+          {/* Phase 80-81: Committee Reasoning — framework synthesis, perspective map, dominant lens, reasoning plurality */}
+          {(reply.frameworkSynthesis || reply.perspectiveMap || reply.reasoningPlurality) && engine === "ai" && (
+            <div className="rounded-xl border border-primary/15 bg-muted/10 px-4 py-3 space-y-3">
+              {/* Header + dominant lens badge */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <Brain className="h-3.5 w-3.5 text-primary/60" />
+                <div className="text-[10px] uppercase tracking-wider text-primary/70 font-semibold">
+                  {ar ? "الاستدلال المؤسسي" : "Committee Reasoning"}
+                </div>
+                {reply.dominantLens && (
+                  <span className={cn(
+                    "ms-1 rounded-md border px-2 py-0.5 text-[9px] uppercase tracking-wider font-bold",
+                    reply.dominantLens === "allocator"
+                      ? "border-success/30 bg-success/8 text-success"
+                      : reply.dominantLens === "macro"
+                        ? "border-primary/25 bg-primary/8 text-primary"
+                        : reply.dominantLens === "policy"
+                          ? "border-warning/30 bg-warning/8 text-warning"
+                          : "border-border/50 bg-muted/30 text-muted-foreground",
+                  )}>
+                    {ar
+                      ? `العدسة: ${({"macro":"الكلي","policy":"السياسة","allocator":"المخصص","behavioral":"السلوكي","historical":"التاريخي","mixed":"مختلطة"} as Record<string,string>)[reply.dominantLens] ?? reply.dominantLens}`
+                      : `Dominant: ${reply.dominantLens}`}
+                  </span>
+                )}
+              </div>
+
+              {/* Framework Synthesis */}
+              {reply.frameworkSynthesis && (
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+                    <Compass className="h-3 w-3" />
+                    {ar ? "توليف الإطار" : "Framework Synthesis"}
+                  </div>
+                  <p className="text-xs leading-relaxed text-foreground/80">{reply.frameworkSynthesis}</p>
+                </div>
+              )}
+
+              {/* Perspective Map — parsed from pipe-separated lens sections */}
+              {reply.perspectiveMap && (
+                <div className="space-y-1.5">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+                    <Layers className="h-3 w-3" />
+                    {ar ? "خريطة العدسات" : "Perspective Map"}
+                  </div>
+                  <div className="space-y-1">
+                    {reply.perspectiveMap.split("|").map((seg, i) => {
+                      const colonIdx = seg.indexOf(":");
+                      if (colonIdx === -1) return null;
+                      const tag = seg.slice(0, colonIdx).trim().toUpperCase();
+                      const text = seg.slice(colonIdx + 1).trim();
+                      if (!tag || !text) return null;
+                      const labelAr: Record<string, string> = {
+                        MACRO: "الكلي", POLICY: "السياسة", ALLOCATOR: "المخصص",
+                        BEHAVIORAL: "السلوكي", HISTORICAL: "التاريخي",
+                      };
+                      return (
+                        <div key={i} className="flex items-start gap-2 text-xs">
+                          {tag === "MACRO" ? <TrendingUp className="h-3 w-3 mt-0.5 shrink-0 text-primary/50" />
+                            : tag === "POLICY" ? <Scale className="h-3 w-3 mt-0.5 shrink-0 text-warning/60" />
+                            : tag === "ALLOCATOR" ? <PieChart className="h-3 w-3 mt-0.5 shrink-0 text-success/50" />
+                            : tag === "BEHAVIORAL" ? <Activity className="h-3 w-3 mt-0.5 shrink-0 text-primary/40" />
+                            : <BookOpen className="h-3 w-3 mt-0.5 shrink-0 text-muted-foreground/50" />}
+                          <div>
+                            <span className="font-semibold text-muted-foreground/80">
+                              {ar ? (labelAr[tag] ?? tag) : tag}:{" "}
+                            </span>
+                            <span className="text-foreground/80">{text}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Committee Debate — reasoning plurality: agreement, conflict, dominance */}
+              {reply.reasoningPlurality && (
+                <div className="rounded-lg border border-border/30 bg-muted/20 px-3 py-2">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Network className="h-3 w-3 text-muted-foreground/60" />
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                      {ar ? "نقاش اللجنة" : "Committee Debate"}
+                    </div>
+                  </div>
+                  <p className="text-xs leading-relaxed text-foreground/80">{reply.reasoningPlurality}</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Phase 63: Macro chain narrative */}
           {reply.macroChain && engine === "ai" && (
             <div className="rounded-xl border border-border/30 bg-muted/10 px-4 py-3">

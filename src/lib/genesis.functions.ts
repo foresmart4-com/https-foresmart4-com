@@ -1903,11 +1903,14 @@ function repairFrameworkVisibility(
     }
   }
 
-  // Repair perspectiveMap
+  // Repair perspectiveMap — investment questions must show all 5 lenses; others show only active
   if (!reply.perspectiveMap) {
-    const active = multiPerspective.lensViews.filter(l => l.active);
-    if (active.length > 0) {
-      const parts = active.map(l => {
+    // Investment questions: include all 5 lens views (fallback for inactive); others: active only
+    const lensPool = isInvestment
+      ? multiPerspective.lensViews
+      : multiPerspective.lensViews.filter(l => l.active);
+    if (lensPool.length > 0) {
+      const parts = lensPool.map(l => {
         const tag = l.lens === "macro_economist" ? "MACRO"
           : l.lens === "central_bank_policy" ? "POLICY"
           : l.lens === "institutional_allocator" ? "ALLOCATOR"
@@ -1921,7 +1924,24 @@ function repairFrameworkVisibility(
         "MACRO: Oil-fiscal channel and SAR peg constraint define growth trajectory and monetary autonomy limits | " +
         "POLICY: SAMA rate-follower; fiscal policy is the primary Saudi macro stabilisation lever | " +
         "ALLOCATOR: Oil-price sensitivity requires sector tilt adjustment when below $75-80 breakeven | " +
-        "BEHAVIORAL: TASI momentum historically driven by Aramco dividend yield and banking sector re-rating narrative";
+        "BEHAVIORAL: TASI momentum historically driven by Aramco dividend yield and banking sector re-rating narrative | " +
+        "HISTORICAL: Gulf markets 2014-16 oil shock analog: fiscal pressure → defensive sector rotation";
+    }
+  } else if (isInvestment) {
+    // Supplement AI-provided map: add missing lens tags from computed views (completeness fill)
+    const LENS_TAGS: Array<[string, string]> = [
+      ["MACRO", "macro_economist"], ["POLICY", "central_bank_policy"],
+      ["ALLOCATOR", "institutional_allocator"], ["BEHAVIORAL", "behavioral_market"], ["HISTORICAL", "historical_analog"],
+    ];
+    const supplements: string[] = [];
+    for (const [tag, lensType] of LENS_TAGS) {
+      if (!reply.perspectiveMap!.includes(`${tag}:`)) {
+        const lv = multiPerspective.lensViews.find(l => l.lens === lensType);
+        if (lv) supplements.push(`${tag}: ${lv.view.slice(0, 80)}`);
+      }
+    }
+    if (supplements.length > 0) {
+      reply.perspectiveMap = `${reply.perspectiveMap} | ${supplements.join(" | ")}`;
     }
   }
 
@@ -1941,18 +1961,47 @@ function repairFrameworkVisibility(
     }
   }
 
-  // Repair reasoningPlurality
+  // Repair reasoningPlurality — investment questions need explicit lens agreement/conflict/dominance
   if (!reply.reasoningPlurality) {
     const agreement = multiPerspective.agreementNote;
     const conflict  = multiPerspective.disagreementNote;
     if (conflict) {
       reply.reasoningPlurality = `${agreement}. ${conflict}`;
+    } else if (isInvestment) {
+      const activeLenses = multiPerspective.lensViews.filter(l => l.active);
+      const dl = multiPerspective.dominantLens;
+      const domLabel = dl
+        ? dl.lens === "macro_economist" ? "Macro"
+          : dl.lens === "central_bank_policy" ? "Policy"
+          : dl.lens === "institutional_allocator" ? "Allocator"
+          : dl.lens === "behavioral_market" ? "Behavioral"
+          : "Historical"
+        : null;
+      const inactiveLabels = multiPerspective.lensViews
+        .filter(l => !l.active)
+        .map(l => l.lens === "macro_economist" ? "Macro"
+          : l.lens === "central_bank_policy" ? "Policy"
+          : l.lens === "institutional_allocator" ? "Allocator"
+          : l.lens === "behavioral_market" ? "Behavioral" : "Historical");
+      if (activeLenses.length > 0 && domLabel) {
+        const baseNote = agreement || `${activeLenses.length} lens${activeLenses.length > 1 ? "es" : ""} active`;
+        const inactiveNote = inactiveLabels.length > 0
+          ? ` ${inactiveLabels.join(", ")} lens${inactiveLabels.length > 1 ? "es show" : " shows"} insufficient direct signal but remain relevant for scenario monitoring.`
+          : "";
+        reply.reasoningPlurality =
+          `${baseNote}; ${domLabel} lens carries highest explanatory weight for this investment question.${inactiveNote}`;
+      } else {
+        reply.reasoningPlurality = agreement && !agreement.startsWith("Partial agreement")
+          ? `${agreement}. Allocator lens anchors the capital-deployment framing; macro and policy context shape regime conditions.`
+          : "Allocator lens anchors this investment question — capital preservation vs growth tradeoff is the primary analytical axis. Macro and policy lenses provide regime framing context.";
+      }
     } else if (agreement && !agreement.startsWith("Partial agreement")) {
       reply.reasoningPlurality = `${agreement}. Minority view preserved as alternative scenario context.`;
     } else if (isSaudi) {
       reply.reasoningPlurality =
         "Macro and Policy lenses aligned on oil-fiscal transmission as primary TASI driver. " +
-        "Behavioral lens flags sentiment overshoot risk in high-oil-price momentum phases as the relevant competing minority view.";
+        "Allocator lens flags downside preservation requirement below $75-80 oil breakeven. " +
+        "Behavioral lens flags sentiment overshoot risk as the competing minority view.";
     } else {
       reply.reasoningPlurality = "Framework synthesis provides primary analytical anchor; lens activation insufficient for full plurality map.";
     }
