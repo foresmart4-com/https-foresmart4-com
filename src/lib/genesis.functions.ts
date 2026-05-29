@@ -41,6 +41,11 @@ import {
   buildAllocationIntelligence,
   type AllocationFrame,
 } from "@/services/institutional/allocationIntelligence";
+import {
+  evaluateAnswerQuality,
+  type QualityTier,
+  type HarnessResult,
+} from "@/services/institutional/qualityHarness";
 
 export interface GenesisScenario {
   label: string;
@@ -143,6 +148,10 @@ export interface GenesisReply {
   thesisStrength?: ThesisStrength;        // strong / supported / fragile / absent
   evidenceConflict?: string;              // detected internal evidence tension, if any
   confidenceExplanation?: string;         // 1 sentence: earned vs asserted confidence
+  // Phase 69: Investment Quality Evaluation Harness
+  qualityTier?: QualityTier;             // weak / acceptable / strong / institutional
+  qualityScore?: number;                 // 0-100 weighted total
+  qualityImprovements?: string[];        // top actionable improvement suggestions
 }
 
 const AskInput = z.object({
@@ -411,6 +420,10 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
     })(),
     evidenceConflict: cleanStr(obj.evidenceConflict),
     confidenceExplanation: cleanStr(obj.confidenceExplanation),
+    // Phase 69: Quality harness — set deterministically post-sanitize; never from AI JSON
+    qualityTier: undefined,
+    qualityScore: undefined,
+    qualityImprovements: undefined,
   };
 }
 
@@ -2101,6 +2114,13 @@ async function runFusion(
   }
   console.log(`[genesis:depth] depth=${calibration.reasoningDepth} evidenceStrength=${calibration.evidenceStrength} thesis=${calibration.thesisStrength}`);
 
+  // Phase 69: Quality harness evaluation — runs after all enrichment, fully deterministic
+  const harness = evaluateAnswerQuality(sanitized, question);
+  sanitized.qualityTier = harness.qualityTier;
+  sanitized.qualityScore = harness.totalScore;
+  sanitized.qualityImprovements = harness.improvements.length > 0 ? harness.improvements : undefined;
+  console.log(`[genesis:harness] tier=${harness.qualityTier} score=${harness.totalScore} category=${harness.promptCategory}`);
+
   const _finalSet = _p12.filter(k => { const v = (sanitized as Record<string,unknown>)[k]; return v != null && v !== "" && !(Array.isArray(v) && (v as unknown[]).length === 0); });
   console.log(`[genesis:p12] post-fill: ${_finalSet.join(",")||"none"}`);
 
@@ -2288,6 +2308,12 @@ export const askGenesis = createServerFn({ method: "POST" })
       direct.evidenceConflict = _fbCalib.evidenceConflict ?? undefined;
       direct.confidenceExplanation = _fbCalib.confidenceExplanation;
       if (_fbCalib.reasoningDepth === "shallow") enrichShallowReasoning(direct, _fbCalib, lang);
+      // Phase 69: harness on single-call path
+      const _fbHarness = evaluateAnswerQuality(direct, data.question);
+      direct.qualityTier = _fbHarness.qualityTier;
+      direct.qualityScore = _fbHarness.totalScore;
+      direct.qualityImprovements = _fbHarness.improvements.length > 0 ? _fbHarness.improvements : undefined;
+      console.log(`[genesis:harness:sc] tier=${_fbHarness.qualityTier} score=${_fbHarness.totalScore}`);
       return { reply: direct, error: null as null, engine: "ai" as const, provider, providerIdentity: routing.providerIdentity, routingMode: routing.routingMode };
     }
 
