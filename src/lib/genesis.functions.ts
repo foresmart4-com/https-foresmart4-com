@@ -116,6 +116,10 @@ import {
   repairWithJudgment,
   type InstitutionalJudgment,
 } from "@/services/institutional/investmentJudgmentEngine";
+// Phase-83B Risk Closure
+import {
+  allocateContextBudget,
+} from "@/services/institutional/contextBudgetController";
 
 export interface GenesisScenario {
   label: string;
@@ -2508,16 +2512,20 @@ async function runFusion(
 
   // ── Phase-83A: Research pack registry ─────────────────────────────────────────
   // Curated research packs with quality signals for use-enforcement post-response.
-  // More structured than knowledgeActivationCore — includes frameworks + evidence requirements.
-  const _researchPackIds: ResearchPackId[] = isInvestment
+  // Phase-83B: Context budget controller trims packs to fit within 1600-char budget,
+  // preserving mandatory Saudi packs and deduplicating overlapping content.
+  const _allResearchPackIds: ResearchPackId[] = isInvestment
     ? selectResearchPacks(question, ctx, isSaudi)
     : [];
+  let _researchPackIds: ResearchPackId[] = _allResearchPackIds;
+  if (_allResearchPackIds.length > 0) {
+    const budget = allocateContextBudget(_allResearchPackIds, question, ctx, isSaudi, lang);
+    _researchPackIds = budget.selected;
+    console.log(`[genesis:context-budget] ${budget.allocationNote}`);
+  }
   const _researchPackContext = _researchPackIds.length > 0
     ? buildResearchPackContext(_researchPackIds, lang)
     : "";
-  if (_researchPackIds.length > 0) {
-    console.log(`[genesis:research-packs] packs=[${_researchPackIds.join(",")}]`);
-  }
 
   // ── Phase-83A: Multi-cycle historical analog engine ───────────────────────────
   // Extends historicalLearning.ts with multi-cycle comparison, regime-aware matching,
@@ -2786,11 +2794,16 @@ async function runFusion(
     const depthAudit = auditInvestmentDepth(sanitized);
     _depthAuditForJudgment = depthAudit;
     sanitized.depthRulesScore = depthAudit.overallScore;
-    console.log(`[genesis:depth-rules] score=${depthAudit.overallScore} passed=${depthAudit.passedRules}/${depthAudit.totalRules} critical_failed=[${depthAudit.criticalFailed.join(",")||"none"}]`);
-    if (!depthAudit.passesMinimum) {
+    console.log(`[genesis:depth-rules] score=${depthAudit.overallScore} passed=${depthAudit.passedRules}/${depthAudit.totalRules} critical=[${depthAudit.criticalFailed.join(",")||"none"}] major=[${depthAudit.majorFailed.join(",")||"none"}]`);
+    // Phase-83B Risk Closure: repair on critical failure OR 2+ major failures OR score<85
+    const needsDepthRepair =
+      !depthAudit.passesMinimum ||                    // any critical rule failed
+      depthAudit.majorFailed.length >= 2 ||            // 2+ major rules failed
+      depthAudit.overallScore < 85;                    // overall depth score < 85
+    if (needsDepthRepair) {
       const hints = buildDepthRepairHints(depthAudit, _qualityGateIsSaudi, lang);
       if (hints.length > 0) {
-        console.log(`[genesis:depth-rules] repair hints: ${hints[0]}`);
+        console.log(`[genesis:depth-rules] repair triggered: ${hints[0].slice(0, 80)}`);
         repairShallowAnswer(sanitized, tASliceRepair, cSliceFull, _qualityGateIsSaudi, lang);
       }
     }

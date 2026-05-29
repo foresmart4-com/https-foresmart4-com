@@ -45,7 +45,7 @@ export interface KnowledgeUseAudit {
   repairHints: string[];    // specific repair directives for unused packs
 }
 
-const USE_THRESHOLD = 60; // 60% of activated packs must be genuinely used
+const USE_THRESHOLD = 70; // 70% of activated packs must be genuinely used (raised from 60)
 
 // ─── Reply text extraction ────────────────────────────────────────────────────
 // Aggregates all meaningful text fields from the reply for pattern matching.
@@ -164,14 +164,30 @@ export function enforceKnowledgeUse(
     };
   }
 
+  // Critical packs: if any of these are activated but unused, repair is mandatory
+  // regardless of the overall use ratio.
+  const CRITICAL_PACKS: ResearchPackId[] = ["SaudiMacroPack", "OilFiscalPack"];
+  const ALLOCATOR_CRITICAL_PACKS: ResearchPackId[] = ["InstitutionalAllocatorPack"];
+
+  const isAllocatorQuestion = activatedPackIds.includes("InstitutionalAllocatorPack");
+
   const replyText = extractReplyText(reply);
   const packResults = activatedPackIds.map(id => verifyPackUse(id, replyText));
 
   const genuinelyUsed = packResults.filter(r => r.reflected).length;
   const totalActivated = activatedPackIds.length;
   const useRatio = Math.round((genuinelyUsed / totalActivated) * 100);
-  const passesThreshold = useRatio >= USE_THRESHOLD;
+
+  // Critical pack check: if any critical pack is activated but not reflected → force repair
   const unusedPacks = packResults.filter(r => !r.reflected).map(r => r.packId);
+  const criticalUnused = unusedPacks.filter(id =>
+    CRITICAL_PACKS.includes(id) ||
+    (isAllocatorQuestion && ALLOCATOR_CRITICAL_PACKS.includes(id))
+  );
+  const hasCriticalFailure = criticalUnused.length > 0;
+
+  // Fails if: use ratio below threshold OR any critical pack unused
+  const passesThreshold = useRatio >= USE_THRESHOLD && !hasCriticalFailure;
   const repairHints = buildRepairHints(unusedPacks, lang);
 
   return {
