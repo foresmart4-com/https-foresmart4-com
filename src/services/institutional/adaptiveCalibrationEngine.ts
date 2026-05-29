@@ -200,3 +200,33 @@ export function getCalibratedWeights(): GovernorWeights {
 export function resetCalibrationHistory(): void {
   _history.length = 0;
 }
+
+// ─── Phase-85A: Persistence accessors ────────────────────────────────────────
+
+/**
+ * Returns a snapshot of the current calibration history for durable storage.
+ * Safe to serialize — no functions, no closures.
+ */
+export function getCalibrationHistorySnapshot(): CalibrationRecord[] {
+  return [..._history];
+}
+
+/**
+ * Loads calibration history from durable storage into the process-level store.
+ * Only accepts records within the rolling window; ignores stale/malformed entries.
+ */
+export function loadCalibrationHistory(records: CalibrationRecord[]): number {
+  if (!Array.isArray(records) || records.length === 0) return 0;
+  const now = Date.now();
+  const validRecords = records.filter(
+    r => r && typeof r.timestamp === "number"
+      && (now - r.timestamp) < 6 * 60 * 60 * 1000 // reject > 6h old
+      && typeof r.compositeScore === "number"
+      && typeof r.governorDecision === "string",
+  );
+  if (validRecords.length === 0) return 0;
+  _history.length = 0;
+  const toLoad = validRecords.slice(-HISTORY_WINDOW);
+  for (const r of toLoad) _history.push(r);
+  return _history.length;
+}

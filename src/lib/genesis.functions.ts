@@ -163,6 +163,12 @@ import {
   recordCalibrationResult,
   getCalibrationState,
 } from "@/services/institutional/adaptiveCalibrationEngine";
+// Phase-85A: Durable Memory + Arabic Semantic Intelligence
+import {
+  loadDurableMemory,
+  saveDurableMemoryBackground,
+  getDurableStorageStatus,
+} from "@/services/institutional/durableInstitutionalMemory";
 
 export interface GenesisScenario {
   label: string;
@@ -2530,6 +2536,11 @@ async function runFusion(
     console.log(`[genesis:memory] prior thesis found: category=${_priorThesis.category} age=${Math.round((Date.now()-_priorThesis.timestamp)/60000)}m`);
   }
   console.log(`[genesis:memory] store=${getThesisStoreStats()}`);
+  // Phase-85A: Load durable memory from Supabase Storage (lazy, once per process)
+  if (isInvestment) {
+    await loadDurableMemory();
+    console.log(`[genesis:durable-memory] storage=${getDurableStorageStatus()}`);
+  }
   // Phase-84B: Persistent memory query (bounded LRU store, hot/warm tier only)
   const _persistentEntries: PersistentMemoryEntry[] = isInvestment ? queryMemory(question, isSaudi) : [];
   const _priorPersistentThesis: PersistentMemoryEntry | null = isInvestment
@@ -3083,6 +3094,8 @@ async function runFusion(
     // Phase-84B: also store in persistent bounded LRU memory
     const persistentStored = storeMemory(sanitized, _qualityGateIsSaudi);
     console.log(`[genesis:memory] saved snapshot; patterns=${patternsStored} persistent=${persistentStored}`);
+    // Phase-85A: fire-and-forget durable save to Supabase Storage
+    saveDurableMemoryBackground();
   }
 
   return sanitized;

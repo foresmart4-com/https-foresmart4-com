@@ -1,20 +1,25 @@
-// Phase-84B: Semantic Outcome Engine
+// Phase-84B / Phase-85A: Semantic Outcome Engine
 // Pure deterministic functions — no AI calls, no network, O(1).
 //
-// Distinct from Phase-84A outcomeLearningEngine:
-//   outcomeLearningEngine (84A)  — vocabulary overlap (raw word matching)
-//   semanticOutcomeEngine (84B)  — structured semantic slot comparison:
-//                                   direction, conviction tier, policy stance,
-//                                   Saudi oil signal, sector preference order,
-//                                   allocation stance, and claim-level comparison.
-//
-// "Semantic" here means comparing the MEANING of investment stances by extracting
-// structured representations first, then comparing those structures — not raw text.
+// Phase-84B: structured semantic slot comparison (direction, conviction,
+//   policy, oil signal, allocation stance, sector leader).
+// Phase-85A: integrates arabicSemanticReasoningEngine for Arabic-dominant text,
+//   improving direction detection, policy stance, oil signal, and allocation
+//   stance when the input is predominantly Arabic.
 //
 // Educational/advisory only. No autonomous trading. No broker execution.
 
 import type { GenesisReply } from "@/lib/genesis.functions";
 import type { PersistentMemoryEntry } from "./persistentMemoryStore";
+import {
+  isArabicDominant,
+  detectArabicDirection,
+  detectArabicPolicyStance,
+  detectArabicOilSignal,
+  detectArabicAllocationStance,
+  extractArabicSectorLeader,
+  detectArabicInvalidationActive,
+} from "./arabicSemanticReasoningEngine";
 
 // ─── Semantic profile types ───────────────────────────────────────────────────
 
@@ -45,6 +50,11 @@ function extractDirection(reply: GenesisReply): DirectionSemantic {
     reply.committeeStance,
   ].filter(Boolean).join(" ");
 
+  // Phase-85A: use Arabic semantic engine for Arabic-dominant text
+  if (isArabicDominant(allText)) {
+    return detectArabicDirection(allText);
+  }
+
   const hasBull = /صاعد|bullish|constructive|scale.in|scale_in|conditional_opportunity/i.test(allText);
   const hasBear = /هابط|bearish|defensive|avoid|reduce|wait_for_confirmation/i.test(allText);
   const hasConflict = reply.consensusStrength === "conflicted" ||
@@ -71,6 +81,11 @@ function extractConvictionTier(reply: GenesisReply): ConvictionTier {
 
 function extractPolicyStance(reply: GenesisReply): PolicySemantic {
   const text = (reply.voiceReasoning?.policy ?? "") + " " + (reply.macroChain ?? "");
+  // Phase-85A: Arabic engine path for Arabic-dominant text
+  if (isArabicDominant(text)) {
+    const ar = detectArabicPolicyStance(text);
+    if (ar !== "unknown") return ar;
+  }
   if (/pivot|تحوّل|rate\s+cut|خفض.*أسعار/i.test(text)) return "pivot_expected";
   if (/eas|easing|cut|تخفيف|تيسير/i.test(text)) return "easing_expected";
   if (/tight|hike|restrictive|تشديد|رفع.*أسعار/i.test(text)) return "tightening_expected";
@@ -83,6 +98,11 @@ function extractPolicyStance(reply: GenesisReply): PolicySemantic {
 function extractOilSignal(reply: GenesisReply): OilSemantic {
   const text = [reply.macroChain, reply.bullCase, reply.sectorLens, reply.voiceReasoning?.macro]
     .filter(Boolean).join(" ");
+  // Phase-85A: Arabic engine path
+  if (isArabicDominant(text)) {
+    const ar = detectArabicOilSignal(text);
+    if (ar !== "unknown") return ar;
+  }
   if (/above.*breakeven|فوق.*نقطة.*التعادل|surplus|فائض/i.test(text)) return "above_breakeven";
   if (/below.*breakeven|دون.*نقطة.*التعادل|deficit|عجز/i.test(text)) return "below_breakeven";
   if (/near.*breakeven|near.*75|near.*80|قرب.*نقطة/i.test(text)) return "near_breakeven";
@@ -98,6 +118,12 @@ function extractAllocationStance(reply: GenesisReply): AllocationSemantic {
     reply.voiceReasoning?.allocator,
   ].filter(Boolean).join(" ");
 
+  // Phase-85A: Arabic engine path
+  if (isArabicDominant(text)) {
+    const ar = detectArabicAllocationStance(text);
+    if (ar !== "unknown") return ar;
+  }
+
   if (/scale.in.gradual|conditional_opportunity/i.test(text)) return "scale_in";
   if (/selective_over_broad|selective.*quality/i.test(text)) return "selective";
   if (/wait.for.confirmation|wait_for_confirmation|انتظار.*تأكيد/i.test(text)) return "wait";
@@ -110,6 +136,11 @@ function extractAllocationStance(reply: GenesisReply): AllocationSemantic {
 
 function extractSectorLeader(reply: GenesisReply): string {
   const text = (reply.sectorLens ?? "") + " " + (reply.committeeSynthesis?.finalStance ?? "");
+  // Phase-85A: Arabic engine path
+  if (isArabicDominant(text)) {
+    const ar = extractArabicSectorLeader(text);
+    if (ar) return ar;
+  }
   if (/aramco.*primary|aramco.*first|أرامكو.*أول|aramco.*anchor/i.test(text)) return "aramco";
   if (/bank.*lead|مصرفي.*يقود/i.test(text)) return "banks";
   if (/sabic.*lead|سابك.*يقود/i.test(text)) return "sabic";
@@ -122,11 +153,14 @@ function extractSectorLeader(reply: GenesisReply): string {
 
 function checkInvalidationActive(reply: GenesisReply, priorInvalidation?: string): boolean {
   if (!priorInvalidation) return false;
-  // Check if the prior invalidation trigger appears in current reply's macro chain or bear case
   const currentText = [reply.macroChain, reply.bearCase, reply.secondOrderRisks].filter(Boolean).join(" ");
+  // Phase-85A: Arabic engine path for Arabic-dominant text
+  if (isArabicDominant(currentText)) {
+    return detectArabicInvalidationActive(currentText, priorInvalidation);
+  }
   const triggerWords = priorInvalidation.toLowerCase().split(/\W+/).filter(w => w.length > 5);
   const hits = triggerWords.filter(w => currentText.toLowerCase().includes(w)).length;
-  return hits >= 2; // at least 2 content words from invalidation appear active
+  return hits >= 2;
 }
 
 // ─── Main extraction ─────────────────────────────────────────────────────────
