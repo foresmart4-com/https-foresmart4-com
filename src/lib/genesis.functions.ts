@@ -58,6 +58,8 @@ import { findHistoricalAnalog } from "@/services/research/historicalLearning";
 import { scoreResearchCredibility } from "@/services/research/researchCredibilityEngine";
 import { getIntakeGovernanceSummary } from "@/services/research/researchIntake";
 import { feedKnowledge, getFeedStateLabel } from "@/services/research/knowledgeFeeding";
+import { synthesizeFrameworks } from "@/services/research/frameworkSynthesis";
+import { reasonMultiPerspective } from "@/services/research/multiPerspectiveReasoning";
 
 export interface GenesisScenario {
   label: string;
@@ -2011,6 +2013,10 @@ async function runFusion(
   const intakeGovernance       = getIntakeGovernanceSummary(question, ctx);
   // Phase 77: Curated knowledge feeding — orchestrates all five subsystems
   const knowledgeFeed          = feedKnowledge({ question, context: ctx, regime: trackA?.regime });
+  // Phase 80: Framework synthesis — dominant/supporting/conflicting role assignment
+  const frameworkSynth         = synthesizeFrameworks(question, ctx, trackA?.regime);
+  // Phase 81: Multi-perspective reasoning — five analytical lenses
+  const multiPerspective       = reasonMultiPerspective(question, ctx, trackA?.regime);
 
   // ── Phase 68: Portfolio Allocation Intelligence ───────────────────────────────
   const allocationIntel = buildAllocationIntelligence({
@@ -2074,6 +2080,18 @@ async function runFusion(
       : "",
     knowledgeFeed.singleSchoolDominanceWarning
       ? `\n\nResearch balance: single-school dominance detected — apply competing frameworks before concluding.`
+      : "",
+    // Phase 80: Framework synthesis — injected when investment or macro signals present
+    (isInvestment || graphResult.matchedNodes.length > 0) && frameworkSynth.synthesisContext
+      ? `\n\nFramework synthesis: ${frameworkSynth.synthesisContext.slice(0, 220)}`
+      : "",
+    // Phase 81: Multi-perspective reasoning — injected when investment or macro signals present
+    (isInvestment || graphResult.matchedNodes.length > 0) && multiPerspective.perspectiveContext
+      ? `\n\nPerspective map: ${multiPerspective.perspectiveContext.slice(0, 260)}`
+      : "",
+    // Phase 81: Minority perspective preserved when lenses conflict
+    multiPerspective.disagreementNote && multiPerspective.competingLens
+      ? `\n\nCompeting lens: ${multiPerspective.competingLens.lensName} — ${multiPerspective.competingLens.view.slice(0, 80)}`
       : "",
   ].join("");
   const user = wrapUserContext(lang, userBody);
