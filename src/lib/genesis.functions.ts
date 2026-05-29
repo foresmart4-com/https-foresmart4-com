@@ -81,6 +81,23 @@ import {
   activateKnowledge,
   type KnowledgeActivationResult,
 } from "@/services/institutional/knowledgeActivationCore";
+// Phase-83A: Knowledge Activation + Research Intelligence Core
+import {
+  selectResearchPacks,
+  buildResearchPackContext,
+  type ResearchPackId,
+} from "@/services/research/researchPackRegistry";
+import {
+  enforceKnowledgeUse,
+  repairKnowledgeUse,
+} from "@/services/institutional/knowledgeUseEnforcement";
+import {
+  findMultiCycleAnalogs,
+} from "@/services/research/historicalAnalogEngine";
+import {
+  auditInvestmentDepth,
+  buildDepthRepairHints,
+} from "@/services/institutional/investmentDepthRules";
 
 export interface GenesisScenario {
   label: string;
@@ -200,6 +217,9 @@ export interface GenesisReply {
   secondOrderRisks?: string;    // second-order contagion effects beyond direct macro impact
   activatedKnowledge?: string;  // knowledge packs activated for this question (audit trail)
   valuationEarningsView?: string; // explicit valuation-vs-earnings distinction for this question
+  // Phase-83A: Research Intelligence Core
+  knowledgeUseScore?: number;   // 0-100: % of activated research packs genuinely reflected in reply
+  depthRulesScore?: number;     // 0-100: weighted investment depth rules compliance
 }
 
 const AskInput = z.object({
@@ -489,6 +509,9 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
     secondOrderRisks: cleanStr(obj.secondOrderRisks),
     activatedKnowledge: cleanStr(obj.activatedKnowledge),
     valuationEarningsView: cleanStr(obj.valuationEarningsView),
+    // Phase-83A: scores set deterministically post-sanitize; never from AI JSON
+    knowledgeUseScore: undefined,
+    depthRulesScore: undefined,
   };
 }
 
@@ -2460,6 +2483,29 @@ async function runFusion(
     }
   }
 
+  // ── Phase-83A: Research pack registry ─────────────────────────────────────────
+  // Curated research packs with quality signals for use-enforcement post-response.
+  // More structured than knowledgeActivationCore — includes frameworks + evidence requirements.
+  const _researchPackIds: ResearchPackId[] = isInvestment
+    ? selectResearchPacks(question, ctx, isSaudi)
+    : [];
+  const _researchPackContext = _researchPackIds.length > 0
+    ? buildResearchPackContext(_researchPackIds, lang)
+    : "";
+  if (_researchPackIds.length > 0) {
+    console.log(`[genesis:research-packs] packs=[${_researchPackIds.join(",")}]`);
+  }
+
+  // ── Phase-83A: Multi-cycle historical analog engine ───────────────────────────
+  // Extends historicalLearning.ts with multi-cycle comparison, regime-aware matching,
+  // and structured Saudi cycle overlay. Replaces the single-analog injection below.
+  const _multiAnalog = isInvestment
+    ? findMultiCycleAnalogs(question, ctx, lang)
+    : null;
+  if (_multiAnalog?.primaryAnalog) {
+    console.log(`[genesis:hist-analog] category=${_multiAnalog.category} primary=${_multiAnalog.primaryAnalog.episode.id}`);
+  }
+
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
     `User question: ${question}`,
@@ -2488,11 +2534,25 @@ async function runFusion(
     // P0 Saudi mandatory depth — beyond the 5-channel checklist; forces conservative
     // allocator reasoning with scale-in / wait / avoid decision framework.
     depthEngine.saudiDepthContext ? `\n\n${depthEngine.saudiDepthContext}` : "",
+    // Phase-83A: Research packs — structured curated packs with quality signals.
+    // Placed after depth engine so facts are grounded before the structured packs.
+    _researchPackContext ? `\n\n${_researchPackContext}` : "",
+    // Phase-83A: Multi-cycle historical analog — Saudi cycle overlay + governance note.
+    // Replaces single-analog injection with richer structured context.
+    _multiAnalog?.contextBlock && _multiAnalog.primaryAnalog
+      ? `\n\nHistorical analog engine:\n${_multiAnalog.contextBlock.slice(0, 400)}`
+      : "",
+    _multiAnalog?.saudiCycleContext && isSaudi
+      ? `\n\nSaudi cycle context:\n${_multiAnalog.saudiCycleContext.slice(0, 350)}`
+      : "",
     // Phase 71-77: Research civilization context (compact; injected when signals detected)
     graphResult.graphContext ? `\n\nKnowledge graph: ${graphResult.conceptLinkage.slice(0, 250)}` : "",
     researchLibCtx ? `\n\nResearch library: ${researchLibCtx.slice(0, 250)}` : "",
     theoryComparison.comparisonContext ? `\n\n${theoryComparison.comparisonContext.slice(0, 200)}` : "",
-    historicalAnalog.lessonContext ? `\n\nHistorical analog: ${historicalAnalog.lessonContext.slice(0, 150)}` : "",
+    // Use legacy historicalAnalog only if multi-cycle engine found nothing
+    (!_multiAnalog?.primaryAnalog && historicalAnalog.lessonContext)
+      ? `\n\nHistorical analog: ${historicalAnalog.lessonContext.slice(0, 150)}`
+      : "",
     researchCredibility.sourceScores.length > 0 ? `\n\n${researchCredibility.fusionContext}` : "",
     researchClassification.sourceState === "rejected" ? `\n\nResearch governance: ${researchClassification.governanceNote}` : "",
     // Phase 76: Intake governance — surfaced only when institutional or rejected signals detected
@@ -2635,6 +2695,35 @@ async function runFusion(
         : `Valuation vs earnings distinction: ${isSaudiLocal
             ? `TASI in current regime — upside from PE expansion (fragile, SAMA easing expectations driven) vs EPS growth (durable, requires oil above breakeven for 12+ months). Conservative allocator prefers thesis clarity: EPS growth with oil direction confirmation > PE multiple expansion bet.`
             : `In ${(trackA?.regime ?? "current regime").replace(/_/g, " ")} with ${bias} bias: PE expansion driven by monetary policy expectations (fragile on policy shift) vs EPS growth supported by revenue and margin improvement (more durable). Current thesis relies on: ${bias === "bullish" ? "constructive bias — identify which return driver is primary." : "pressure regime — multiple compression risk is live."}`}`;
+    }
+  }
+
+  // Phase-83A: Knowledge use enforcement — verify activated packs are genuinely reflected.
+  // Prevents fake activation: sets activatedKnowledge but reply still uses generic commentary.
+  if (_qualityGateIsInvestment && _researchPackIds.length > 0) {
+    const useAudit = enforceKnowledgeUse(sanitized, _researchPackIds, lang);
+    sanitized.knowledgeUseScore = useAudit.useRatio;
+    console.log(`[genesis:knowledge-use] ratio=${useAudit.useRatio}% used=${useAudit.genuinelyUsed}/${useAudit.totalActivated} passes=${useAudit.passesThreshold}`);
+    if (!useAudit.passesThreshold) {
+      repairKnowledgeUse(sanitized, useAudit, _qualityGateIsSaudi, lang);
+      console.log(`[genesis:knowledge-use] repair applied — unused=[${useAudit.unusedPacks.join(",")}]`);
+    }
+  }
+
+  // Phase-83A: Investment depth rules audit — 10 canonical rules, weighted scoring.
+  // Runs on all investment questions. Produces depthRulesScore and repair hints.
+  if (_qualityGateIsInvestment) {
+    const depthAudit = auditInvestmentDepth(sanitized);
+    sanitized.depthRulesScore = depthAudit.overallScore;
+    console.log(`[genesis:depth-rules] score=${depthAudit.overallScore} passed=${depthAudit.passedRules}/${depthAudit.totalRules} critical_failed=[${depthAudit.criticalFailed.join(",")||"none"}]`);
+    if (!depthAudit.passesMinimum) {
+      // Critical rules failed — apply targeted repair from authoritative rule hints
+      const hints = buildDepthRepairHints(depthAudit, _qualityGateIsSaudi, lang);
+      if (hints.length > 0) {
+        console.log(`[genesis:depth-rules] repair hints: ${hints[0]}`);
+        // Re-run shallow repair which also fixes macroChain, secondOrderRisks, etc.
+        repairShallowAnswer(sanitized, tASliceRepair, cSliceFull, _qualityGateIsSaudi, lang);
+      }
     }
   }
 
