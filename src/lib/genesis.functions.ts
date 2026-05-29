@@ -34,6 +34,9 @@ import {
   type ThesisStrength,
   type ReasoningCalibrationResult,
 } from "@/services/institutional/reasoningCalibration";
+import {
+  buildCrossMarketFusion,
+} from "@/services/institutional/crossMarketFusion";
 
 export interface GenesisScenario {
   label: string;
@@ -1026,7 +1029,36 @@ Set "committeeBullCase": 1 sentence for the bull committee argument.
 Set "committeeBearCase": 1 sentence for the bear committee argument.
 ABSOLUTELY FORBIDDEN: "buy X now", "top performer", "guaranteed return", specific company recommendations. All output is analytical and advisory.`;
 
-  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n\n${base}`;
+  // ── Phase 67: Cross-Market Intelligence Fusion ──────────────────────────────
+  const crossMarketFusionGuidance = ar
+    ? `عند ظهور "Cross-Market Intelligence Fusion" في السياق:
+استخدم السلاسل السببية المحددة المُدرجة — لا تُعِد توليد آليات انتقال مبهمة.
+القاعدة: لا تحليل سوق معزول. كل ادعاء اتجاهي يجب أن يمر عبر آلية انتقال مسماة من أحد المحاور الثمانية:
+1. النفط — قناة الإيرادات المالية السعودية ونقطة التعادل.
+2. الأسعار — مسار البنك المركزي والمعدل الحقيقي وضغط معامل الخصم.
+3. DXY/USD — تدفقات الأسواق الناشئة والسيولة الإقليمية وضغط ربط الريال.
+4. السيولة — العرض العالمي للدولار وتوافر الائتمان وقدرة تحمل المخاطر.
+5. الطلب الصيني — طلب السلع وهوامش البتروكيماويات ووكيل نمو الأسواق الناشئة.
+6. شهية المخاطرة — تأكيد الأصول المتقاطعة (ذهب/BTC/DXY) والتموضع.
+7. التدفقات الإقليمية — ملكية تاسي الأجنبية (~15-20%) واتجاه إعادة الاستثمار.
+8. انتقال الصدمات — كيف تنتشر الصدمة الأولية عبر الأسواق الثانوية.
+عند ظهور "Isolation warning": يجب ربط الأصل المُحلَّل بالسلاسل المتقاطعة المحددة في السياق.
+ممنوع: "السوق مترابط"، "تأثير خارجي"، دون تسمية القناة المحددة وآلية الانتقال.`
+    : `When "Cross-Market Intelligence Fusion" appears in context:
+Use the specific causal chains provided — do not regenerate vague transmission mechanisms.
+Rule: no isolated market analysis. Every directional claim must pass through a named transmission mechanism from one of the eight dimensions:
+1. Oil — Saudi fiscal revenue channel and breakeven.
+2. Rates — CB trajectory, real rate environment, discount rate pressure.
+3. USD/DXY — EM inflows/outflows, regional liquidity, SAR peg tightening.
+4. Liquidity — global dollar supply, credit availability, risk capacity.
+5. China demand — commodity demand, petrochemical margins, EM growth proxy.
+6. Risk appetite — cross-asset confirmation (gold/BTC/DXY) and positioning.
+7. Regional flows — TASI foreign ownership (~15-20%) and repatriation direction.
+8. Macro spillovers — how primary shock transmits to secondary assets.
+When "Isolation warning" appears: must link the analyzed asset to the specific cross-market chains in context.
+FORBIDDEN: "markets are interconnected", "external impact", without naming the specific channel and transmission mechanism.`;
+
+  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n\n${base}`;
 }
 
 // ─── Institutional Reasoning Tracks ───────────────────────────────────────
@@ -1913,6 +1945,22 @@ async function runFusion(
   const sectorCtx = buildSectorIntelligenceContext(question + "\n" + ctx, trackASlice, liveSlice);
   const committeeCtx = buildCommitteeDebateContext(question, trackASlice, trackDSlice, consensusSlice);
 
+  // ── Phase 67: Cross-Market Intelligence Fusion ────────────────────────────────
+  const crossMarketFusion = buildCrossMarketFusion({
+    question,
+    oilPrice:       live?.oilPrice ?? null,
+    oilChangePct:   live?.oilChangePct ?? null,
+    tltPrice:       live?.tltPrice ?? null,
+    tltChangePct:   live?.tltChangePct ?? null,
+    spyChangePct:   live?.spyChangePct ?? null,
+    btcChangePct:   live?.btcChangePct ?? null,
+    goldChangePct:  live?.goldChangePct ?? null,
+    eurUsd:         live?.eurUsd ?? null,
+    regimeBias:     trackA?.macroBias ?? consensus.dominantBias,
+    creditStress:   trackA?.creditStressLevel ?? "moderate",
+    lang,
+  });
+
   // ── P0 Quality: Investment enforcement directive ─────────────────────────────
   const isInvestment = serverDetectInvestmentIntent(question, ctx);
   const isSaudi = serverDetectSaudiQuestion(question, ctx);
@@ -1926,6 +1974,8 @@ async function runFusion(
     // Investment enforcement FIRST — most prominent position before the long fusion block
     investEnforcement ? `\n\n${investEnforcement}` : "",
     `\n\n${fusionDirective}`,
+    // Phase 67: Cross-market fusion — causal spillover chains for all 8 dimensions
+    `\n\n${crossMarketFusion.fusionContext}`,
     institutionalCtx ? `\n\n${institutionalCtx}` : "",
     sectorCtx ? `\n\n${sectorCtx}` : "",
     committeeCtx ? `\n\n${committeeCtx}` : "",
@@ -2096,10 +2146,18 @@ export const askGenesis = createServerFn({ method: "POST" })
     const _fbIsCompanyQ = serverDetectCompanyQuestion(data.question);
     const _fbFallbackCtx = buildFallbackInstitutionalContext(data.question, _fbIsInvestment, _fbIsSaudi, _fbIsCompanyQ, lang);
     const _fbEnforcementCtx = buildInvestmentEnforcementDirective(_fbIsInvestment, _fbIsSaudi, _fbIsCompanyQ, lang);
+    // Phase 67: cross-market fusion — null prices in fallback; still injects linkage rules
+    const _fbCrossMarket = buildCrossMarketFusion({
+      question: data.question,
+      oilPrice: null, oilChangePct: null, tltPrice: null, tltChangePct: null,
+      spyChangePct: null, btcChangePct: null, goldChangePct: null, eurUsd: null,
+      regimeBias: "neutral", creditStress: "moderate", lang,
+    });
     const user = wrapUserContext(lang, [
       `User question: ${data.question}`,
       data.marketContext ? `\nLive market context:\n${data.marketContext}` : "",
       _fbEnforcementCtx ? `\n\n${_fbEnforcementCtx}` : "",
+      `\n\n${_fbCrossMarket.fusionContext}`,
       _fbFallbackCtx ? `\n\n${_fbFallbackCtx}` : "",
     ].join(""));
 
