@@ -37,6 +37,10 @@ import {
 import {
   buildCrossMarketFusion,
 } from "@/services/institutional/crossMarketFusion";
+import {
+  buildAllocationIntelligence,
+  type AllocationFrame,
+} from "@/services/institutional/allocationIntelligence";
 
 export interface GenesisScenario {
   label: string;
@@ -1058,7 +1062,32 @@ Rule: no isolated market analysis. Every directional claim must pass through a n
 When "Isolation warning" appears: must link the analyzed asset to the specific cross-market chains in context.
 FORBIDDEN: "markets are interconnected", "external impact", without naming the specific channel and transmission mechanism.`;
 
-  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n\n${base}`;
+  // ── Phase 68: Portfolio Allocation Intelligence ──────────────────────────────
+  const allocationIntelligenceGuidance = ar
+    ? `عند ظهور "ذكاء التخصيص" أو "Allocation Intelligence" في السياق:
+استخدم الإطار والأفق والأبعاد الستة المحددة لتأطير الإجابة حول أسلوب التخصيص — لا أحجام رأس المال، لا توصيات تنفيذية.
+الأطر الممكنة وتطبيقها:
+- broad_exposure: النظام يدعم المشاركة العامة — وضّح متى يضيق الفارق بين الأصول ولماذا يُقلّص ذلك ميزة الانتقائية.
+- selective_exposure: التباعد القطاعي يُكافئ التمييز القائم على الجودة — وضّح المعايير الانتقائية المناسبة للنظام الحالي.
+- defensive: الحفظ يتقدم على النمو — ابدأ بالمخاطر الهبوطية واذكر الأصول الدفاعية المناسبة.
+- balanced: لا ميل اتجاهي قوي — مزج الجانبين مع ذكر سبب التوازن.
+- opportunistic: الصبر على شروط دخول محددة — وضّح ما الذي يُبرّر الانتظار عوضاً عن التعرض الفوري.
+الأبعاد الستة يجب معالجتها في الإجابات الاستثمارية:
+واسع مقابل انتقائي | معدّل بالمخاطر | دفاعي/دوري | مخاطر التركيز | حفظ/نمو | ملاءمة الأفق.
+ممنوع مطلقاً: 'أعِد التوازن الآن'، 'خصّص X%'، 'اشترِ هذا الأصل الآن'، 'عائد مضمون'، مبالغ رأسمال محددة.`
+    : `When "Allocation Intelligence" appears in context:
+Use the stated frame, horizon, and six dimensions to shape allocation framing in the response — no capital amounts, no execution recommendations.
+Frame applications:
+- broad_exposure: regime supports general participation — explain when inter-asset dispersion narrows and why that reduces selectivity edge.
+- selective_exposure: sector divergence rewards quality discrimination — explain the selection criteria appropriate to the current regime.
+- defensive: preservation leads over growth — lead with downside risks and name defensively appropriate asset characteristics.
+- balanced: no strong directional tilt — blend both sides with reasoning for the balance.
+- opportunistic: patience for defined entry conditions — explain what justifies waiting over immediate exposure.
+Six dimensions must be addressed in investment answers:
+broad vs selective | risk-adjusted | defensive/cyclical | concentration risk | preservation/growth | horizon suitability.
+ABSOLUTELY FORBIDDEN: "rebalance now", "allocate X%", "buy this asset now", "guaranteed return", specific capital amounts.`;
+
+  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n${allocationIntelligenceGuidance}\n\n${base}`;
 }
 
 // ─── Institutional Reasoning Tracks ───────────────────────────────────────
@@ -1945,6 +1974,17 @@ async function runFusion(
   const sectorCtx = buildSectorIntelligenceContext(question + "\n" + ctx, trackASlice, liveSlice);
   const committeeCtx = buildCommitteeDebateContext(question, trackASlice, trackDSlice, consensusSlice);
 
+  // ── Phase 68: Portfolio Allocation Intelligence ───────────────────────────────
+  const allocationIntel = buildAllocationIntelligence({
+    question,
+    regimeBias:       trackA?.macroBias ?? consensus.dominantBias,
+    regimeLabel:      trackA?.regime ?? "unknown",
+    creditStress:     trackA?.creditStressLevel ?? "moderate",
+    consensusStrength: consensus.strength,
+    isSaudi:          isSaudi,
+    lang,
+  });
+
   // ── Phase 67: Cross-Market Intelligence Fusion ────────────────────────────────
   const crossMarketFusion = buildCrossMarketFusion({
     question,
@@ -1976,6 +2016,8 @@ async function runFusion(
     `\n\n${fusionDirective}`,
     // Phase 67: Cross-market fusion — causal spillover chains for all 8 dimensions
     `\n\n${crossMarketFusion.fusionContext}`,
+    // Phase 68: Portfolio allocation intelligence — broad/selective/defensive/balanced/opportunistic
+    isInvestment ? `\n\n${allocationIntel.fusionContext}` : "",
     institutionalCtx ? `\n\n${institutionalCtx}` : "",
     sectorCtx ? `\n\n${sectorCtx}` : "",
     committeeCtx ? `\n\n${committeeCtx}` : "",
@@ -2153,11 +2195,18 @@ export const askGenesis = createServerFn({ method: "POST" })
       spyChangePct: null, btcChangePct: null, goldChangePct: null, eurUsd: null,
       regimeBias: "neutral", creditStress: "moderate", lang,
     });
+    const _fbAllocIntel = _fbIsInvestment ? buildAllocationIntelligence({
+      question: data.question,
+      regimeBias: "neutral", regimeLabel: "unknown",
+      creditStress: "moderate", consensusStrength: "weak",
+      isSaudi: _fbIsSaudi, lang,
+    }) : null;
     const user = wrapUserContext(lang, [
       `User question: ${data.question}`,
       data.marketContext ? `\nLive market context:\n${data.marketContext}` : "",
       _fbEnforcementCtx ? `\n\n${_fbEnforcementCtx}` : "",
       `\n\n${_fbCrossMarket.fusionContext}`,
+      _fbAllocIntel ? `\n\n${_fbAllocIntel.fusionContext}` : "",
       _fbFallbackCtx ? `\n\n${_fbFallbackCtx}` : "",
     ].join(""));
 
