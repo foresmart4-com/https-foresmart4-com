@@ -29,6 +29,11 @@
 
 import type { SemanticImpactResult } from "./semanticImpactEngine";
 import type { PolicyExpectationDelta } from "./policyExpectationModel";
+import {
+  allocateDynamicBudget,
+  deriveLayerScores,
+  detectQuestionType,
+} from "./dynamicBudgetGovernor";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -38,6 +43,8 @@ export interface UnifiedCognitionInput {
   macroSynthesis:  string;   // Phase-86A macro synthesis
   semanticImpact:  SemanticImpactResult;
   policyDelta:     PolicyExpectationDelta;
+  // Phase-87A: explicit Arabic thinker/school contexts — guaranteed to survive dedup
+  arabicCtx?:      string;
   question:        string;
   isSaudi:         boolean;
   isInvestment:    boolean;
@@ -111,7 +118,10 @@ export function buildUnifiedCognition(input: UnifiedCognitionInput): UnifiedCogn
     macroSynthesis,
     semanticImpact,
     policyDelta,
+    arabicCtx,
+    question,
     isInvestment,
+    regime,
     maxChars = 700,
   } = input;
 
@@ -123,11 +133,19 @@ export function buildUnifiedCognition(input: UnifiedCognitionInput): UnifiedCogn
     };
   }
 
+  // Phase-87A: Merge Arabic context into expertKnowledge — guarantees Arabic thinkers/schools
+  // survive dedup by being the primary expert content when Arabic is present.
+  const mergedExpert = arabicCtx && arabicCtx.trim().length > 10
+    ? (arabicCtx.length > expertKnowledge.length
+        ? arabicCtx                                        // Arabic is more substantial
+        : `${arabicCtx.slice(0, 180)} | ${expertKnowledge}`.slice(0, Math.max(arabicCtx.length, expertKnowledge.length + 50)))
+    : expertKnowledge;
+
   // Determine which layers have content
   const available = {
     macro:     macroSynthesis.trim().length > 20,
     semantic:  semanticImpact.hasSemanticPressure && semanticImpact.semanticContext.length > 20,
-    expert:    expertKnowledge.trim().length > 20,
+    expert:    mergedExpert.trim().length > 20,
     policy:    policyDelta.expectationCtx.length > 20,
     authority: authority85b.trim().length > 20,
   };
@@ -141,7 +159,24 @@ export function buildUnifiedCognition(input: UnifiedCognitionInput): UnifiedCogn
     };
   }
 
-  const budget = allocateBudget(maxChars, available);
+  // Phase-87A: Dynamic budget allocation replaces static 35/22/20/13/10 split
+  const questionType = detectQuestionType(question);
+  const scores = deriveLayerScores(
+    macroSynthesis,
+    semanticImpact.analyticalPressure,
+    mergedExpert,
+    policyDelta.deltaScore,
+    authority85b,
+  );
+  const dynBudget = allocateDynamicBudget(maxChars, scores, available, questionType);
+  // Map dynamic budget to the shape expected by addLayer below
+  const budget = {
+    macro:     dynBudget.macro,
+    semantic:  dynBudget.semantic,
+    expert:    dynBudget.expert,
+    policy:    dynBudget.policy,
+    authority: dynBudget.authority,
+  };
 
   // Assemble layers in priority order
   const parts: string[] = [];
@@ -162,7 +197,7 @@ export function buildUnifiedCognition(input: UnifiedCognitionInput): UnifiedCogn
 
   addLayer("macro",     macroSynthesis,                "macro");
   addLayer("semantic",  semanticImpact.semanticContext, "semantic");
-  addLayer("expert",    expertKnowledge,               "expert");
+  addLayer("expert",    mergedExpert,                  "expert");   // Phase-87A: merged Arabic
   addLayer("policy",    policyDelta.expectationCtx,    "policy");
   addLayer("authority", authority85b,                  "authority");
 

@@ -2696,12 +2696,17 @@ async function runFusion(
     question, ctx, _liveEvents, _policyIntel, isSaudi, trackA?.regime,
   );
   const _policyExpectation = buildPolicyExpectation(question, ctx, _policyIntel, trackA?.regime);
+  // Phase-87A: pass Arabic contexts explicitly so they survive dedup in unified output
+  const _arabicUnifiedCtx = (_arabicThinkerCtx || _arabicSchoolCtx)
+    ? [_arabicThinkerCtx, _arabicSchoolCtx].filter(Boolean).join(" | ").slice(0, 400)
+    : "";
   const _unifiedCognition = buildUnifiedCognition({
     authority85b:    _governedKnowledge?.governedContext    ?? "",
     expertKnowledge: _85dResult?.governedContext            ?? _crossResearch?.governedContext ?? "",
     macroSynthesis:  _86aResult?.governedContext            ?? "",
     semanticImpact:  _semanticImpact,
     policyDelta:     _policyExpectation,
+    arabicCtx:       _arabicUnifiedCtx || undefined,
     question, isSaudi, isInvestment, regime: trackA?.regime,
   });
   if (!_unifiedCognition.isEmpty) {

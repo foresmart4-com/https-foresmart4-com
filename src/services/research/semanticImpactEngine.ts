@@ -30,6 +30,10 @@
 
 import type { LiveMacroMonitorResult, MacroEventLabel } from "./liveMacroMonitor";
 import type { PolicyIntelligenceResult } from "./policyIntelligenceEngine";
+import {
+  computeMagnitudeAdjustedConfidence,
+  countCorroboratingSaignals,
+} from "./magnitudeConfidenceEngine";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -148,12 +152,38 @@ export function buildSemanticImpact(
   }
 
   const primary = liveEvents.primaryEvent;
-  const analyticalPressure = EVENT_ANALYTICAL_WEIGHT[primary.label] ?? 20;
 
-  // Confidence pressure: base from event + policy surprise boost
+  // Phase-87A: Magnitude-aware analytical pressure — scale base weight by event magnitude
+  const basePressure = EVENT_ANALYTICAL_WEIGHT[primary.label] ?? 20;
+  const corrobCount = countCorroboratingSaignals({
+    tltDown:  liveEvents.events.some(e => e.label === "rate_shock_up"),
+    tltUp:    liveEvents.events.some(e => e.label === "rate_shock_down"),
+    spyDown:  liveEvents.events.some(e => e.label === "equity_stress" || e.label === "risk_off"),
+    spyUp:    liveEvents.events.some(e => e.label === "risk_on"),
+    goldUp:   liveEvents.events.some(e => e.label === "risk_off"),
+    oilDown:  liveEvents.events.some(e => e.label === "oil_shock_negative"),
+    oilUp:    liveEvents.events.some(e => e.label === "oil_shock_positive"),
+  });
+  const magnitudeResult = computeMagnitudeAdjustedConfidence({
+    primaryMagnitudePct: primary.magnitudePct,
+    corroboratingCount:  corrobCount,
+    regimeLabel:         regime,
+    baseConfidence:      basePressure,
+  });
+  const analyticalPressure = magnitudeResult.magnitudeAdjustedConfidence;
+
+  // Phase-87A: Magnitude-aware confidence pressure — replaces flat EVENT_CONFIDENCE_IMPACT
   const baseConf = EVENT_CONFIDENCE_IMPACT[primary.label] ?? 10;
   const surpriseBoost = (policyIntel.dominantSignal?.surpriseScore ?? 0) * 0.3;
-  const confidencePressure = Math.min(100, Math.round(baseConf + surpriseBoost));
+  const magnitudeConfidence = computeMagnitudeAdjustedConfidence({
+    primaryMagnitudePct: primary.magnitudePct,
+    corroboratingCount:  corrobCount,
+    regimeLabel:         regime,
+    baseConfidence:      baseConf,
+  });
+  const confidencePressure = Math.min(100, Math.round(
+    magnitudeConfidence.magnitudeAdjustedConfidence + surpriseBoost,
+  ));
 
   // Allocation implication
   const impl = ALLOCATION_IMPLICATIONS[primary.label];

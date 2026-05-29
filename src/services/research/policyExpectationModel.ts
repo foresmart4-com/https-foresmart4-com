@@ -26,6 +26,7 @@
 // Educational/advisory only.
 
 import type { PolicyIntelligenceResult, PolicyRegime, CBLanguageTier } from "./policyIntelligenceEngine";
+import { computeExpectationPersistence } from "./expectationMemoryEngine";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -216,7 +217,14 @@ export function buildPolicyExpectation(
     };
   }
 
-  const { deltaType, deltaScore } = classifyDelta(marketExpectation, detectedRegime, detectedTier);
+  const { deltaType, deltaScore: rawDeltaScore } = classifyDelta(marketExpectation, detectedRegime, detectedTier);
+
+  // Phase-87A: Duration-aware surprise amplification via expectationMemoryEngine
+  const persistence = computeExpectationPersistence(
+    question, ctx,
+    marketExpectation.expectedRegime !== "unknown" ? String(marketExpectation.expectedRegime) : undefined,
+  );
+  const deltaScore = Math.min(100, Math.round(rawDeltaScore * persistence.amplificationFactor));
 
   const deltaLines: Record<DeltaType, string> = {
     direction_surprise:    `Direction surprise (${marketExpectation.expectedRegime?.replace(/_/g, " ")} expected → ${detectedRegime.replace(/_/g, " ")} detected): markets were positioned for the wrong direction.`,
