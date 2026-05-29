@@ -3081,6 +3081,9 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
     ? reply.caveats
     : (metaResult?.contradiction.details.slice(0, 2) ?? []);
 
+  // Phase 82A: Committee voices panel collapse state (expanded by default)
+  const [committeeOpen, setCommitteeOpen] = useState(true);
+
   return (
     <div className="space-y-4">
       {/* Question bubble */}
@@ -3499,6 +3502,123 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
               )}
             </div>
           )}
+
+          {/* Phase 82A: Committee Generation Engine — structured multi-voice institutional reasoning */}
+          {(reply.voiceReasoning || reply.committeeSynthesis) && engine === "ai" && (() => {
+            const vr = reply.voiceReasoning;
+            const cs = reply.committeeSynthesis;
+            const voices: Array<{ key: "macro" | "policy" | "allocator" | "behavioral" | "historical"; labelEn: string; labelAr: string; icon: JSX.Element }> = [
+              { key: "macro",      labelEn: "Macro",      labelAr: "الكلي",    icon: <TrendingUp className="h-3 w-3 mt-0.5 shrink-0 text-primary/60" /> },
+              { key: "policy",     labelEn: "Policy",     labelAr: "السياسة",  icon: <Scale className="h-3 w-3 mt-0.5 shrink-0 text-warning/70" /> },
+              { key: "allocator",  labelEn: "Allocator",  labelAr: "المخصص",  icon: <PieChart className="h-3 w-3 mt-0.5 shrink-0 text-success/60" /> },
+              { key: "behavioral", labelEn: "Behavioral", labelAr: "السلوكي", icon: <Activity className="h-3 w-3 mt-0.5 shrink-0 text-primary/40" /> },
+              { key: "historical", labelEn: "Historical", labelAr: "التاريخي", icon: <BookOpen className="h-3 w-3 mt-0.5 shrink-0 text-muted-foreground/50" /> },
+            ].filter(v => vr?.[v.key]);
+
+            const domVoice = cs?.dominantVoice;
+            const domVoiceLabelAr: Record<string, string> = {
+              macro: "الكلي", policy: "السياسة", allocator: "المخصص",
+              behavioral: "السلوكي", historical: "التاريخي", mixed: "مختلطة",
+            };
+
+            return (
+              <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 space-y-0">
+                {/* Header — title + dominant voice badge + toggle */}
+                <button
+                  type="button"
+                  onClick={() => setCommitteeOpen(o => !o)}
+                  className="flex w-full items-center gap-1.5 flex-wrap text-start"
+                >
+                  <Network className="h-3.5 w-3.5 text-primary/60" />
+                  <div className="text-[10px] uppercase tracking-wider text-primary/70 font-semibold flex-1">
+                    {ar ? "لجنة الاستثمار" : "Investment Committee"}
+                  </div>
+                  {domVoice && (
+                    <span className={cn(
+                      "rounded-md border px-2 py-0.5 text-[9px] uppercase tracking-wider font-bold",
+                      domVoice === "allocator"
+                        ? "border-success/30 bg-success/8 text-success"
+                        : domVoice === "macro"
+                          ? "border-primary/25 bg-primary/8 text-primary"
+                          : domVoice === "policy"
+                            ? "border-warning/30 bg-warning/8 text-warning"
+                            : "border-border/50 bg-muted/30 text-muted-foreground",
+                    )}>
+                      {ar
+                        ? `${domVoiceLabelAr[domVoice] ?? domVoice}-led`
+                        : `${domVoice.charAt(0).toUpperCase() + domVoice.slice(1)}-led`}
+                    </span>
+                  )}
+                  <span className="ms-1 rounded-md border border-border/50 bg-muted/30 px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold text-muted-foreground">
+                    {ar ? "تعليمي" : "Advisory"}
+                  </span>
+                  <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground/50 transition-transform ms-auto", committeeOpen && "rotate-180")} />
+                </button>
+
+                {committeeOpen && (
+                  <div className="mt-3 space-y-3">
+                    {/* Voice reasoning rows */}
+                    {voices.length > 0 && (
+                      <div className="space-y-2.5">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+                          <Layers className="h-3 w-3" />
+                          {ar ? "أصوات اللجنة" : "Committee Voices"}
+                        </div>
+                        {voices.map(v => (
+                          <div key={v.key} className="flex items-start gap-2 text-xs">
+                            {v.icon}
+                            <div className="min-w-0">
+                              <span className="font-semibold text-muted-foreground/80">
+                                {ar ? v.labelAr : v.labelEn}:{" "}
+                              </span>
+                              <span className="text-foreground/80">{vr?.[v.key]}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Committee synthesis */}
+                    {cs && (cs.agreement || cs.disagreement || cs.finalStance) && (
+                      <div className="rounded-lg border border-border/30 bg-muted/20 px-3 py-2.5 space-y-1.5">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1 mb-1">
+                          <Compass className="h-3 w-3" />
+                          {ar ? "توليف اللجنة" : "Committee Synthesis"}
+                        </div>
+                        {cs.agreement && (
+                          <div className="flex items-start gap-2 text-xs">
+                            <CheckCircle2 className="h-3 w-3 mt-0.5 shrink-0 text-success/60" />
+                            <div>
+                              <span className="font-semibold text-success/70">{ar ? "نقاط الاتفاق: " : "Agreement: "}</span>
+                              <span className="text-foreground/80">{cs.agreement}</span>
+                            </div>
+                          </div>
+                        )}
+                        {cs.disagreement && (
+                          <div className="flex items-start gap-2 text-xs">
+                            <Scale className="h-3 w-3 mt-0.5 shrink-0 text-warning/60" />
+                            <div>
+                              <span className="font-semibold text-warning/70">{ar ? "نقاط الخلاف: " : "Disagreement: "}</span>
+                              <span className="text-foreground/80">{cs.disagreement}</span>
+                            </div>
+                          </div>
+                        )}
+                        {cs.finalStance && (
+                          <div className="flex items-start gap-2 text-xs border-t border-border/20 pt-1.5 mt-0.5">
+                            <Brain className="h-3 w-3 mt-0.5 shrink-0 text-primary/60" />
+                            <div>
+                              <span className="font-semibold text-primary/70">{ar ? "موقف اللجنة: " : "Final Stance: "}</span>
+                              <span className="text-foreground/80">{cs.finalStance}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Phase 63: Macro chain narrative */}
           {reply.macroChain && engine === "ai" && (
