@@ -421,3 +421,67 @@ export function runValidationSuite(
 export function getPassingThreshold(): number {
   return PASS_THRESHOLD;
 }
+
+// ─── Phase-84A: Mandatory gate additions ─────────────────────────────────────
+
+const MANDATORY_GATE_THRESHOLD = 80;
+const INSUFFICIENT_EVIDENCE_THRESHOLD = 65;
+
+/** Auto-detect the best matching ValidationPromptType for a question string. */
+export function detectValidationPromptType(question: string): ValidationPromptType {
+  const q = question.toLowerCase();
+  if (/conservat|محافظ|12.{0,5}24|مدير\s+استثمار/.test(q) && /saudi|tasi|سعود|تاسي/.test(q)) return "saudi_conservative_allocator";
+  if (/sector|قطاع|winner|loser|رابح|خاسر/.test(q) && /saudi|tasi|سعود|تاسي/.test(q)) return "saudi_sector_winners_losers";
+  if (/\b(us|s&p|nasdaq|dow|american)\b/.test(q)) return "us_market_outlook";
+  if (/oil.{0,20}fed|fed.{0,20}oil|نفط.{0,20}فائدة|فائدة.{0,20}نفط/.test(q)) return "oil_fed_linkage";
+  if (/recession|rate\s+cut|ركود|خفض\s+الفائدة/.test(q)) return "recession_vs_rate_cuts";
+  if (/broad|etf|واسع|مؤشر|selective|انتقائي/.test(q)) return "broad_vs_selective_exposure";
+  if (/valuation|earning|تقييم|أرباح|PE|EPS|مضاعف/.test(q)) return "valuation_vs_earnings";
+  return "saudi_conservative_allocator"; // default for unclassified investment questions
+}
+
+export type MandatoryGateLabel =
+  | "pass"
+  | "repair_required"
+  | "insufficient_evidence";
+
+export interface MandatoryGateResult {
+  label: MandatoryGateLabel;
+  score: number;
+  passed: boolean;
+  promptType: ValidationPromptType;
+  failedDimensions: ValidationDimensionId[];
+  repairNeeded: boolean;
+}
+
+/**
+ * Mandatory governance gate for serious investment questions.
+ * Score < 80 → repair_required.
+ * Score < 65 after repair → insufficient_evidence.
+ * Pure O(1) — no AI calls, no network.
+ */
+export function runMandatoryGate(
+  reply: GenesisReply,
+  question: string,
+): MandatoryGateResult {
+  const promptType = detectValidationPromptType(question);
+  const result = validateGenesisReply(reply, promptType);
+
+  let label: MandatoryGateLabel;
+  if (result.totalScore >= MANDATORY_GATE_THRESHOLD) {
+    label = "pass";
+  } else if (result.totalScore >= INSUFFICIENT_EVIDENCE_THRESHOLD) {
+    label = "repair_required";
+  } else {
+    label = "insufficient_evidence";
+  }
+
+  return {
+    label,
+    score: result.totalScore,
+    passed: label === "pass",
+    promptType,
+    failedDimensions: result.failedDimensions,
+    repairNeeded: label !== "pass",
+  };
+}

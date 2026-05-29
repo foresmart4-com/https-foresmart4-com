@@ -120,6 +120,30 @@ import {
 import {
   allocateContextBudget,
 } from "@/services/institutional/contextBudgetController";
+// Phase-84A: Adaptive Research Memory + Outcome Learning + Auto Quality Governance
+import {
+  saveThesisSnapshot,
+  retrievePriorThesis,
+  buildPriorThesisContext,
+  getThesisStoreStats,
+} from "@/services/institutional/thesisMemoryStore";
+import {
+  storeResearchPatterns,
+  queryResearchMemory,
+  buildResearchMemoryContext,
+} from "@/services/institutional/researchMemoryEngine";
+import {
+  compareThesisOutcome,
+  type OutcomeComparison,
+} from "@/services/institutional/outcomeLearningEngine";
+import {
+  runMandatoryGate,
+  type MandatoryGateResult,
+} from "@/services/institutional/genesisQualityValidationHarness";
+import {
+  evaluateGovernor,
+  applyGovernorDecision,
+} from "@/services/institutional/adaptiveInvestmentGovernor";
 
 export interface GenesisScenario {
   label: string;
@@ -245,6 +269,10 @@ export interface GenesisReply {
   // Phase-83B: Institutional Judgment Engine
   judgmentScore?: number;       // 0-100: institutional judgment quality score
   judgmentGrade?: string;       // institutional/strong/acceptable/weak/insufficient
+  // Phase-84A: Adaptive Governance
+  validationHarnessScore?: number; // 0-100: mandatory gate validation score
+  governorDecision?: string;       // allow/repair_required/insufficient_evidence/stale_memory_warning
+  governorCompositeScore?: number; // 0-100: composite across all quality dimensions
 }
 
 const AskInput = z.object({
@@ -534,11 +562,14 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
     secondOrderRisks: cleanStr(obj.secondOrderRisks),
     activatedKnowledge: cleanStr(obj.activatedKnowledge),
     valuationEarningsView: cleanStr(obj.valuationEarningsView),
-    // Phase-83A/83B: scores set deterministically post-sanitize; never from AI JSON
+    // Phase-83A/83B/84A: scores set deterministically post-sanitize; never from AI JSON
     knowledgeUseScore: undefined,
     depthRulesScore: undefined,
     judgmentScore: undefined,
     judgmentGrade: undefined,
+    validationHarnessScore: undefined,
+    governorDecision: undefined,
+    governorCompositeScore: undefined,
   };
 }
 
@@ -2469,6 +2500,18 @@ async function runFusion(
     lang,
   });
 
+  // ── Phase-84A: Memory retrieval (pre-prompt) ─────────────────────────────────
+  // Query thesis memory and research patterns before building prompt.
+  // Prior thesis injected as "Prior thesis:" context (system prompt rule 16 handles it).
+  // Research memory injected as "Research memory:" context.
+  let _priorThesis = isInvestment ? retrievePriorThesis(question, isSaudi) : null;
+  let _outcomeComparison: OutcomeComparison | null = null;
+  const _researchMemoryEntries = isInvestment ? queryResearchMemory(question, isSaudi) : [];
+  if (_priorThesis) {
+    console.log(`[genesis:memory] prior thesis found: category=${_priorThesis.category} age=${Math.round((Date.now()-_priorThesis.timestamp)/60000)}m`);
+  }
+  console.log(`[genesis:memory] store=${getThesisStoreStats()}`);
+
   // ── P0 Quality: Investment enforcement directive ─────────────────────────────
   const investEnforcement = buildInvestmentEnforcementDirective(isInvestment, isSaudi, isCompanyQ, lang);
 
@@ -2575,6 +2618,13 @@ async function runFusion(
   const userBody = [
     `User question: ${question}`,
     ctx ? `\nLive market context:\n${ctx}` : "",
+    // Phase-84A: Prior thesis context (if memory exists) — the existing system prompt
+    // rule 16 (THESIS EVOLUTION) already handles the "Prior thesis:" format.
+    _priorThesis ? `\n\n${buildPriorThesisContext(_priorThesis, lang)}` : "",
+    // Phase-84A: Research memory context (relevant patterns from prior sessions)
+    _researchMemoryEntries.length > 0
+      ? `\n\n${buildResearchMemoryContext(_researchMemoryEntries, lang)}`
+      : "",
     // P0 Intelligence Rescue: Knowledge activation — FIRST, before investment enforcement.
     // Specific facts ground all reasoning that follows. Must appear early in the prompt.
     _knowledgeActivation.knowledgeContext ? `\n\n${_knowledgeActivation.knowledgeContext}` : "",
@@ -2909,6 +2959,63 @@ async function runFusion(
 
   const _finalSet = _p12.filter(k => { const v = (sanitized as Record<string,unknown>)[k]; return v != null && v !== "" && !(Array.isArray(v) && (v as unknown[]).length === 0); });
   console.log(`[genesis:p12] post-fill: ${_finalSet.join(",")||"none"}`);
+
+  // ── Phase-84A: Outcome learning + mandatory validation gate + adaptive governor ──
+
+  // Step 1: Outcome learning — compare current reply with prior thesis if exists
+  if (_priorThesis && _qualityGateIsInvestment) {
+    _outcomeComparison = compareThesisOutcome(_priorThesis, sanitized, lang);
+    console.log(`[genesis:outcome] signal=${_outcomeComparison.signal} confidenceAdj=${_outcomeComparison.confidenceAdjustment}`);
+    // Apply confidence adjustment (small signal, capped)
+    if (_outcomeComparison.confidenceAdjustment !== 0) {
+      sanitized.confidence = Math.max(15, Math.min(85,
+        (sanitized.confidence ?? 50) + _outcomeComparison.confidenceAdjustment,
+      ));
+    }
+  }
+
+  // Step 2: Mandatory validation gate
+  let _gateResult: MandatoryGateResult | null = null;
+  if (_qualityGateIsInvestment) {
+    _gateResult = runMandatoryGate(sanitized, question);
+    sanitized.validationHarnessScore = _gateResult.score;
+    console.log(`[genesis:gate] label=${_gateResult.label} score=${_gateResult.score} type=${_gateResult.promptType}`);
+    // If gate failed, apply one more repair pass
+    if (_gateResult.repairNeeded) {
+      repairShallowAnswer(sanitized, tASliceRepair, cSliceFull, _qualityGateIsSaudi, lang);
+      // Re-score after repair
+      const gatePost = runMandatoryGate(sanitized, question);
+      sanitized.validationHarnessScore = gatePost.score;
+      console.log(`[genesis:gate] post-repair score=${gatePost.score} label=${gatePost.label}`);
+    }
+  }
+
+  // Step 3: Adaptive investment governor — final composite evaluation
+  if (_qualityGateIsInvestment) {
+    const governorInput = {
+      knowledgeUseScore: sanitized.knowledgeUseScore ?? 70,
+      depthRulesScore: sanitized.depthRulesScore ?? 70,
+      judgmentScore: sanitized.judgmentScore ?? 70,
+      validationHarnessScore: sanitized.validationHarnessScore ?? 70,
+      hasMemoryContext: !!_priorThesis,
+      memoryIsStale: _priorThesis?.stale ?? false,
+      outcomeLearningSignal: _outcomeComparison?.signal ?? null,
+      isInvestment: true,
+    };
+    const governorOutput = evaluateGovernor(governorInput, lang);
+    sanitized.governorDecision = governorOutput.decision;
+    sanitized.governorCompositeScore = governorOutput.compositeScore;
+    console.log(`[genesis:governor] ${governorOutput.explanation}`);
+    // Apply governor decision (adds insufficient_evidence label if needed)
+    applyGovernorDecision(sanitized, governorOutput, lang);
+  }
+
+  // Step 4: Save thesis snapshot and research patterns to memory
+  if (_qualityGateIsInvestment && sanitized.thesis) {
+    saveThesisSnapshot(sanitized, question, _qualityGateIsSaudi, lang);
+    const patternsStored = storeResearchPatterns(sanitized, _qualityGateIsSaudi);
+    console.log(`[genesis:memory] saved snapshot; patterns=${patternsStored}`);
+  }
 
   return sanitized;
 }
