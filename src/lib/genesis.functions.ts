@@ -169,6 +169,14 @@ import {
   saveDurableMemoryBackground,
   getDurableStorageStatus,
 } from "@/services/institutional/durableInstitutionalMemory";
+// Phase-85B: Institutional Knowledge Authority + Live Research Intelligence
+import { buildAuthorityContext, rankAuthoritySources } from "@/services/research/authorityRankingEngine";
+import type { AuthorityRankingResult } from "@/services/research/authorityRankingEngine";
+import { buildFrameworkLibraryContext } from "@/services/research/economicFrameworkLibrary";
+import { queryLiteratureLibrary, buildLiteratureContext } from "@/services/research/institutionalLiteratureLibrary";
+import { assessResearchRelevance } from "@/services/research/liveResearchMonitor";
+import { governKnowledgeContext } from "@/services/research/knowledgeAuthorityGovernor";
+import type { GovernedKnowledgeResult } from "@/services/research/knowledgeAuthorityGovernor";
 
 export interface GenesisScenario {
   label: string;
@@ -2498,6 +2506,38 @@ async function runFusion(
   // Phase 81: Multi-perspective reasoning — five analytical lenses
   const multiPerspective       = reasonMultiPerspective(question, ctx, trackA?.regime);
 
+  // ── Phase-85B: Institutional Knowledge Authority + Live Research Intelligence ──
+  // Pure O(1) — all deterministic, no AI calls, no network. Only injected when signals found.
+  const _researchRelevance = assessResearchRelevance(
+    question, ctx, isSaudi, trackA?.regime ?? "unknown",
+    {
+      oilPrice:     live?.oilPrice,
+      oilChangePct: live?.oilChangePct,
+      spyChangePct: live?.spyChangePct,
+      tltChangePct: live?.tltChangePct,
+      goldChangePct: live?.goldChangePct,
+      btcChangePct:  live?.btcChangePct,
+      eurUsd:        live?.eurUsd,
+    },
+  );
+  const _authorityRanking: AuthorityRankingResult = rankAuthoritySources(researchCredibility);
+  const _authorityCtx     = buildAuthorityContext(question, ctx, researchCredibility);
+  const _frameworkLibCtx  = buildFrameworkLibraryContext(question, ctx, trackA?.regime, isSaudi);
+  const _literatureEntries = queryLiteratureLibrary(question, ctx, trackA?.regime, isSaudi);
+  const _literatureCtx    = buildLiteratureContext(_literatureEntries, isSaudi);
+  const _governedKnowledge: GovernedKnowledgeResult | null = isInvestment
+    ? governKnowledgeContext({
+        authorityContext:  _authorityCtx,
+        frameworkContext:  _frameworkLibCtx,
+        literatureContext: _literatureCtx,
+        researchRelevance: _researchRelevance,
+        authorityRanking:  _authorityRanking,
+      })
+    : null;
+  if (_governedKnowledge && !_governedKnowledge.isEmpty) {
+    console.log(`[genesis:knowledge-authority] authority=${_governedKnowledge.authorityLabel} weight=${_governedKnowledge.thesisWeightMod} chars=${_governedKnowledge.governanceReport.outputChars} domains=[${_researchRelevance.activeResearchDomains.join(",")}]`);
+  }
+
   // ── Phase 68: Portfolio Allocation Intelligence ───────────────────────────────
   const allocationIntel = buildAllocationIntelligence({
     question,
@@ -2745,6 +2785,13 @@ async function runFusion(
     // for investment, Saudi, allocation, macro, and market-outlook questions.
     institutionalReasoningRequired
       ? `\n\n${buildCommitteeGenerationDirective(multiPerspective, frameworkSynth, lang)}`
+      : "",
+    // Phase-85B: Knowledge authority — governed, authority-weighted, anti-hype research context.
+    // Injected for investment questions when governed context is non-empty and research relevance
+    // is sufficient (≥30). Placed last in the research stack so it does not crowd higher-priority
+    // institutional context while still surfacing authority-aware and framework-aware signals.
+    _governedKnowledge && !_governedKnowledge.isEmpty && _researchRelevance.overallRelevance >= 30
+      ? `\n\nKnowledge authority [${_governedKnowledge.authorityLabel}]: ${_governedKnowledge.governedContext}`
       : "",
   ].join("");
   const user = wrapUserContext(lang, userBody);
