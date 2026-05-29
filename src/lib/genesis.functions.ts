@@ -172,11 +172,16 @@ import {
 // Phase-85B: Institutional Knowledge Authority + Live Research Intelligence
 import { buildAuthorityContext, rankAuthoritySources } from "@/services/research/authorityRankingEngine";
 import type { AuthorityRankingResult } from "@/services/research/authorityRankingEngine";
-import { buildFrameworkLibraryContext } from "@/services/research/economicFrameworkLibrary";
+import { buildFrameworkLibraryContext, selectDominantFramework } from "@/services/research/economicFrameworkLibrary";
 import { queryLiteratureLibrary, buildLiteratureContext } from "@/services/research/institutionalLiteratureLibrary";
 import { assessResearchRelevance } from "@/services/research/liveResearchMonitor";
 import { governKnowledgeContext } from "@/services/research/knowledgeAuthorityGovernor";
 import type { GovernedKnowledgeResult } from "@/services/research/knowledgeAuthorityGovernor";
+// Phase-85C: Expert Knowledge + Institutional Thinker Intelligence
+import { buildThinkerContext } from "@/services/research/institutionalThinkerLibrary";
+import { buildSchoolContext } from "@/services/research/investmentSchoolLibrary";
+import { buildPlaybookContext } from "@/services/research/allocatorPlaybookLibrary";
+import { governCrossResearch } from "@/services/research/crossResearchDedupGovernor";
 
 export interface GenesisScenario {
   label: string;
@@ -2538,6 +2543,40 @@ async function runFusion(
     console.log(`[genesis:knowledge-authority] authority=${_governedKnowledge.authorityLabel} weight=${_governedKnowledge.thesisWeightMod} chars=${_governedKnowledge.governanceReport.outputChars} domains=[${_researchRelevance.activeResearchDomains.join(",")}]`);
   }
 
+  // ── Phase-85C: Expert Knowledge + Institutional Thinker Intelligence ──────────
+  // Pure O(1) — all deterministic, no AI calls, no network.
+  // Runs only for investment questions (same gate as 85B).
+  const _thinkerCtx   = isInvestment ? buildThinkerContext(question, ctx, isSaudi) : "";
+  const _schoolCtx    = isInvestment ? buildSchoolContext(question, ctx, trackA?.regime, isSaudi) : "";
+  const _playbookCtx  = isInvestment ? buildPlaybookContext(
+    question, ctx, trackA?.regime, isSaudi, live?.oilPrice,
+  ) : "";
+  const _dominantFw   = isInvestment
+    ? selectDominantFramework(question, ctx, trackA?.regime, isSaudi)
+    : null;
+  // Gather already-committed 71-77 context pieces for cross-stack dedup reference
+  const _stack7177Ref: string[] = [
+    graphResult.graphContext,
+    researchLibCtx,
+    theoryComparison.comparisonContext,
+    researchCredibility.fusionContext,
+    intakeGovernance ?? "",
+    knowledgeFeed.compositeContext ?? "",
+  ].filter(Boolean);
+  const _crossResearch = isInvestment
+    ? governCrossResearch({
+        stack7177Pieces: _stack7177Ref,
+        authority85b:    _governedKnowledge?.governedContext ?? "",
+        thinkerCtx:      _thinkerCtx,
+        schoolCtx:       _schoolCtx,
+        playbookCtx:     _playbookCtx,
+        frameworkCtx:    _dominantFw?.context ?? "",
+      })
+    : null;
+  if (_crossResearch && !_crossResearch.isEmpty) {
+    console.log(`[genesis:expert-knowledge] coverage=${_crossResearch.coverageLabel} kept=${_crossResearch.dedupReport.kept} removed=${_crossResearch.dedupReport.removed} chars=${_crossResearch.governedContext.length}`);
+  }
+
   // ── Phase 68: Portfolio Allocation Intelligence ───────────────────────────────
   const allocationIntel = buildAllocationIntelligence({
     question,
@@ -2792,6 +2831,12 @@ async function runFusion(
     // institutional context while still surfacing authority-aware and framework-aware signals.
     _governedKnowledge && !_governedKnowledge.isEmpty && _researchRelevance.overallRelevance >= 30
       ? `\n\nKnowledge authority [${_governedKnowledge.authorityLabel}]: ${_governedKnowledge.governedContext}`
+      : "",
+    // Phase-85C: Expert knowledge — thinker-aware, school-aware, playbook-aware,
+    // cross-stack deduplicated. Injected when cross-research context survives dedup
+    // and is non-empty. Compact supplement to the 85B authority layer.
+    _crossResearch && !_crossResearch.isEmpty
+      ? `\n\nExpert knowledge [${_crossResearch.coverageLabel}]: ${_crossResearch.governedContext}`
       : "",
   ].join("");
   const user = wrapUserContext(lang, userBody);

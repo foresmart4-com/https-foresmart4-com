@@ -215,6 +215,91 @@ export function selectFrameworks(
   return matched.slice(0, 3);
 }
 
+// ─── Phase-85C: Dominant framework scoring ───────────────────────────────────
+// Scores each framework on keyword hits + regime fit, returning the single
+// best-fit dominant framework and its primary conflicting framework.
+// Replaces broad 3-framework activation when precision is needed.
+
+export interface DominantFrameworkResult {
+  dominant: EconomicFramework;
+  conflict: EconomicFramework | null;
+  dominantScore: number;         // keyword + regime fit score
+  context: string;               // compact ≤250 chars injectable context
+}
+
+const REGIME_FIT_SCORES: Partial<Record<FrameworkId, Record<string, number>>> = {
+  keynesian:        { bear_ranging: 3, macro_transition: 2, low_vol_risk_on: 1 },
+  monetarist:       { high_vol_risk_off: 3, macro_transition: 3, bull_trending: 1 },
+  austrian:         { bull_trending: 2, bear_ranging: 2 },
+  behavioral:       { bull_trending: 3, high_vol_risk_off: 2, macro_transition: 2 },
+  credit_cycle:     { bear_ranging: 3, high_vol_risk_off: 3, macro_transition: 2 },
+  market_structure: { high_vol_risk_off: 2, bear_ranging: 2 },
+  capital_cycle:    { bull_trending: 2, low_vol_risk_on: 2, macro_transition: 1 },
+  regime_analysis:  { macro_transition: 3, bull_trending: 2, bear_ranging: 2 },
+};
+
+function scoreFramework(
+  fw: EconomicFramework,
+  text: string,
+  regime?: string,
+): number {
+  // Keyword hit score: count regex match (binary) as 2 points base
+  let score = fw.keywords.test(text) ? 2 : 0;
+
+  // Regime fit bonus
+  if (regime) {
+    const regimeFit = REGIME_FIT_SCORES[fw.id];
+    if (regimeFit) {
+      const normalised = regime.toLowerCase().replace(/-/g, "_").replace(/\s/g, "_");
+      score += regimeFit[normalised] ?? 0;
+    }
+  }
+
+  return score;
+}
+
+export function selectDominantFramework(
+  question: string,
+  ctx: string,
+  regime?: string,
+  isSaudi = false,
+): DominantFrameworkResult | null {
+  const text = `${question} ${ctx} ${regime ?? ""}`;
+
+  const scored = FRAMEWORK_LIBRARY.map(fw => ({
+    fw,
+    score: scoreFramework(fw, text, regime),
+  })).filter(s => s.score > 0)
+     .sort((a, b) => b.score - a.score);
+
+  if (scored.length === 0) return null;
+
+  const dominant = scored[0].fw;
+
+  // Find best conflict: highest-scoring framework that conflicts with dominant
+  const conflict = scored
+    .slice(1)
+    .find(s => dominant.conflictsWith.includes(s.fw.id) || s.fw.conflictsWith.includes(dominant.id))
+    ?.fw ?? null;
+
+  const saudiSuffix = isSaudi && dominant.saudiNote && dominant.saudiApplicability !== "low"
+    ? ` [Saudi: ${dominant.saudiNote.slice(0, 70)}]`
+    : "";
+
+  const conflictLine = conflict
+    ? ` | Conflict: ${conflict.name} argues ${conflict.coreClaim.slice(0, 60)} — resolve by regime evidence.`
+    : "";
+
+  const context = `Dominant framework: ${dominant.name} — ${dominant.investmentImplication}${saudiSuffix}${conflictLine}`.slice(0, 250);
+
+  return {
+    dominant,
+    conflict,
+    dominantScore: scored[0].score,
+    context,
+  };
+}
+
 // ─── Context string builder ───────────────────────────────────────────────────
 
 export function buildFrameworkLibraryContext(
