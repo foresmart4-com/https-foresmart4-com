@@ -427,17 +427,86 @@ export function getPassingThreshold(): number {
 const MANDATORY_GATE_THRESHOLD = 80;
 const INSUFFICIENT_EVIDENCE_THRESHOLD = 65;
 
-/** Auto-detect the best matching ValidationPromptType for a question string. */
+// ─── Phase-84B: Semantic prompt classification ────────────────────────────────
+// Replaces the primitive keyword classifier with a multi-signal semantic classifier
+// that avoids defaulting to saudi_conservative_allocator for unrelated questions.
+
+type ClassifierSignal = { type: ValidationPromptType; score: number };
+
+const PROMPT_CLASSIFIERS: Array<{ type: ValidationPromptType; test: (q: string) => number }> = [
+  // Saudi conservative allocator: requires BOTH Saudi signal AND allocator/horizon signal
+  {
+    type: "saudi_conservative_allocator",
+    test: (q) => {
+      const hasSaudi = /saudi|tasi|سعود|تاسي|ksa/i.test(q) ? 2 : 0;
+      const hasAllocator = /conservat|محافظ|12.{0,5}24|مدير\s+استثمار|horizon|أفق|allocat|مخصص/i.test(q) ? 2 : 0;
+      return hasSaudi + hasAllocator; // needs 4 to win clearly
+    },
+  },
+  // Saudi sectors: Saudi signal + sector signal
+  {
+    type: "saudi_sector_winners_losers",
+    test: (q) => {
+      const hasSaudi = /saudi|tasi|سعود|تاسي/i.test(q) ? 2 : 0;
+      const hasSector = /sector|قطاع|winner|loser|رابح|خاسر|rotation|دوران/i.test(q) ? 2 : 0;
+      return hasSaudi + hasSector;
+    },
+  },
+  // US market: US-specific signals
+  {
+    type: "us_market_outlook",
+    test: (q) => (/\b(us\b|s&p|sp500|nasdaq|dow\b|nyse|american\s+market|us\s+equit)/i.test(q) ? 4 : 0),
+  },
+  // Oil + Fed linkage: both oil AND Fed/rates
+  {
+    type: "oil_fed_linkage",
+    test: (q) => {
+      const hasOil = /\boil\b|نفط|brent|wti|crude/i.test(q) ? 2 : 0;
+      const hasFed = /fed|federal|الفيدرالي|rate.*policy|monetary.*policy/i.test(q) ? 2 : 0;
+      return hasOil + hasFed;
+    },
+  },
+  // Recession vs rate cuts: recession OR rate-cut scenario
+  {
+    type: "recession_vs_rate_cuts",
+    test: (q) => (/recession|ركود|rate\s+cut|خفض.*الفائدة|تخفيض.*الأسعار|easing.*scenario/i.test(q) ? 4 : 0),
+  },
+  // Broad vs selective: explicit ETF/index vs stock selection framing
+  {
+    type: "broad_vs_selective_exposure",
+    test: (q) => (/broad.*index|etf|mؤشر|تعرض.*واسع|selective.*invest|انتقائي.*استثمار|index.*fund/i.test(q) ? 4 : 0),
+  },
+  // Valuation vs earnings: PE/multiple expansion vs EPS/earnings discussion
+  {
+    type: "valuation_vs_earnings",
+    test: (q) => {
+      const hasVal = /valuation|تقييم|P\/E|مضاعف|multiple/i.test(q) ? 2 : 0;
+      const hasEarn = /earning|أرباح|EPS|profit|نمو\s+الأرباح/i.test(q) ? 2 : 0;
+      return hasVal + hasEarn;
+    },
+  },
+];
+
+/** Auto-detect the best matching ValidationPromptType for a question string.
+ *  Uses multi-signal scoring; falls back to generic_investment (not Saudi default)
+ *  when no specific type scores above threshold.
+ */
 export function detectValidationPromptType(question: string): ValidationPromptType {
   const q = question.toLowerCase();
-  if (/conservat|محافظ|12.{0,5}24|مدير\s+استثمار/.test(q) && /saudi|tasi|سعود|تاسي/.test(q)) return "saudi_conservative_allocator";
-  if (/sector|قطاع|winner|loser|رابح|خاسر/.test(q) && /saudi|tasi|سعود|تاسي/.test(q)) return "saudi_sector_winners_losers";
-  if (/\b(us|s&p|nasdaq|dow|american)\b/.test(q)) return "us_market_outlook";
-  if (/oil.{0,20}fed|fed.{0,20}oil|نفط.{0,20}فائدة|فائدة.{0,20}نفط/.test(q)) return "oil_fed_linkage";
-  if (/recession|rate\s+cut|ركود|خفض\s+الفائدة/.test(q)) return "recession_vs_rate_cuts";
-  if (/broad|etf|واسع|مؤشر|selective|انتقائي/.test(q)) return "broad_vs_selective_exposure";
-  if (/valuation|earning|تقييم|أرباح|PE|EPS|مضاعف/.test(q)) return "valuation_vs_earnings";
-  return "saudi_conservative_allocator"; // default for unclassified investment questions
+  const scored: ClassifierSignal[] = PROMPT_CLASSIFIERS.map(c => ({
+    type: c.type,
+    score: c.test(q),
+  })).filter(s => s.score >= 3); // require at least score 3 to match
+
+  if (scored.length === 0) {
+    // No specific type matched — pick most general type based on any signals
+    if (/saudi|tasi|سعود|تاسي/i.test(q)) return "saudi_sector_winners_losers"; // safer Saudi fallback
+    if (/oil|نفط/i.test(q)) return "oil_fed_linkage";
+    if (/rate|فائدة|monetary/i.test(q)) return "recession_vs_rate_cuts";
+    return "broad_vs_selective_exposure"; // generic investment fallback (not Saudi-specific)
+  }
+
+  return scored.sort((a, b) => b.score - a.score)[0].type;
 }
 
 export type MandatoryGateLabel =

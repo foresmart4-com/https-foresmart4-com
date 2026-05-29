@@ -16,6 +16,7 @@
 
 import type { GenesisReply } from "@/lib/genesis.functions";
 import type { OutcomeSignal } from "./outcomeLearningEngine";
+import type { GovernorWeights } from "./adaptiveCalibrationEngine";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +35,8 @@ export interface GovernorInput {
   memoryIsStale: boolean;          // true if memory context was marked stale
   outcomeLearningSignal: OutcomeSignal | null;
   isInvestment: boolean;
+  // Phase-84B: calibrated weights from adaptiveCalibrationEngine (optional)
+  calibratedWeights?: GovernorWeights;
 }
 
 export interface GovernorOutput {
@@ -58,11 +61,12 @@ const WEIGHTS = {
 // ─── Composite scoring ────────────────────────────────────────────────────────
 
 function computeCompositeScore(input: GovernorInput): number {
+  const w = input.calibratedWeights ?? WEIGHTS;
   let score =
-    (input.validationHarnessScore * WEIGHTS.validationHarness) +
-    (input.judgmentScore * WEIGHTS.judgmentScore) +
-    (input.depthRulesScore * WEIGHTS.depthRulesScore) +
-    (input.knowledgeUseScore * WEIGHTS.knowledgeUseScore);
+    (input.validationHarnessScore * w.validationHarness) +
+    (input.judgmentScore          * w.judgmentScore) +
+    (input.depthRulesScore        * w.depthRulesScore) +
+    (input.knowledgeUseScore      * w.knowledgeUseScore);
 
   // Outcome learning adjustments (small signal, ±5 pts max)
   if (input.outcomeLearningSignal === "confirmed") score = Math.min(100, score + 3);

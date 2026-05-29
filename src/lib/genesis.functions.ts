@@ -144,6 +144,25 @@ import {
   evaluateGovernor,
   applyGovernorDecision,
 } from "@/services/institutional/adaptiveInvestmentGovernor";
+// Phase-84B: Persistent Memory + Semantic Outcome + Adaptive Calibration
+import {
+  storeMemory,
+  queryMemory,
+  buildMemoryContext,
+  getLatestThesisForQuestion,
+  getMemoryHealth,
+  type PersistentMemoryEntry,
+} from "@/services/institutional/persistentMemoryStore";
+import {
+  extractSemanticProfile,
+  compareSemanticProfiles,
+  profileFromMemoryEntry,
+  type SemanticComparison,
+} from "@/services/institutional/semanticOutcomeEngine";
+import {
+  recordCalibrationResult,
+  getCalibrationState,
+} from "@/services/institutional/adaptiveCalibrationEngine";
 
 export interface GenesisScenario {
   label: string;
@@ -2511,6 +2530,15 @@ async function runFusion(
     console.log(`[genesis:memory] prior thesis found: category=${_priorThesis.category} age=${Math.round((Date.now()-_priorThesis.timestamp)/60000)}m`);
   }
   console.log(`[genesis:memory] store=${getThesisStoreStats()}`);
+  // Phase-84B: Persistent memory query (bounded LRU store, hot/warm tier only)
+  const _persistentEntries: PersistentMemoryEntry[] = isInvestment ? queryMemory(question, isSaudi) : [];
+  const _priorPersistentThesis: PersistentMemoryEntry | null = isInvestment
+    ? getLatestThesisForQuestion(question, isSaudi)
+    : null;
+  if (isInvestment) {
+    const hit = _persistentEntries.length > 0;
+    console.log(`[genesis:persistent-memory] hit=${hit} entries=${_persistentEntries.length} health=${getMemoryHealth()}`);
+  }
 
   // ── P0 Quality: Investment enforcement directive ─────────────────────────────
   const investEnforcement = buildInvestmentEnforcementDirective(isInvestment, isSaudi, isCompanyQ, lang);
@@ -2624,6 +2652,10 @@ async function runFusion(
     // Phase-84A: Research memory context (relevant patterns from prior sessions)
     _researchMemoryEntries.length > 0
       ? `\n\n${buildResearchMemoryContext(_researchMemoryEntries, lang)}`
+      : "",
+    // Phase-84B: Persistent institutional memory (bounded LRU, hot/warm entries only)
+    _persistentEntries.length > 0
+      ? `\n\n${buildMemoryContext(_persistentEntries, lang)}`
       : "",
     // P0 Intelligence Rescue: Knowledge activation — FIRST, before investment enforcement.
     // Specific facts ground all reasoning that follows. Must appear early in the prompt.
@@ -2974,6 +3006,21 @@ async function runFusion(
     }
   }
 
+  // Step 1B: Phase-84B semantic outcome — structured slot comparison on persistent memory
+  let _semanticComparison: SemanticComparison | null = null;
+  if (_priorPersistentThesis && _qualityGateIsInvestment) {
+    const priorProfile = profileFromMemoryEntry(_priorPersistentThesis);
+    const currentProfile = extractSemanticProfile(sanitized, _priorPersistentThesis.content);
+    _semanticComparison = compareSemanticProfiles(priorProfile, currentProfile, lang);
+    console.log(`[genesis:semantic-outcome] signal=${_semanticComparison.overallSignal} confidenceAdj=${_semanticComparison.confidenceAdjustment} dominant=${_semanticComparison.dominantChange}`);
+    // Supplement confidence (capped; additive with Phase-84A outcome, but bounded)
+    if (_semanticComparison.confidenceAdjustment !== 0) {
+      sanitized.confidence = Math.max(15, Math.min(85,
+        (sanitized.confidence ?? 50) + Math.round(_semanticComparison.confidenceAdjustment / 2),
+      ));
+    }
+  }
+
   // Step 2: Mandatory validation gate
   let _gateResult: MandatoryGateResult | null = null;
   if (_qualityGateIsInvestment) {
@@ -2992,15 +3039,21 @@ async function runFusion(
 
   // Step 3: Adaptive investment governor — final composite evaluation
   if (_qualityGateIsInvestment) {
+    // Phase-84B: use calibrated weights if history is sufficient
+    const _calibState = getCalibrationState();
+    console.log(`[genesis:calibration] quality=${_calibState.calibrationQuality} ${_calibState.calibrationNote}`);
     const governorInput = {
       knowledgeUseScore: sanitized.knowledgeUseScore ?? 70,
       depthRulesScore: sanitized.depthRulesScore ?? 70,
       judgmentScore: sanitized.judgmentScore ?? 70,
       validationHarnessScore: sanitized.validationHarnessScore ?? 70,
-      hasMemoryContext: !!_priorThesis,
+      hasMemoryContext: !!_priorThesis || _persistentEntries.length > 0,
       memoryIsStale: _priorThesis?.stale ?? false,
       outcomeLearningSignal: _outcomeComparison?.signal ?? null,
       isInvestment: true,
+      calibratedWeights: _calibState.calibrationQuality !== "insufficient_data"
+        ? _calibState.weights
+        : undefined,
     };
     const governorOutput = evaluateGovernor(governorInput, lang);
     sanitized.governorDecision = governorOutput.decision;
@@ -3008,13 +3061,28 @@ async function runFusion(
     console.log(`[genesis:governor] ${governorOutput.explanation}`);
     // Apply governor decision (adds insufficient_evidence label if needed)
     applyGovernorDecision(sanitized, governorOutput, lang);
+    // Phase-84B: record this call for future calibration
+    recordCalibrationResult({
+      timestamp: Date.now(),
+      promptType: _gateResult?.promptType ?? "broad_vs_selective_exposure",
+      governorDecision: governorOutput.decision,
+      compositeScore: governorOutput.compositeScore,
+      validationScore: governorInput.validationHarnessScore,
+      judgmentScore: governorInput.judgmentScore,
+      depthScore: governorInput.depthRulesScore,
+      knowledgeScore: governorInput.knowledgeUseScore,
+      repairApplied: _gateResult?.repairNeeded ?? false,
+      isSaudi: _qualityGateIsSaudi,
+    });
   }
 
   // Step 4: Save thesis snapshot and research patterns to memory
   if (_qualityGateIsInvestment && sanitized.thesis) {
     saveThesisSnapshot(sanitized, question, _qualityGateIsSaudi, lang);
     const patternsStored = storeResearchPatterns(sanitized, _qualityGateIsSaudi);
-    console.log(`[genesis:memory] saved snapshot; patterns=${patternsStored}`);
+    // Phase-84B: also store in persistent bounded LRU memory
+    const persistentStored = storeMemory(sanitized, _qualityGateIsSaudi);
+    console.log(`[genesis:memory] saved snapshot; patterns=${patternsStored} persistent=${persistentStored}`);
   }
 
   return sanitized;
