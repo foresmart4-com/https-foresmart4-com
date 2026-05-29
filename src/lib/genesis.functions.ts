@@ -166,6 +166,12 @@ export interface GenesisReply {
   qualityTier?: QualityTier;             // weak / acceptable / strong / institutional
   qualityScore?: number;                 // 0-100 weighted total
   qualityImprovements?: string[];        // top actionable improvement suggestions
+  // Phase 80-81: Framework synthesis and multi-perspective reasoning visibility
+  frameworkSynthesis?: string;           // dominant framework + why + where it fails + minority view
+  perspectiveMap?: string;               // MACRO | POLICY | ALLOCATOR | BEHAVIORAL | HISTORICAL lens views
+  dominantLens?: "macro" | "policy" | "allocator" | "behavioral" | "historical" | "mixed";
+  reasoningPlurality?: string;           // where lenses agree, where they conflict, which dominates
+  visibilityState?: "fully_visible" | "partially_visible" | "hidden_reasoning" | "rejected_visibility";
 }
 
 const AskInput = z.object({
@@ -438,6 +444,16 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
     qualityTier: undefined,
     qualityScore: undefined,
     qualityImprovements: undefined,
+    // Phase 80-81: Framework synthesis and perspective visibility — pass through AI output
+    frameworkSynthesis: cleanStr(obj.frameworkSynthesis),
+    perspectiveMap: cleanStr(obj.perspectiveMap),
+    dominantLens: (() => {
+      const v = obj.dominantLens;
+      const VALID = new Set(["macro","policy","allocator","behavioral","historical","mixed"]);
+      return VALID.has(v as string) ? (v as GenesisReply["dominantLens"]) : undefined;
+    })(),
+    reasoningPlurality: cleanStr(obj.reasoningPlurality),
+    visibilityState: undefined, // set deterministically by repairFrameworkVisibility after sanitize
   };
 }
 
@@ -602,7 +618,11 @@ const GENESIS_SCHEMA = `{
   "committeeStance": <"selective_over_broad"|"defensive"|"conditional_opportunity"|"wait_for_confirmation"|"insufficient_edge"> (optional — set when Investment Committee Context is present),
   "selectionFramework": "string — 2 sentences: criteria-based framework for the current regime; no company names as recommendations" (optional — set when Investment Committee Context is present),
   "committeeBullCase": "string — 1 sentence: the bull committee argument for this opportunity" (optional — set when Investment Committee Context is present),
-  "committeeBearCase": "string — 1 sentence: the bear committee argument against this opportunity" (optional — set when Investment Committee Context is present)
+  "committeeBearCase": "string — 1 sentence: the bear committee argument against this opportunity" (optional — set when Investment Committee Context is present),
+  "frameworkSynthesis": "string — 2-3 sentences: (1) the dominant analytical framework for this regime and WHY it leads — name the framework, its core claim, and the regime condition making it applicable; (2) where the dominant framework FAILS or is actively contested by a competing school — name the specific failure condition; (3) what the minority/competing framework sees differently — name it and state its insight; state synthesis confidence: high/moderate/low. Required when 'Framework synthesis:' appears in context." (optional),
+  "perspectiveMap": "string — one sentence per ACTIVE analytical lens in format: 'MACRO: [macro economist observation] | POLICY: [CB/policy lens observation] | ALLOCATOR: [institutional allocator observation] | BEHAVIORAL: [market/sentiment observation] | HISTORICAL: [historical analog if applicable]'. Only include active lenses. Do NOT invent observations. Required when 'Perspective map:' appears in context." (optional),
+  "dominantLens": <"macro"|"policy"|"allocator"|"behavioral"|"historical"|"mixed"> (optional — the single lens with highest explanatory power; required when perspectiveMap is set),
+  "reasoningPlurality": "string — 1-2 sentences: where active lenses AGREE on direction; where they CONFLICT; which lens dominates and WHY; the minority perspective that loses but remains relevant. Never suppress a competing view. Never fabricate consensus. Required when perspectiveMap is set." (optional)
 }`;
 
 function buildGenesisSystemPrompt(lang: Lang): string {
@@ -1114,7 +1134,21 @@ Six dimensions must be addressed in investment answers:
 broad vs selective | risk-adjusted | defensive/cyclical | concentration risk | preservation/growth | horizon suitability.
 ABSOLUTELY FORBIDDEN: "rebalance now", "allocate X%", "buy this asset now", "guaranteed return", specific capital amounts.`;
 
-  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n${allocationIntelligenceGuidance}\n\n${base}`;
+  // Phase 80-81: Framework synthesis and multi-perspective reasoning visibility directive
+  const frameworkPerspectiveGuidance = ar
+    ? `20. ظهور إطار التوليف ومنطق التعددية — إلزامي عند ظهور "[REQUIRED OUTPUT FIELDS:" في السياق (للأسئلة الاستثمارية والكلية):
+    اضبط "frameworkSynthesis": 2-3 جمل: (1) الإطار التحليلي المهيمن ولماذا يتصدر هذا النظام — سمّ الإطار ومبدأه الجوهري؛ (2) أين يفشل أو يُنازَع — سمّ شرط الفشل المحدد؛ (3) ماذا يرى الإطار المنافس بشكل مختلف — سمّه وبيّن رؤيته. أشر إلى ثقة التوليف. هذا الحقل ليس اختيارياً — إغفاله فشل في جودة الاستدلال.
+    اضبط "perspectiveMap": جملة واحدة لكل عدسة تحليلية نشطة بالصيغة: "MACRO: [رصد اقتصادي كلي] | POLICY: [رصد سياسة البنك المركزي] | ALLOCATOR: [تأطير المخصص المؤسسي] | BEHAVIORAL: [إشارة المشاعر/السوق] | HISTORICAL: [النظير التاريخي إن وُجد]". أدرج فقط العدسات النشطة.
+    اضبط "dominantLens": العدسة الأعلى قدرة تفسيرية: "macro" أو "policy" أو "allocator" أو "behavioral" أو "historical" أو "mixed".
+    اضبط "reasoningPlurality": 1-2 جملتان: أين تتوافق العدسات؛ أين تتعارض؛ أيها يهيمن ولماذا؛ المنظور الأقلي الذي يخسر لكنه يبقى ذا صلة. لا تكتم رأياً منافساً. لا تصنع توافقاً مزيفاً. هذه الحقول الأربعة إلزامية عند تلقي السياق الإطاري. إغفالها يُعدّ فشلاً في جودة الاستدلال.`
+    : `20. FRAMEWORK SYNTHESIS & PERSPECTIVE VISIBILITY — Mandatory for investment and macro questions when "[REQUIRED OUTPUT FIELDS:" appears in context:
+    Set "frameworkSynthesis": 2-3 sentences: (1) the dominant analytical framework for this regime and WHY it leads — name the framework, its core claim, and the regime condition; (2) where it FAILS or is contested by a competing school — name the specific failure condition; (3) what the minority/competing framework sees differently — name it and state its insight; state synthesis confidence: high/moderate/low. NOT optional when context is provided.
+    Set "perspectiveMap": one sentence per ACTIVE analytical lens — format: "MACRO: [observation] | POLICY: [observation] | ALLOCATOR: [observation] | BEHAVIORAL: [observation] | HISTORICAL: [if analog found]". Only include lenses active for this question. Do NOT invent observations.
+    Set "dominantLens": "macro", "policy", "allocator", "behavioral", "historical", or "mixed".
+    Set "reasoningPlurality": 1-2 sentences: where lenses AGREE; where they CONFLICT; which dominates and WHY; the minority view that loses but remains relevant. Never suppress a competing view. Never fabricate consensus.
+    These four fields are required when investment or macro context is present. Missing them is a reasoning quality failure that will be detected and repaired.`;
+
+  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n${allocationIntelligenceGuidance}\n${frameworkPerspectiveGuidance}\n\n${base}`;
 }
 
 // ─── Institutional Reasoning Tracks ───────────────────────────────────────
@@ -1831,6 +1865,153 @@ function fillInstitutionalFields(
   }
 }
 
+// ─── Phase 80-81: Framework & Perspective visibility repair ──────────────────
+// Deterministic backfill — runs after sanitizeReply; fills missing
+// frameworkSynthesis / perspectiveMap / dominantLens / reasoningPlurality
+// from the pre-computed engine results whenever the AI omits them.
+// Also sets visibilityState based on how many fields were already present.
+function repairFrameworkVisibility(
+  reply: GenesisReply,
+  frameworkSynth: ReturnType<typeof synthesizeFrameworks>,
+  multiPerspective: ReturnType<typeof reasonMultiPerspective>,
+  isInvestment: boolean,
+  isSaudi: boolean,
+  graphHit: boolean,
+): void {
+  if (!isInvestment && !isSaudi && !graphHit) return;
+
+  const pre = [reply.frameworkSynthesis, reply.perspectiveMap, reply.dominantLens, reply.reasoningPlurality].filter(Boolean).length;
+
+  // Repair frameworkSynthesis
+  if (!reply.frameworkSynthesis) {
+    const dom = frameworkSynth.dominantFramework;
+    if (dom) {
+      const claim    = dom.coreClaim.slice(0, 75);
+      const fails    = dom.failsWhen.split(";")[0]?.trim().slice(0, 60) ?? "";
+      const minority = frameworkSynth.minorityInsight
+        ? frameworkSynth.minorityInsight.slice(0, 80)
+        : `Synthesis confidence: ${frameworkSynth.synthesisConfidence} — no strong minority view identified.`;
+      reply.frameworkSynthesis =
+        `${dom.name} (${frameworkSynth.synthesisState}, confidence: ${frameworkSynth.synthesisConfidence}): ${claim}. ` +
+        `Fails when: ${fails}. ${minority}`;
+    } else if (isSaudi) {
+      reply.frameworkSynthesis =
+        "Macro Regime framework (moderate confidence) leads for Saudi/TASI context: oil→fiscal transmission " +
+        "(breakeven ~$75-80/bbl) and SAR peg constraint dominate asset price behaviour. " +
+        "Fails when oil shock diverges from monetary cycle or Vision 2030 capex offsets revenue shortfall. " +
+        "Credit Cycle (BIS) minority view: regional banking leverage can amplify oil-shock drawdowns.";
+    }
+  }
+
+  // Repair perspectiveMap
+  if (!reply.perspectiveMap) {
+    const active = multiPerspective.lensViews.filter(l => l.active);
+    if (active.length > 0) {
+      const parts = active.map(l => {
+        const tag = l.lens === "macro_economist" ? "MACRO"
+          : l.lens === "central_bank_policy" ? "POLICY"
+          : l.lens === "institutional_allocator" ? "ALLOCATOR"
+          : l.lens === "behavioral_market" ? "BEHAVIORAL"
+          : "HISTORICAL";
+        return `${tag}: ${l.view.slice(0, 80)}`;
+      });
+      reply.perspectiveMap = parts.join(" | ");
+    } else if (isSaudi) {
+      reply.perspectiveMap =
+        "MACRO: Oil-fiscal channel and SAR peg constraint define growth trajectory and monetary autonomy limits | " +
+        "POLICY: SAMA rate-follower; fiscal policy is the primary Saudi macro stabilisation lever | " +
+        "ALLOCATOR: Oil-price sensitivity requires sector tilt adjustment when below $75-80 breakeven | " +
+        "BEHAVIORAL: TASI momentum historically driven by Aramco dividend yield and banking sector re-rating narrative";
+    }
+  }
+
+  // Repair dominantLens
+  if (!reply.dominantLens) {
+    const dl = multiPerspective.dominantLens;
+    if (dl) {
+      reply.dominantLens =
+        dl.lens === "macro_economist"       ? "macro"
+        : dl.lens === "central_bank_policy" ? "policy"
+        : dl.lens === "institutional_allocator" ? "allocator"
+        : dl.lens === "behavioral_market"   ? "behavioral"
+        : dl.lens === "historical_analog"   ? "historical"
+        : "mixed";
+    } else {
+      reply.dominantLens = isSaudi ? "macro" : "mixed";
+    }
+  }
+
+  // Repair reasoningPlurality
+  if (!reply.reasoningPlurality) {
+    const agreement = multiPerspective.agreementNote;
+    const conflict  = multiPerspective.disagreementNote;
+    if (conflict) {
+      reply.reasoningPlurality = `${agreement}. ${conflict}`;
+    } else if (agreement && !agreement.startsWith("Partial agreement")) {
+      reply.reasoningPlurality = `${agreement}. Minority view preserved as alternative scenario context.`;
+    } else if (isSaudi) {
+      reply.reasoningPlurality =
+        "Macro and Policy lenses aligned on oil-fiscal transmission as primary TASI driver. " +
+        "Behavioral lens flags sentiment overshoot risk in high-oil-price momentum phases as the relevant competing minority view.";
+    } else {
+      reply.reasoningPlurality = "Framework synthesis provides primary analytical anchor; lens activation insufficient for full plurality map.";
+    }
+  }
+
+  // Derive visibility state
+  const post = [reply.frameworkSynthesis, reply.perspectiveMap, reply.dominantLens, reply.reasoningPlurality].filter(Boolean).length;
+  reply.visibilityState =
+    pre === 4 ? "fully_visible"
+    : pre >= 2 ? "partially_visible"
+    : post >= 3 ? "hidden_reasoning"
+    : "partially_visible";
+}
+
+// ─── Phase 80-81: Framework & Perspective directive builder ───────────────────
+// Builds a structured REQUIRED OUTPUT directive injected into the fusion prompt.
+// More effective than passive context labels — explicitly names the output fields
+// and provides the computed content for the AI to use directly.
+function buildFrameworkPerspectiveDirective(
+  frameworkSynth: ReturnType<typeof synthesizeFrameworks>,
+  multiPerspective: ReturnType<typeof reasonMultiPerspective>,
+): string {
+  const dom = frameworkSynth.dominantFramework;
+  const activeLenses = multiPerspective.lensViews.filter(l => l.active);
+
+  const fwLine = dom
+    ? `${dom.name} [${frameworkSynth.synthesisState}, confidence:${frameworkSynth.synthesisConfidence}]: ${dom.coreClaim.slice(0, 80)} | fails when: ${dom.failsWhen.split(";")[0]?.trim().slice(0, 55) ?? "n/a"}${frameworkSynth.minorityInsight ? ` | minority: ${frameworkSynth.minorityInsight.slice(0, 65)}` : ""}`
+    : "No dominant framework resolved — balance competing schools by regime";
+
+  const lensLines = activeLenses.length > 0
+    ? activeLenses.map(l => {
+        const tag = l.lens === "macro_economist" ? "MACRO"
+          : l.lens === "central_bank_policy" ? "POLICY"
+          : l.lens === "institutional_allocator" ? "ALLOCATOR"
+          : l.lens === "behavioral_market" ? "BEHAVIORAL"
+          : "HISTORICAL";
+        return `${tag}: ${l.view.slice(0, 75)}`;
+      }).join(" | ")
+    : "MACRO: assess growth-inflation-liquidity regime | POLICY: assess CB transmission and stability | ALLOCATOR: frame risk/capital tradeoff | BEHAVIORAL: assess sentiment and positioning";
+
+  const domLensTag = !multiPerspective.dominantLens ? "mixed"
+    : multiPerspective.dominantLens.lens === "macro_economist"       ? "macro"
+    : multiPerspective.dominantLens.lens === "central_bank_policy"   ? "policy"
+    : multiPerspective.dominantLens.lens === "institutional_allocator" ? "allocator"
+    : multiPerspective.dominantLens.lens === "behavioral_market"     ? "behavioral"
+    : "historical";
+
+  const pluralityLine = multiPerspective.disagreementNote
+    ? `Agreement: ${multiPerspective.agreementNote.slice(0, 70)} | Conflict: ${multiPerspective.disagreementNote.slice(0, 70)}`
+    : `Agreement: ${multiPerspective.agreementNote.slice(0, 90)} | No significant lens conflict`;
+
+  return [
+    `[REQUIRED OUTPUT FIELDS: frameworkSynthesis, perspectiveMap, dominantLens, reasoningPlurality — all four mandatory]`,
+    `Framework engine [${frameworkSynth.synthesisState}]: ${fwLine}`,
+    `Perspective engine [${multiPerspective.perspectiveState}]: ${lensLines}`,
+    `Dominant lens: ${domLensTag} | ${pluralityLine}`,
+  ].join("\n");
+}
+
 // ─── Investment enforcement directive builder ─────────────────────────────────
 // Generates a compact REQUIRED-FIELDS directive injected directly into the
 // fusion prompt when investment intent is detected. More effective than relying
@@ -2081,17 +2262,11 @@ async function runFusion(
     knowledgeFeed.singleSchoolDominanceWarning
       ? `\n\nResearch balance: single-school dominance detected — apply competing frameworks before concluding.`
       : "",
-    // Phase 80: Framework synthesis — injected when investment or macro signals present
-    (isInvestment || graphResult.matchedNodes.length > 0) && frameworkSynth.synthesisContext
-      ? `\n\nFramework synthesis: ${frameworkSynth.synthesisContext.slice(0, 220)}`
-      : "",
-    // Phase 81: Multi-perspective reasoning — injected when investment or macro signals present
-    (isInvestment || graphResult.matchedNodes.length > 0) && multiPerspective.perspectiveContext
-      ? `\n\nPerspective map: ${multiPerspective.perspectiveContext.slice(0, 260)}`
-      : "",
-    // Phase 81: Minority perspective preserved when lenses conflict
-    multiPerspective.disagreementNote && multiPerspective.competingLens
-      ? `\n\nCompeting lens: ${multiPerspective.competingLens.lensName} — ${multiPerspective.competingLens.view.slice(0, 80)}`
+    // Phase 80-81: Framework & Perspective — structured REQUIRED OUTPUT directive.
+    // Replaces passive context labels with an explicit per-field directive + computed content.
+    // Gated on investment, Saudi, or graph-activated macro question.
+    (isInvestment || isSaudi || graphResult.matchedNodes.length > 0)
+      ? `\n\n${buildFrameworkPerspectiveDirective(frameworkSynth, multiPerspective)}`
       : "",
   ].join("");
   const user = wrapUserContext(lang, userBody);
@@ -2113,6 +2288,7 @@ async function runFusion(
       ) {
         fillArbitrationFields(recovered, trackA, trackB, trackC, trackD, trackE, trackF, consensus, lang);
         fillInstitutionalFields(recovered, trackA, trackD, consensus, question);
+        repairFrameworkVisibility(recovered, frameworkSynth, multiPerspective, isInvestment, isSaudi, graphResult.matchedNodes.length > 0);
         if (isInvestment) {
           const tASlice2 = trackA ? { regime: trackA.regime, macroSummary: trackA.macroSummary, ratesEnv: trackA.ratesEnv, oilLiquidity: trackA.oilLiquidity, dxyImpact: trackA.dxyImpact, creditStressLevel: trackA.creditStressLevel, macroBias: trackA.macroBias, regimeConf: trackA.regimeConf } : null;
           const tDSlice2 = trackD ? { uncertaintyLevel: trackD.uncertaintyLevel, primaryRisk: trackD.primaryRisk, counterCase: trackD.counterCase, invalidationTrigger: trackD.invalidationTrigger, confidenceChallenge: trackD.confidenceChallenge, thesisWeakness: trackD.thesisWeakness } : null;
@@ -2142,6 +2318,10 @@ async function runFusion(
 
   // Phase 63-65: Deterministic institutional field backfill
   fillInstitutionalFields(sanitized, trackA, trackD, consensus, question);
+
+  // Phase 80-81: Enforce framework and perspective visibility — repair if AI omitted
+  repairFrameworkVisibility(sanitized, frameworkSynth, multiPerspective, isInvestment, isSaudi, graphResult.matchedNodes.length > 0);
+  console.log(`[genesis:visibility] state=${sanitized.visibilityState ?? "n/a"} fw=${sanitized.frameworkSynthesis ? "set" : "missing"} pm=${sanitized.perspectiveMap ? "set" : "missing"} lens=${sanitized.dominantLens ?? "n/a"}`);
 
   // P0 Quality gate: assess and enrich if below acceptable threshold
   const _qualityGateIsInvestment = isInvestment;
