@@ -186,16 +186,16 @@ function detectTriggersFromSignals(
   tltChangePct?: number | null,
 ): MacroTrigger[] {
   const triggers: MacroTrigger[] = [];
-  const oil = oilPrice ?? 80;
+  // Null-safe: no oil default — avoids spurious fiscal triggers when oil is unknown
   const oilChg = oilChangePct ?? 0;
   const tltChg = tltChangePct ?? 0;
 
   if (oilChg > 2.5) triggers.push("oil_shock_up");
   if (oilChg < -2.5) triggers.push("oil_shock_down");
-  if (oil > 80) triggers.push("saudi_fiscal_support");
-  if (oil < 68) triggers.push("saudi_fiscal_pressure");
-  if (tltChg < -0.8) triggers.push("rate_hike");   // TLT falling = yields rising = hike
-  if (tltChg > 0.8)  triggers.push("rate_cut");    // TLT rising = yields falling = cut
+  if (oilPrice !== null && oilPrice !== undefined && oilPrice > 80) triggers.push("saudi_fiscal_support");
+  if (oilPrice !== null && oilPrice !== undefined && oilPrice < 68) triggers.push("saudi_fiscal_pressure");
+  if (tltChg < -0.8) triggers.push("rate_hike");
+  if (tltChg > 0.8)  triggers.push("rate_cut");
   return triggers;
 }
 
@@ -206,51 +206,60 @@ export function selectMacroChains(
   oilChangePct?: number | null,
   tltChangePct?: number | null,
   isSaudi = false,
-  maxChains = 2,
+  maxChains = 3,   // Phase-86B: increased from 2 to 3 with priority scoring
 ): MacroTransmissionResult {
   const text = `${question} ${ctx}`;
   const matched = new Map<MacroTrigger, number>();
 
-  // Keyword detection
+  // Keyword detection — base score: 2 per keyword hit
   for (const [trigger, pattern] of Object.entries(CHAIN_KEYWORDS)) {
     if (pattern.test(text)) {
       matched.set(trigger as MacroTrigger, (matched.get(trigger as MacroTrigger) ?? 0) + 2);
     }
   }
 
-  // Live signal detection
+  // Live signal detection — higher weight: 3 per live signal
   const signalTriggers = detectTriggersFromSignals(oilPrice, oilChangePct, tltChangePct);
   for (const t of signalTriggers) {
-    matched.set(t, (matched.get(t) ?? 0) + 3);  // live signal carries more weight
+    matched.set(t, (matched.get(t) ?? 0) + 3);
   }
 
-  // Saudi boost: prefer Saudi chains for Saudi questions
+  // Saudi priority boost: +2 for Saudi chains on Saudi questions
   if (isSaudi) {
     for (const t of ["saudi_fiscal_support","saudi_fiscal_pressure","oil_shock_up","oil_shock_down","rate_hike","rate_cut"] as MacroTrigger[]) {
-      if (matched.has(t)) matched.set(t, (matched.get(t) ?? 0) + 1);
+      if (matched.has(t)) matched.set(t, (matched.get(t) ?? 0) + 2);
     }
   }
 
-  const sorted = [...matched.entries()]
-    .sort((a, b) => b[1] - a[1])
+  // Phase-86B: priority scoring — rank by relevance + macro impact
+  // macro impact bonus: Saudi-relevant chains score +1 for Saudi questions
+  const scored = [...matched.entries()].map(([trigger, score]) => {
+    const chain = MACRO_CHAINS.find(c => c.trigger === trigger);
+    const saudiBonus = isSaudi && chain?.saudiRelevant ? 1 : 0;
+    return { trigger, score: score + saudiBonus };
+  });
+
+  const sorted = scored
+    .sort((a, b) => b.score - a.score)
     .slice(0, maxChains);
 
   const selectedChains = sorted
-    .map(([trigger]) => MACRO_CHAINS.find(c => c.trigger === trigger))
+    .map(({ trigger }) => MACRO_CHAINS.find(c => c.trigger === trigger))
     .filter((c): c is MacroChain => !!c);
 
   const dominant = selectedChains[0] ?? null;
 
-  // Build compact context string
+  // Build compact context — compress to fit: 3 chains at ~130 chars each ≤ 390 chars total
+  const perChainBudget = maxChains > 2 ? 120 : 140;
   const parts = selectedChains.map(c => {
-    const stepSummary = c.steps.slice(0, 3)
+    const stepSummary = c.steps.slice(0, 2)
       .map(s => `${s.from} → ${s.to}`)
       .join(" → ");
-    return `[${c.trigger}] ${stepSummary} | ${c.summary.slice(0, 100)}`;
+    return `[${c.trigger}] ${stepSummary}: ${c.summary.slice(0, perChainBudget - stepSummary.length - 15)}`;
   });
 
   const transmissionCtx = parts.length > 0
-    ? `Macro transmission [${selectedChains.map(c => c.trigger).join("+")}]: ${parts.join(" || ")}`.slice(0, 350)
+    ? `Macro transmission [${selectedChains.map(c => c.trigger).join("+")}]: ${parts.join(" || ")}`.slice(0, 380)
     : "";
 
   return { selectedChains, dominantChain: dominant, transmissionCtx };

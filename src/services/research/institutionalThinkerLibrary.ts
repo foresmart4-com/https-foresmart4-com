@@ -191,6 +191,7 @@ export function detectRelevantThinkers(
   question: string,
   ctx: string,
   maxResults = 2,
+  expertWeights: Record<string, number> = {},
 ): ThinkerProfile[] {
   const text = `${question} ${ctx}`;
   const matched: ThinkerProfile[] = [];
@@ -223,6 +224,15 @@ export function detectRelevantThinkers(
   const seen = new Set<string>();
   const unique = matched.filter(p => p && !seen.has(p.id) && seen.add(p.id));
 
+  // Phase-86B: Apply expert weights for adaptive thinker relevance sorting
+  if (Object.keys(expertWeights).length > 0) {
+    unique.sort((a, b) => {
+      const wA = expertWeights[a.id] ?? 1.0;
+      const wB = expertWeights[b.id] ?? 1.0;
+      return wB - wA;  // higher weight = more relevant = sorted first
+    });
+  }
+
   // Ensure at least a conflict is represented if only one thinker found
   if (unique.length === 1 && unique[0].disagreesWith.length > 0) {
     const conflictId = unique[0].disagreesWith[0];
@@ -239,8 +249,9 @@ export function buildThinkerContext(
   question: string,
   ctx: string,
   isSaudi = false,
+  expertWeights: Record<string, number> = {},
 ): string {
-  const thinkers = detectRelevantThinkers(question, ctx);
+  const thinkers = detectRelevantThinkers(question, ctx, 2, expertWeights);
   if (thinkers.length === 0) return "";
 
   const parts = thinkers.map(t => {

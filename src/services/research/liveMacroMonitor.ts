@@ -86,7 +86,8 @@ function detectEvents(
   const oilChg  = val(oilChangePct);
   const spyChg  = val(spyChangePct);
   const goldChg = val(goldChangePct);
-  const oil     = val(oilPrice, 80);
+  // Oil: null-safe — no default to avoid spurious Saudi fiscal events when oil is unknown
+  const oil     = oilPrice ?? null;
   const eurusd  = val(eurUsd, 1.08);
 
   // Rate shock
@@ -123,15 +124,15 @@ function detectEvents(
     });
   }
 
-  // Saudi fiscal gate (oil level, not movement)
-  if (oil >= THRESHOLD.oilFiscalHigh) {
+  // Saudi fiscal gate (oil level, not movement) — only when oil price is actually known
+  if (oil !== null && oil >= THRESHOLD.oilFiscalHigh) {
     events.push({
       label: "oil_fiscal_support", magnitudePct: oil,
       saudiImpact: "high",
       thesisRelevant: isSaudi,
       injectionCtx: `Oil at $${oil.toFixed(0)} (above $78-80 breakeven): Saudi fiscal surplus → government spending and Aramco dividend intact.`,
     });
-  } else if (oil <= THRESHOLD.oilFiscalLow) {
+  } else if (oil !== null && oil <= THRESHOLD.oilFiscalLow) {
     events.push({
       label: "oil_fiscal_pressure", magnitudePct: oil,
       saudiImpact: "high",

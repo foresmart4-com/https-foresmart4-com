@@ -195,6 +195,10 @@ import { buildPolicyIntelligence } from "@/services/research/policyIntelligenceE
 import { assessLiveMacroEvents, type LiveMacroMonitorResult } from "@/services/research/liveMacroMonitor";
 import { detectMacroEventType, computeThesisImpact } from "@/services/research/thesisImpactEngine";
 import { governEventSynthesis } from "@/services/research/eventSynthesisGovernor";
+// Phase-86B: Final Cognitive Optimization + Unified Institutional Brain
+import { buildSemanticImpact } from "@/services/research/semanticImpactEngine";
+import { buildPolicyExpectation } from "@/services/research/policyExpectationModel";
+import { buildUnifiedCognition } from "@/services/research/unifiedCognitionGovernor";
 
 export interface GenesisScenario {
   label: string;
@@ -2559,8 +2563,9 @@ async function runFusion(
   // ── Phase-85C: Expert Knowledge + Institutional Thinker Intelligence ──────────
   // Pure O(1) — all deterministic, no AI calls, no network.
   // Runs only for investment questions (same gate as 85B).
-  const _thinkerCtx   = isInvestment ? buildThinkerContext(question, ctx, isSaudi) : "";
-  const _schoolCtx    = isInvestment ? buildSchoolContext(question, ctx, trackA?.regime, isSaudi) : "";
+  // Phase-86B: pass expert weights for adaptive thinker/school relevance sorting
+  const _thinkerCtx   = isInvestment ? buildThinkerContext(question, ctx, isSaudi, _expertWeights) : "";
+  const _schoolCtx    = isInvestment ? buildSchoolContext(question, ctx, trackA?.regime, isSaudi, _expertWeights) : "";
   const _playbookCtx  = isInvestment ? buildPlaybookContext(
     question, ctx, trackA?.regime, isSaudi, live?.oilPrice,
   ) : "";
@@ -2682,6 +2687,25 @@ async function runFusion(
 
   if (_86aResult && !_86aResult.isEmpty) {
     console.log(`[genesis:86a] synthesis=${_86aResult.synthesisLabel} kept=${_86aResult.governance.kept} impact=${_thesisImpact?.impactCategory ?? "none"} modifier=${_thesisImpact?.confidenceModifier ?? 0}`);
+  }
+
+  // ── Phase-86B: Final Cognitive Optimization + Unified Institutional Brain ─────
+  // Unifies all research layers (85B/85D/86A + new semantic/policy-expectation) into
+  // one governed context, replacing three separate prompt injections.
+  const _semanticImpact = buildSemanticImpact(
+    question, ctx, _liveEvents, _policyIntel, isSaudi, trackA?.regime,
+  );
+  const _policyExpectation = buildPolicyExpectation(question, ctx, _policyIntel, trackA?.regime);
+  const _unifiedCognition = buildUnifiedCognition({
+    authority85b:    _governedKnowledge?.governedContext    ?? "",
+    expertKnowledge: _85dResult?.governedContext            ?? _crossResearch?.governedContext ?? "",
+    macroSynthesis:  _86aResult?.governedContext            ?? "",
+    semanticImpact:  _semanticImpact,
+    policyDelta:     _policyExpectation,
+    question, isSaudi, isInvestment, regime: trackA?.regime,
+  });
+  if (!_unifiedCognition.isEmpty) {
+    console.log(`[genesis:86b] unified=${_unifiedCognition.coverageLabel} chars=${_unifiedCognition.totalChars} semantic=${_semanticImpact.analyticalPressure} policy_delta=${_policyExpectation.deltaType}`);
   }
 
   // ── Phase 68: Portfolio Allocation Intelligence ───────────────────────────────
@@ -2932,26 +2956,19 @@ async function runFusion(
     institutionalReasoningRequired
       ? `\n\n${buildCommitteeGenerationDirective(multiPerspective, frameworkSynth, lang)}`
       : "",
-    // Phase-85B: Knowledge authority — governed, authority-weighted, anti-hype research context.
-    // Injected for investment questions when governed context is non-empty and research relevance
-    // is sufficient (≥30). Placed last in the research stack so it does not crowd higher-priority
-    // institutional context while still surfacing authority-aware and framework-aware signals.
-    _governedKnowledge && !_governedKnowledge.isEmpty && _researchRelevance.overallRelevance >= 30
-      ? `\n\nKnowledge authority [${_governedKnowledge.authorityLabel}]: ${_governedKnowledge.governedContext}`
-      : "",
-    // Phase-85D: Expert knowledge — adaptive playbook ranking, Arabic thinker detection,
-    // per-type dedup thresholds, short-context protection, learning governor weights.
-    // Falls back to Phase-85C crossResearch when 85D produces nothing.
-    _85dResult && !_85dResult.isEmpty
-      ? `\n\nExpert knowledge [${_85dResult.coverageLabel}]: ${_85dResult.governedContext}`
-      : (_crossResearch && !_crossResearch.isEmpty)
-      ? `\n\nExpert knowledge [${_crossResearch.coverageLabel}]: ${_crossResearch.governedContext}`
-      : "",
-    // Phase-86A: Live macro synthesis — causal transmission, policy intelligence,
-    // live macro events, thesis impact. Governed against headline chasing and hype.
-    // Injected only when investment-relevant and impact score ≥ threshold.
-    _86aResult && !_86aResult.isEmpty
+    // Phase-86B: Unified institutional intelligence — replaces Phase-85B/85D/86A independent
+    // injections with one coordinated output (~700 chars vs ~1510 chars previously).
+    // Unifies: authority (85B) + expert knowledge (85D) + macro synthesis (86A) +
+    // semantic impact (86B) + policy expectation delta (86B).
+    // Falls back to individual layers if unified cognition is empty.
+    !_unifiedCognition.isEmpty
+      ? `\n\nInstitutional intelligence [${_unifiedCognition.coverageLabel}]: ${_unifiedCognition.unifiedContext}`
+      : _86aResult && !_86aResult.isEmpty
       ? `\n\nMacro synthesis [${_86aResult.synthesisLabel}]: ${_86aResult.governedContext}`
+      : (_85dResult && !_85dResult.isEmpty)
+      ? `\n\nExpert knowledge [${_85dResult.coverageLabel}]: ${_85dResult.governedContext}`
+      : (_governedKnowledge && !_governedKnowledge.isEmpty && _researchRelevance.overallRelevance >= 30)
+      ? `\n\nKnowledge authority [${_governedKnowledge.authorityLabel}]: ${_governedKnowledge.governedContext}`
       : "",
   ].join("");
   const user = wrapUserContext(lang, userBody);

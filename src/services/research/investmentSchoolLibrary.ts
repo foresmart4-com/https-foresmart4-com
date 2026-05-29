@@ -176,6 +176,7 @@ export function detectRelevantSchools(
   regime?: string,
   isSaudi = false,
   maxResults = 2,
+  expertWeights: Record<string, number> = {},
 ): InvestmentSchool[] {
   const text = `${question} ${ctx} ${regime ?? ""}`;
   const matched: InvestmentSchool[] = [];
@@ -210,6 +211,15 @@ export function detectRelevantSchools(
     }
   }
 
+  // Phase-86B: Apply expert weights for adaptive school relevance sorting
+  if (Object.keys(expertWeights).length > 0) {
+    matched.sort((a, b) => {
+      const wA = expertWeights[a.id] ?? 1.0;
+      const wB = expertWeights[b.id] ?? 1.0;
+      return wB - wA;
+    });
+  }
+
   // If only one, add a conflicting school for balance
   if (matched.length === 1 && matched[0].conflictsWith.length > 0) {
     const conflictId = matched[0].conflictsWith[0];
@@ -227,8 +237,9 @@ export function buildSchoolContext(
   ctx: string,
   regime?: string,
   isSaudi = false,
+  expertWeights: Record<string, number> = {},
 ): string {
-  const schools = detectRelevantSchools(question, ctx, regime, isSaudi);
+  const schools = detectRelevantSchools(question, ctx, regime, isSaudi, 2, expertWeights);
   if (schools.length === 0) return "";
 
   const parts = schools.map(s => {
