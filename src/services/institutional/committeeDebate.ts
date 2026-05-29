@@ -36,6 +36,15 @@ export function isCompanySelectionQuestion(question: string): boolean {
   return COMPANY_SELECTION_PATTERN.test(question);
 }
 
+// Detects allocation, market-outlook, portfolio, and macro questions that require
+// committee reasoning (allocator bull/bear debate) but do NOT name specific companies.
+const ALLOCATION_MARKET_PATTERN =
+  /allocation|allocat|portfolio\s+(view|outlook|risk|construct)|market\s+(outlook|view)|macro\s+(view|outlook|regime|analysis)|how\s+would\s+a.{0,25}(allocat|invest)|conservative\s+(investor|allocat|portfolio|fund|manager)|investment\s+(horizon|manager|view)|sector\s+(outlook|view|rotation)|كيف\s+(ينظر|تنظر|يرى|ترى).{0,35}(سوق|استثمار|محفظة)|مدير\s+استثمار|مستثمر\s+محافظ|نظرة\s+المستثمر|أفق\s+(استثماري|زمني|12|24)/i;
+
+export function isAllocationOrMarketQuestion(question: string): boolean {
+  return ALLOCATION_MARKET_PATTERN.test(question);
+}
+
 export function deriveCommitteeStance(
   trackA: TrackASlice | null,
   trackD: TrackDSlice | null,
@@ -119,13 +128,40 @@ STEP 5 — If any company names are mentioned:
 - They are conditional on current valuation, fundamental, and liquidity data not available in this context.
 - The committee does not endorse any named company without current financial statement review.`;
 
+// Allocator-focused committee debate structure for market-outlook and allocation questions.
+// Does not include the 7-filter company selection framework (no company names needed).
+const ALLOCATOR_DEBATE_STRUCTURE = `Investment Committee Debate — Allocator Perspective:
+
+BULL COMMITTEE (case for allocation):
+- What specific macro or policy tailwind supports constructive allocation in this market/asset class right now?
+- What structural factor (yield, valuation, or regime transition) provides a downside floor?
+- Which catalyst over the investment horizon could re-rate the market or asset class?
+
+BEAR COMMITTEE (case for caution):
+- What macro, policy, or credit risk argues against capital deployment at current levels?
+- How does the current regime compare to prior periods of capital impairment?
+- What would make the conservative allocator reduce or exit exposure?
+
+COMMITTEE FINAL STANCE — choose one and set "committeeStance":
+- selective_over_broad: regime supports focused factor/sector allocation; broad beta underperforms selectivity.
+- conditional_opportunity: opportunity exists but requires a specific catalyst or valuation threshold.
+- defensive: current risk/reward favors capital preservation; underweight or neutral stance appropriate.
+- wait_for_confirmation: macro framework is split; premature commitment is the primary risk.
+- insufficient_edge: evidence base is too thin for a high-conviction directional view.
+
+Set "committeeBullCase": 1 sentence for the bull allocator argument.
+Set "committeeBearCase": 1 sentence for the bear allocator argument.`;
+
 export function buildCommitteeDebateContext(
   question: string,
   trackA: TrackASlice | null,
   trackD: TrackDSlice | null,
   consensus: ConsensusSlice,
 ): string {
-  if (!isCompanySelectionQuestion(question)) return "";
+  const isCompanyQ = isCompanySelectionQuestion(question);
+  const isAllocationQ = !isCompanyQ && isAllocationOrMarketQuestion(question);
+
+  if (!isCompanyQ && !isAllocationQ) return "";
 
   const stance = deriveCommitteeStance(trackA, trackD, consensus);
 
@@ -154,6 +190,28 @@ export function buildCommitteeDebateContext(
     return lines.join("\n");
   })();
 
+  // Allocation/market-outlook: lighter allocator framing — no company selection framework
+  if (isAllocationQ) {
+    return `Investment Committee Context — Allocator Perspective:
+
+The user is asking about market allocation, portfolio positioning, or a market outlook from an allocator's perspective.
+
+${ALLOCATOR_DEBATE_STRUCTURE}
+
+Committee stance for this context: ${stance}
+${stanceDescriptions[stance]}
+
+Regime-adjusted macro filter:
+${macroFilter}
+
+GOVERNANCE RULES — MANDATORY:
+- Frame analysis through the capital allocation lens, not individual company names.
+- The bull committee and bear committee must each present a specific, evidence-grounded argument.
+- Set committeeStance, committeeBullCase, and committeeBearCase in the output.
+- Language: "selective allocation", "overweight/underweight", "defensive positioning", "conditional deployment".`;
+  }
+
+  // Full company selection committee context
   return `Investment Committee Context:
 
 The user is asking for company names or investment opportunities. The committee does NOT jump to names.

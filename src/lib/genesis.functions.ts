@@ -17,6 +17,7 @@ import {
   buildCommitteeDebateContext,
   deriveCommitteeStance,
   isCompanySelectionQuestion,
+  isAllocationOrMarketQuestion,
   type CommitteeStance,
 } from "@/services/institutional/committeeDebate";
 import {
@@ -25,6 +26,7 @@ import {
   serverDetectInvestmentIntent,
   serverDetectSaudiQuestion,
   serverDetectCompanyQuestion,
+  detectInstitutionalReasoningRequired,
   type InvestmentQualityState,
 } from "@/services/institutional/qualityGate";
 import {
@@ -1855,8 +1857,8 @@ function fillInstitutionalFields(
     );
   }
 
-  // Phase 65: committeeStance — derive when question is company-selection oriented
-  if (!reply.committeeStance && isCompanySelectionQuestion(question)) {
+  // Phase 65: committeeStance — derive for company-selection AND allocation/market questions
+  if (!reply.committeeStance && (isCompanySelectionQuestion(question) || isAllocationOrMarketQuestion(question))) {
     reply.committeeStance = deriveCommitteeStance(
       trackA ? { regime: trackA.regime, macroBias: trackA.macroBias, creditStressLevel: trackA.creditStressLevel, regimeConf: trackA.regimeConf } : null,
       trackD ? { uncertaintyLevel: trackD.uncertaintyLevel, primaryRisk: trackD.primaryRisk, thesisWeakness: trackD.thesisWeakness } : null,
@@ -1876,9 +1878,11 @@ function repairFrameworkVisibility(
   multiPerspective: ReturnType<typeof reasonMultiPerspective>,
   isInvestment: boolean,
   isSaudi: boolean,
-  graphHit: boolean,
+  institutionalReasoningRequired: boolean,
 ): void {
-  if (!isInvestment && !isSaudi && !graphHit) return;
+  // Broader gate: institutionalReasoningRequired already folds in isInvestment, isSaudi,
+  // graph hits, and the new allocation/market-outlook patterns.
+  if (!institutionalReasoningRequired) return;
 
   const pre = [reply.frameworkSynthesis, reply.perspectiveMap, reply.dominantLens, reply.reasoningPlurality].filter(Boolean).length;
 
@@ -2170,9 +2174,19 @@ async function runFusion(
   trackF: TrackF | null,
   consensus: ConsensusResult,
   live: LiveMarketState | null,
+  tracksUsed: number,
+  isExpress: boolean,
   eceScore?: number,
   providerIdentity?: string,
 ): Promise<GenesisReply | null> {
+  // ── Detection — must run before any field that depends on isInvestment/isSaudi ──
+  const isInvestment = serverDetectInvestmentIntent(question, ctx);
+  const isSaudi = serverDetectSaudiQuestion(question, ctx);
+  const isCompanyQ = serverDetectCompanyQuestion(question);
+  // Broader gate: captures allocation, market-outlook, macro, and conservative-allocator
+  // questions that fall outside the narrower investment/Saudi patterns.
+  const institutionalReasoningRequired = detectInstitutionalReasoningRequired(question, ctx);
+
   const confAnchor = computeConfidenceFromTracks(trackA, trackB, trackD, consensus, trackF, eceScore, live?.marketStateQuality);
   const msq = live?.marketStateQuality ?? "inferred";
   const msqDetail = live
@@ -2276,9 +2290,6 @@ async function runFusion(
   });
 
   // ── P0 Quality: Investment enforcement directive ─────────────────────────────
-  const isInvestment = serverDetectInvestmentIntent(question, ctx);
-  const isSaudi = serverDetectSaudiQuestion(question, ctx);
-  const isCompanyQ = serverDetectCompanyQuestion(question);
   const investEnforcement = buildInvestmentEnforcementDirective(isInvestment, isSaudi, isCompanyQ, lang);
 
   const sys = buildGenesisSystemPrompt(lang);
@@ -2312,9 +2323,9 @@ async function runFusion(
       ? `\n\nResearch balance: single-school dominance detected — apply competing frameworks before concluding.`
       : "",
     // Phase 80-81: Framework & Perspective — structured REQUIRED OUTPUT directive.
-    // Replaces passive context labels with an explicit per-field directive + computed content.
-    // Gated on investment, Saudi, or graph-activated macro question.
-    (isInvestment || isSaudi || graphResult.matchedNodes.length > 0)
+    // Uses broader institutionalReasoningRequired gate (covers investment, Saudi, market
+    // outlook, allocation, macro, and conservative-allocator questions + graph hits).
+    institutionalReasoningRequired
       ? `\n\n${buildFrameworkPerspectiveDirective(frameworkSynth, multiPerspective)}`
       : "",
   ].join("");
@@ -2337,7 +2348,7 @@ async function runFusion(
       ) {
         fillArbitrationFields(recovered, trackA, trackB, trackC, trackD, trackE, trackF, consensus, lang);
         fillInstitutionalFields(recovered, trackA, trackD, consensus, question);
-        repairFrameworkVisibility(recovered, frameworkSynth, multiPerspective, isInvestment, isSaudi, graphResult.matchedNodes.length > 0);
+        repairFrameworkVisibility(recovered, frameworkSynth, multiPerspective, isInvestment, isSaudi, institutionalReasoningRequired);
         if (isInvestment) {
           const tASlice2 = trackA ? { regime: trackA.regime, macroSummary: trackA.macroSummary, ratesEnv: trackA.ratesEnv, oilLiquidity: trackA.oilLiquidity, dxyImpact: trackA.dxyImpact, creditStressLevel: trackA.creditStressLevel, macroBias: trackA.macroBias, regimeConf: trackA.regimeConf } : null;
           const tDSlice2 = trackD ? { uncertaintyLevel: trackD.uncertaintyLevel, primaryRisk: trackD.primaryRisk, counterCase: trackD.counterCase, invalidationTrigger: trackD.invalidationTrigger, confidenceChallenge: trackD.confidenceChallenge, thesisWeakness: trackD.thesisWeakness } : null;
@@ -2369,8 +2380,8 @@ async function runFusion(
   fillInstitutionalFields(sanitized, trackA, trackD, consensus, question);
 
   // Phase 80-81: Enforce framework and perspective visibility — repair if AI omitted
-  repairFrameworkVisibility(sanitized, frameworkSynth, multiPerspective, isInvestment, isSaudi, graphResult.matchedNodes.length > 0);
-  console.log(`[genesis:visibility] state=${sanitized.visibilityState ?? "n/a"} fw=${sanitized.frameworkSynthesis ? "set" : "missing"} pm=${sanitized.perspectiveMap ? "set" : "missing"} lens=${sanitized.dominantLens ?? "n/a"}`);
+  repairFrameworkVisibility(sanitized, frameworkSynth, multiPerspective, isInvestment, isSaudi, institutionalReasoningRequired);
+  console.log(`[genesis:irq] irq=${institutionalReasoningRequired} inv=${isInvestment} saudi=${isSaudi} graphHit=${graphResult.matchedNodes.length > 0} fw=${sanitized.frameworkSynthesis ? "set" : "missing"} pm=${sanitized.perspectiveMap ? "set" : "missing"} lens=${sanitized.dominantLens ?? "n/a"} rp=${sanitized.reasoningPlurality ? "set" : "missing"}`);
 
   // P0 Quality gate: assess and enrich if below acceptable threshold
   const _qualityGateIsInvestment = isInvestment;
@@ -2512,7 +2523,7 @@ export const askGenesis = createServerFn({ method: "POST" })
 
     // Attempt fusion when at least one track succeeded.
     if (tracksUsed >= 1) {
-      const fused = await runFusion(lang, data.question, data.marketContext, trackA, trackB, trackC, trackD, trackE, trackF, consensus, live, data.eceScore, routing.providerIdentity);
+      const fused = await runFusion(lang, data.question, data.marketContext, trackA, trackB, trackC, trackD, trackE, trackF, consensus, live, tracksUsed, isExpress, data.eceScore, routing.providerIdentity);
       if (fused?.headline) {
         fused.marketStateQuality = live?.marketStateQuality ?? fused.marketStateQuality ?? "inferred";
         return { reply: fused, error: null as null, engine: "ai" as const, tracksUsed, provider, dominantBias: consensus.dominantBias, providerIdentity: routing.providerIdentity, routingMode: routing.routingMode };

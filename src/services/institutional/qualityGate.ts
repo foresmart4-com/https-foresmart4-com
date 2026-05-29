@@ -61,6 +61,21 @@ export function serverDetectCompanyQuestion(question: string): boolean {
   return COMPANY_Q_SERVER.test(question);
 }
 
+// Broader trigger for institutional reasoning — captures market outlook, macro analysis,
+// allocation, conservative allocator framing, and portfolio-view questions that fall
+// outside the narrower investment-intent or Saudi patterns.
+const INSTITUTIONAL_REASONING_EXTRA =
+  /market\s+outlook|macro\s+(outlook|view|analysis|regime)|how\s+would\s+a.{0,25}(allocat|invest)|conservative\s+(investor|allocat|portfolio|fund|manager)|investment\s+(horizon|manager|view)|sector\s+(outlook|view|rotation)|كيف\s+(ينظر|تنظر|يرى|ترى).{0,35}(سوق|استثمار|محفظة)|مدير\s+استثمار|مستثمر\s+محافظ|نظرة\s+المستثمر|أفق\s+(استثماري|زمني|12|24)/i;
+
+export function detectInstitutionalReasoningRequired(question: string, ctx?: string): boolean {
+  return (
+    serverDetectInvestmentIntent(question, ctx) ||
+    serverDetectSaudiQuestion(question, ctx) ||
+    INSTITUTIONAL_REASONING_EXTRA.test(question) ||
+    INSTITUTIONAL_REASONING_EXTRA.test((ctx ?? "").slice(0, 400))
+  );
+}
+
 // ─── Quality assessment ────────────────────────────────────────────────────────
 
 export function assessInvestmentQuality(
@@ -271,12 +286,15 @@ export function enrichReplyFromTracks(
   if (!reply.sectorLens)
     reply.sectorLens = deriveSectorLens(isSaudi, trackA, lang);
 
+  // selectionFramework (7-filter criteria) is company-selection only
   if (isCompanyQ) {
     if (!reply.selectionFramework)
       reply.selectionFramework = deriveSelectionFramework(isSaudi, lang);
-    if (!reply.committeeBullCase)
-      reply.committeeBullCase = deriveCommitteeBullCase(trackA, consensus, lang);
-    if (!reply.committeeBearCase)
-      reply.committeeBearCase = deriveCommitteeBearCase(trackD, lang);
   }
+  // Committee bull/bear backfill applies to all investment questions, not just company selection.
+  // Ensures the Committee Debate panel is visible for allocation and market-outlook questions.
+  if (!reply.committeeBullCase)
+    reply.committeeBullCase = deriveCommitteeBullCase(trackA, consensus, lang);
+  if (!reply.committeeBearCase)
+    reply.committeeBearCase = deriveCommitteeBearCase(trackD, lang);
 }
