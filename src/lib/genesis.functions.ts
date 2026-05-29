@@ -98,6 +98,24 @@ import {
   auditInvestmentDepth,
   buildDepthRepairHints,
 } from "@/services/institutional/investmentDepthRules";
+// Phase-83B: Institutional Judgment + Thesis Evolution Engine
+import {
+  assessThesisEvolution,
+  type ThesisEvolutionState,
+} from "@/services/institutional/thesisEvolutionEngine";
+import {
+  deriveAllocatorDecision,
+  type AllocatorDecision,
+} from "@/services/institutional/allocatorDecisionEngine";
+import {
+  analyzeRegimeConflicts,
+  type ConflictAnalysis,
+} from "@/services/institutional/regimeConflictEngine";
+import {
+  synthesiseInstitutionalJudgment,
+  repairWithJudgment,
+  type InstitutionalJudgment,
+} from "@/services/institutional/investmentJudgmentEngine";
 
 export interface GenesisScenario {
   label: string;
@@ -220,6 +238,9 @@ export interface GenesisReply {
   // Phase-83A: Research Intelligence Core
   knowledgeUseScore?: number;   // 0-100: % of activated research packs genuinely reflected in reply
   depthRulesScore?: number;     // 0-100: weighted investment depth rules compliance
+  // Phase-83B: Institutional Judgment Engine
+  judgmentScore?: number;       // 0-100: institutional judgment quality score
+  judgmentGrade?: string;       // institutional/strong/acceptable/weak/insufficient
 }
 
 const AskInput = z.object({
@@ -509,9 +530,11 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
     secondOrderRisks: cleanStr(obj.secondOrderRisks),
     activatedKnowledge: cleanStr(obj.activatedKnowledge),
     valuationEarningsView: cleanStr(obj.valuationEarningsView),
-    // Phase-83A: scores set deterministically post-sanitize; never from AI JSON
+    // Phase-83A/83B: scores set deterministically post-sanitize; never from AI JSON
     knowledgeUseScore: undefined,
     depthRulesScore: undefined,
+    judgmentScore: undefined,
+    judgmentGrade: undefined,
   };
 }
 
@@ -2506,6 +2529,40 @@ async function runFusion(
     console.log(`[genesis:hist-analog] category=${_multiAnalog.category} primary=${_multiAnalog.primaryAnalog.episode.id}`);
   }
 
+  // ── Phase-83B: Institutional Judgment engines (pre-prompt) ──────────────────
+  // These run BEFORE the AI call to inject structured judgment context.
+  // They are pure deterministic functions of available track data.
+  const _thesisEvolution: ThesisEvolutionState | null = isInvestment
+    ? assessThesisEvolution({
+        trackA: tASliceFull,
+        trackD: tDSliceFull,
+        consensus: cSliceFull,
+        hasExistingThesis: false,
+        currentInvalidation: undefined,
+        currentMissingEvidence: undefined,
+        isSaudi,
+        lang,
+      })
+    : null;
+
+  const _allocatorDecision: AllocatorDecision | null = isInvestment
+    ? deriveAllocatorDecision(tASliceFull, cSliceFull, isSaudi, lang)
+    : null;
+
+  const _conflictAnalysis: ConflictAnalysis | null = isInvestment
+    ? analyzeRegimeConflicts(tASliceFull, tDSliceFull, cSliceFull, question, isSaudi, lang)
+    : null;
+
+  if (_thesisEvolution) {
+    console.log(`[genesis:thesis-evolution] stage=${_thesisEvolution.stage} direction=${_thesisEvolution.confidenceDirection} ceiling=${_thesisEvolution.convictionCeiling}%`);
+  }
+  if (_allocatorDecision) {
+    console.log(`[genesis:allocator-decision] stance=${_allocatorDecision.stance} conviction=${_allocatorDecision.conviction}%`);
+  }
+  if (_conflictAnalysis && _conflictAnalysis.conflictCount > 0) {
+    console.log(`[genesis:regime-conflict] conflicts=${_conflictAnalysis.conflictCount} fake_consensus=${_conflictAnalysis.fakeConsensusRisk}`);
+  }
+
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
     `User question: ${question}`,
@@ -2544,6 +2601,18 @@ async function runFusion(
       : "",
     _multiAnalog?.saudiCycleContext && isSaudi
       ? `\n\nSaudi cycle context:\n${_multiAnalog.saudiCycleContext.slice(0, 350)}`
+      : "",
+    // Phase-83B: Thesis evolution context — forward-looking conviction framework.
+    _thesisEvolution?.evolutionContext
+      ? `\n\n${_thesisEvolution.evolutionContext}`
+      : "",
+    // Phase-83B: Allocator decision context — conviction-scored deployment stance.
+    _allocatorDecision?.decisionContext
+      ? `\n\n${_allocatorDecision.decisionContext}`
+      : "",
+    // Phase-83B: Regime conflict context — named conflicts the AI must address.
+    _conflictAnalysis?.conflictCount && _conflictAnalysis.conflictCount > 0
+      ? `\n\n${_conflictAnalysis.conflictContext}`
       : "",
     // Phase 71-77: Research civilization context (compact; injected when signals detected)
     graphResult.graphContext ? `\n\nKnowledge graph: ${graphResult.conceptLinkage.slice(0, 250)}` : "",
@@ -2712,18 +2781,42 @@ async function runFusion(
 
   // Phase-83A: Investment depth rules audit — 10 canonical rules, weighted scoring.
   // Runs on all investment questions. Produces depthRulesScore and repair hints.
+  let _depthAuditForJudgment: import("@/services/institutional/investmentDepthRules").DepthRulesAudit | null = null;
   if (_qualityGateIsInvestment) {
     const depthAudit = auditInvestmentDepth(sanitized);
+    _depthAuditForJudgment = depthAudit;
     sanitized.depthRulesScore = depthAudit.overallScore;
     console.log(`[genesis:depth-rules] score=${depthAudit.overallScore} passed=${depthAudit.passedRules}/${depthAudit.totalRules} critical_failed=[${depthAudit.criticalFailed.join(",")||"none"}]`);
     if (!depthAudit.passesMinimum) {
-      // Critical rules failed — apply targeted repair from authoritative rule hints
       const hints = buildDepthRepairHints(depthAudit, _qualityGateIsSaudi, lang);
       if (hints.length > 0) {
         console.log(`[genesis:depth-rules] repair hints: ${hints[0]}`);
-        // Re-run shallow repair which also fixes macroChain, secondOrderRisks, etc.
         repairShallowAnswer(sanitized, tASliceRepair, cSliceFull, _qualityGateIsSaudi, lang);
       }
+    }
+  }
+
+  // Phase-83B: Investment judgment engine — mandatory gate for serious investment questions.
+  // Synthesises all 83A+83B engine outputs into a scored institutional judgment.
+  // If grade is weak/insufficient, applies targeted repair before delivery.
+  if (_qualityGateIsInvestment) {
+    const judgment: InstitutionalJudgment = synthesiseInstitutionalJudgment(
+      sanitized,
+      _thesisEvolution,
+      _allocatorDecision,
+      _conflictAnalysis,
+      _depthAuditForJudgment,
+      true,
+      _qualityGateIsSaudi,
+      lang,
+    );
+    sanitized.judgmentScore = judgment.judgmentScore;
+    sanitized.judgmentGrade = judgment.judgmentGrade;
+    console.log(`[genesis:judgment] score=${judgment.judgmentScore} grade=${judgment.judgmentGrade} conflicts=${_conflictAnalysis?.conflictCount ?? 0}`);
+
+    if (judgment.judgmentGrade === "weak" || judgment.judgmentGrade === "insufficient") {
+      repairWithJudgment(sanitized, judgment, _allocatorDecision, lang);
+      console.log(`[genesis:judgment] repair applied — grade was ${judgment.judgmentGrade}`);
     }
   }
 
