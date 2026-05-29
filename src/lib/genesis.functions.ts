@@ -27,6 +27,13 @@ import {
   serverDetectCompanyQuestion,
   type InvestmentQualityState,
 } from "@/services/institutional/qualityGate";
+import {
+  calibrateReasoning,
+  enrichShallowReasoning,
+  type ReasoningDepth,
+  type ThesisStrength,
+  type ReasoningCalibrationResult,
+} from "@/services/institutional/reasoningCalibration";
 
 export interface GenesisScenario {
   label: string;
@@ -122,6 +129,13 @@ export interface GenesisReply {
   selectionFramework?: string;  // criteria-based framework (not company names)
   committeeBullCase?: string;   // bull committee argument
   committeeBearCase?: string;   // bear committee argument
+  // Phase 66: Reasoning Depth Calibration
+  reasoningDepth?: ReasoningDepth;        // shallow / moderate / institutional / insufficient
+  evidenceStrength?: number;              // 0-100 composite evidence quality
+  causalChain?: string;                   // strongest causal chain found in reply
+  thesisStrength?: ThesisStrength;        // strong / supported / fragile / absent
+  evidenceConflict?: string;              // detected internal evidence tension, if any
+  confidenceExplanation?: string;         // 1 sentence: earned vs asserted confidence
 }
 
 const AskInput = z.object({
@@ -373,6 +387,23 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
     selectionFramework: cleanStr(obj.selectionFramework),
     committeeBullCase: cleanStr(obj.committeeBullCase),
     committeeBearCase: cleanStr(obj.committeeBearCase),
+    // Phase 66: Reasoning Depth Calibration — these are set deterministically
+    // after the AI reply is sanitized; AI is not asked to produce them.
+    reasoningDepth: (() => {
+      const v = obj.reasoningDepth;
+      const VALID = new Set<string>(["institutional","moderate","shallow","insufficient"]);
+      return VALID.has(v as string) ? (v as ReasoningDepth) : undefined;
+    })(),
+    evidenceStrength: typeof obj.evidenceStrength === "number" && Number.isFinite(obj.evidenceStrength)
+      ? Math.max(0, Math.min(100, Math.round(obj.evidenceStrength))) : undefined,
+    causalChain: cleanStr(obj.causalChain),
+    thesisStrength: (() => {
+      const v = obj.thesisStrength;
+      const VALID = new Set<string>(["strong","supported","fragile","absent"]);
+      return VALID.has(v as string) ? (v as ThesisStrength) : undefined;
+    })(),
+    evidenceConflict: cleanStr(obj.evidenceConflict),
+    confidenceExplanation: cleanStr(obj.confidenceExplanation),
   };
 }
 
@@ -1964,6 +1995,20 @@ async function runFusion(
     console.log(`[genesis:quality] enriched reply (was ${qualityState})`);
   }
 
+  // Phase 66: Reasoning depth calibration — runs after all enrichment
+  const calibration = calibrateReasoning(sanitized, lang);
+  sanitized.reasoningDepth = calibration.reasoningDepth;
+  sanitized.evidenceStrength = calibration.evidenceStrength;
+  sanitized.causalChain = calibration.causalChain;
+  sanitized.thesisStrength = calibration.thesisStrength;
+  sanitized.evidenceConflict = calibration.evidenceConflict ?? undefined;
+  sanitized.confidenceExplanation = calibration.confidenceExplanation;
+  if (calibration.reasoningDepth === "shallow") {
+    enrichShallowReasoning(sanitized, calibration, lang);
+    console.log(`[genesis:depth] shallow reasoning detected — enriched and retry directive prepared`);
+  }
+  console.log(`[genesis:depth] depth=${calibration.reasoningDepth} evidenceStrength=${calibration.evidenceStrength} thesis=${calibration.thesisStrength}`);
+
   const _finalSet = _p12.filter(k => { const v = (sanitized as Record<string,unknown>)[k]; return v != null && v !== "" && !(Array.isArray(v) && (v as unknown[]).length === 0); });
   console.log(`[genesis:p12] post-fill: ${_finalSet.join(",")||"none"}`);
 
@@ -2127,6 +2172,15 @@ export const askGenesis = createServerFn({ method: "POST" })
           console.log(`[genesis:quality] single-call enriched (was ${_qualState})`);
         }
       }
+      // Phase 66: calibrate single-call path too
+      const _fbCalib = calibrateReasoning(direct, lang);
+      direct.reasoningDepth = _fbCalib.reasoningDepth;
+      direct.evidenceStrength = _fbCalib.evidenceStrength;
+      direct.causalChain = _fbCalib.causalChain;
+      direct.thesisStrength = _fbCalib.thesisStrength;
+      direct.evidenceConflict = _fbCalib.evidenceConflict ?? undefined;
+      direct.confidenceExplanation = _fbCalib.confidenceExplanation;
+      if (_fbCalib.reasoningDepth === "shallow") enrichShallowReasoning(direct, _fbCalib, lang);
       return { reply: direct, error: null as null, engine: "ai" as const, provider, providerIdentity: routing.providerIdentity, routingMode: routing.routingMode };
     }
 

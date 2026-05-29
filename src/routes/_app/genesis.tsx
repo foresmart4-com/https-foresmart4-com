@@ -1078,7 +1078,13 @@ function GenesisPage() {
       // Meta-reasoning hint — Phase 10: evaluate last reply's reasoning quality to guide next query.
       const lastExchangeReply = exchanges[exchanges.length - 1]?.reply ?? null;
       const metaResult = evaluateReply(lastExchangeReply);
-      const metaCtx = metaResult?.compactHint ?? "";
+      // Phase 66: depth retry directive — injected when last reply was shallow reasoning
+      const depthRetryCtx = lastExchangeReply?.reasoningDepth === "shallow"
+        ? (ar
+            ? "ملاحظة جودة الاستدلال: الرد السابق اعتمد على تسميات النظام. المطلوب الآن: سلاسل سببية صريحة مع آليات الانتقال (→)، ترجيح الأدلة، معالجة التعارض."
+            : "Reasoning quality note: prior response was label-driven. Required now: explicit causal chains with transmission mechanisms (→), evidence weighting, conflict handling.")
+        : "";
+      const metaCtx = [metaResult?.compactHint ?? "", depthRetryCtx].filter(Boolean).join(" | ");
 
       // Intelligence Coordination Layer — Phase 11: dynamic weight routing and conflict arbitration.
       const coordResult = coordinateIntelligence(
@@ -3156,6 +3162,24 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
                   : (ar ? `سريع ${tracksUsed}×` : `Express ${tracksUsed}×`)}
               </span>
             )}
+            {/* Phase 66: Reasoning depth badge */}
+            {reply.reasoningDepth && engine === "ai" && (
+              <span className={cn(
+                "flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold ring-1",
+                reply.reasoningDepth === "institutional"
+                  ? "bg-success/10 text-success ring-success/25"
+                  : reply.reasoningDepth === "moderate"
+                    ? "bg-primary/10 text-primary ring-primary/25"
+                    : reply.reasoningDepth === "shallow"
+                      ? "bg-warning/10 text-warning ring-warning/30"
+                      : "bg-muted/40 text-muted-foreground ring-border",
+              )}>
+                <Gauge className="h-2.5 w-2.5" />
+                {ar
+                  ? ({ institutional: "مؤسسي", moderate: "معتدل", shallow: "سطحي", insufficient: "غير كافٍ" }[reply.reasoningDepth] ?? reply.reasoningDepth)
+                  : reply.reasoningDepth}
+              </span>
+            )}
           </div>
         </div>
 
@@ -3193,6 +3217,20 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
               <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground/80 italic">
                 <Gauge className="h-3 w-3 mt-0.5 shrink-0 text-muted-foreground/50" />
                 <span>{reply.confidenceCalibration}</span>
+              </div>
+            )}
+            {/* Phase 66: Confidence explanation (earned vs asserted) */}
+            {reply.confidenceExplanation && !reply.confidenceCalibration && engine === "ai" && (
+              <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground/80 italic">
+                <Gauge className="h-3 w-3 mt-0.5 shrink-0 text-muted-foreground/50" />
+                <span>{reply.confidenceExplanation}</span>
+              </div>
+            )}
+            {/* Phase 66: Evidence conflict note */}
+            {reply.evidenceConflict && engine === "ai" && (
+              <div className="flex items-start gap-1.5 text-[11px] text-warning/80 italic">
+                <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0 text-warning/60" />
+                <span>{reply.evidenceConflict}</span>
               </div>
             )}
           </div>
