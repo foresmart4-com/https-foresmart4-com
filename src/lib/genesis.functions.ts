@@ -111,6 +111,11 @@ import {
   analyzeRegimeConflicts,
   type ConflictAnalysis,
 } from "@/services/institutional/regimeConflictEngine";
+// Phase-88A: Strategic Investment Committee Intelligence
+import { buildCommitteeDynamicsFromTracks } from "@/services/strategy/committeeDynamicsEngine";
+import { buildOpportunityCostAnalysis } from "@/services/strategy/opportunityCostEngine";
+import { buildConvictionProfile } from "@/services/strategy/convictionCalibrationEngine";
+import { buildPortfolioLogic } from "@/services/strategy/portfolioLogicEngine";
 import {
   synthesiseInstitutionalJudgment,
   repairWithJudgment,
@@ -2868,6 +2873,68 @@ async function runFusion(
     console.log(`[genesis:regime-conflict] conflicts=${_conflictAnalysis.conflictCount} fake_consensus=${_conflictAnalysis.fakeConsensusRisk}`);
   }
 
+  // ── Phase-88A: Strategic Investment Committee Intelligence ─────────────────
+  // Pure O(1) — deterministic, no AI calls. Elevates Genesis from institutional
+  // analyst to strategic committee intelligence. Runs only for investment questions.
+  const _committeeDynamics = isInvestment
+    ? buildCommitteeDynamicsFromTracks(
+        trackA?.regime ?? "unknown",
+        trackA?.macroBias ?? consensus.dominantBias,
+        trackA?.creditStressLevel ?? "moderate",
+        consensus.strength,
+        consensus.agreementScore,
+        trackD?.uncertaintyLevel ?? "moderate",
+        _allocatorDecision,
+        isSaudi,
+        live?.oilPrice,
+      )
+    : null;
+
+  const _opportunityCost = isInvestment
+    ? buildOpportunityCostAnalysis(
+        trackA?.regime ?? "unknown",
+        trackA?.macroBias ?? consensus.dominantBias,
+        trackA?.creditStressLevel ?? "moderate",
+        _allocatorDecision?.stance ?? "hold_and_monitor",
+        trackA?.regimeConf ?? 50,
+        isSaudi,
+        question,
+        live?.oilPrice,
+      )
+    : null;
+
+  const _convictionProfile = isInvestment
+    ? buildConvictionProfile(
+        _allocatorDecision?.conviction ?? 50,
+        question,
+        ctx,
+        trackD?.uncertaintyLevel ?? "moderate",
+        trackA?.regimeConf ?? 50,
+        consensus.strength,
+      )
+    : null;
+
+  const _portfolioLogic = (isInvestment && _committeeDynamics && _convictionProfile && _opportunityCost)
+    ? buildPortfolioLogic(
+        _committeeDynamics,
+        _convictionProfile,
+        _opportunityCost.severity,
+        trackA?.macroBias ?? consensus.dominantBias,
+        trackA?.creditStressLevel ?? "moderate",
+        trackD?.uncertaintyLevel ?? "moderate",
+        trackA?.regimeConf ?? 50,
+        isSaudi,
+        live?.oilPrice,
+      )
+    : null;
+
+  if (_committeeDynamics) {
+    console.log(`[genesis:committee-dynamics] tension=${_committeeDynamics.growthVsPreservation} risk=${_committeeDynamics.riskTension} conflict=${_committeeDynamics.convictionConflict}`);
+  }
+  if (_portfolioLogic) {
+    console.log(`[genesis:portfolio-logic] concentration=${_portfolioLogic.concentrationAdvice} tilt=${_portfolioLogic.cyclicalVsDefensive} fit=${_portfolioLogic.regimeFitScore}`);
+  }
+
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
     `User question: ${question}`,
@@ -2929,6 +2996,21 @@ async function runFusion(
     // Phase-83B: Regime conflict context — named conflicts the AI must address.
     _conflictAnalysis?.conflictCount && _conflictAnalysis.conflictCount > 0
       ? `\n\n${_conflictAnalysis.conflictContext}`
+      : "",
+    // Phase-88A: Strategic committee intelligence — committee dynamics, opportunity cost,
+    // conviction calibration, and portfolio construction logic. Injected as one compact
+    // strategic layer after the allocator decision, before the research stack.
+    _committeeDynamics?.committeeContext
+      ? `\n\nCommittee intelligence [${_committeeDynamics.dominantVoice.replace(/_/g, " ")}]: ${_committeeDynamics.committeeContext}`
+      : "",
+    _portfolioLogic?.portfolioContext
+      ? `\n\nPortfolio logic: ${_portfolioLogic.portfolioContext}`
+      : "",
+    (_opportunityCost && _opportunityCost.severity !== "negligible")
+      ? `\n\nOpportunity cost [${_opportunityCost.severity}]: ${_opportunityCost.opportunityContext}`
+      : "",
+    _convictionProfile?.convictionContext
+      ? `\n\nConviction calibration: ${_convictionProfile.convictionContext}`
       : "",
     // Phase 71-77: Research civilization context (compact; injected when signals detected)
     graphResult.graphContext ? `\n\nKnowledge graph: ${graphResult.conceptLinkage.slice(0, 250)}` : "",
