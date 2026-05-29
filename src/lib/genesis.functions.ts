@@ -62,6 +62,14 @@ import { getIntakeGovernanceSummary } from "@/services/research/researchIntake";
 import { feedKnowledge, getFeedStateLabel } from "@/services/research/knowledgeFeeding";
 import { synthesizeFrameworks } from "@/services/research/frameworkSynthesis";
 import { reasonMultiPerspective } from "@/services/research/multiPerspectiveReasoning";
+import {
+  buildCommitteeGenerationDirective,
+  repairCommitteeVoices,
+  sanitizeVoiceReasoning,
+  sanitizeCommitteeSynthesis,
+  type VoiceReasoning,
+  type CommitteeSynthesis,
+} from "@/services/institutional/committeeEngine";
 
 export interface GenesisScenario {
   label: string;
@@ -174,6 +182,9 @@ export interface GenesisReply {
   dominantLens?: "macro" | "policy" | "allocator" | "behavioral" | "historical" | "mixed";
   reasoningPlurality?: string;           // where lenses agree, where they conflict, which dominates
   visibilityState?: "fully_visible" | "partially_visible" | "hidden_reasoning" | "rejected_visibility";
+  // Phase 82A: Committee Generation Engine — structured multi-voice institutional reasoning
+  voiceReasoning?: VoiceReasoning;       // independent reasoning per voice: macro/policy/allocator/behavioral/historical
+  committeeSynthesis?: CommitteeSynthesis; // agreement, disagreement, dominant voice, final stance
 }
 
 const AskInput = z.object({
@@ -456,6 +467,9 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
     })(),
     reasoningPlurality: cleanStr(obj.reasoningPlurality),
     visibilityState: undefined, // set deterministically by repairFrameworkVisibility after sanitize
+    // Phase 82A: Committee Generation Engine — sanitize structured voice objects
+    voiceReasoning: sanitizeVoiceReasoning(obj.voiceReasoning),
+    committeeSynthesis: sanitizeCommitteeSynthesis(obj.committeeSynthesis),
   };
 }
 
@@ -624,7 +638,20 @@ const GENESIS_SCHEMA = `{
   "frameworkSynthesis": "string — 2-3 sentences: (1) the dominant analytical framework for this regime and WHY it leads — name the framework, its core claim, and the regime condition making it applicable; (2) where the dominant framework FAILS or is actively contested by a competing school — name the specific failure condition; (3) what the minority/competing framework sees differently — name it and state its insight; state synthesis confidence: high/moderate/low. Required when 'Framework synthesis:' appears in context." (optional),
   "perspectiveMap": "string — one sentence per ACTIVE analytical lens in format: 'MACRO: [macro economist observation] | POLICY: [CB/policy lens observation] | ALLOCATOR: [institutional allocator observation] | BEHAVIORAL: [market/sentiment observation] | HISTORICAL: [historical analog if applicable]'. Only include active lenses. Do NOT invent observations. Required when 'Perspective map:' appears in context." (optional),
   "dominantLens": <"macro"|"policy"|"allocator"|"behavioral"|"historical"|"mixed"> (optional — the single lens with highest explanatory power; required when perspectiveMap is set),
-  "reasoningPlurality": "string — 1-2 sentences: where active lenses AGREE on direction; where they CONFLICT; which lens dominates and WHY; the minority perspective that loses but remains relevant. Never suppress a competing view. Never fabricate consensus. Required when perspectiveMap is set." (optional)
+  "reasoningPlurality": "string — 1-2 sentences: where active lenses AGREE on direction; where they CONFLICT; which lens dominates and WHY; the minority perspective that loses but remains relevant. Never suppress a competing view. Never fabricate consensus. Required when perspectiveMap is set." (optional),
+  "voiceReasoning": {
+    "macro": "string — 2-3 sentences: Macro Voice independent reasoning on growth/inflation/liquidity/regime. Macro economist perspective only — do not summarize other voices. Required when COMMITTEE GENERATION ENGINE context is present." (optional),
+    "policy": "string — 2-3 sentences: Policy Voice independent reasoning on CB rates/Fed linkage/fiscal/SAMA/SAR peg. Policy analyst perspective only." (optional),
+    "allocator": "string — 2-3 sentences: Allocator Voice independent reasoning on capital preservation/opportunity cost/deployment timing/downside control. Institutional allocator perspective only." (optional),
+    "behavioral": "string — 2-3 sentences: Behavioral Voice independent reasoning on crowd positioning/sentiment extremes/crowding risk/narrative dynamics. Behavioral analyst perspective only." (optional),
+    "historical": "string — 2-3 sentences: Historical Voice independent reasoning on analog regimes/prior cycles/structural limits. Set only when historical_analog lens is active." (optional)
+  } (optional — required when COMMITTEE GENERATION ENGINE context is present),
+  "committeeSynthesis": {
+    "agreement": "string — 1 sentence: where the active committee voices converge directionally" (optional),
+    "disagreement": "string — 1 sentence: the primary tension between voices; name which voice contradicts which and why. Never fabricate consensus." (optional),
+    "dominantVoice": <"macro"|"policy"|"allocator"|"behavioral"|"historical"|"mixed"> (optional),
+    "finalStance": "string — 1-2 sentences: committee's resolved position after hearing all voices; acknowledge dissent but state which reasoning wins and why" (optional)
+  } (optional — required when voiceReasoning is set)
 }`;
 
 function buildGenesisSystemPrompt(lang: Lang): string {
@@ -1150,7 +1177,38 @@ ABSOLUTELY FORBIDDEN: "rebalance now", "allocate X%", "buy this asset now", "gua
     Set "reasoningPlurality": 1-2 sentences: where lenses AGREE; where they CONFLICT; which dominates and WHY; the minority view that loses but remains relevant. Never suppress a competing view. Never fabricate consensus.
     These four fields are required when investment or macro context is present. Missing them is a reasoning quality failure that will be detected and repaired.`;
 
-  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n${allocationIntelligenceGuidance}\n${frameworkPerspectiveGuidance}\n\n${base}`;
+  // Phase 82A: Committee Generation Engine — guidance for structured voice output
+  const committeeGenerationGuidance = ar
+    ? `21. محرك توليد اللجنة — إلزامي عند ظهور "[COMMITTEE GENERATION ENGINE" في السياق:
+    المطلوب: أصوات تحليلية مستقلة — لا ضغط في راوٍ واحد.
+    اضبط "voiceReasoning" كائناً بالأصوات النشطة:
+    - "macro": 2-3 جمل من منظور الاقتصادي الكلي — النمو، التضخم، السيولة، دورة الائتمان، تصنيف النظام. هذا الصوت لا يلخّص الأصوات الأخرى.
+    - "policy": 2-3 جمل من منظور محلل السياسة — أسعار البنك المركزي، ربط الفيدرالي، السياسة المالية، قيد SAMA/ربط الريال.
+    - "allocator": 2-3 جمل من منظور المخصص المؤسسي — الحفاظ على رأس المال، تكلفة الفرصة، توقيت النشر، ضبط المخاطر الهبوطية.
+    - "behavioral": 2-3 جمل من منظور المحلل السلوكي — تمركز الحشد، تطرف المشاعر، مخاطر التكتل، ديناميكيات السردية.
+    - "historical": 2-3 جمل من منظور المحلل التاريخي — الأنظمة المشابهة، الدورات السابقة، حدود التشابه. أدرجه فقط عند نشاط عدسة النظير التاريخي.
+    اضبط "committeeSynthesis" كائناً:
+    - "agreement": جملة واحدة: أين تتقاطع الأصوات اتجاهياً.
+    - "disagreement": جملة واحدة: التوتر الأساسي — أي صوت يتعارض مع أي صوت ولماذا. لا تصنع توافقاً مزيفاً.
+    - "dominantVoice": الصوت المهيمن: "macro" أو "policy" أو "allocator" أو "behavioral" أو "historical" أو "mixed".
+    - "finalStance": 1-2 جملة: موقف اللجنة المُحسوم — اعترف بالمعارضة، اذكر أي الاستدلالات يفوز ولماذا.
+    ممنوع: ملخص راوٍ واحد؛ "من المهم الإشارة"؛ ادعاءات غير مرتبطة بتركيز الصوت؛ إخفاء التعارض.`
+    : `21. COMMITTEE GENERATION ENGINE — Mandatory when "[COMMITTEE GENERATION ENGINE" appears in context:
+    Required: independent analytical voices — do NOT compress into a single narrator.
+    Set "voiceReasoning" object with active voice fields:
+    - "macro": 2-3 sentences from the macro economist perspective — growth, inflation, liquidity, credit cycle, regime identification. This voice does NOT summarize other voices.
+    - "policy": 2-3 sentences from the policy analyst perspective — CB rates, Fed linkage, fiscal policy, SAMA/SAR peg constraint.
+    - "allocator": 2-3 sentences from the institutional allocator perspective — capital preservation, opportunity cost, deployment timing, downside control.
+    - "behavioral": 2-3 sentences from the behavioral analyst perspective — crowd positioning, sentiment extremes, crowding risk, narrative dynamics.
+    - "historical": 2-3 sentences from the historical analyst perspective — analog regimes, prior cycles, structural limits. Only include when historical_analog lens is active.
+    Set "committeeSynthesis" object:
+    - "agreement": 1 sentence: where the voices converge directionally.
+    - "disagreement": 1 sentence: the primary tension — which voice contradicts which and why. Never fabricate consensus.
+    - "dominantVoice": "macro", "policy", "allocator", "behavioral", "historical", or "mixed".
+    - "finalStance": 1-2 sentences: committee's resolved position — acknowledge dissent, state which reasoning wins and WHY.
+    FORBIDDEN: single-narrator summary; "it is important to note"; claims not tied to the voice's focus; hiding conflict.`;
+
+  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n${allocationIntelligenceGuidance}\n${frameworkPerspectiveGuidance}\n${committeeGenerationGuidance}\n\n${base}`;
 }
 
 // ─── Institutional Reasoning Tracks ───────────────────────────────────────
@@ -2328,6 +2386,12 @@ async function runFusion(
     institutionalReasoningRequired
       ? `\n\n${buildFrameworkPerspectiveDirective(frameworkSynth, multiPerspective)}`
       : "",
+    // Phase 82A: Committee Generation Engine — structured multi-voice directive.
+    // Injected when institutionalReasoningRequired so voices are always generated
+    // for investment, Saudi, allocation, macro, and market-outlook questions.
+    institutionalReasoningRequired
+      ? `\n\n${buildCommitteeGenerationDirective(multiPerspective, frameworkSynth, lang)}`
+      : "",
   ].join("");
   const user = wrapUserContext(lang, userBody);
 
@@ -2349,6 +2413,13 @@ async function runFusion(
         fillArbitrationFields(recovered, trackA, trackB, trackC, trackD, trackE, trackF, consensus, lang);
         fillInstitutionalFields(recovered, trackA, trackD, consensus, question);
         repairFrameworkVisibility(recovered, frameworkSynth, multiPerspective, isInvestment, isSaudi, institutionalReasoningRequired);
+        if (institutionalReasoningRequired) {
+          const { voiceReasoning: vr, committeeSynthesis: cs } = repairCommitteeVoices(
+            recovered.voiceReasoning, recovered.committeeSynthesis, multiPerspective, frameworkSynth,
+          );
+          recovered.voiceReasoning = vr;
+          recovered.committeeSynthesis = cs;
+        }
         if (isInvestment) {
           const tASlice2 = trackA ? { regime: trackA.regime, macroSummary: trackA.macroSummary, ratesEnv: trackA.ratesEnv, oilLiquidity: trackA.oilLiquidity, dxyImpact: trackA.dxyImpact, creditStressLevel: trackA.creditStressLevel, macroBias: trackA.macroBias, regimeConf: trackA.regimeConf } : null;
           const tDSlice2 = trackD ? { uncertaintyLevel: trackD.uncertaintyLevel, primaryRisk: trackD.primaryRisk, counterCase: trackD.counterCase, invalidationTrigger: trackD.invalidationTrigger, confidenceChallenge: trackD.confidenceChallenge, thesisWeakness: trackD.thesisWeakness } : null;
@@ -2382,6 +2453,21 @@ async function runFusion(
   // Phase 80-81: Enforce framework and perspective visibility — repair if AI omitted
   repairFrameworkVisibility(sanitized, frameworkSynth, multiPerspective, isInvestment, isSaudi, institutionalReasoningRequired);
   console.log(`[genesis:irq] irq=${institutionalReasoningRequired} inv=${isInvestment} saudi=${isSaudi} graphHit=${graphResult.matchedNodes.length > 0} fw=${sanitized.frameworkSynthesis ? "set" : "missing"} pm=${sanitized.perspectiveMap ? "set" : "missing"} lens=${sanitized.dominantLens ?? "n/a"} rp=${sanitized.reasoningPlurality ? "set" : "missing"}`);
+
+  // Phase 82A: Committee Generation Engine — repair voices if AI omitted any
+  if (institutionalReasoningRequired) {
+    const { voiceReasoning, committeeSynthesis } = repairCommitteeVoices(
+      sanitized.voiceReasoning,
+      sanitized.committeeSynthesis,
+      multiPerspective,
+      frameworkSynth,
+    );
+    sanitized.voiceReasoning = voiceReasoning;
+    sanitized.committeeSynthesis = committeeSynthesis;
+    const voicesSet = Object.keys(sanitized.voiceReasoning ?? {}).length;
+    const synthSet = sanitized.committeeSynthesis?.finalStance ? "set" : "missing";
+    console.log(`[genesis:committee] voices=${voicesSet} synthesis=${synthSet} dominant=${sanitized.committeeSynthesis?.dominantVoice ?? "n/a"}`);
+  }
 
   // P0 Quality gate: assess and enrich if below acceptable threshold
   const _qualityGateIsInvestment = isInvestment;
