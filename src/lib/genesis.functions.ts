@@ -182,6 +182,13 @@ import { buildThinkerContext } from "@/services/research/institutionalThinkerLib
 import { buildSchoolContext } from "@/services/research/investmentSchoolLibrary";
 import { buildPlaybookContext } from "@/services/research/allocatorPlaybookLibrary";
 import { governCrossResearch } from "@/services/research/crossResearchDedupGovernor";
+// Phase-85D: Self-Improving Expert Cognition + Adaptive Learning
+import { rankPlaybooks, buildAdaptivePlaybookContext } from "@/services/research/adaptivePlaybookRanking";
+import { buildArabicThinkerContext, buildArabicSchoolContext } from "@/services/research/arabicThinkerDetection";
+import { governAdaptiveDedup } from "@/services/research/adaptiveDedupGovernor";
+import { evaluatePreCall, evaluatePostCall } from "@/services/research/cognitiveFeedbackEngine";
+import type { ExpertContextPiece } from "@/services/research/cognitiveFeedbackEngine";
+import { getExpertWeights, recordFeedbackBackground, getAdaptationSummary } from "@/services/research/expertLearningGovernor";
 
 export interface GenesisScenario {
   label: string;
@@ -2577,6 +2584,61 @@ async function runFusion(
     console.log(`[genesis:expert-knowledge] coverage=${_crossResearch.coverageLabel} kept=${_crossResearch.dedupReport.kept} removed=${_crossResearch.dedupReport.removed} chars=${_crossResearch.governedContext.length}`);
   }
 
+  // ── Phase-85D: Self-Improving Expert Cognition + Adaptive Learning ─────────────
+  // Pure O(1). Adaptive playbook ranking + Arabic detection + adaptive dedup.
+  const _expertWeights = getExpertWeights();
+
+  // Adaptive playbook ranking (multi-dimensional, replaces binary Phase-85C)
+  const _adaptivePlaybooks = isInvestment ? rankPlaybooks(
+    question, ctx, trackA?.regime ?? "unknown", isSaudi,
+    live?.oilPrice, live?.oilChangePct, live?.spyChangePct, live?.tltChangePct,
+    _expertWeights,
+  ) : null;
+  const _adaptivePlaybookCtx = _adaptivePlaybooks
+    ? buildAdaptivePlaybookContext(_adaptivePlaybooks, isSaudi)
+    : "";
+
+  // Arabic thinker + school detection (when language is Arabic)
+  const _arabicText = question + " " + ctx;
+  const _arabicThinkerCtx = (isInvestment && lang === "ar")
+    ? buildArabicThinkerContext(_arabicText, isSaudi)
+    : "";
+  const _arabicSchoolCtx  = (isInvestment && lang === "ar")
+    ? buildArabicSchoolContext(_arabicText, isSaudi)
+    : "";
+
+  // Merge: Arabic detection takes precedence over Phase-85C when present
+  const _mergedThinkerCtx  = _arabicThinkerCtx  || _thinkerCtx;
+  const _mergedSchoolCtx   = _arabicSchoolCtx   || _schoolCtx;
+  const _mergedPlaybookCtx = _adaptivePlaybookCtx || _playbookCtx;
+
+  // Build cognitive feedback pieces for pre-call evaluation and post-call feedback
+  const _85dPieces: ExpertContextPiece[] = [
+    { label: "thinker",   ids: [], text: _mergedThinkerCtx   },
+    { label: "school",    ids: [], text: _mergedSchoolCtx    },
+    { label: "playbook",  ids: [_adaptivePlaybooks?.dominant?.id ?? ""].filter(Boolean), text: _mergedPlaybookCtx },
+    { label: "framework", ids: [_dominantFw?.dominant.id ?? ""].filter(Boolean), text: _dominantFw?.context ?? "" },
+  ].filter(p => p.text.trim().length > 0);
+
+  const _preCallFeedback = (isInvestment && _85dPieces.length > 0)
+    ? evaluatePreCall(_85dPieces, question, isSaudi)
+    : null;
+
+  // Adaptive dedup: per-type thresholds + short-context protection + min-output guarantee
+  const _85dResult = isInvestment && _85dPieces.length > 0
+    ? governAdaptiveDedup({
+        pieces: _85dPieces.map(p => ({ type: p.label, label: p.label, text: p.text })),
+        reference: [
+          ..._stack7177Ref,
+          _governedKnowledge?.governedContext ?? "",
+        ],
+      })
+    : null;
+
+  if (_85dResult && !_85dResult.isEmpty) {
+    console.log(`[genesis:85d] coverage=${_85dResult.coverageLabel} kept=${_85dResult.report.kept} removed=${_85dResult.report.removed} ${getAdaptationSummary()}`);
+  }
+
   // ── Phase 68: Portfolio Allocation Intelligence ───────────────────────────────
   const allocationIntel = buildAllocationIntelligence({
     question,
@@ -2832,10 +2894,12 @@ async function runFusion(
     _governedKnowledge && !_governedKnowledge.isEmpty && _researchRelevance.overallRelevance >= 30
       ? `\n\nKnowledge authority [${_governedKnowledge.authorityLabel}]: ${_governedKnowledge.governedContext}`
       : "",
-    // Phase-85C: Expert knowledge — thinker-aware, school-aware, playbook-aware,
-    // cross-stack deduplicated. Injected when cross-research context survives dedup
-    // and is non-empty. Compact supplement to the 85B authority layer.
-    _crossResearch && !_crossResearch.isEmpty
+    // Phase-85D: Expert knowledge — adaptive playbook ranking, Arabic thinker detection,
+    // per-type dedup thresholds, short-context protection, learning governor weights.
+    // Falls back to Phase-85C crossResearch when 85D produces nothing.
+    _85dResult && !_85dResult.isEmpty
+      ? `\n\nExpert knowledge [${_85dResult.coverageLabel}]: ${_85dResult.governedContext}`
+      : (_crossResearch && !_crossResearch.isEmpty)
       ? `\n\nExpert knowledge [${_crossResearch.coverageLabel}]: ${_crossResearch.governedContext}`
       : "",
   ].join("");
@@ -3188,6 +3252,18 @@ async function runFusion(
     console.log(`[genesis:memory] saved snapshot; patterns=${patternsStored} persistent=${persistentStored}`);
     // Phase-85A: fire-and-forget durable save to Supabase Storage
     saveDurableMemoryBackground();
+  }
+
+  // Phase-85D: Fire-and-forget cognitive feedback — records expert contribution
+  // for adaptive learning governor. Never blocks response delivery.
+  if (_preCallFeedback && _85dPieces.length > 0 && isInvestment && sanitized.thesis) {
+    const replyText = [
+      sanitized.headline, sanitized.thesis, sanitized.macroChain, sanitized.outlook,
+      sanitized.bullCase, sanitized.frameworkSynthesis,
+    ].filter(Boolean).join(" ");
+    const postRecord = evaluatePostCall(_preCallFeedback, _85dPieces, replyText);
+    recordFeedbackBackground(postRecord);
+    console.log(`[genesis:cognitive-feedback] contribution=${postRecord.cognitiveContributionScore} repetition=${postRecord.repetitionRate.toFixed(2)}`);
   }
 
   return sanitized;
