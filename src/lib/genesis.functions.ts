@@ -46,6 +46,9 @@ import {
   type QualityTier,
   type HarnessResult,
 } from "@/services/institutional/qualityHarness";
+import { checkAndRepairConsistency } from "@/services/institutional/consistencyEngine";
+import { assessAdaptiveOptimization } from "@/services/institutional/adaptiveOptimization";
+import { assessProviderOptimization } from "@/services/institutional/providerOptimization";
 
 export interface GenesisScenario {
   label: string;
@@ -2100,6 +2103,12 @@ async function runFusion(
     console.log(`[genesis:quality] enriched reply (was ${qualityState})`);
   }
 
+  // Phase 70 Part-2: Consistency repair — runs after enrichment, before calibration
+  const consistencyResult = checkAndRepairConsistency(sanitized);
+  if (consistencyResult.consistencyState !== "stable") {
+    console.log(`[genesis:consistency] ${consistencyResult.contextString}`);
+  }
+
   // Phase 66: Reasoning depth calibration — runs after all enrichment
   const calibration = calibrateReasoning(sanitized, lang);
   sanitized.reasoningDepth = calibration.reasoningDepth;
@@ -2120,6 +2129,31 @@ async function runFusion(
   sanitized.qualityScore = harness.totalScore;
   sanitized.qualityImprovements = harness.improvements.length > 0 ? harness.improvements : undefined;
   console.log(`[genesis:harness] tier=${harness.qualityTier} score=${harness.totalScore} category=${harness.promptCategory}`);
+
+  // Phase 70 Part-1+4: Adaptive optimization + coherence audit
+  const adaptiveResult = assessAdaptiveOptimization(
+    sanitized, qualityState, consistencyResult.consistencyState,
+    tracksUsed, isExpress,
+  );
+  if (adaptiveResult.optimizationState !== "optimal" && adaptiveResult.optimizationState !== "balanced") {
+    console.log(`[genesis:adaptive] state=${adaptiveResult.optimizationState} silent=[${adaptiveResult.silentLayers.join(",")||"none"}]`);
+  }
+  if (adaptiveResult.silentLayers.length > 0) {
+    console.log(`[genesis:coherence] silent layers: ${adaptiveResult.silentLayers.join(", ")}`);
+  }
+
+  // Phase 70 Part-3: Provider optimization
+  const providerResult = assessProviderOptimization({
+    qualityTier: sanitized.qualityTier,
+    qualityScore: sanitized.qualityScore ?? 0,
+    reasoningDepth: sanitized.reasoningDepth,
+    tracksUsed,
+    isExpress,
+    routingMode: providerIdentity?.includes("fallback") ? "fallback" : (isExpress ? "fast" : "deep"),
+  });
+  if (providerResult.providerState !== "optimal" && providerResult.providerState !== "efficient" && providerResult.providerState !== "cost_efficient") {
+    console.log(`[genesis:provider] state=${providerResult.providerState} qpr=${providerResult.qualityPerCallRatio}`);
+  }
 
   const _finalSet = _p12.filter(k => { const v = (sanitized as Record<string,unknown>)[k]; return v != null && v !== "" && !(Array.isArray(v) && (v as unknown[]).length === 0); });
   console.log(`[genesis:p12] post-fill: ${_finalSet.join(",")||"none"}`);
