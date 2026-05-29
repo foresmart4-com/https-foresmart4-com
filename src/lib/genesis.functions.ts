@@ -189,6 +189,12 @@ import { governAdaptiveDedup } from "@/services/research/adaptiveDedupGovernor";
 import { evaluatePreCall, evaluatePostCall } from "@/services/research/cognitiveFeedbackEngine";
 import type { ExpertContextPiece } from "@/services/research/cognitiveFeedbackEngine";
 import { getExpertWeights, recordFeedbackBackground, getAdaptationSummary } from "@/services/research/expertLearningGovernor";
+// Phase-86A: Live Macro + Policy + Research Synthesis Brain
+import { selectMacroChains } from "@/services/research/macroTransmissionEngine";
+import { buildPolicyIntelligence } from "@/services/research/policyIntelligenceEngine";
+import { assessLiveMacroEvents, type LiveMacroMonitorResult } from "@/services/research/liveMacroMonitor";
+import { detectMacroEventType, computeThesisImpact } from "@/services/research/thesisImpactEngine";
+import { governEventSynthesis } from "@/services/research/eventSynthesisGovernor";
 
 export interface GenesisScenario {
   label: string;
@@ -2639,6 +2645,45 @@ async function runFusion(
     console.log(`[genesis:85d] coverage=${_85dResult.coverageLabel} kept=${_85dResult.report.kept} removed=${_85dResult.report.removed} ${getAdaptationSummary()}`);
   }
 
+  // ── Phase-86A: Live Macro + Policy + Research Synthesis Brain ────────────────
+  // Pure O(1) — deterministic, no AI calls, no network, no polling.
+  // Adds causal macro chains, policy language classification, live event detection,
+  // and thesis impact mapping to the research layer.
+  const _macroChains = isInvestment ? selectMacroChains(
+    question, ctx,
+    live?.oilPrice, live?.oilChangePct, live?.tltChangePct,
+    isSaudi,
+  ) : null;
+
+  const _policyIntel = buildPolicyIntelligence(question, ctx, trackA?.regime);
+
+  const _liveEvents: LiveMacroMonitorResult = assessLiveMacroEvents(
+    live?.oilPrice, live?.oilChangePct, live?.tltChangePct,
+    live?.spyChangePct, live?.goldChangePct, live?.btcChangePct,
+    live?.eurUsd, isSaudi,
+  );
+
+  const _macroEventType = isInvestment
+    ? detectMacroEventType(question, ctx, _liveEvents.primaryEvent?.injectionCtx)
+    : null;
+  const _thesisImpact = (isInvestment && _macroEventType)
+    ? computeThesisImpact(question, ctx, _macroEventType, isSaudi)
+    : null;
+
+  const _86aResult = governEventSynthesis({
+    transmissionCtx:   _macroChains?.transmissionCtx  ?? "",
+    policyCtx:         _policyIntel.policyContext,
+    macroEventCtx:     _liveEvents.monitorCtx,
+    thesisImpactCtx:   _thesisImpact?.impactContext   ?? "",
+    thesisImpactScore: _thesisImpact?.impactScore      ?? 0,
+    questionRelevance: _researchRelevance.overallRelevance,
+    isInvestment,
+  });
+
+  if (_86aResult && !_86aResult.isEmpty) {
+    console.log(`[genesis:86a] synthesis=${_86aResult.synthesisLabel} kept=${_86aResult.governance.kept} impact=${_thesisImpact?.impactCategory ?? "none"} modifier=${_thesisImpact?.confidenceModifier ?? 0}`);
+  }
+
   // ── Phase 68: Portfolio Allocation Intelligence ───────────────────────────────
   const allocationIntel = buildAllocationIntelligence({
     question,
@@ -2901,6 +2946,12 @@ async function runFusion(
       ? `\n\nExpert knowledge [${_85dResult.coverageLabel}]: ${_85dResult.governedContext}`
       : (_crossResearch && !_crossResearch.isEmpty)
       ? `\n\nExpert knowledge [${_crossResearch.coverageLabel}]: ${_crossResearch.governedContext}`
+      : "",
+    // Phase-86A: Live macro synthesis — causal transmission, policy intelligence,
+    // live macro events, thesis impact. Governed against headline chasing and hype.
+    // Injected only when investment-relevant and impact score ≥ threshold.
+    _86aResult && !_86aResult.isEmpty
+      ? `\n\nMacro synthesis [${_86aResult.synthesisLabel}]: ${_86aResult.governedContext}`
       : "",
   ].join("");
   const user = wrapUserContext(lang, userBody);
