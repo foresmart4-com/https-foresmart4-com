@@ -2,14 +2,19 @@
 // Pure deterministic functions — no AI calls, no network, O(1).
 //
 // Responsibilities:
-//   1. Score a Genesis reply against 8 institutional depth dimensions (0-100).
+//   1. Score a Genesis reply against 9 institutional depth dimensions (0-100).
 //   2. Detect specific shallow patterns in Arabic and English.
-//   3. Reject and trigger deterministic repair when total score < 80.
+//   3. Reject and trigger deterministic repair when total score < 85.
 //   4. Provide targeted repair directives for each failing dimension.
 //
-// Rejection threshold: total weighted score < 80.
+// Rejection threshold: total weighted score < 85 (raised from 80).
 // Repair strategy: deterministic enrichment from available track data.
 // Retry directive: returned as a context string to be injected on retry.
+//
+// Dimensions (9 total, weights sum to 1.0):
+//   causalDepth (0.14), investmentUsefulness (0.14), sectorSpecificity (0.09),
+//   policyLinkage (0.09), allocatorRealism (0.14), secondOrderReasoning (0.09),
+//   evidenceDiscipline (0.14), nonRepetition (0.09), knowledgeActivation (0.08)
 //
 // Distinct from existing modules:
 //   qualityGate.ts (P0)     — binary field-presence checks; triggers enrichment
@@ -29,7 +34,8 @@ export type RejectionReason =
   | "no_disagreement"                    // no bull/bear debate or opposing case
   | "no_actionable_framework"            // no selection framework or criteria
   | "no_missing_evidence"                // no acknowledgement of what's unknown
-  | "score_below_threshold";             // composite score < 80
+  | "no_knowledge_grounding"             // no specific facts/numbers from knowledge packs
+  | "score_below_threshold";             // composite score < 85
 
 export interface ShallowPattern {
   pattern: RegExp;
@@ -180,7 +186,7 @@ function scoreCausalDepth(reply: GenesisReply, lang: "ar" | "en"): DimensionScor
   if (causal >= 6) signals.push(`strong causal density (${causal} hits)`);
   else if (causal >= 3) signals.push(`moderate causal density (${causal} hits)`);
   else gaps.push(`weak causal language (${causal} hits) — missing → chains and mechanism words`);
-  return { dimension: "causalDepth", score: Math.max(0, Math.min(100, score)), weight: 0.15, signals, gaps };
+  return { dimension: "causalDepth", score: Math.max(0, Math.min(100, score)), weight: 0.14, signals, gaps };
 }
 
 function scoreInvestmentUsefulness(reply: GenesisReply, isCompanyQ: boolean): DimensionScore {
@@ -198,7 +204,7 @@ function scoreInvestmentUsefulness(reply: GenesisReply, isCompanyQ: boolean): Di
   else score += 15;
   if (reply.invalidation) { score += 15; signals.push("invalidation present"); }
   else gaps.push("invalidation absent — view not falsifiable");
-  return { dimension: "investmentUsefulness", score: Math.max(0, Math.min(100, score)), weight: 0.15, signals, gaps };
+  return { dimension: "investmentUsefulness", score: Math.max(0, Math.min(100, score)), weight: 0.14, signals, gaps };
 }
 
 function scoreSectorSpecificity(reply: GenesisReply, isSaudi: boolean): DimensionScore {
@@ -228,7 +234,7 @@ function scoreSectorSpecificity(reply: GenesisReply, isSaudi: boolean): Dimensio
     score += 15;
   }
 
-  return { dimension: "sectorSpecificity", score: Math.max(0, Math.min(100, score)), weight: 0.10, signals, gaps };
+  return { dimension: "sectorSpecificity", score: Math.max(0, Math.min(100, score)), weight: 0.09, signals, gaps };
 }
 
 function scorePolicyLinkage(reply: GenesisReply, isSaudi: boolean): DimensionScore {
@@ -257,7 +263,7 @@ function scorePolicyLinkage(reply: GenesisReply, isSaudi: boolean): DimensionSco
     score += 35;
   }
 
-  return { dimension: "policyLinkage", score: Math.max(0, Math.min(100, score)), weight: 0.10, signals, gaps };
+  return { dimension: "policyLinkage", score: Math.max(0, Math.min(100, score)), weight: 0.09, signals, gaps };
 }
 
 function scoreAllocatorRealism(reply: GenesisReply): DimensionScore {
@@ -285,7 +291,7 @@ function scoreAllocatorRealism(reply: GenesisReply): DimensionScore {
   if (hasSelectivity) { score += 15; signals.push("broad vs selective exposure addressed"); }
   else gaps.push("broad vs selective exposure not addressed");
 
-  return { dimension: "allocatorRealism", score: Math.max(0, Math.min(100, score)), weight: 0.15, signals, gaps };
+  return { dimension: "allocatorRealism", score: Math.max(0, Math.min(100, score)), weight: 0.14, signals, gaps };
 }
 
 function scoreSecondOrderReasoning(reply: GenesisReply): DimensionScore {
@@ -305,7 +311,7 @@ function scoreSecondOrderReasoning(reply: GenesisReply): DimensionScore {
   const hasCreditSpread = /credit\s+spread|spread\s+widen|فوارق\s+الائتمان|نقل\s+العدوى/i.test(allText);
   if (hasCreditSpread) { score += 15; signals.push("credit contagion channel mentioned"); }
 
-  return { dimension: "secondOrderReasoning", score: Math.max(0, Math.min(100, score)), weight: 0.10, signals, gaps };
+  return { dimension: "secondOrderReasoning", score: Math.max(0, Math.min(100, score)), weight: 0.09, signals, gaps };
 }
 
 function scoreEvidenceDiscipline(reply: GenesisReply): DimensionScore {
@@ -327,7 +333,7 @@ function scoreEvidenceDiscipline(reply: GenesisReply): DimensionScore {
   if (reply.thesisChanger) { score += 20; signals.push("thesisChanger present"); }
   else gaps.push("thesisChanger absent — no falsifiable view");
 
-  return { dimension: "evidenceDiscipline", score: Math.max(0, Math.min(100, score)), weight: 0.15, signals, gaps };
+  return { dimension: "evidenceDiscipline", score: Math.max(0, Math.min(100, score)), weight: 0.14, signals, gaps };
 }
 
 function scoreNonRepetition(reply: GenesisReply): DimensionScore {
@@ -363,7 +369,46 @@ function scoreNonRepetition(reply: GenesisReply): DimensionScore {
   }
   if (dupeCount > 0) gaps.push(`${dupeCount} repeated sentence fragment(s) detected`);
 
-  return { dimension: "nonRepetition", score: Math.max(0, Math.min(100, score)), weight: 0.10, signals, gaps };
+  return { dimension: "nonRepetition", score: Math.max(0, Math.min(100, score)), weight: 0.09, signals, gaps };
+}
+
+// ─── Dimension 9: Knowledge Grounding (new) ───────────────────────────────────
+// Checks whether the reply grounds its claims in specific facts, numbers,
+// named entities, or measurable thresholds — vs pure generic commentary.
+
+function scoreKnowledgeActivation(reply: GenesisReply, isSaudi: boolean): DimensionScore {
+  const signals: string[] = [];
+  const gaps: string[] = [];
+  let score = 0;
+
+  // activatedKnowledge field present (35 pts)
+  if (reply.activatedKnowledge) { score += 35; signals.push("activatedKnowledge field set"); }
+  else gaps.push("activatedKnowledge absent — no knowledge grounding trace");
+
+  const allText = [reply.macroChain, reply.outlook, reply.sectorLens, reply.bullCase, reply.bearCase, reply.baseCase]
+    .filter(Boolean).join(" ");
+
+  // Specific numbers or measurable thresholds (30 pts)
+  const hasNumbers = /\d+(\.\d+)?(%|\$|\/bbl|\/b|x\b|bps|pct|\s*percent|\s*times|\s*%)/i.test(allText)
+    || /\$\d+|\d+x\b|\d+%|\d+\/\d+/i.test(allText);
+  if (hasNumbers) { score += 30; signals.push("specific numbers/thresholds present"); }
+  else gaps.push("no specific numbers or measurable thresholds — all claims are qualitative");
+
+  // Named entities beyond generic labels (20 pts)
+  const hasNamedEntities = /aramco|أرامكو|sabic|سابك|sama\b|vision\s+2030|رؤية\s+2030|neom|نيوم|opec|الفيدرالي\b|federal\s+reserve|tasi|تاسي/i.test(allText);
+  if (hasNamedEntities) { score += 20; signals.push("named institutional entities referenced"); }
+  else gaps.push("no named institutional entities — reasoning is purely generic");
+
+  // Saudi-specific: fiscal breakeven numbers present (15 pts for Saudi questions)
+  if (isSaudi) {
+    const hasFiscalNumbers = /75|80|breakeven|نقطة\s+التعادل|\$7[0-9]|\$8[0-9]/i.test(allText);
+    if (hasFiscalNumbers) { score += 15; signals.push("Saudi fiscal breakeven numbers present"); }
+    else gaps.push("no Saudi fiscal breakeven numbers — Saudi analysis lacks grounding");
+  } else {
+    score += 15;
+  }
+
+  return { dimension: "knowledgeActivation", score: Math.max(0, Math.min(100, score)), weight: 0.08, signals, gaps };
 }
 
 // ─── Shallow pattern detection in full reply text ─────────────────────────────
@@ -434,7 +479,7 @@ function buildRepairDirective(
 
 // ─── Deterministic repair function ───────────────────────────────────────────
 // Fills missing depth fields in the reply from available track evidence.
-// Called when total score < 80. Never overwrites non-empty fields.
+// Called when total score < 85. Never overwrites non-empty fields.
 
 interface RepairTrackSlice {
   regime?: string;
@@ -555,6 +600,7 @@ export function shouldRejectAnswer(
     scoreSecondOrderReasoning(reply),
     scoreEvidenceDiscipline(reply),
     scoreNonRepetition(reply),
+    scoreKnowledgeActivation(reply, isSaudi),
   ];
 
   const totalScore = Math.round(
@@ -575,15 +621,16 @@ export function shouldRejectAnswer(
         secondOrderReasoning: "no_second_order_effects",
         evidenceDiscipline: "no_missing_evidence",
         nonRepetition: "shallow_phrase_without_mechanism",
+        knowledgeActivation: "no_knowledge_grounding",
       };
       const reason = reasonMap[d.dimension];
       if (reason) reasons.push(reason);
     }
   }
   if (patternsDetected.length > 0) reasons.push("shallow_phrase_without_mechanism");
-  if (totalScore < 80 && !reasons.includes("score_below_threshold")) reasons.push("score_below_threshold");
+  if (totalScore < 85 && !reasons.includes("score_below_threshold")) reasons.push("score_below_threshold");
 
-  const rejected = totalScore < 80 || patternsDetected.length > 2;
+  const rejected = totalScore < 85 || patternsDetected.length > 2;
   const repairNeeded = rejected;
 
   const repairDirective = repairNeeded ? buildRepairDirective(dimensionScores, patternsDetected, lang) : "";

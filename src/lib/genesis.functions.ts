@@ -77,6 +77,10 @@ import {
   shouldRejectAnswer,
   repairShallowAnswer,
 } from "@/services/institutional/shallowAnswerRejection";
+import {
+  activateKnowledge,
+  type KnowledgeActivationResult,
+} from "@/services/institutional/knowledgeActivationCore";
 
 export interface GenesisScenario {
   label: string;
@@ -193,7 +197,9 @@ export interface GenesisReply {
   voiceReasoning?: VoiceReasoning;       // independent reasoning per voice: macro/policy/allocator/behavioral/historical
   committeeSynthesis?: CommitteeSynthesis; // agreement, disagreement, dominant voice, final stance
   // P0 Genesis Intelligence Rescue: depth fields
-  secondOrderRisks?: string;  // second-order contagion effects beyond direct macro impact
+  secondOrderRisks?: string;    // second-order contagion effects beyond direct macro impact
+  activatedKnowledge?: string;  // knowledge packs activated for this question (audit trail)
+  valuationEarningsView?: string; // explicit valuation-vs-earnings distinction for this question
 }
 
 const AskInput = z.object({
@@ -479,8 +485,10 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
     // Phase 82A: Committee Generation Engine — sanitize structured voice objects
     voiceReasoning: sanitizeVoiceReasoning(obj.voiceReasoning),
     committeeSynthesis: sanitizeCommitteeSynthesis(obj.committeeSynthesis),
-    // P0 Genesis Intelligence Rescue: second-order depth field
+    // P0 Genesis Intelligence Rescue: depth fields
     secondOrderRisks: cleanStr(obj.secondOrderRisks),
+    activatedKnowledge: cleanStr(obj.activatedKnowledge),
+    valuationEarningsView: cleanStr(obj.valuationEarningsView),
   };
 }
 
@@ -663,7 +671,9 @@ const GENESIS_SCHEMA = `{
     "dominantVoice": <"macro"|"policy"|"allocator"|"behavioral"|"historical"|"mixed"> (optional),
     "finalStance": "string — 1-2 sentences: committee's resolved position after hearing all voices; acknowledge dissent but state which reasoning wins and why" (optional)
   } (optional — required when voiceReasoning is set),
-  "secondOrderRisks": "string — 1-2 sentences: second-order contagion effects flowing from the primary scenario, BEYOND the direct macro impact. Use arrow notation: 'if [primary event] → [direct effect] generates [second-order effect] → [further downstream impact] — extending beyond [direct sector]'. For Saudi: connect oil→fiscal→credit→real estate→consumption chain. Required for all investment questions." (optional — set for investment questions)
+  "secondOrderRisks": "string — 1-2 sentences: second-order contagion effects flowing from the primary scenario, BEYOND the direct macro impact. Use arrow notation: 'if [primary event] → [direct effect] generates [second-order effect] → [further downstream impact] — extending beyond [direct sector]'. For Saudi: connect oil→fiscal→credit→real estate→consumption chain. Required for all investment questions." (optional — set for investment questions),
+  "activatedKnowledge": "string — 1 sentence listing the knowledge domains used in this response (e.g. 'Oil/Fiscal Transmission, SAMA/Fed Peg, Aramco/Dividends, Allocator Playbook'). Required for investment questions — omitting this signals that knowledge grounding was not applied." (optional — mandatory for investment questions),
+  "valuationEarningsView": "string — 1-2 sentences: explicitly distinguish whether the expected return driver is (a) P/E multiple expansion (fragile, policy-driven, reverses on tightening) or (b) EPS/earnings growth (durable, revenue+margin driven). State which is currently dominant and whether the thesis relies on the more fragile or more durable component. Required for all investment questions." (optional — mandatory for investment questions)
 }`;
 
 function buildGenesisSystemPrompt(lang: Lang): string {
@@ -765,14 +775,32 @@ function buildGenesisSystemPrompt(lang: Lang): string {
     - "watch_and_wait": اعترف صراحةً بعقلانية الانتظار بدلاً من الالتزام برأي اتجاهي؛ سمّ المتغيرات غير المحسومة
     لغة التوجه الممنوعة: "اشترِ الآن"، "بِع الآن"، "الاستراتيجية ستنجح"، "حافة مثبتة"، "مضمون التفوق"
     كل إطار للتوجه تحليلي واستشاري — لا يُضمن ولا يُنفَّذ.
-19. المخاطر الثانوية والعمق المؤسسي — لجميع أسئلة الاستثمار والأسواق:
+19. عقد الإجابة المؤسسية — لجميع أسئلة الاستثمار والأسواق، يجب أن تحتوي الإجابة النهائية على:
+    أ. الرأي الاستثماري التنفيذي: حقل "thesis" — أداة/سوق محدد، الاتجاه، العامل الداعم الرئيسي (لا عام).
+    ب. المعرفة المُفعَّلة: حقل "activatedKnowledge" — قائمة مجالات المعرفة المستخدمة (مثال: "النفط/الانتقال المالي، SAMA/الفيدرالي/الربط، دليل المخصص").
+    ج. سلسلة الانتقال: حقل "macroChain" — رموز → إلزامية (X → Y → Z → دلالة استثمارية). لا تسميات عامة.
+    د. منظور المخصص المؤسسي: حقل "voiceReasoning.allocator" — موقف النشر المحدد (دخول تدريجي/انتظار/تجنب) مع السبب.
+    ه. السياسة/الأسعار/السيولة: حقل "voiceReasoning.policy" — صياغة دالة رد الفعل (إذا X فالبنك المركزي يفعل Y وبالتالي Z).
+    و. الرابحون والخاسرون القطاعيون: حقل "sectorLens" — قطاعات مسماة مع الربط السببي.
+    ز. الحالة الصاعدة: حقل "bullCase" — روابط سلسلة الماكرو الداعمة للسيناريو الصاعد.
+    ح. الحالة الهابطة: حقل "bearCase" — روابط سلسلة الماكرو الخالقة لمخاطر الهبوط.
+    ط. الحالة الأساسية: حقل "baseCase" — أي الحالتين تهيمن حالياً والدليل الأقوى.
+    ي. التأثيرات الثانوية: حقل "secondOrderRisks" — سلسلة العدوى تتجاوز الأثر المباشر (رموز → إلزامية).
+    ك. التقييم مقابل الأرباح: حقل "valuationEarningsView" — ميّز توسع PE (هش) عن نمو EPS (مستدام)؛ أيهما المحرك الرئيسي في الأطروحة الحالية.
+    ل. الأدلة المفقودة: حقل "missingEvidence" — بيانات محددة ستُغيّر الاستنتاج.
+    م. مُغيِّر الأطروحة: حقل "thesisChanger" — حدث واحد قابل للرصد والقياس.
+    ن. الموقف النهائي للجنة: حقل "committeeSynthesis.finalStance" — الموقف المُحسوم بعد سماع جميع الأصوات.
+    ممنوع: حقول أ-ن فارغة أو محذوفة لسؤال استثماري.
+    ممنوع: حقول أ-ن مملوءة بتعليق عام بدلاً من محتوى محدد وسببي ومؤسس.
+20. المخاطر الثانوية والعمق المؤسسي — لجميع أسئلة الاستثمار والأسواق:
     اضبط "secondOrderRisks" بجملة 1-2 تصف سلسلة العدوى تتجاوز الأثر المباشر.
     الصياغة المطلوبة: "إذا [الحدث الرئيسي] → [الأثر المباشر] يُفضي إلى [التأثير الثانوي] → [الأثر التالي] — يمتد إلى أبعد من [القطاع/القناة المباشرة]."
     العناصر الإلزامية: رمز → واحد على الأقل، سلسلة عدوى ثانوية واحدة، قطاع أو آلية واحدة خارج الأثر المباشر.
     مثال: "إذا انخفض النفط دون نقطة التعادل → تقلص الإنفاق الحكومي يُولّد تباطؤ الإقراض المصرفي → انضغاط تقييمات العقارات → تراجع الطلب الاستهلاكي — العدوى تمتد إلى أبعد من قطاع الطاقة مباشرةً."
     ممنوع: إهمال هذا الحقل، أو إعادة الأثر المباشر دون منطق العدوى.
-    أيضاً لأسئلة الاستثمار: ميّز بين توسع المضاعفات (P/E مدفوع بالسياسة النقدية، هش، حساس) ونمو الأرباح (مدفوع بالإيرادات والهوامش، أكثر استدامة). الأطروحة التي لا تُجري هذا التمييز ناقصة.
-20. التحيّز الاستراتيجي وإطار القرار — عند توافر سياق متعدد المسارات:
+    اضبط "activatedKnowledge": قائمة مجالات المعرفة التي أعلمت إجابتك (مثال: "النفط/المالي، SAMA/الفيدرالي، دوران القطاعات"). إلزامي — غير اختياري.
+    اضبط "valuationEarningsView": ميّز ما إذا كانت الأطروحة الحالية مدفوعة بتوسع PE (هش) أم نمو EPS (مستدام). جملة 1-2. إلزامي — غير اختياري.
+21. التحيّز الاستراتيجي وإطار القرار — عند توافر سياق متعدد المسارات:
     اضبط "strategicBias" بناءً على تجميع الأدلة عبر المسارات:
     - "constructive": النظام الكلي والتقني والأصول المتقاطعة تدعم الحالة الأساسية بمخاطر قابلة للإدارة
     - "opportunistic": توضّع غير متماثل — أحد جانبي الفرصة مُعوَّض بشكل أفضل مقارنةً بملف المخاطر
@@ -886,14 +914,32 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
     - "watch_and_wait": explicitly acknowledge it may be rational to observe rather than commit to a directional view; name the unresolved variables
     FORBIDDEN strategy language: "buy now", "sell now", "strategy will work", "proven edge", "guaranteed to outperform", "time the market"
     All posture framing is analytical and advisory — never implies certainty or execution.
-19. SECOND-ORDER RISKS & DEPTH — For all investment and market questions:
+19. INSTITUTIONAL ANSWER CONTRACT — For all investment and market questions, the final answer MUST contain:
+    A. Executive investment view: "thesis" field — specific instrument/market, direction, primary supporting factor (not generic).
+    B. Activated knowledge: "activatedKnowledge" field — list the knowledge domains/facts used (e.g. "Oil/Fiscal Transmission, SAMA/Fed Peg, Allocator Playbook"). If "ACTIVATED KNOWLEDGE PACKS" appears in context, list the relevant domains.
+    C. Transmission chain: "macroChain" — arrows required (X → Y → Z → investment implication). No generic labels.
+    D. Institutional allocator view: "voiceReasoning.allocator" — specific deployment stance (scale-in/wait/avoid), with reason.
+    E. Policy/rates/liquidity: "voiceReasoning.policy" — CB reaction function format required (if X then CB does Y therefore Z).
+    F. Sector winners/losers: "sectorLens" — named sectors with causal linkage. Generic "defensives outperform" without named sectors and mechanism = failure.
+    G. Bull case: "bullCase" — macro chain links supporting upside + what must hold.
+    H. Bear case: "bearCase" — macro chain links creating downside + activation condition.
+    I. Base case: "baseCase" — which case currently dominates and the single strongest evidence link.
+    J. Second-order effects: "secondOrderRisks" — contagion chain BEYOND the direct impact (→ format required).
+    K. Valuation vs earnings: "valuationEarningsView" — distinguish PE expansion (fragile) from EPS growth (durable); which is the primary driver in current thesis.
+    L. Missing evidence: "missingEvidence" — what specific data would most change the conclusion.
+    M. What changes the thesis: "thesisChanger" — one observable, measurable event.
+    N. Final committee stance: "committeeSynthesis.finalStance" — resolved position after all voices, stating which reasoning wins.
+    FORBIDDEN: any answer with A-N fields empty or omitted for an investment question.
+    FORBIDDEN: A-N fields filled with generic commentary instead of specific, grounded, causal content.
+20. SECOND-ORDER RISKS & DEPTH — For all investment and market questions:
     Set "secondOrderRisks" with a 1-2 sentence contagion chain BEYOND the direct effect.
     Format: "If [primary event] → [direct effect] generates [second-order effect] → [further downstream] — extending beyond [direct sector/channel]."
     REQUIRED elements: at least one → arrow, one second-order chain, one named sector or mechanism beyond the primary.
     Example: "If oil falls below fiscal breakeven → government spending contraction drives bank lending deceleration → real estate valuations compress → household wealth effect dampens consumption — contagion extends well beyond the energy sector."
     FORBIDDEN: omitting this field, or only restating the direct effect without contagion logic.
-    Also for investment questions: distinguish multiple expansion (P/E-driven, fragile, policy-sensitive) from earnings growth (revenue/margin-driven, durable). A thesis that doesn't make this distinction is incomplete.
-20. STRATEGIC BIAS & DECISION FRAMING — When multi-track or strategic context is present:
+    Set "activatedKnowledge": list which knowledge domains informed your answer (e.g. "Oil/Fiscal, SAMA/Fed Peg, Sector Rotation"). Required — not optional.
+    Set "valuationEarningsView": distinguish whether the current thesis is P/E-expansion-driven (fragile) or EPS-growth-driven (durable). 1-2 sentences. Required — not optional.
+21. STRATEGIC BIAS & DECISION FRAMING — When multi-track or strategic context is present:
     Set "strategicBias" based on the synthesis of all available evidence:
     - "constructive": macro regime + technical + cross-asset all favor the base case; risk is manageable and well-quantified
     - "opportunistic": asymmetric setup — one side of the trade is clearly better-compensated given the risk profile
@@ -2398,10 +2444,33 @@ async function runFusion(
     console.log(`[genesis:depth-engine] dims=[${depthEngine.dimensionsInjected.join(",")}] saudi=${isSaudi}`);
   }
 
+  // ── P0 Intelligence Rescue: Knowledge activation core ────────────────────────
+  // Detects which knowledge domains the question requires, then injects a compact,
+  // FACT-DENSE block with specific numbers, named entities, and transmission chains.
+  // Root-cause fix: the AI defaults to generic commentary when no specific facts
+  // are in the prompt. This block grounds reasoning in concrete institutional knowledge.
+  const oilCtx = trackA?.oilLiquidity ?? (live?.oilPrice ? `Oil ~$${live.oilPrice}` : undefined);
+  let _knowledgeActivation: KnowledgeActivationResult = {
+    activatedDomains: [], knowledgeContext: "", activationSummary: "", mandatoryQuestions: [],
+  };
+  if (isInvestment) {
+    _knowledgeActivation = activateKnowledge(question, ctx, isSaudi, lang, oilCtx);
+    if (_knowledgeActivation.activatedDomains.length > 0) {
+      console.log(`[genesis:knowledge] domains=[${_knowledgeActivation.activatedDomains.join(",")}]`);
+    }
+  }
+
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
     `User question: ${question}`,
     ctx ? `\nLive market context:\n${ctx}` : "",
+    // P0 Intelligence Rescue: Knowledge activation — FIRST, before investment enforcement.
+    // Specific facts ground all reasoning that follows. Must appear early in the prompt.
+    _knowledgeActivation.knowledgeContext ? `\n\n${_knowledgeActivation.knowledgeContext}` : "",
+    // Mandatory questions from knowledge activation (compact, before enforcement directive)
+    _knowledgeActivation.mandatoryQuestions.length > 0
+      ? `\n\n${lang === "ar" ? "الأسئلة الإلزامية للإجابة" : "Mandatory questions to address in the answer"}: ${_knowledgeActivation.mandatoryQuestions.join(" | ")}`
+      : "",
     // Investment enforcement FIRST — most prominent position before the long fusion block
     investEnforcement ? `\n\n${investEnforcement}` : "",
     `\n\n${fusionDirective}`,
@@ -2548,6 +2617,27 @@ async function runFusion(
     regime: trackA.regime, macroSummary: trackA.macroSummary, ratesEnv: trackA.ratesEnv,
     oilLiquidity: trackA.oilLiquidity, creditStressLevel: trackA.creditStressLevel, macroBias: trackA.macroBias,
   } : null;
+
+  // P0 Intelligence Rescue: Set activatedKnowledge field from knowledge activation result.
+  // This gives the reply an audit trail of which knowledge domains were grounded.
+  // Also fill valuationEarningsView if AI didn't set it.
+  if (_qualityGateIsInvestment) {
+    if (!sanitized.activatedKnowledge && _knowledgeActivation.activationSummary) {
+      sanitized.activatedKnowledge = _knowledgeActivation.activationSummary;
+    }
+    if (!sanitized.valuationEarningsView) {
+      const isSaudiLocal = _qualityGateIsSaudi;
+      const bias = trackA?.macroBias ?? consensus.dominantBias;
+      sanitized.valuationEarningsView = lang === "ar"
+        ? `التمييز بين توسع المضاعفات ونمو الأرباح: ${isSaudiLocal
+            ? `تاسي في النظام الحالي — الصعود المدفوع بتوسع PE (هش، مدفوع بتوقعات تخفيف SAMA) مقابل الصعود المدفوع بنمو EPS (مستدام، يحتاج نفطاً فوق نقطة التعادل لـ12+ شهراً). المخصص المحافظ يُفضّل وضوح الأطروحة: نمو EPS مع وضوح مسار النفط أفضل من رهان على توسع المضاعفات.`
+            : `في نظام ${(trackA?.regime ?? "current regime").replace(/_/g, " ")} بتوجه ${bias}: توسع PE مدفوع بتوقعات السياسة النقدية (هش عند التحول) مقابل نمو EPS المدعوم بنمو الإيرادات والهوامش (أكثر استدامة). الأطروحة الحالية تعتمد على: ${bias === "bullish" ? "توجه إيجابي — حدد مصدر العائد." : "ضغط — خطر انضغاط المضاعفات قائم."}`}`
+        : `Valuation vs earnings distinction: ${isSaudiLocal
+            ? `TASI in current regime — upside from PE expansion (fragile, SAMA easing expectations driven) vs EPS growth (durable, requires oil above breakeven for 12+ months). Conservative allocator prefers thesis clarity: EPS growth with oil direction confirmation > PE multiple expansion bet.`
+            : `In ${(trackA?.regime ?? "current regime").replace(/_/g, " ")} with ${bias} bias: PE expansion driven by monetary policy expectations (fragile on policy shift) vs EPS growth supported by revenue and margin improvement (more durable). Current thesis relies on: ${bias === "bullish" ? "constructive bias — identify which return driver is primary." : "pressure regime — multiple compression risk is live."}`}`;
+    }
+  }
+
   const rejectionResult = shouldRejectAnswer(
     sanitized, question, _qualityGateIsInvestment, _qualityGateIsSaudi, _qualityGateIsCompanyQ, lang,
   );
@@ -2584,10 +2674,10 @@ async function runFusion(
   sanitized.qualityImprovements = harness.improvements.length > 0 ? harness.improvements : undefined;
   console.log(`[genesis:harness] tier=${harness.qualityTier} score=${harness.totalScore} category=${harness.promptCategory}`);
 
-  // P0 Intelligence Rescue: Hard quality threshold — score < 80 for investment questions
+  // P0 Intelligence Rescue: Hard quality threshold — score < 85 for investment questions
   // triggers a final deterministic repair pass. The harness was previously measurement-only;
-  // it now ENFORCES: any investment answer below 80 gets depth-repaired before delivery.
-  if (_qualityGateIsInvestment && harness.totalScore < 80) {
+  // it now ENFORCES: any investment answer below 85 gets depth-repaired before delivery.
+  if (_qualityGateIsInvestment && harness.totalScore < 85) {
     repairShallowAnswer(sanitized, tASliceRepair, cSliceFull, _qualityGateIsSaudi, lang);
     // Re-evaluate after repair
     const harnessPost = evaluateAnswerQuality(sanitized, question);
