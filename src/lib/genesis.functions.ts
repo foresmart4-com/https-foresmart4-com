@@ -49,6 +49,13 @@ import {
 import { checkAndRepairConsistency } from "@/services/institutional/consistencyEngine";
 import { assessAdaptiveOptimization } from "@/services/institutional/adaptiveOptimization";
 import { assessProviderOptimization } from "@/services/institutional/providerOptimization";
+// Phase 71-75: Research Civilization
+import { classifyResearch, buildResearchGovernanceContext } from "@/services/research/governedResearch";
+import { queryKnowledgeGraph } from "@/services/research/knowledgeGraph";
+import { buildResearchLibraryContext } from "@/services/research/researchLibrary";
+import { compareTheories } from "@/services/research/theoryEngine";
+import { findHistoricalAnalog } from "@/services/research/historicalLearning";
+import { scoreResearchCredibility } from "@/services/research/researchCredibilityEngine";
 
 export interface GenesisScenario {
   label: string;
@@ -1990,6 +1997,15 @@ async function runFusion(
   const sectorCtx = buildSectorIntelligenceContext(question + "\n" + ctx, trackASlice, liveSlice);
   const committeeCtx = buildCommitteeDebateContext(question, trackASlice, trackDSlice, consensusSlice);
 
+  // ── Phase 71-75: Research Civilization Track ──────────────────────────────────
+  // Pure O(1) — all deterministic; no AI/network calls. Only injected when signals found.
+  const researchClassification = classifyResearch(question, ctx);
+  const graphResult            = queryKnowledgeGraph(question, ctx);
+  const researchLibCtx         = buildResearchLibraryContext(question);
+  const theoryComparison       = compareTheories(question, ctx, trackA?.regime);
+  const historicalAnalog       = findHistoricalAnalog(question, ctx);
+  const researchCredibility    = scoreResearchCredibility(question, ctx);
+
   // ── Phase 68: Portfolio Allocation Intelligence ───────────────────────────────
   const allocationIntel = buildAllocationIntelligence({
     question,
@@ -2037,6 +2053,13 @@ async function runFusion(
     institutionalCtx ? `\n\n${institutionalCtx}` : "",
     sectorCtx ? `\n\n${sectorCtx}` : "",
     committeeCtx ? `\n\n${committeeCtx}` : "",
+    // Phase 71-75: Research civilization context (compact; injected when signals detected)
+    graphResult.graphContext ? `\n\nKnowledge graph: ${graphResult.conceptLinkage.slice(0, 250)}` : "",
+    researchLibCtx ? `\n\nResearch library: ${researchLibCtx.slice(0, 250)}` : "",
+    theoryComparison.comparisonContext ? `\n\n${theoryComparison.comparisonContext.slice(0, 200)}` : "",
+    historicalAnalog.lessonContext ? `\n\nHistorical analog: ${historicalAnalog.lessonContext.slice(0, 150)}` : "",
+    researchCredibility.sourceScores.length > 0 ? `\n\n${researchCredibility.fusionContext}` : "",
+    researchClassification.sourceState === "rejected" ? `\n\nResearch governance: ${researchClassification.governanceNote}` : "",
   ].join("");
   const user = wrapUserContext(lang, userBody);
 
