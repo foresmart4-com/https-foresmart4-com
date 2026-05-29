@@ -70,6 +70,13 @@ import {
   type VoiceReasoning,
   type CommitteeSynthesis,
 } from "@/services/institutional/committeeEngine";
+import {
+  buildInstitutionalDepthContext,
+} from "@/services/institutional/institutionalDepthEngine";
+import {
+  shouldRejectAnswer,
+  repairShallowAnswer,
+} from "@/services/institutional/shallowAnswerRejection";
 
 export interface GenesisScenario {
   label: string;
@@ -185,6 +192,8 @@ export interface GenesisReply {
   // Phase 82A: Committee Generation Engine — structured multi-voice institutional reasoning
   voiceReasoning?: VoiceReasoning;       // independent reasoning per voice: macro/policy/allocator/behavioral/historical
   committeeSynthesis?: CommitteeSynthesis; // agreement, disagreement, dominant voice, final stance
+  // P0 Genesis Intelligence Rescue: depth fields
+  secondOrderRisks?: string;  // second-order contagion effects beyond direct macro impact
 }
 
 const AskInput = z.object({
@@ -470,6 +479,8 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
     // Phase 82A: Committee Generation Engine — sanitize structured voice objects
     voiceReasoning: sanitizeVoiceReasoning(obj.voiceReasoning),
     committeeSynthesis: sanitizeCommitteeSynthesis(obj.committeeSynthesis),
+    // P0 Genesis Intelligence Rescue: second-order depth field
+    secondOrderRisks: cleanStr(obj.secondOrderRisks),
   };
 }
 
@@ -651,7 +662,8 @@ const GENESIS_SCHEMA = `{
     "disagreement": "string — 1 sentence: the primary tension between voices; name which voice contradicts which and why. Never fabricate consensus." (optional),
     "dominantVoice": <"macro"|"policy"|"allocator"|"behavioral"|"historical"|"mixed"> (optional),
     "finalStance": "string — 1-2 sentences: committee's resolved position after hearing all voices; acknowledge dissent but state which reasoning wins and why" (optional)
-  } (optional — required when voiceReasoning is set)
+  } (optional — required when voiceReasoning is set),
+  "secondOrderRisks": "string — 1-2 sentences: second-order contagion effects flowing from the primary scenario, BEYOND the direct macro impact. Use arrow notation: 'if [primary event] → [direct effect] generates [second-order effect] → [further downstream impact] — extending beyond [direct sector]'. For Saudi: connect oil→fiscal→credit→real estate→consumption chain. Required for all investment questions." (optional — set for investment questions)
 }`;
 
 function buildGenesisSystemPrompt(lang: Lang): string {
@@ -753,7 +765,14 @@ function buildGenesisSystemPrompt(lang: Lang): string {
     - "watch_and_wait": اعترف صراحةً بعقلانية الانتظار بدلاً من الالتزام برأي اتجاهي؛ سمّ المتغيرات غير المحسومة
     لغة التوجه الممنوعة: "اشترِ الآن"، "بِع الآن"، "الاستراتيجية ستنجح"، "حافة مثبتة"، "مضمون التفوق"
     كل إطار للتوجه تحليلي واستشاري — لا يُضمن ولا يُنفَّذ.
-19. التحيّز الاستراتيجي وإطار القرار — عند توافر سياق متعدد المسارات:
+19. المخاطر الثانوية والعمق المؤسسي — لجميع أسئلة الاستثمار والأسواق:
+    اضبط "secondOrderRisks" بجملة 1-2 تصف سلسلة العدوى تتجاوز الأثر المباشر.
+    الصياغة المطلوبة: "إذا [الحدث الرئيسي] → [الأثر المباشر] يُفضي إلى [التأثير الثانوي] → [الأثر التالي] — يمتد إلى أبعد من [القطاع/القناة المباشرة]."
+    العناصر الإلزامية: رمز → واحد على الأقل، سلسلة عدوى ثانوية واحدة، قطاع أو آلية واحدة خارج الأثر المباشر.
+    مثال: "إذا انخفض النفط دون نقطة التعادل → تقلص الإنفاق الحكومي يُولّد تباطؤ الإقراض المصرفي → انضغاط تقييمات العقارات → تراجع الطلب الاستهلاكي — العدوى تمتد إلى أبعد من قطاع الطاقة مباشرةً."
+    ممنوع: إهمال هذا الحقل، أو إعادة الأثر المباشر دون منطق العدوى.
+    أيضاً لأسئلة الاستثمار: ميّز بين توسع المضاعفات (P/E مدفوع بالسياسة النقدية، هش، حساس) ونمو الأرباح (مدفوع بالإيرادات والهوامش، أكثر استدامة). الأطروحة التي لا تُجري هذا التمييز ناقصة.
+20. التحيّز الاستراتيجي وإطار القرار — عند توافر سياق متعدد المسارات:
     اضبط "strategicBias" بناءً على تجميع الأدلة عبر المسارات:
     - "constructive": النظام الكلي والتقني والأصول المتقاطعة تدعم الحالة الأساسية بمخاطر قابلة للإدارة
     - "opportunistic": توضّع غير متماثل — أحد جانبي الفرصة مُعوَّض بشكل أفضل مقارنةً بملف المخاطر
@@ -867,7 +886,14 @@ Action type guide: add_watchlist (requires symbol) | create_alert (requires symb
     - "watch_and_wait": explicitly acknowledge it may be rational to observe rather than commit to a directional view; name the unresolved variables
     FORBIDDEN strategy language: "buy now", "sell now", "strategy will work", "proven edge", "guaranteed to outperform", "time the market"
     All posture framing is analytical and advisory — never implies certainty or execution.
-19. STRATEGIC BIAS & DECISION FRAMING — When multi-track or strategic context is present:
+19. SECOND-ORDER RISKS & DEPTH — For all investment and market questions:
+    Set "secondOrderRisks" with a 1-2 sentence contagion chain BEYOND the direct effect.
+    Format: "If [primary event] → [direct effect] generates [second-order effect] → [further downstream] — extending beyond [direct sector/channel]."
+    REQUIRED elements: at least one → arrow, one second-order chain, one named sector or mechanism beyond the primary.
+    Example: "If oil falls below fiscal breakeven → government spending contraction drives bank lending deceleration → real estate valuations compress → household wealth effect dampens consumption — contagion extends well beyond the energy sector."
+    FORBIDDEN: omitting this field, or only restating the direct effect without contagion logic.
+    Also for investment questions: distinguish multiple expansion (P/E-driven, fragile, policy-sensitive) from earnings growth (revenue/margin-driven, durable). A thesis that doesn't make this distinction is incomplete.
+20. STRATEGIC BIAS & DECISION FRAMING — When multi-track or strategic context is present:
     Set "strategicBias" based on the synthesis of all available evidence:
     - "constructive": macro regime + technical + cross-asset all favor the base case; risk is manageable and well-quantified
     - "opportunistic": asymmetric setup — one side of the trade is clearly better-compensated given the risk profile
@@ -2350,6 +2376,28 @@ async function runFusion(
   // ── P0 Quality: Investment enforcement directive ─────────────────────────────
   const investEnforcement = buildInvestmentEnforcementDirective(isInvestment, isSaudi, isCompanyQ, lang);
 
+  // ── P0 Intelligence Rescue: Institutional depth engine ───────────────────────
+  // Injects 10-dimension depth directive: transmission chains, second-order effects,
+  // allocator psychology, regime conflict, valuation vs earnings, policy reaction,
+  // liquidity/credit channel, sector rotation, risk/reward, thesis change conditions.
+  const tASliceFull = trackA ? {
+    regime: trackA.regime, macroSummary: trackA.macroSummary, ratesEnv: trackA.ratesEnv,
+    oilLiquidity: trackA.oilLiquidity, creditStressLevel: trackA.creditStressLevel,
+    macroBias: trackA.macroBias, regimeConf: trackA.regimeConf,
+  } : null;
+  const tDSliceFull = trackD ? {
+    uncertaintyLevel: trackD.uncertaintyLevel, primaryRisk: trackD.primaryRisk,
+    thesisWeakness: trackD.thesisWeakness, invalidationTrigger: trackD.invalidationTrigger,
+    confidenceChallenge: trackD.confidenceChallenge, counterCase: trackD.counterCase,
+  } : null;
+  const cSliceFull = { dominantBias: consensus.dominantBias, agreementScore: consensus.agreementScore, strength: consensus.strength };
+  const depthEngine = buildInstitutionalDepthContext(
+    question, tASliceFull, tDSliceFull, cSliceFull, isInvestment, isSaudi, lang,
+  );
+  if (depthEngine.dimensionsInjected.length > 0) {
+    console.log(`[genesis:depth-engine] dims=[${depthEngine.dimensionsInjected.join(",")}] saudi=${isSaudi}`);
+  }
+
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
     `User question: ${question}`,
@@ -2364,6 +2412,13 @@ async function runFusion(
     institutionalCtx ? `\n\n${institutionalCtx}` : "",
     sectorCtx ? `\n\n${sectorCtx}` : "",
     committeeCtx ? `\n\n${committeeCtx}` : "",
+    // P0 Intelligence Rescue: Depth engine — transmission chains, second-order effects,
+    // allocator psychology, regime conflict, valuation vs earnings, policy reaction,
+    // liquidity/credit, sector rotation, risk/reward, thesis change.
+    depthEngine.depthContext ? `\n\n${depthEngine.depthContext}` : "",
+    // P0 Saudi mandatory depth — beyond the 5-channel checklist; forces conservative
+    // allocator reasoning with scale-in / wait / avoid decision framework.
+    depthEngine.saudiDepthContext ? `\n\n${depthEngine.saudiDepthContext}` : "",
     // Phase 71-77: Research civilization context (compact; injected when signals detected)
     graphResult.graphContext ? `\n\nKnowledge graph: ${graphResult.conceptLinkage.slice(0, 250)}` : "",
     researchLibCtx ? `\n\nResearch library: ${researchLibCtx.slice(0, 250)}` : "",
@@ -2485,6 +2540,23 @@ async function runFusion(
     console.log(`[genesis:quality] enriched reply (was ${qualityState})`);
   }
 
+  // P0 Intelligence Rescue: Shallow answer rejection — 8-dimension content depth scoring.
+  // Detects banned phrases without mechanisms, missing causal chains, absent allocator logic,
+  // no second-order effects, no sector differentiation, etc.
+  // Score < 80 → deterministic repair (fills secondOrderRisks, strengthens macroChain, etc.)
+  const tASliceRepair = trackA ? {
+    regime: trackA.regime, macroSummary: trackA.macroSummary, ratesEnv: trackA.ratesEnv,
+    oilLiquidity: trackA.oilLiquidity, creditStressLevel: trackA.creditStressLevel, macroBias: trackA.macroBias,
+  } : null;
+  const rejectionResult = shouldRejectAnswer(
+    sanitized, question, _qualityGateIsInvestment, _qualityGateIsSaudi, _qualityGateIsCompanyQ, lang,
+  );
+  console.log(`[genesis:rejection] score=${rejectionResult.totalScore} rejected=${rejectionResult.rejected} patterns=[${rejectionResult.patternsDetected.join(",")||"none"}]`);
+  if (rejectionResult.repairNeeded) {
+    repairShallowAnswer(sanitized, tASliceRepair, cSliceFull, _qualityGateIsSaudi, lang);
+    console.log(`[genesis:rejection] shallow repair applied — reasons=[${rejectionResult.reasons.join(",")}]`);
+  }
+
   // Phase 70 Part-2: Consistency repair — runs after enrichment, before calibration
   const consistencyResult = checkAndRepairConsistency(sanitized);
   if (consistencyResult.consistencyState !== "stable") {
@@ -2511,6 +2583,19 @@ async function runFusion(
   sanitized.qualityScore = harness.totalScore;
   sanitized.qualityImprovements = harness.improvements.length > 0 ? harness.improvements : undefined;
   console.log(`[genesis:harness] tier=${harness.qualityTier} score=${harness.totalScore} category=${harness.promptCategory}`);
+
+  // P0 Intelligence Rescue: Hard quality threshold — score < 80 for investment questions
+  // triggers a final deterministic repair pass. The harness was previously measurement-only;
+  // it now ENFORCES: any investment answer below 80 gets depth-repaired before delivery.
+  if (_qualityGateIsInvestment && harness.totalScore < 80) {
+    repairShallowAnswer(sanitized, tASliceRepair, cSliceFull, _qualityGateIsSaudi, lang);
+    // Re-evaluate after repair
+    const harnessPost = evaluateAnswerQuality(sanitized, question);
+    sanitized.qualityScore = harnessPost.totalScore;
+    sanitized.qualityTier = harnessPost.qualityTier;
+    sanitized.qualityImprovements = harnessPost.improvements.length > 0 ? harnessPost.improvements : undefined;
+    console.log(`[genesis:harness] post-repair score=${harnessPost.totalScore} tier=${harnessPost.qualityTier}`);
+  }
 
   // Phase 70 Part-1+4: Adaptive optimization + coherence audit
   const adaptiveResult = assessAdaptiveOptimization(
