@@ -147,7 +147,8 @@ const TRIGGER_PATTERNS: Record<SecondOrderTrigger, RegExp> = {
   // Easing/cut checked before hike so "rate shock down" does not match the hike pattern
   rate_shock_down:       /\b(rate.cut|emergency.cut|pivot|dovish.surprise|rate.reduction|fed.cuts|cuts.rate|rate.shock.down|dovish.pivot)\b/i,
   rate_shock_up:         /\b(rate.hike|aggressive.hike|75bps|100bps|hawkish.surprise|overtightening|rates.rise|tlt.fall|rate.shock(?!.down))\b/i,
-  oil_shock_negative:    /\b(oil.fall|oil.crash|oil.shock.down|oil.below|oil.plunge|brent.below|wti.below|crude.fall)\b/i,
+  // Prefix/stem patterns so "falls"/"fell"/"crashing"/"crashed" all match
+  oil_shock_negative:    /\boil\w*\s+(fall\w*|fell|crash\w*|drop\w*|declin\w*|below|plunge\w*|collaps\w*)|\bbrent\s+(below|fell|crash\w*)|\bwti\s+(below|crash\w*)|\bcrude\s+(fall\w*|crash\w*)/i,
   oil_shock_positive:    /\b(oil.rise|oil.spike|oil.surge|brent.above.80|oil.rally|crude.rally|supply.cut)\b/i,
   inflation_surprise_up: /\b(inflation.surprise|cpi.above|inflation.above.expect|inflation.shock|hot.cpi|sticky.inflation)\b/i,
   // Use spread.wid (prefix) to match widening/widened/wide; no trailing word boundary

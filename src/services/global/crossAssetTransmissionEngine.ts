@@ -66,8 +66,9 @@ function bondToEquity(
   }
   const magnitude: TransmissionMagnitude = Math.abs(tltChangePct) >= 2 ? "strong" : Math.abs(tltChangePct) >= 1 ? "moderate" : "weak";
   if (tltChangePct < 0) {
-    // TLT falling → yields rising → equity pressure
-    const dir: TransmissionDirection = magnitude === "strong" ? "amplifying" : "dampening";
+    // TLT falling → yields rising → always amplifying pressure on equities (rate rise = discount rate ↑)
+    // Direction is amplifying for any significant decline; only "neutral" for marginal moves
+    const dir: TransmissionDirection = magnitude !== "weak" ? "amplifying" : "neutral";
     return {
       pair, direction: dir, magnitude, isActive: true,
       narrative: `Yields rising (TLT ${tltChangePct.toFixed(1)}%) → discount rate ↑ → P/E compression; long-duration most exposed`,
@@ -116,6 +117,8 @@ function yieldsToGrowth(
     narrative: `Yield shock + ${creditStress} credit stress → financing cost spike → capex slowdown → earnings compression risk`,
   };
 }
+
+// Remove the unused constant (oil decline handled via oilChangePct signal)
 
 function oilToLiquidity(
   oilPrice: number | null | undefined,

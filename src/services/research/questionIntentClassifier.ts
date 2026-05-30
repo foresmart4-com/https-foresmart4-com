@@ -53,7 +53,8 @@ const SCENARIO_FORM = /\b(what if|if .{1,40}(happens?|occurs?|falls?|rises?|drop
 // Comparative
 const COMPARE_FORM  = /\b(compare|vs\.?|versus|between|difference|relative to|better than|worse than|outperform|underperform|favour|prefer|contrast|which (is|are|would))\b/i;
 // Advisory (directional guidance sought)
-const ADVISORY_FORM = /\b(should (i|we|investors?)\b|do you (recommend|suggest|advise)|is (it|now) (worth|advisable|appropriate|a good time)|would you|when should (i|we)|how should (i|we)|is there value in|is this a good)\b/i;
+// Includes "how should an institutional investor" and "how to allocate" patterns
+const ADVISORY_FORM = /\b(should (i|we|investors?)\b|do you (recommend|suggest|advise)|is (it|now) (worth|advisable|appropriate|a good time)|would you|when should (i|we)|how should (i|we|an?\s+\w+\s+investor)|is there value in|is this a good|how.{1,20}allocat|how.{1,20}position)\b/i;
 // Educational / explanatory
 const EXPLAIN_FORM  = /\b(how does|what is|what are|explain|describe|define|what does .{1,20} mean|how (do|does|did)|why does|what causes|how (is|was))\b/i;
 

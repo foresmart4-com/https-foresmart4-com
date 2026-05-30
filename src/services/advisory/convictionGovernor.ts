@@ -130,11 +130,15 @@ function applyOverrides(
   creditStress: "low" | "moderate" | "high" | "extreme",
   consStrength: "strong" | "moderate" | "weak" | "conflicted",
   regimeConf:   number,
+  isSaudi:      boolean,
+  oilPrice:     number | null | undefined,
 ): number {
-  if (creditStress === "extreme")         return Math.min(anchor, 45);
-  if (creditStress === "high")            return Math.min(anchor, 58);
-  if (consStrength === "conflicted")      return Math.min(anchor, 52);
-  if (regimeConf < 35)                    return Math.min(anchor, 48);
+  if (creditStress === "extreme")                              return Math.min(anchor, 45);
+  if (creditStress === "high")                                 return Math.min(anchor, 58);
+  if (consStrength === "conflicted")                           return Math.min(anchor, 52);
+  if (regimeConf < 35)                                         return Math.min(anchor, 48);
+  // Saudi: oil below fiscal breakeven suppresses conviction ceiling
+  if (isSaudi && oilPrice != null && oilPrice < 72)            return Math.min(anchor, 58);
   return anchor;
 }
 
@@ -151,6 +155,21 @@ export function governConviction(input: {
 }): ConvictionGovernanceResult {
   const { regimeConf, consensusStrength, creditStressLevel, macroBias, oilPrice, tltChangePct, isSaudi } = input;
 
+  // Hard override: conflicted consensus always forces contested conviction regardless
+  // of other signal scores. Conflicting signals cannot yield moderate or high conviction.
+  if (consensusStrength === "conflicted" || regimeConf < 30) {
+    const anchor = applyOverrides(40, creditStressLevel, consensusStrength, regimeConf, isSaudi, oilPrice);
+    return {
+      allowedConviction:    "contested",
+      justification:        "conflicting_signals",
+      maxConfidenceAnchor:  anchor,
+      convictionNote:       consensusStrength === "conflicted"
+        ? "Conflicted consensus: contested conviction; ceiling 40%"
+        : `Very low regime confidence (${regimeConf}): contested conviction`,
+      requiresQualification: true,
+    };
+  }
+
   const composite =
     scoreRegimeEvidence(regimeConf) +
     scoreConsensusEvidence(consensusStrength) +
@@ -158,7 +177,7 @@ export function governConviction(input: {
     scoreSignalCount(macroBias, oilPrice, tltChangePct, isSaudi);
 
   const { level, justification, anchor: baseAnchor, note } = deriveConviction(composite);
-  const maxConfidenceAnchor = applyOverrides(baseAnchor, creditStressLevel, consensusStrength, regimeConf);
+  const maxConfidenceAnchor = applyOverrides(baseAnchor, creditStressLevel, consensusStrength, regimeConf, isSaudi, oilPrice);
 
   return {
     allowedConviction:    level,

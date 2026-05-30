@@ -95,7 +95,8 @@ const ERA_SIGNATURES: EraSig[] = [
   { era: "2000_bear",         regime: 60, policy: 55, credit: 40, commodity: 25, vol: 65,
     context: "Valuation unwind after technology/narrative-driven multiple expansion",
     differs:  "Current valuations embed more earnings — PE 60-80x was pure narrative" },
-  { era: "2008_gfc",          regime: 35, policy: 30, credit: 95, commodity: 45, vol: 95,
+  // 2008 GFC peaked as high_vol_risk_off — regime raised from 35→60 to reflect that
+  { era: "2008_gfc",          regime: 60, policy: 30, credit: 95, commodity: 45, vol: 95,
     context: "Systemic banking stress + housing collapse + global credit contraction",
     differs:  "Bank capital ratios far higher today; CB toolkit is pre-deployed" },
   { era: "2013_taper",        regime: 65, policy: 70, credit: 20, commodity: 35, vol: 40,
