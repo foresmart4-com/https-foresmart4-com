@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { routeQuote, resolveAsset, getProviderConnected, getProviderCredentialHealth } from "@/lib/market/router";
 import { isEodhdConfigured, getEodhdExchanges } from "@/lib/market/providers/eodhd";
 import { isMarketstackConfigured } from "@/lib/market/providers/marketstack";
+import { getMarketReliability, getAllMarketReliabilities, type MarketStatus } from "@/lib/market/providerReliability";
 
 type DataQuality = "مباشر" | "متأخر" | "احتياطي" | "غير متاح";
 
@@ -16,6 +17,9 @@ interface CoverageItem {
   lastProvider: string | null;
   lastError: string | null;
   dataQuality: DataQuality;
+  marketReliability: MarketStatus;
+  decisionEngineAllowed: boolean;
+  reliabilityReasonAr: string;
   /** Providers actually attempted in order (after capability + cooldown checks). */
   attempted: string[];
   /** Providers skipped before a network call (capability mismatch or cooldown). */
@@ -72,6 +76,7 @@ export const Route = createFileRoute("/api/public/market-coverage")({
           const resolved = resolveAsset(t.symbol);
           try {
             const q = await routeQuote(t.symbol);
+            const rel = getMarketReliability(t.market);
 
             // Identify providers that were attempted but failed (attempted - skipped by capability - winner)
             const attempted = (q.attempted ?? []) as string[];
@@ -94,13 +99,17 @@ export const Route = createFileRoute("/api/public/market-coverage")({
               lastProvider: q.provider,
               lastError: q.error ?? null,
               dataQuality: computeDataQuality(q.success, q.delayed ?? false, q.fallbackUsed ?? false),
+              marketReliability: rel.status,
+              decisionEngineAllowed: rel.allowedForDecisionEngine,
+              reliabilityReasonAr: rel.reasonAr,
               attempted,
               skippedProviders: skipped,
               failedProviders,
               rejectedPrices,
             });
           } catch (e) {
-            coverage.push({
+            const rel = getMarketReliability(t.market);
+          coverage.push({
               market: t.market,
               nameAr: t.nameAr,
               connected: false,
@@ -111,6 +120,9 @@ export const Route = createFileRoute("/api/public/market-coverage")({
               lastProvider: null,
               lastError: e instanceof Error ? e.message : "فشل الاتصال بالمزود",
               dataQuality: "غير متاح",
+              marketReliability: rel.status,
+              decisionEngineAllowed: rel.allowedForDecisionEngine,
+              reliabilityReasonAr: rel.reasonAr,
               attempted: [],
               skippedProviders: [],
               failedProviders: [],
@@ -155,6 +167,7 @@ export const Route = createFileRoute("/api/public/market-coverage")({
         const connectedCount = coverage.filter((c) => c.connected).length;
         // Credential health is populated at runtime as providers are tried during the coverage test above
         const providerCredentialStatus = getProviderCredentialHealth();
+        const marketReliabilityMap = getAllMarketReliabilities();
 
         return new Response(
           JSON.stringify(
@@ -165,6 +178,7 @@ export const Route = createFileRoute("/api/public/market-coverage")({
               marketstackConfigured: isMarketstackConfigured(),
               connectedProviders: connected,
               providerCredentialStatus,
+              marketReliabilityMap,
               coverage,
               connectedCount,
               totalMarkets: coverage.length,

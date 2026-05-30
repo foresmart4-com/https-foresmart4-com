@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { getProviderReliability } from "@/lib/market/providerReliability";
 
 // Server-side credential validation for all market data providers.
 // Makes one real lightweight HTTP request per provider with a 5-second timeout.
@@ -25,6 +26,7 @@ interface ProviderResult {
   errorType: ErrorType;
   messageAr: string;
   recommendedActionAr: string;
+  allowedForDecisionEngine: boolean;
 }
 
 const RECOMMENDED: Partial<Record<string, string>> = {
@@ -98,10 +100,12 @@ function fromStatus(status: number): ErrorType {
 }
 
 function pass(provider: string, sym: string, ep: string): ProviderResult {
-  return { provider, configured: true, credentialValid: true, httpStatus: 200, testSymbol: sym, endpointType: ep, errorType: "ok", messageAr: AR.ok, recommendedActionAr: getRecommendedActionAr(provider, "ok") };
+  const rel = getProviderReliability(provider);
+  return { provider, configured: true, credentialValid: true, httpStatus: 200, testSymbol: sym, endpointType: ep, errorType: "ok", messageAr: AR.ok, recommendedActionAr: getRecommendedActionAr(provider, "ok"), allowedForDecisionEngine: rel.allowedForDecisionEngine };
 }
 function deny(provider: string, configured: boolean, httpStatus: number | null, sym: string, ep: string, errorType: ErrorType): ProviderResult {
-  return { provider, configured, credentialValid: false, httpStatus, testSymbol: sym, endpointType: ep, errorType, messageAr: AR[errorType], recommendedActionAr: getRecommendedActionAr(provider, errorType) };
+  const rel = getProviderReliability(provider);
+  return { provider, configured, credentialValid: false, httpStatus, testSymbol: sym, endpointType: ep, errorType, messageAr: AR[errorType], recommendedActionAr: getRecommendedActionAr(provider, errorType), allowedForDecisionEngine: rel.allowedForDecisionEngine && errorType === "ok" };
 }
 function noKey(provider: string, sym: string, ep: string): ProviderResult {
   return deny(provider, false, null, sym, ep, "missing_key");
@@ -378,6 +382,7 @@ export const Route = createFileRoute("/api/public/provider-credential-check")({
 
         const validCount   = providers.filter((p) => p.credentialValid).length;
         const configuredCount = providers.filter((p) => p.configured).length;
+        const decisionAllowedCount = providers.filter((p) => p.allowedForDecisionEngine).length;
 
         return new Response(
           JSON.stringify({
@@ -386,6 +391,7 @@ export const Route = createFileRoute("/api/public/provider-credential-check")({
             summary: {
               configured: configuredCount,
               credentialValid: validCount,
+              allowedForDecisionEngine: decisionAllowedCount,
               total: providers.length,
             },
             providers,
