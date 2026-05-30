@@ -204,6 +204,9 @@ import { governEventSynthesis } from "@/services/research/eventSynthesisGovernor
 import { buildSemanticImpact } from "@/services/research/semanticImpactEngine";
 import { buildPolicyExpectation } from "@/services/research/policyExpectationModel";
 import { buildUnifiedCognition } from "@/services/research/unifiedCognitionGovernor";
+// Phase-87B: Durable Meta-Cognition + Final Institutional Closure
+import { buildRegimeProfile } from "@/services/research/regimeOntologyEngine";
+import { loadExpectationHistory, saveExpectationHistoryBackground } from "@/services/research/expectationMemoryEngine";
 
 export interface GenesisScenario {
   label: string;
@@ -2705,6 +2708,16 @@ async function runFusion(
   const _arabicUnifiedCtx = (_arabicThinkerCtx || _arabicSchoolCtx)
     ? [_arabicThinkerCtx, _arabicSchoolCtx].filter(Boolean).join(" | ").slice(0, 400)
     : "";
+  // Phase-87B: normalized regime profile for ontology-enriched macro context
+  const _regimeProfile87b = buildRegimeProfile(trackA?.regime, {
+    creditStressLevel: trackA?.creditStressLevel,
+    ratesEnv:          trackA?.ratesEnv,
+    oilLiquidity:      trackA?.oilLiquidity,
+    oilChangePct:      live?.oilChangePct  ?? null,
+    tltChangePct:      live?.tltChangePct  ?? null,
+    macroBias:         trackA?.macroBias,
+    isGulfMarket:      isSaudi,
+  });
   const _unifiedCognition = buildUnifiedCognition({
     authority85b:    _governedKnowledge?.governedContext    ?? "",
     expertKnowledge: _85dResult?.governedContext            ?? _crossResearch?.governedContext ?? "",
@@ -2713,9 +2726,10 @@ async function runFusion(
     policyDelta:     _policyExpectation,
     arabicCtx:       _arabicUnifiedCtx || undefined,
     question, isSaudi, isInvestment, regime: trackA?.regime,
+    regimeProfile:   _regimeProfile87b,
   });
   if (!_unifiedCognition.isEmpty) {
-    console.log(`[genesis:86b] unified=${_unifiedCognition.coverageLabel} chars=${_unifiedCognition.totalChars} semantic=${_semanticImpact.analyticalPressure} policy_delta=${_policyExpectation.deltaType}`);
+    console.log(`[genesis:86b] unified=${_unifiedCognition.coverageLabel} chars=${_unifiedCognition.totalChars} semantic=${_semanticImpact.analyticalPressure} policy_delta=${_policyExpectation.deltaType} intent=${_unifiedCognition.intentLabel ?? "n/a"} merge=${_unifiedCognition.mergeGovernance ?? "n/a"} regime=${_regimeProfile87b.compositeLabel}`);
   }
 
   // ── Phase 68: Portfolio Allocation Intelligence ───────────────────────────────
@@ -2757,8 +2771,10 @@ async function runFusion(
   }
   console.log(`[genesis:memory] store=${getThesisStoreStats()}`);
   // Phase-85A: Load durable memory from Supabase Storage (lazy, once per process)
+  // Phase-87B: Load durable expectation history alongside (same lazy pattern)
   if (isInvestment) {
     await loadDurableMemory();
+    await loadExpectationHistory();
     console.log(`[genesis:durable-memory] storage=${getDurableStorageStatus()}`);
   }
   // Phase-84B: Persistent memory query (bounded LRU store, hot/warm tier only)
@@ -3407,6 +3423,8 @@ async function runFusion(
     console.log(`[genesis:memory] saved snapshot; patterns=${patternsStored} persistent=${persistentStored}`);
     // Phase-85A: fire-and-forget durable save to Supabase Storage
     saveDurableMemoryBackground();
+    // Phase-87B: fire-and-forget durable expectation history save
+    saveExpectationHistoryBackground();
   }
 
   // Phase-85D: Fire-and-forget cognitive feedback — records expert contribution

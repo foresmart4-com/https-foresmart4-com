@@ -1,3 +1,16 @@
+// Phase-87B: Expectation Memory Engine — durable persistence added
+// Phase-87A: base engine (pure deterministic, O(1) per call)
+//
+// Phase-87B adds:
+//   loadExpectationHistory()            — lazy load from Supabase Storage on first investment call
+//   saveExpectationHistoryBackground()  — fire-and-forget save after each reply
+//
+// Storage: genesis-memory bucket, path genesis/v1/expectation-history.json
+// Bounded: max 50 entries (vs 30 process-level buffer)
+// Restart-safe: ring buffer is populated from storage on first load
+// Fiduciary-safe: no PII, no personal financial data, no question text
+// Pattern mirrors durableInstitutionalMemory.ts (Phase-85A).
+//
 // Phase-87A: Expectation Memory Engine
 // Pure deterministic functions — no AI calls, no network, O(1) per call.
 //
@@ -39,6 +52,8 @@
 //   Maximum amplification: +50% for highest persistence.
 //
 // Bounded. No secrets. No PII. Educational/advisory only.
+
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -142,6 +157,126 @@ export function checkExpectationPersisted(expectedRegime: string, withinMs = 30 
 
 export function clearExpectationBuffer(): void { _buffer.length = 0; }
 export function getExpectationBufferSize(): number { return _buffer.length; }
+
+// ─── Phase-87B: Durable persistence ──────────────────────────────────────────
+// Same governed pattern as durableInstitutionalMemory.ts (Phase-85A).
+// Storage: genesis-memory bucket, genesis/v1/expectation-history.json
+// Bounded: DURABLE_MAX entries. No PII. No question text. Fire-and-forget saves.
+
+const BUCKET_NAME    = "genesis-memory";
+const EXPECTATION_PATH = "genesis/v1/expectation-history.json";
+const DURABLE_MAX    = 50;
+
+type DurableStorageStatus = "untested" | "available" | "unavailable";
+let _durableStatus: DurableStorageStatus = "untested";
+let _durableLoadedOnce = false;
+let _durableLoadedAt   = 0;
+const RELOAD_COOLDOWN_MS = 10 * 60 * 1000;
+
+interface DurableExpectationHistory {
+  records: ExpectationRecord[];
+  savedAt: number;
+}
+
+async function _storageDownload(): Promise<ExpectationRecord[] | null> {
+  try {
+    const { data, error } = await supabaseAdmin.storage
+      .from(BUCKET_NAME)
+      .download(EXPECTATION_PATH);
+    if (error || !data) return null;
+    const parsed = JSON.parse(await data.text()) as DurableExpectationHistory;
+    return Array.isArray(parsed?.records) ? parsed.records : null;
+  } catch {
+    return null;
+  }
+}
+
+async function _storageUpload(records: ExpectationRecord[]): Promise<boolean> {
+  try {
+    const payload: DurableExpectationHistory = { records, savedAt: Date.now() };
+    const { error } = await supabaseAdmin.storage
+      .from(BUCKET_NAME)
+      .upload(EXPECTATION_PATH, JSON.stringify(payload), {
+        contentType: "application/json",
+        upsert: true,
+      });
+    if (error) {
+      console.warn(`[expectation-memory] upload failed: ${error.message}`);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[expectation-memory] upload exception: ${msg}`);
+    return false;
+  }
+}
+
+/**
+ * Lazily loads expectation history from Supabase Storage into the process-level
+ * ring buffer. Called once per process on the first investment call.
+ * Gracefully degrades when storage is unavailable.
+ */
+export async function loadExpectationHistory(): Promise<void> {
+  const now = Date.now();
+  if (_durableLoadedOnce && now - _durableLoadedAt < RELOAD_COOLDOWN_MS) return;
+  _durableLoadedAt   = now;
+  _durableLoadedOnce = true;
+  if (_durableStatus === "unavailable") return;
+
+  try {
+    const records = await _storageDownload();
+    if (records && records.length > 0) {
+      // Merge into ring buffer, bounded by DURABLE_MAX, newest first
+      const cutoff = now - 24 * 60 * 60 * 1000; // 24h retention for expectations
+      const fresh  = records.filter(r => r.timestamp >= cutoff).slice(-DURABLE_MAX);
+      for (const r of fresh) {
+        if (!_buffer.some(b => b.questionHash === r.questionHash && b.expectedRegime === r.expectedRegime)) {
+          _buffer.push(r);
+        }
+      }
+      while (_buffer.length > BUFFER_MAX) _buffer.shift();
+      console.log(`[expectation-memory] loaded durable history: ${fresh.length} records merged`);
+    }
+    _durableStatus = "available";
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (_durableStatus !== "unavailable") {
+      console.warn(`[expectation-memory] durable storage unavailable: ${msg}`);
+    }
+    _durableStatus = "unavailable";
+  }
+}
+
+/**
+ * Fire-and-forget save of current ring buffer to Supabase Storage.
+ * Called after each investment reply. Never awaited on main path.
+ */
+export function saveExpectationHistoryBackground(): void {
+  if (_durableStatus === "unavailable" || _buffer.length === 0) return;
+  _saveExpectationHistory().catch(err => {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[expectation-memory] background save failed: ${msg}`);
+    _durableStatus = "unavailable";
+  });
+}
+
+async function _saveExpectationHistory(): Promise<void> {
+  // Keep only recent entries (24h) and cap at DURABLE_MAX
+  const cutoff  = Date.now() - 24 * 60 * 60 * 1000;
+  const records = _buffer
+    .filter(r => r.timestamp >= cutoff)
+    .slice(-DURABLE_MAX);
+  const ok = await _storageUpload(records);
+  if (ok) {
+    _durableStatus = "available";
+    console.log(`[expectation-memory] saved durable history: ${records.length} records`);
+  }
+}
+
+export function getExpectationStorageStatus(): DurableStorageStatus {
+  return _durableStatus;
+}
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 

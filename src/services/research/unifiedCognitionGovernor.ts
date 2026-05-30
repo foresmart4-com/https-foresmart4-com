@@ -1,8 +1,17 @@
-// Phase-86B: Unified Cognition Governor
-// Pure deterministic functions — no AI calls, no network, O(1).
+// Phase-87B: Unified Cognition Governor — meta-cognition upgrade
+// Phase-86B: base coordination layer
 //
-// Cross-brain coordinator: unifies all research intelligence layers into a
-// single governed cognition context for prompt injection.
+// Phase-87B upgrades:
+//   1. questionIntentClassifier  — replaces keyword-winner QuestionType with
+//      multi-dimensional intent scoring; layerHints blend with content scores
+//   2. contextMergeGovernor      — replaces length-only Arabic merge with
+//      quality-scored, overlap-aware, language-dominant merge strategy
+//   3. regimeOntologyEngine      — NormalizedRegimeProfile enriches macro layer
+//      with a compact composite label (adds ~30 chars, not full framing sentence)
+//      to give the AI model explicit regime composition signal
+//
+// Phase-86B: Cross-brain coordinator that unifies all research intelligence layers
+// into a single governed cognition context for prompt injection.
 //
 // Replaces the three independent Phase-85B/85D/86A prompt injections with one
 // coordinated output. Receives:
@@ -15,14 +24,12 @@
 //
 // Priority order (higher = allocated budget first):
 //   1. macroSynthesis  — most regime-specific and time-sensitive
-//   2. semanticImpact  — analytical pressure enrichment (new in 86B)
-//   3. expertKnowledge — thinker/school/playbook intelligence
-//   4. policyDelta     — policy expectation gap (new in 86B)
+//   2. semanticImpact  — analytical pressure enrichment
+//   3. expertKnowledge — thinker/school/playbook (Phase-87B: governed merge)
+//   4. policyDelta     — policy expectation gap
 //   5. authority85b    — source authority and literature context
 //
-// Budget: max 700 chars total (replaces ~1510 chars from three separate injections)
-// This ~54% reduction improves signal quality by eliminating cross-layer repetition.
-//
+// Budget: max 700 chars total.
 // Coverage label: identifies which layers contributed (e.g., "macro+semantic+expert")
 //
 // No secrets. No PII. No broker data. Educational/advisory only.
@@ -32,8 +39,11 @@ import type { PolicyExpectationDelta } from "./policyExpectationModel";
 import {
   allocateDynamicBudget,
   deriveLayerScores,
-  detectQuestionType,
 } from "./dynamicBudgetGovernor";
+// Phase-87B: meta-cognition upgrades
+import type { NormalizedRegimeProfile } from "./regimeOntologyEngine";
+import { classifyQuestionIntent } from "./questionIntentClassifier";
+import { governContextMerge } from "./contextMergeGovernor";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -43,13 +53,15 @@ export interface UnifiedCognitionInput {
   macroSynthesis:  string;   // Phase-86A macro synthesis
   semanticImpact:  SemanticImpactResult;
   policyDelta:     PolicyExpectationDelta;
-  // Phase-87A: explicit Arabic thinker/school contexts — guaranteed to survive dedup
+  // Phase-87A: explicit Arabic thinker/school contexts — passed to merge governor in 87B
   arabicCtx?:      string;
   question:        string;
   isSaudi:         boolean;
   isInvestment:    boolean;
   regime?:         string;
   maxChars?:       number;   // default 700
+  // Phase-87B: optional regime profile from regimeOntologyEngine
+  regimeProfile?:  NormalizedRegimeProfile;
 }
 
 export interface UnifiedCognitionResult {
@@ -62,8 +74,12 @@ export interface UnifiedCognitionResult {
     policy:   number;
     authority:number;
   };
-  totalChars:  number;
-  isEmpty:     boolean;
+  totalChars:   number;
+  isEmpty:      boolean;
+  // Phase-87B: diagnostic fields
+  intentLabel?:     string;  // classified question intent
+  mergeGovernance?: string;  // merge bias applied to Arabic/English expert contexts
+  regimeFraming?:   string;  // institutional framing from regime ontology
 }
 
 // ─── Budget allocation ────────────────────────────────────────────────────────
@@ -121,7 +137,7 @@ export function buildUnifiedCognition(input: UnifiedCognitionInput): UnifiedCogn
     arabicCtx,
     question,
     isInvestment,
-    regime,
+    regimeProfile,
     maxChars = 700,
   } = input;
 
@@ -133,17 +149,35 @@ export function buildUnifiedCognition(input: UnifiedCognitionInput): UnifiedCogn
     };
   }
 
-  // Phase-87A: Merge Arabic context into expertKnowledge — guarantees Arabic thinkers/schools
-  // survive dedup by being the primary expert content when Arabic is present.
-  const mergedExpert = arabicCtx && arabicCtx.trim().length > 10
-    ? (arabicCtx.length > expertKnowledge.length
-        ? arabicCtx                                        // Arabic is more substantial
-        : `${arabicCtx.slice(0, 180)} | ${expertKnowledge}`.slice(0, Math.max(arabicCtx.length, expertKnowledge.length + 50)))
-    : expertKnowledge;
+  // Phase-87B: Governed Arabic-English merge replaces length-only Phase-87A logic.
+  // contextMergeGovernor selects strategy based on quality scores + semantic overlap.
+  const mergeResult = governContextMerge({
+    arabicCtx:  arabicCtx ?? "",
+    englishCtx: expertKnowledge,
+    question,
+    isSaudi:    input.isSaudi,
+    maxChars:   420,  // generous budget for the expert layer before global trim
+  });
+  const mergedExpert = mergeResult.mergedContext;
+
+  // Phase-87B: Regime ontology enrichment — prepend compact composite label to macro
+  // if a profile is provided and the composite adds non-redundant signal.
+  let enrichedMacro = macroSynthesis;
+  let regimeFraming: string | undefined;
+  if (regimeProfile && regimeProfile.overlays.length > 0) {
+    const compactLabel = `[${regimeProfile.compositeLabel}]`;
+    // Only prepend if the label is not already present in macroSynthesis
+    if (!macroSynthesis.includes(regimeProfile.primaryRegime)) {
+      enrichedMacro = macroSynthesis
+        ? `${compactLabel} ${macroSynthesis}`
+        : compactLabel;
+    }
+    regimeFraming = regimeProfile.institutionalFraming;
+  }
 
   // Determine which layers have content
   const available = {
-    macro:     macroSynthesis.trim().length > 20,
+    macro:     enrichedMacro.trim().length > 20,
     semantic:  semanticImpact.hasSemanticPressure && semanticImpact.semanticContext.length > 20,
     expert:    mergedExpert.trim().length > 20,
     policy:    policyDelta.expectationCtx.length > 20,
@@ -156,20 +190,34 @@ export function buildUnifiedCognition(input: UnifiedCognitionInput): UnifiedCogn
       unifiedContext: "", coverageLabel: "empty",
       layerSizes: { macro: 0, semantic: 0, expert: 0, policy: 0, authority: 0 },
       totalChars: 0, isEmpty: true,
+      mergeGovernance: mergeResult.mergeBias,
     };
   }
 
-  // Phase-87A: Dynamic budget allocation replaces static 35/22/20/13/10 split
-  const questionType = detectQuestionType(question);
-  const scores = deriveLayerScores(
-    macroSynthesis,
+  // Phase-87B: Multi-dimensional intent classification replaces keyword-winner-only
+  // QuestionType. layerHints blend with content-derived relevance scores.
+  const intentResult  = classifyQuestionIntent(question, enrichedMacro.slice(0, 200));
+  const baseScores    = deriveLayerScores(
+    enrichedMacro,
     semanticImpact.analyticalPressure,
     mergedExpert,
     policyDelta.deltaScore,
     authority85b,
   );
-  const dynBudget = allocateDynamicBudget(maxChars, scores, available, questionType);
-  // Map dynamic budget to the shape expected by addLayer below
+
+  // Blend intent layer hints (40% weight) with content-derived scores (60% weight)
+  const hints = intentResult.layerHints;
+  const blendedScores = {
+    macro:     Math.round(baseScores.macro     * 0.60 + (hints.macro     ?? 35) * 0.40),
+    semantic:  Math.round(baseScores.semantic  * 0.60 + (hints.semantic  ?? 20) * 0.40),
+    expert:    Math.round(baseScores.expert    * 0.60 + (hints.expert    ?? 22) * 0.40),
+    policy:    Math.round(baseScores.policy    * 0.60 + (hints.policy    ?? 10) * 0.40),
+    authority: Math.round(baseScores.authority * 0.60 + (hints.authority ?? 13) * 0.40),
+  };
+
+  // Map intent to the QuestionType shape expected by allocateDynamicBudget
+  // (balanced is the safe default — intent already captured in blendedScores)
+  const dynBudget = allocateDynamicBudget(maxChars, blendedScores, available, "balanced");
   const budget = {
     macro:     dynBudget.macro,
     semantic:  dynBudget.semantic,
@@ -186,18 +234,18 @@ export function buildUnifiedCognition(input: UnifiedCognitionInput): UnifiedCogn
   const addLayer = (key: keyof typeof budget, text: string, label: string): void => {
     if (!text.trim() || budget[key] <= 0) return;
     const remaining = maxChars - used;
-    if (remaining < 40) return;  // not worth injecting tiny fragments
+    if (remaining < 40) return;
     const allocated = Math.min(budget[key], remaining);
     const piece = trimToChars(text.trim(), allocated);
     if (piece.length < 20) return;
     parts.push(piece);
     labels.push(label);
-    used += piece.length + 3;  // +3 for " | " separator
+    used += piece.length + 3;
   };
 
-  addLayer("macro",     macroSynthesis,                "macro");
+  addLayer("macro",     enrichedMacro,                 "macro");
   addLayer("semantic",  semanticImpact.semanticContext, "semantic");
-  addLayer("expert",    mergedExpert,                  "expert");   // Phase-87A: merged Arabic
+  addLayer("expert",    mergedExpert,                  "expert");   // Phase-87B: governed merge
   addLayer("policy",    policyDelta.expectationCtx,    "policy");
   addLayer("authority", authority85b,                  "authority");
 
@@ -206,6 +254,9 @@ export function buildUnifiedCognition(input: UnifiedCognitionInput): UnifiedCogn
       unifiedContext: "", coverageLabel: "assembly_empty",
       layerSizes: { macro: 0, semantic: 0, expert: 0, policy: 0, authority: 0 },
       totalChars: 0, isEmpty: true,
+      intentLabel: intentResult.intent,
+      mergeGovernance: mergeResult.mergeBias,
+      regimeFraming,
     };
   }
 
@@ -222,7 +273,10 @@ export function buildUnifiedCognition(input: UnifiedCognitionInput): UnifiedCogn
       policy:    budget.policy,
       authority: budget.authority,
     },
-    totalChars: unifiedContext.length,
-    isEmpty:    false,
+    totalChars:      unifiedContext.length,
+    isEmpty:         false,
+    intentLabel:     intentResult.intent,
+    mergeGovernance: mergeResult.mergeBias,
+    regimeFraming,
   };
 }
