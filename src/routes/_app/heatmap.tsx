@@ -102,13 +102,17 @@ function HeatmapPage() {
         group: (a.category === "metals" ? "metals" : a.category === "currencies" ? "currencies" : "crypto") as Group,
         price: a.price, changePct: a.changePct,
         weight: Math.max(1, Math.log(a.volume || 1)),
-        source: "Live", mode: "live", updatedAt: Date.now(),
+        source: a.source,
+        mode: (a.source === "simulated" || a.source === "unavailable" ? "mock" : a.source) as Cell["mode"],
+        updatedAt: Date.now(),
       }));
       (Array.isArray(s?.stocks) ? s.stocks : []).forEach((a) => arr.push({
         symbol: a.symbol, name: a.name,
         group: (a.region === "saudi" ? "stocks-saudi" : "stocks-us") as Group,
         price: a.price, changePct: a.changePct, weight: 1,
-        source: "Yahoo", mode: "live", updatedAt: Date.now(),
+        source: a.isLive ? "Yahoo" : "تقديري",
+        mode: (a.isLive ? "delayed" : "mock") as Cell["mode"],
+        updatedAt: Date.now(),
       }));
       (Array.isArray(batch) ? batch as Array<{ symbol: string; name: string; category: string; price: number; changePct: number; source: string; mode: "live" | "delayed" | "manual" | "mock"; fetchedAt: number }> : []).forEach((q) => {
         if (!q.price) return;
@@ -360,6 +364,11 @@ function HeatmapPage() {
         <span>{lang === "ar" ? "الأخضر = صعود، الأحمر = هبوط" : "Green = up, Red = down"}</span>
         <span>★ ≥1% • ★★ ≥3% • ★★★ ≥6%</span>
         <span>{lang === "ar" ? "اضغط أي خلية لقائمة الإجراءات" : "Click any tile for actions"}</span>
+        <span className="ms-auto flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />{lang === "ar" ? "مباشر" : "Live"}</span>
+          <span className="inline-flex items-center gap-1 rounded border border-amber-500/30 bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600">{lang === "ar" ? "متأخر" : "Delayed"}</span>
+          <span className="inline-flex items-center gap-1 rounded border border-violet-500/30 bg-violet-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-violet-600">{lang === "ar" ? "تقديري" : "Estimated"}</span>
+        </span>
       </div>
 
       <AddToWatchlistDialog open={openWatch} onOpenChange={setOpenWatch} prefilled={picked} />

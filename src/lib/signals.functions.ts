@@ -20,6 +20,8 @@ export interface TradeSignal {
   indicators: Record<string, number | null>;
   generated_at?: string;
   expires_at?: string;
+  /** Data quality label for the underlying price feed used to generate this signal. */
+  dataMode?: "live" | "delayed" | "simulated" | "unavailable";
 }
 
 // === Technical analysis helpers ===
@@ -191,7 +193,7 @@ ${list}
 }
 
 function buildSignal(
-  asset: { symbol: string; name: string; category: string; price: number; changePct: number; history: { t: number; p: number }[] },
+  asset: { symbol: string; name: string; category: string; price: number; changePct: number; history: { t: number; p: number }[]; source?: string },
   tech: Scored,
   sentiment: { sentiment: number; note: string } | undefined,
 ): TradeSignal {
@@ -237,6 +239,7 @@ function buildSignal(
     targets: [Number(t1.toFixed(4)), Number(t2.toFixed(4))],
     rationale: reasons.slice(0, 5).join(" • "),
     indicators: tech.indicators,
+    dataMode: (asset.source ?? "unavailable") as TradeSignal["dataMode"],
   };
 }
 

@@ -87,6 +87,7 @@ import { Route as ApiPublicQuoteRouteImport } from './routes/api/public/quote'
 import { Route as ApiPublicProviderHealthFullRouteImport } from './routes/api/public/provider-health-full'
 import { Route as ApiPublicMoyasarWebhookRouteImport } from './routes/api/public/moyasar-webhook'
 import { Route as ApiPublicMarketIntelligenceRouteImport } from './routes/api/public/market-intelligence'
+import { Route as ApiPublicMarketDataSourceAuditRouteImport } from './routes/api/public/market-data-source-audit'
 import { Route as ApiPublicMarketCoverageRouteImport } from './routes/api/public/market-coverage'
 import { Route as ApiPublicIntelligenceHealthRouteImport } from './routes/api/public/intelligence-health'
 import { Route as ApiPublicHistoryTestRouteImport } from './routes/api/public/history-test'
@@ -588,6 +589,12 @@ const ApiPublicMarketIntelligenceRoute =
   ApiPublicMarketIntelligenceRouteImport.update({
     id: '/api/public/market-intelligence',
     path: '/api/public/market-intelligence',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicMarketDataSourceAuditRoute =
+  ApiPublicMarketDataSourceAuditRouteImport.update({
+    id: '/api/public/market-data-source-audit',
+    path: '/api/public/market-data-source-audit',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicMarketCoverageRoute = ApiPublicMarketCoverageRouteImport.update({
@@ -1266,6 +1273,7 @@ export interface FileRoutesByFullPath {
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
   '/api/public/intelligence-health': typeof ApiPublicIntelligenceHealthRoute
   '/api/public/market-coverage': typeof ApiPublicMarketCoverageRoute
+  '/api/public/market-data-source-audit': typeof ApiPublicMarketDataSourceAuditRoute
   '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/provider-health-full': typeof ApiPublicProviderHealthFullRoute
@@ -1454,6 +1462,7 @@ export interface FileRoutesByTo {
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
   '/api/public/intelligence-health': typeof ApiPublicIntelligenceHealthRoute
   '/api/public/market-coverage': typeof ApiPublicMarketCoverageRoute
+  '/api/public/market-data-source-audit': typeof ApiPublicMarketDataSourceAuditRoute
   '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/provider-health-full': typeof ApiPublicProviderHealthFullRoute
@@ -1644,6 +1653,7 @@ export interface FileRoutesById {
   '/api/public/history-test': typeof ApiPublicHistoryTestRoute
   '/api/public/intelligence-health': typeof ApiPublicIntelligenceHealthRoute
   '/api/public/market-coverage': typeof ApiPublicMarketCoverageRoute
+  '/api/public/market-data-source-audit': typeof ApiPublicMarketDataSourceAuditRoute
   '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
   '/api/public/provider-health-full': typeof ApiPublicProviderHealthFullRoute
@@ -1834,6 +1844,7 @@ export interface FileRouteTypes {
     | '/api/public/history-test'
     | '/api/public/intelligence-health'
     | '/api/public/market-coverage'
+    | '/api/public/market-data-source-audit'
     | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
     | '/api/public/provider-health-full'
@@ -2022,6 +2033,7 @@ export interface FileRouteTypes {
     | '/api/public/history-test'
     | '/api/public/intelligence-health'
     | '/api/public/market-coverage'
+    | '/api/public/market-data-source-audit'
     | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
     | '/api/public/provider-health-full'
@@ -2211,6 +2223,7 @@ export interface FileRouteTypes {
     | '/api/public/history-test'
     | '/api/public/intelligence-health'
     | '/api/public/market-coverage'
+    | '/api/public/market-data-source-audit'
     | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
     | '/api/public/provider-health-full'
@@ -2347,6 +2360,7 @@ export interface RootRouteChildren {
   ApiPublicHistoryTestRoute: typeof ApiPublicHistoryTestRoute
   ApiPublicIntelligenceHealthRoute: typeof ApiPublicIntelligenceHealthRoute
   ApiPublicMarketCoverageRoute: typeof ApiPublicMarketCoverageRoute
+  ApiPublicMarketDataSourceAuditRoute: typeof ApiPublicMarketDataSourceAuditRoute
   ApiPublicMarketIntelligenceRoute: typeof ApiPublicMarketIntelligenceRoute
   ApiPublicMoyasarWebhookRoute: typeof ApiPublicMoyasarWebhookRoute
   ApiPublicProviderHealthFullRoute: typeof ApiPublicProviderHealthFullRoute
@@ -3003,6 +3017,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/market-intelligence'
       fullPath: '/api/public/market-intelligence'
       preLoaderRoute: typeof ApiPublicMarketIntelligenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/market-data-source-audit': {
+      id: '/api/public/market-data-source-audit'
+      path: '/api/public/market-data-source-audit'
+      fullPath: '/api/public/market-data-source-audit'
+      preLoaderRoute: typeof ApiPublicMarketDataSourceAuditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/market-coverage': {
@@ -3929,6 +3950,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHistoryTestRoute: ApiPublicHistoryTestRoute,
   ApiPublicIntelligenceHealthRoute: ApiPublicIntelligenceHealthRoute,
   ApiPublicMarketCoverageRoute: ApiPublicMarketCoverageRoute,
+  ApiPublicMarketDataSourceAuditRoute: ApiPublicMarketDataSourceAuditRoute,
   ApiPublicMarketIntelligenceRoute: ApiPublicMarketIntelligenceRoute,
   ApiPublicMoyasarWebhookRoute: ApiPublicMoyasarWebhookRoute,
   ApiPublicProviderHealthFullRoute: ApiPublicProviderHealthFullRoute,

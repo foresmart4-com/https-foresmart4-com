@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Zap, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { AssetQuote } from "@/lib/market-data";
+import { MarketSourceBadge, assetSourceToMode } from "@/components/MarketSourceBadge";
 
 interface Props {
   assets: AssetQuote[];
@@ -27,6 +28,17 @@ export function SmartMarketPulse({ assets, lang, isLoading }: Props) {
   const ar = lang === "ar";
   const display = assets.slice(0, 6);
 
+  // Compute header-level data mode: if any asset is simulated show تقديري,
+  // else if any delayed show متأخر, else show مباشر.
+  const headerMode = (() => {
+    if (!display.length) return "live" as const;
+    const hasSynthetic = display.some((a) => a.source === "simulated" || a.source === "unavailable");
+    if (hasSynthetic) return "estimated" as const;
+    const hasDelayed = display.some((a) => a.source === "delayed");
+    if (hasDelayed) return "delayed" as const;
+    return "live" as const;
+  })();
+
   return (
     <section>
       <div className="mb-3 flex items-center gap-2">
@@ -41,9 +53,8 @@ export function SmartMarketPulse({ assets, lang, isLoading }: Props) {
             {ar ? "تفسير AI للأسواق المباشرة" : "AI interpretation of live markets"}
           </p>
         </div>
-        <span className="ms-auto flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-semibold text-success">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
-          {ar ? "مباشر" : "Live"}
+        <span className="ms-auto">
+          <MarketSourceBadge mode={headerMode} ar={ar} />
         </span>
       </div>
 
@@ -94,14 +105,17 @@ export function SmartMarketPulse({ assets, lang, isLoading }: Props) {
                 >
                   {up ? "+" : ""}{a.changePct.toFixed(2)}%
                 </div>
-                <span
-                  className={cn(
-                    "mt-2 inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase",
-                    label.cls,
-                  )}
-                >
-                  {label.text}
-                </span>
+                <div className="mt-2 flex items-center justify-between gap-1">
+                  <span
+                    className={cn(
+                      "inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase",
+                      label.cls,
+                    )}
+                  >
+                    {label.text}
+                  </span>
+                  <MarketSourceBadge mode={assetSourceToMode(a.source)} ar={ar} size="xs" />
+                </div>
               </div>
             );
           })}

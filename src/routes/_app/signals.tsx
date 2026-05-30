@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { generateSignals, type TradeSignal } from "@/lib/signals.functions";
+import { MarketSourceBadge, assetSourceToMode } from "@/components/MarketSourceBadge";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -258,6 +259,13 @@ function SignalCard({ s, lang }: { s: TradeSignal; lang: "ar" | "en" }) {
           <div className="flex items-center gap-2">
             <span className="font-display text-xl font-bold">{s.symbol}</span>
             <Badge variant="outline" className="text-[10px]">{lang === "ar" ? horizonMeta[s.horizon].ar : horizonMeta[s.horizon].en}</Badge>
+            {s.dataMode && (
+              <MarketSourceBadge
+                mode={assetSourceToMode(s.dataMode)}
+                ar={lang === "ar"}
+                size="xs"
+              />
+            )}
           </div>
           <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{s.asset_name}</div>
         </div>
