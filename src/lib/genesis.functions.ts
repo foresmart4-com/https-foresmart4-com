@@ -207,6 +207,12 @@ import { buildUnifiedCognition } from "@/services/research/unifiedCognitionGover
 // Phase-87B: Durable Meta-Cognition + Final Institutional Closure
 import { buildRegimeProfile } from "@/services/research/regimeOntologyEngine";
 import { loadExpectationHistory, saveExpectationHistoryBackground } from "@/services/research/expectationMemoryEngine";
+// Phase-88B: Economic Foresight + Scenario Intelligence
+import { buildScenarioCompetition } from "@/services/foresight/scenarioCompetitionEngine";
+import { buildSecondOrderEffects }   from "@/services/foresight/secondOrderEffectEngine";
+import { buildTransitionForesight }  from "@/services/foresight/regimeTransitionForesight";
+import { buildPathDependency }       from "@/services/foresight/pathDependencyEngine";
+import { governScenarios }           from "@/services/foresight/scenarioGovernor";
 
 export interface GenesisScenario {
   label: string;
@@ -1424,7 +1430,16 @@ ABSOLUTELY FORBIDDEN: "rebalance now", "allocate X%", "buy this asset now", "gua
     - "finalStance": 1-2 sentences: committee's resolved position — acknowledge dissent, state which reasoning wins and WHY.
     FORBIDDEN: single-narrator summary; "it is important to note"; claims not tied to the voice's focus; hiding conflict.`;
 
-  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n${allocationIntelligenceGuidance}\n${frameworkPerspectiveGuidance}\n${committeeGenerationGuidance}\n\n${base}`;
+  // Phase-88B: Economic Foresight + Scenario Intelligence guidance
+  const foresightGuidance = ar
+    ? `عند ظهور "Scenario competition:" أو "2nd-order:" أو "Transition:" أو "Path[" في السياق:
+استخدم هذا الاستشراف لتحسين "scenarios" و"secondOrderRisks" و"thesisChanger" و"missingEvidence".
+قواعد إلزامية: (1) "scenarios" يجب أن تعكس احتمالات المنافسة المحسوبة (BASE/BULL/BEAR) — لا تتجاهل الاحتمالات المعطاة؛ (2) "secondOrderRisks" يجب أن يمتد إلى ما هو أبعد من التأثير المباشر باستخدام ترميز →؛ (3) "thesisChanger" يجب أن يُسمّي الشرط المثلّث المحدد للانتقال؛ (4) كل السيناريوهات مشروطة — استخدم "إذا [شرط قابل للملاحظة]" لا "سيحدث". ممنوع: "مؤكد"، "حتمي"، "مضمون"، "سيحدث بالضرورة"، "الاستشراف يثبت". الاستشراف الاقتصادي استشاري واحتمالي — لا تنبؤات، لا تنفيذ.`
+    : `When "Scenario competition:", "2nd-order:", "Transition:", or "Path[" appears in context:
+Use this foresight to improve "scenarios", "secondOrderRisks", "thesisChanger", and "missingEvidence".
+Mandatory rules: (1) "scenarios" MUST reflect the pre-computed competition probabilities (BASE/BULL/BEAR) — do not ignore the stated probabilities; (2) "secondOrderRisks" MUST extend beyond the direct effect using → notation; (3) "thesisChanger" MUST name the specific observable transition trigger; (4) ALL scenarios are conditional — use "If [observable condition]" not "will happen". FORBIDDEN: "certain", "inevitable", "guaranteed", "will definitely occur", "foresight proves". Economic foresight is advisory and probabilistic — not predictive, not execution.`;
+
+  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n${allocationIntelligenceGuidance}\n${frameworkPerspectiveGuidance}\n${committeeGenerationGuidance}\n${foresightGuidance}\n\n${base}`;
 }
 
 // ─── Institutional Reasoning Tracks ───────────────────────────────────────
@@ -2951,6 +2966,51 @@ async function runFusion(
     console.log(`[genesis:portfolio-logic] concentration=${_portfolioLogic.concentrationAdvice} tilt=${_portfolioLogic.cyclicalVsDefensive} fit=${_portfolioLogic.regimeFitScore}`);
   }
 
+  // ── Phase-88B: Economic Foresight + Scenario Intelligence ────────────────────
+  // Pure O(1) deterministic pipeline. Runs only for investment questions.
+  // Pipeline: scenario competition → second-order → transition → path dependency → governor
+  let _foresightCtx = "";
+  if (isInvestment) {
+    const _scenarioCompetition = buildScenarioCompetition({
+      regime:            trackA?.regime          ?? "macro_transition",
+      macroBias:         trackA?.macroBias       ?? consensus.dominantBias,
+      creditStressLevel: trackA?.creditStressLevel ?? "moderate",
+      isSaudi,
+      oilPrice:          live?.oilPrice           ?? null,
+      isTransition:      /transition|mixed/.test(trackA?.regime ?? ""),
+    });
+    const _secondOrder = buildSecondOrderEffects({
+      question,
+      ctx,
+      primaryRegime:     trackA?.regime            ?? "macro_transition",
+      macroBias:         trackA?.macroBias         ?? consensus.dominantBias,
+      creditStressLevel: trackA?.creditStressLevel  ?? "moderate",
+      isSaudi,
+    });
+    const _transitionForesight = buildTransitionForesight({
+      primaryRegime:     _regimeProfile87b.primaryRegime,
+      creditStressLevel: trackA?.creditStressLevel ?? "moderate",
+      regimeConf:        trackA?.regimeConf        ?? 50,
+      isSaudi,
+      oilPrice:          live?.oilPrice            ?? null,
+    });
+    const _pathDependency = buildPathDependency({
+      question,
+      ctx,
+      creditStressLevel: trackA?.creditStressLevel ?? "moderate",
+      isSaudi,
+    });
+    const _foresightGov = governScenarios({
+      scenario:    _scenarioCompetition,
+      secondOrder: _secondOrder,
+      transition:  _transitionForesight,
+      path:        _pathDependency,
+      lang,
+    });
+    _foresightCtx = _foresightGov.governedForesightContext;
+    console.log(`[genesis:88b] ${_foresightGov.governanceLog}`);
+  }
+
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
     `User question: ${question}`,
@@ -3027,6 +3087,12 @@ async function runFusion(
       : "",
     _convictionProfile?.convictionContext
       ? `\n\nConviction calibration: ${_convictionProfile.convictionContext}`
+      : "",
+    // Phase-88B: Economic foresight — scenario competition, second-order effects,
+    // regime transition anticipation, path dependency. Injected after committee
+    // intelligence so foresight enriches scenario/secondOrderRisks output fields.
+    _foresightCtx
+      ? `\n\nForesight: ${_foresightCtx}`
       : "",
     // Phase 71-77: Research civilization context (compact; injected when signals detected)
     graphResult.graphContext ? `\n\nKnowledge graph: ${graphResult.conceptLinkage.slice(0, 250)}` : "",
