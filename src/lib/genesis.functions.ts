@@ -251,6 +251,12 @@ import { buildQuestionBinding }         from "@/services/cognition/questionBindi
 import { buildReasoningDominance }      from "@/services/cognition/reasoningDominanceGovernor";
 import { composeInstitutionalMemo }     from "@/services/cognition/institutionalMemoComposer";
 import { validateResponseArchitecture } from "@/services/cognition/responseArchitectureValidator";
+// LCCR: Last Core Repair — Institutional Investment Committee Brain
+import { buildInstitutionalDecisionFrame } from "@/services/institutional/institutionalDecisionCore";
+import { buildCommitteeDebate }            from "@/services/institutional/committeeDebateEngine";
+import { buildCapitalAllocatorProfile }    from "@/services/institutional/capitalAllocatorEngine";
+import { buildCapitalCycleAnalysis }       from "@/services/institutional/historicalCapitalCycleEngine";
+import { validateInstitutionalDecision }   from "@/services/institutional/institutionalDecisionValidator";
 
 export interface GenesisScenario {
   label: string;
@@ -3045,6 +3051,91 @@ async function runFusion(
     console.log(`[genesis:portfolio-logic] concentration=${_portfolioLogic.concentrationAdvice} tilt=${_portfolioLogic.cyclicalVsDefensive} fit=${_portfolioLogic.regimeFitScore}`);
   }
 
+  // ── LCCR-1: Institutional Decision Core ────────────────────────────────────────
+  // Injects the investment committee DECISION FRAME early in the prompt so the AI
+  // reasons allocation-first (position sizing, preservation vs offense, horizon,
+  // risk/reward, deployment stance) rather than defaulting to regime labeling.
+  const _decisionCore = isInvestment
+    ? buildInstitutionalDecisionFrame({
+        regime:            trackA?.regime            ?? "macro_transition",
+        macroBias:         trackA?.macroBias         ?? consensus.dominantBias,
+        creditStress:      trackA?.creditStressLevel ?? "moderate",
+        consensusStrength: consensus.strength,
+        consensusScore:    consensus.agreementScore,
+        regimeConf:        trackA?.regimeConf         ?? 50,
+        uncertaintyLevel:  trackD?.uncertaintyLevel   ?? "moderate",
+        isSaudi,
+        oilPrice:          live?.oilPrice             ?? null,
+        question,
+        lang,
+      })
+    : null;
+  if (_decisionCore) {
+    console.log(`[genesis:lccr1] sizing=${_decisionCore.allocationSizing} deployment=${_decisionCore.capitalDeploymentStance} asymmetry=${_decisionCore.riskRewardAsymmetry} preservation=${_decisionCore.preservationScore}`);
+  }
+
+  // ── LCCR-2: Committee Debate Engine ─────────────────────────────────────────
+  // Structures genuine bull vs bear debate with probability competition, evidence
+  // weighting, and strongest objection — prevents single-thesis dominance.
+  const _committeeDebate = isInvestment
+    ? buildCommitteeDebate({
+        regime:            trackA?.regime            ?? "macro_transition",
+        macroBias:         trackA?.macroBias         ?? consensus.dominantBias,
+        creditStress:      trackA?.creditStressLevel ?? "moderate",
+        consensusStrength: consensus.strength,
+        consensusScore:    consensus.agreementScore,
+        regimeConf:        trackA?.regimeConf         ?? 50,
+        uncertaintyLevel:  trackD?.uncertaintyLevel   ?? "moderate",
+        isSaudi,
+        oilPrice:          live?.oilPrice             ?? null,
+        question,
+        lang,
+      })
+    : null;
+  if (_committeeDebate) {
+    console.log(`[genesis:lccr2] verdict=${_committeeDebate.verdict} evidence=${_committeeDebate.evidenceWeighting} bull=${_committeeDebate.bullProbability}% bear=${_committeeDebate.bearProbability}%`);
+  }
+
+  // ── LCCR-3: Capital Allocator Engine ─────────────────────────────────────────
+  // Models where institutional capital is hiding and deploying — sector flow map,
+  // cyclical vs defensive tilt, regime-to-allocation transmission, Saudi/GCC flows.
+  const _capitalAllocator = isInvestment
+    ? buildCapitalAllocatorProfile({
+        regime:            trackA?.regime            ?? "macro_transition",
+        macroBias:         trackA?.macroBias         ?? consensus.dominantBias,
+        creditStress:      trackA?.creditStressLevel ?? "moderate",
+        consensusStrength: consensus.strength,
+        regimeConf:        trackA?.regimeConf         ?? 50,
+        isSaudi,
+        oilPrice:          live?.oilPrice             ?? null,
+        lang,
+      })
+    : null;
+  if (_capitalAllocator) {
+    console.log(`[genesis:lccr3] hiding=${_capitalAllocator.hidingLocation} deploying=${_capitalAllocator.deployLocation} tilt=${_capitalAllocator.cyclicalVsDefensive}`);
+  }
+
+  // ── LCCR-4: Historical Capital Cycle Engine ───────────────────────────────────
+  // Frames history through the capital cycle lens — what allocators did in similar
+  // cycles, outcomes for early/late movers, what differs now. Distinct from
+  // regime-matching historical engines (83A, 89C) which match by macro regime label.
+  const _capitalCycle = isInvestment
+    ? buildCapitalCycleAnalysis({
+        regime:            trackA?.regime            ?? "macro_transition",
+        macroBias:         trackA?.macroBias         ?? consensus.dominantBias,
+        creditStress:      trackA?.creditStressLevel ?? "moderate",
+        consensusStrength: consensus.strength,
+        regimeConf:        trackA?.regimeConf         ?? 50,
+        isSaudi,
+        oilPrice:          live?.oilPrice             ?? null,
+        question,
+        lang,
+      })
+    : null;
+  if (_capitalCycle) {
+    console.log(`[genesis:lccr4] phase=${_capitalCycle.currentPhase} episode=${_capitalCycle.dominantEpisode?.id ?? "none"} confidence=${_capitalCycle.analogConfidence}`);
+  }
+
   // ── Phase-88B: Economic Foresight + Scenario Intelligence ────────────────────
   // Pure O(1) deterministic pipeline. Runs only for investment questions.
   // Pipeline: scenario competition → second-order → transition → path dependency → governor
@@ -3423,11 +3514,23 @@ async function runFusion(
     _historyCtx
       ? `\n\nHistory: ${_historyCtx}`
       : "",
+    // LCCR-4: Capital cycle analysis — history through the allocator's lens: which
+    // capital cycle phase, what allocators did in analogous episodes, what differs now.
+    // Placed after crisis/regime history to complement rather than duplicate.
+    _capitalCycle?.capitalCycleContext
+      ? `\n\nCapital cycle [${_capitalCycle.currentPhase}]: ${_capitalCycle.capitalCycleContext}`
+      : "",
     // Phase-90A: CIO advisory — strategic framing, recommendation level, conviction
     // ceiling, and escalation. Placed just before enforcement so the AI receives
     // institutional advisory framing as the last context before generating.
     _advisoryCtx
       ? `\n\nAdvisory: ${_advisoryCtx}`
+      : "",
+    // LCCR-1: Institutional decision core — committee decision frame: allocation sizing,
+    // position framework, horizon discipline, risk/reward asymmetry, deployment stance.
+    // Injected immediately before enforcement so committee reasoning frames the mandate.
+    _decisionCore?.decisionFrameContext
+      ? `\n\nInstitutional decision frame: ${_decisionCore.decisionFrameContext}`
       : "",
     // Investment enforcement FIRST — most prominent position before the long fusion block
     investEnforcement ? `\n\n${investEnforcement}` : "",
@@ -3436,6 +3539,12 @@ async function runFusion(
     `\n\n${crossMarketFusion.fusionContext}`,
     // Phase 68: Portfolio allocation intelligence — broad/selective/defensive/balanced/opportunistic
     isInvestment ? `\n\n${allocationIntel.fusionContext}` : "",
+    // LCCR-3: Capital allocator engine — where institutional capital is hiding and
+    // deploying, sector flow map, cyclical vs defensive tilt, Saudi/GCC sovereign flows.
+    // Placed after allocation intelligence to enrich with specific flow direction.
+    _capitalAllocator?.allocatorFlowContext
+      ? `\n\nCapital allocator flows: ${_capitalAllocator.allocatorFlowContext}`
+      : "",
     institutionalCtx ? `\n\n${institutionalCtx}` : "",
     sectorCtx ? `\n\n${sectorCtx}` : "",
     committeeCtx ? `\n\n${committeeCtx}` : "",
@@ -3495,6 +3604,12 @@ async function runFusion(
     // caveats, and thesisChanger fields.
     _metaResearchCtx
       ? `\n\nMeta-research: ${_metaResearchCtx}`
+      : "",
+    // LCCR-2: Committee debate engine — structured bull vs bear debate with probability
+    // competition, evidence weighting, and strongest objection to the dominant thesis.
+    // Placed after meta-research so thesis competition informs which case is stronger.
+    _committeeDebate?.debateContext
+      ? `\n\nCommittee debate: ${_committeeDebate.debateContext}`
       : "",
     // Phase 71-77: Research civilization context (compact; injected when signals detected)
     graphResult.graphContext ? `\n\nKnowledge graph: ${graphResult.conceptLinkage.slice(0, 250)}` : "",
@@ -3921,6 +4036,18 @@ async function runFusion(
     console.log(`[genesis:arch] ${_archResult.validatorLog}`);
     if (_archResult.architectureFailure) {
       console.warn(`[genesis:arch] ARCHITECTURE FAILURE — ${_archResult.failureReasons.join(" | ")}`);
+    }
+
+    // LCCR-5: Institutional Decision Validator — scores whether the reply is institutional-
+    // decision-centric or regime-engine-centric. Measures allocation depth, committee
+    // reasoning, allocator quality, debate quality, historical relevance, memo quality,
+    // and regime dominance. PASS threshold: 70/100.
+    const _decisionValidation = validateInstitutionalDecision(sanitized);
+    console.log(`[genesis:lccr5] ${_decisionValidation.validatorLog}`);
+    if (!_decisionValidation.passed) {
+      console.warn(`[genesis:lccr5] INSTITUTIONAL DECISION FAIL — grade=${_decisionValidation.grade} improvements=[${_decisionValidation.improvements.slice(0, 3).join(" | ")}]`);
+    } else if (_decisionValidation.grade === "institutional") {
+      console.log(`[genesis:lccr5] INSTITUTIONAL DECISION PASS — grade=institutional`);
     }
   }
 
