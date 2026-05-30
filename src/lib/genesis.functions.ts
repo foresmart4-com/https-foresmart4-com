@@ -213,6 +213,12 @@ import { buildSecondOrderEffects }   from "@/services/foresight/secondOrderEffec
 import { buildTransitionForesight }  from "@/services/foresight/regimeTransitionForesight";
 import { buildPathDependency }       from "@/services/foresight/pathDependencyEngine";
 import { governScenarios }           from "@/services/foresight/scenarioGovernor";
+// Phase-88C: Meta-Research + Thesis Competition Intelligence
+import { buildThesisCompetition }   from "@/services/meta/thesisCompetitionEngine";
+import { buildRedTeamReasoning }     from "@/services/meta/redTeamReasoningEngine";
+import { detectBias }                from "@/services/meta/biasDetectionGovernor";
+import { stressTestResearch }        from "@/services/meta/researchStressTestEngine";
+import { governMetaResearch }        from "@/services/meta/metaResearchGovernor";
 
 export interface GenesisScenario {
   label: string;
@@ -1439,7 +1445,16 @@ ABSOLUTELY FORBIDDEN: "rebalance now", "allocate X%", "buy this asset now", "gua
 Use this foresight to improve "scenarios", "secondOrderRisks", "thesisChanger", and "missingEvidence".
 Mandatory rules: (1) "scenarios" MUST reflect the pre-computed competition probabilities (BASE/BULL/BEAR) — do not ignore the stated probabilities; (2) "secondOrderRisks" MUST extend beyond the direct effect using → notation; (3) "thesisChanger" MUST name the specific observable transition trigger; (4) ALL scenarios are conditional — use "If [observable condition]" not "will happen". FORBIDDEN: "certain", "inevitable", "guaranteed", "will definitely occur", "foresight proves". Economic foresight is advisory and probabilistic — not predictive, not execution.`;
 
-  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n${allocationIntelligenceGuidance}\n${frameworkPerspectiveGuidance}\n${committeeGenerationGuidance}\n${foresightGuidance}\n\n${base}`;
+  // Phase-88C: Meta-Research + Thesis Competition guidance
+  const metaResearchGuidance = ar
+    ? `عند ظهور "Meta-research:" في السياق:
+يحتوي هذا السياق على منافسة الأطروحات المحسوبة وهجوم الفريق المقابل وعلامات التحيز ونتائج اختبار الإجهاد.
+قواعد إلزامية: (1) تحدّ "opposingCase" و"caveats" من الأطروحة المهيمنة بناءً على هجوم الفريق المقابل المحدد؛ (2) إذا تم اكتشاف تحيز ما، طبّق التصحيح المحدد قبل صياغة الاستنتاج؛ (3) إذا كانت حالة الإجهاد "fragile" أو "critical"، ضمّن توجيه الإصلاح في "caveats"؛ (4) كل أطروحة هي ادعاء مشروط — "موزون بالأدلة" لا "مؤكد". ممنوع مطلقاً: تجاهل هجوم الفريق المقابل، ادعاء قرار "تنافسي" مزيف، "ثبت"، "هجوم الفريق المقابل مرفوض". جميع مخرجات البحث الذاتي استشارية ونقدية — لا تنفيذ.`
+    : `When "Meta-research:" appears in context:
+This context contains pre-computed thesis competition, red-team attack, bias flags, and stress test findings.
+Mandatory rules: (1) constrain "opposingCase" and "caveats" from the specific red-team attack — do not ignore it; (2) if a bias is flagged, apply the stated correction before forming conclusions; (3) if stress level is "fragile" or "critical", incorporate the repair directive in "caveats"; (4) every thesis is a conditional claim — "evidence-weighted" not "certain". ABSOLUTELY FORBIDDEN: ignoring the red-team attack, claiming "competitive" thesis analysis that doesn't address the named attack, "proven", "red-team rejected". All meta-research output is self-critique and advisory only — no execution.`;
+
+  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n${allocationIntelligenceGuidance}\n${frameworkPerspectiveGuidance}\n${committeeGenerationGuidance}\n${foresightGuidance}\n${metaResearchGuidance}\n\n${base}`;
 }
 
 // ─── Institutional Reasoning Tracks ───────────────────────────────────────
@@ -3011,6 +3026,43 @@ async function runFusion(
     console.log(`[genesis:88b] ${_foresightGov.governanceLog}`);
   }
 
+  // ── Phase-88C: Meta-Research + Thesis Competition Intelligence ────────────────
+  // Pure O(1) deterministic pipeline. Runs only for investment questions.
+  // Pipeline: thesis competition → red team → bias detection → stress test → governor
+  let _metaResearchCtx = "";
+  if (isInvestment) {
+    const _thesisComp = buildThesisCompetition({
+      regime:            trackA?.regime            ?? "macro_transition",
+      macroBias:         trackA?.macroBias         ?? consensus.dominantBias,
+      creditStressLevel: trackA?.creditStressLevel ?? "moderate",
+      consensusStrength: consensus.strength,
+      isSaudi,
+      oilPrice:          live?.oilPrice            ?? null,
+    });
+    const _redTeam = buildRedTeamReasoning({
+      dominantThesis:    _thesisComp.dominant,
+      contestLevel:      _thesisComp.contestLevel,
+      creditStressLevel: trackA?.creditStressLevel ?? "moderate",
+      consensusStrength: consensus.strength,
+      isSaudi,
+    });
+    const _biasDetect = detectBias({ question, ctx });
+    const _stressTest = stressTestResearch({
+      question,
+      ctx,
+      creditStressLevel: trackA?.creditStressLevel ?? "moderate",
+    });
+    const _metaGov = governMetaResearch({
+      competition: _thesisComp,
+      redTeam:     _redTeam,
+      bias:        _biasDetect,
+      stress:      _stressTest,
+      lang,
+    });
+    _metaResearchCtx = _metaGov.governedMetaCtx;
+    console.log(`[genesis:88c] ${_metaGov.governanceLog}`);
+  }
+
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
     `User question: ${question}`,
@@ -3093,6 +3145,12 @@ async function runFusion(
     // intelligence so foresight enriches scenario/secondOrderRisks output fields.
     _foresightCtx
       ? `\n\nForesight: ${_foresightCtx}`
+      : "",
+    // Phase-88C: Meta-research — thesis competition, red-team attack, bias detection,
+    // stress test. Injected after foresight so meta-critique enriches opposingCase,
+    // caveats, and thesisChanger fields.
+    _metaResearchCtx
+      ? `\n\nMeta-research: ${_metaResearchCtx}`
       : "",
     // Phase 71-77: Research civilization context (compact; injected when signals detected)
     graphResult.graphContext ? `\n\nKnowledge graph: ${graphResult.conceptLinkage.slice(0, 250)}` : "",
