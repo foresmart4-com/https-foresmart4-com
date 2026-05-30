@@ -213,6 +213,12 @@ import { buildSecondOrderEffects }   from "@/services/foresight/secondOrderEffec
 import { buildTransitionForesight }  from "@/services/foresight/regimeTransitionForesight";
 import { buildPathDependency }       from "@/services/foresight/pathDependencyEngine";
 import { governScenarios }           from "@/services/foresight/scenarioGovernor";
+// Phase-90A: CIO + Institutional Advisory Intelligence
+import { buildCioAdvisoryFrame }    from "@/services/advisory/cioAdvisoryEngine";
+import { buildRecommendationLevel } from "@/services/advisory/recommendationHierarchy";
+import { governConviction }         from "@/services/advisory/convictionGovernor";
+import { computeAdvisoryEscalation } from "@/services/advisory/advisoryEscalationEngine";
+import { governAdvisory }           from "@/services/advisory/advisoryGovernor";
 // Phase-89C: Economic History + Crisis Intelligence
 import { detectCrisisArchetypes }   from "@/services/history/crisisHistoryLibrary";
 import { buildHistoricalAnalogy }    from "@/services/history/historicalAnalogyEngine";
@@ -1461,6 +1467,13 @@ ABSOLUTELY FORBIDDEN: "rebalance now", "allocate X%", "buy this asset now", "gua
 Use this foresight to improve "scenarios", "secondOrderRisks", "thesisChanger", and "missingEvidence".
 Mandatory rules: (1) "scenarios" MUST reflect the pre-computed competition probabilities (BASE/BULL/BEAR) — do not ignore the stated probabilities; (2) "secondOrderRisks" MUST extend beyond the direct effect using → notation; (3) "thesisChanger" MUST name the specific observable transition trigger; (4) ALL scenarios are conditional — use "If [observable condition]" not "will happen". FORBIDDEN: "certain", "inevitable", "guaranteed", "will definitely occur", "foresight proves". Economic foresight is advisory and probabilistic — not predictive, not execution.`;
 
+  // Phase-90A: CIO + Institutional Advisory Intelligence guidance
+  const cioAdvisoryGuidance = ar
+    ? `عند ظهور "CIO[" في السياق:
+قواعد إلزامية: (1) حقل "strategicBias" يجب أن يعكس تسمية CIO المحددة من السياق — لا تتجاوز إلى constructive في إطار defensive؛ (2) "confidenceCalibration" يجب ألا يتجاوز حد "Conviction: ≤X%" المحدد في السياق؛ (3) "Rec[defensive_posture]" → يجب تضمين "uncertaintyWarning" في الرد؛ (4) "Rec[high_uncertainty]" → أقر صراحةً بعدم اليقين في "caveats" ولا تدّعي يقيناً اتجاهياً؛ (5) "[qualification required]" → يجب أن يتضمن "confidenceCalibration" تصريحاً باحتدود قاعدة الأدلة. ممنوع مطلقاً: "اشترِ الآن"، "بِع الآن"، "عائد مضمون"، "لا مخاطر"، "تنفيذ فوري". جميع الإطارات الاستشارية تعليمية وحوكمية — لا تنفيذ، لا ضمانات.`
+    : `When "CIO[" appears in context:
+Mandatory rules: (1) "strategicBias" field MUST reflect the CIO label from context — do not override to constructive within a defensive framework; (2) "confidenceCalibration" MUST NOT exceed the "Conviction: ≤X%" ceiling stated in context; (3) "Rec[defensive_posture]" → "uncertaintyWarning" MUST be present in reply; (4) "Rec[high_uncertainty]" → explicitly acknowledge uncertainty in "caveats" and do not claim directional certainty; (5) "[qualification required]" → "confidenceCalibration" MUST state evidence base is limited. ABSOLUTELY FORBIDDEN: "buy now", "sell now", "guaranteed return", "no risk", "execute immediately". All advisory framing is educational and governance-only — no execution, no guarantees.`;
+
   // Phase-89C: Economic History + Crisis Intelligence guidance
   const historyCrisisGuidance = ar
     ? `عند ظهور "Crisis[" أو "Analog[" أو "Regime history[" في السياق:
@@ -1491,7 +1504,7 @@ This context contains specialist research desk briefings (macro/sector/policy). 
 This context contains pre-computed thesis competition, red-team attack, bias flags, and stress test findings.
 Mandatory rules: (1) constrain "opposingCase" and "caveats" from the specific red-team attack — do not ignore it; (2) if a bias is flagged, apply the stated correction before forming conclusions; (3) if stress level is "fragile" or "critical", incorporate the repair directive in "caveats"; (4) every thesis is a conditional claim — "evidence-weighted" not "certain". ABSOLUTELY FORBIDDEN: ignoring the red-team attack, claiming "competitive" thesis analysis that doesn't address the named attack, "proven", "red-team rejected". All meta-research output is self-critique and advisory only — no execution.`;
 
-  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n${allocationIntelligenceGuidance}\n${frameworkPerspectiveGuidance}\n${committeeGenerationGuidance}\n${foresightGuidance}\n${metaResearchGuidance}\n${researchDeskGuidance}\n${globalMacroGuidance}\n${historyCrisisGuidance}\n\n${base}`;
+  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n${allocationIntelligenceGuidance}\n${frameworkPerspectiveGuidance}\n${committeeGenerationGuidance}\n${foresightGuidance}\n${metaResearchGuidance}\n${researchDeskGuidance}\n${globalMacroGuidance}\n${historyCrisisGuidance}\n${cioAdvisoryGuidance}\n\n${base}`;
 }
 
 // ─── Institutional Reasoning Tracks ───────────────────────────────────────
@@ -3232,6 +3245,65 @@ async function runFusion(
     console.log(`[genesis:89c] ${_histGov.governanceLog}`);
   }
 
+  // ── Phase-90A: CIO + Institutional Advisory Intelligence ──────────────────
+  // Pure O(1) pipeline. Runs for investment questions.
+  // Pipeline: CIO advisory → recommendation level → conviction → escalation → governor
+  let _advisoryCtx = "";
+  if (isInvestment) {
+    const _cioFrame  = buildCioAdvisoryFrame({
+      primaryRegime:     _regimeProfile87b.primaryRegime,
+      macroBias:         trackA?.macroBias         ?? consensus.dominantBias,
+      creditStressLevel: trackA?.creditStressLevel ?? "moderate",
+      consensusStrength: consensus.strength,
+      regimeConf:        trackA?.regimeConf         ?? 50,
+      isSaudi,
+      oilPrice:          live?.oilPrice             ?? null,
+    });
+    const _recLevel  = buildRecommendationLevel({
+      primaryRegime:     _regimeProfile87b.primaryRegime,
+      macroBias:         trackA?.macroBias         ?? consensus.dominantBias,
+      creditStressLevel: trackA?.creditStressLevel ?? "moderate",
+      consensusStrength: consensus.strength,
+      regimeConf:        trackA?.regimeConf         ?? 50,
+      isSaudi,
+      oilPrice:          live?.oilPrice             ?? null,
+    });
+    const _convGov   = governConviction({
+      regimeConf:        trackA?.regimeConf         ?? 50,
+      consensusStrength: consensus.strength,
+      creditStressLevel: trackA?.creditStressLevel ?? "moderate",
+      macroBias:         trackA?.macroBias         ?? consensus.dominantBias,
+      oilPrice:          live?.oilPrice             ?? null,
+      tltChangePct:      live?.tltChangePct          ?? null,
+      isSaudi,
+    });
+    // isRiskOff and liquidityStressed derived from available signals
+    const _isRiskOff         = (trackA?.macroBias ?? consensus.dominantBias) === "bearish"
+      && (trackA?.creditStressLevel === "high" || trackA?.creditStressLevel === "extreme");
+    const _liqStressed       = (trackA?.creditStressLevel === "high" || trackA?.creditStressLevel === "extreme")
+      && (live?.tltChangePct ?? 0) < -1;
+    const _escalation        = computeAdvisoryEscalation({
+      creditStressLevel:  trackA?.creditStressLevel ?? "moderate",
+      macroBias:          trackA?.macroBias         ?? consensus.dominantBias,
+      fiduciaryAlert:     _regimeProfile87b.fiduciaryAlert,
+      isRiskOff:          _isRiskOff,
+      liquidityStressed:  _liqStressed,
+      question,
+      ctx,
+      regimeConf:         trackA?.regimeConf         ?? 50,
+      baseMaxConfidence:  _convGov.maxConfidenceAnchor,
+    });
+    const _advisoryGov = governAdvisory({
+      cio:        _cioFrame,
+      rec:        _recLevel,
+      conviction: _convGov,
+      escalation: _escalation,
+      lang,
+    });
+    _advisoryCtx = _advisoryGov.governedAdvisoryCtx;
+    console.log(`[genesis:90a] ${_advisoryGov.governanceLog}`);
+  }
+
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
     `User question: ${question}`,
@@ -3271,6 +3343,12 @@ async function runFusion(
     // context enriches secondOrderRisks, caveats, and thesisChanger fields.
     _historyCtx
       ? `\n\nHistory: ${_historyCtx}`
+      : "",
+    // Phase-90A: CIO advisory — strategic framing, recommendation level, conviction
+    // ceiling, and escalation. Placed just before enforcement so the AI receives
+    // institutional advisory framing as the last context before generating.
+    _advisoryCtx
+      ? `\n\nAdvisory: ${_advisoryCtx}`
       : "",
     // Investment enforcement FIRST — most prominent position before the long fusion block
     investEnforcement ? `\n\n${investEnforcement}` : "",
