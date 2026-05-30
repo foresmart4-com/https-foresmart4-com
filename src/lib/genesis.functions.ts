@@ -213,6 +213,12 @@ import { buildSecondOrderEffects }   from "@/services/foresight/secondOrderEffec
 import { buildTransitionForesight }  from "@/services/foresight/regimeTransitionForesight";
 import { buildPathDependency }       from "@/services/foresight/pathDependencyEngine";
 import { governScenarios }           from "@/services/foresight/scenarioGovernor";
+// Phase-89A: Institutional Research Desk Architecture
+import { buildMacroDeskBriefing }    from "@/services/desks/macroResearchDesk";
+import { buildSectorDeskBriefing }   from "@/services/desks/sectorResearchDesk";
+import { buildPolicyDeskBriefing }   from "@/services/desks/policyResearchDesk";
+import { routeToDesks }              from "@/services/desks/researchRoutingGovernor";
+import { buildEvidenceHierarchy }    from "@/services/desks/evidenceHierarchyEngine";
 // Phase-88C: Meta-Research + Thesis Competition Intelligence
 import { buildThesisCompetition }   from "@/services/meta/thesisCompetitionEngine";
 import { buildRedTeamReasoning }     from "@/services/meta/redTeamReasoningEngine";
@@ -1445,6 +1451,13 @@ ABSOLUTELY FORBIDDEN: "rebalance now", "allocate X%", "buy this asset now", "gua
 Use this foresight to improve "scenarios", "secondOrderRisks", "thesisChanger", and "missingEvidence".
 Mandatory rules: (1) "scenarios" MUST reflect the pre-computed competition probabilities (BASE/BULL/BEAR) — do not ignore the stated probabilities; (2) "secondOrderRisks" MUST extend beyond the direct effect using → notation; (3) "thesisChanger" MUST name the specific observable transition trigger; (4) ALL scenarios are conditional — use "If [observable condition]" not "will happen". FORBIDDEN: "certain", "inevitable", "guaranteed", "will definitely occur", "foresight proves". Economic foresight is advisory and probabilistic — not predictive, not execution.`;
 
+  // Phase-89A: Institutional Research Desk guidance
+  const researchDeskGuidance = ar
+    ? `عند ظهور "Research desks [" في السياق:
+هذا السياق يحتوي على مخلصات المكاتب البحثية المتخصصة (الكلي / القطاعي / السياسات). قواعد إلزامية: (1) استخدم مخلص المكتب الأساسي كنقطة انطلاق لتحليل النظام والاتجاه؛ (2) المكاتب الثانوية تُثري التحليل ولا تُلغيه؛ (3) إذا كان المكتب "sector" نشطاً، يجب أن يتضمن "sectorLens" قطاعات مسماة من مخلص المكتب؛ (4) إذا كان "policy" نشطاً، يجب أن يتضمن "voiceReasoning.policy" موقف البنك المركزي المحدد. ممنوع: تجاهل مخلصات المكاتب، "جميع القطاعات متأثرة بالتساوي"، استخدام لغة عامة عندما تكون القطاعات المحددة متاحة في السياق.`
+    : `When "Research desks [" appears in context:
+This context contains specialist research desk briefings (macro/sector/policy). Mandatory rules: (1) use the PRIMARY desk briefing as the starting point for regime and directional analysis; (2) secondary desks enrich — they do not override; (3) if "sector" desk is active, "sectorLens" MUST name specific sectors from the desk briefing; (4) if "policy" desk is active, "voiceReasoning.policy" MUST reflect the specific CB stance noted. FORBIDDEN: ignoring desk briefings, "all sectors equally affected", using generic language when specific sectors are available in context.`;
+
   // Phase-88C: Meta-Research + Thesis Competition guidance
   const metaResearchGuidance = ar
     ? `عند ظهور "Meta-research:" في السياق:
@@ -1454,7 +1467,7 @@ Mandatory rules: (1) "scenarios" MUST reflect the pre-computed competition proba
 This context contains pre-computed thesis competition, red-team attack, bias flags, and stress test findings.
 Mandatory rules: (1) constrain "opposingCase" and "caveats" from the specific red-team attack — do not ignore it; (2) if a bias is flagged, apply the stated correction before forming conclusions; (3) if stress level is "fragile" or "critical", incorporate the repair directive in "caveats"; (4) every thesis is a conditional claim — "evidence-weighted" not "certain". ABSOLUTELY FORBIDDEN: ignoring the red-team attack, claiming "competitive" thesis analysis that doesn't address the named attack, "proven", "red-team rejected". All meta-research output is self-critique and advisory only — no execution.`;
 
-  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n${allocationIntelligenceGuidance}\n${frameworkPerspectiveGuidance}\n${committeeGenerationGuidance}\n${foresightGuidance}\n${metaResearchGuidance}\n\n${base}`;
+  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n${allocationIntelligenceGuidance}\n${frameworkPerspectiveGuidance}\n${committeeGenerationGuidance}\n${foresightGuidance}\n${metaResearchGuidance}\n${researchDeskGuidance}\n\n${base}`;
 }
 
 // ─── Institutional Reasoning Tracks ───────────────────────────────────────
@@ -3063,6 +3076,49 @@ async function runFusion(
     console.log(`[genesis:88c] ${_metaGov.governanceLog}`);
   }
 
+  // ── Phase-89A: Institutional Research Desk Architecture ──────────────────────
+  // Pure O(1) deterministic pipeline. Runs for all investment questions.
+  // Pipeline: routing → macro/sector/policy desks → evidence hierarchy → synthesis
+  let _deskSynthesisCtx = "";
+  if (isInvestment) {
+    const _deskRouting = routeToDesks({ question, ctx });
+    const _macroDesk   = buildMacroDeskBriefing({
+      question,
+      ctx,
+      regime:            trackA?.regime            ?? "macro_transition",
+      macroBias:         trackA?.macroBias         ?? consensus.dominantBias,
+      creditStressLevel: trackA?.creditStressLevel ?? "moderate",
+      ratesEnv:          trackA?.ratesEnv          ?? "",
+      oilLiquidity:      trackA?.oilLiquidity       ?? "",
+      dxyImpact:         trackA?.dxyImpact          ?? "",
+      tltChangePct:      live?.tltChangePct          ?? null,
+      regimeConf:        trackA?.regimeConf          ?? 50,
+    });
+    const _sectorDesk  = buildSectorDeskBriefing({
+      question,
+      ctx,
+      regime:    trackA?.regime    ?? "macro_transition",
+      macroBias: trackA?.macroBias ?? consensus.dominantBias,
+      isSaudi,
+      oilPrice:  live?.oilPrice    ?? null,
+    });
+    const _policyDesk  = buildPolicyDeskBriefing({
+      question,
+      ctx,
+      ratesEnv: trackA?.ratesEnv ?? "",
+      isSaudi,
+      oilPrice: live?.oilPrice   ?? null,
+    });
+    const _deskHierarchy = buildEvidenceHierarchy({
+      routing:        _deskRouting,
+      macroBriefing:  _macroDesk,
+      sectorBriefing: _sectorDesk,
+      policyBriefing: _policyDesk,
+    });
+    _deskSynthesisCtx = _deskHierarchy.synthesisContext;
+    console.log(`[genesis:89a] primary=${_deskRouting.primaryDesk} active=[${_deskRouting.activeDesks.join(",")}] dominant=${_deskHierarchy.dominantDesk} conf=${_deskHierarchy.evidenceConfidence}`);
+  }
+
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
     `User question: ${question}`,
@@ -3084,6 +3140,12 @@ async function runFusion(
     // Mandatory questions from knowledge activation (compact, before enforcement directive)
     _knowledgeActivation.mandatoryQuestions.length > 0
       ? `\n\n${lang === "ar" ? "الأسئلة الإلزامية للإجابة" : "Mandatory questions to address in the answer"}: ${_knowledgeActivation.mandatoryQuestions.join(" | ")}`
+      : "",
+    // Phase-89A: Research desk synthesis — routes question to specialized institutional
+    // desks and injects multi-desk evidence hierarchy. Placed early so desk briefings
+    // inform all subsequent reasoning (enforcement, fusion, foresight, meta-research).
+    _deskSynthesisCtx
+      ? `\n\n${_deskSynthesisCtx}`
       : "",
     // Investment enforcement FIRST — most prominent position before the long fusion block
     investEnforcement ? `\n\n${investEnforcement}` : "",
