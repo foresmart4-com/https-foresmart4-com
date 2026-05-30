@@ -42,11 +42,16 @@ export const Route = createFileRoute("/api/public/quote")({
 
         try {
           const quote = await routeQuote(symbol);
+          const dq = !quote.success ? "غير متاح"
+            : (quote.fallbackUsed ?? false) ? "احتياطي"
+            : (quote.delayed ?? false) ? "متأخر"
+            : "مباشر";
           return new Response(JSON.stringify({
             gitCommit: process.env.RAILWAY_GIT_COMMIT_SHA ?? "local",
             buildTime: BUILD_TIME,
             quoteRouterVersion: QUOTE_ROUTER_VERSION,
             success: quote.success,
+            dataQuality: dq,
             symbol: quote.symbol,
             inputSymbol: symbol,
             normalizedSymbol: resolved.normalized,
@@ -117,18 +122,20 @@ export const Route = createFileRoute("/api/public/quote")({
 
 function getChains(assetClass: AssetClass): string[] {
   const map: Record<string, string[]> = {
-    us_stock: ["finnhub", "eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
-    saudi_stock: ["sahmk", "eodhd", "marketstack", "twelvedata", "fmp", "alphavantage"],
-    gcc_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
-    uk_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
-    european_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
-    china_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
-    hongkong_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage", "yahoo"],
-    crypto: ["binance", "coingecko", "twelvedata", "eodhd", "fmp"],
-    forex: ["twelvedata", "eodhd", "fmp", "alphavantage", "marketstack"],
-    metal: ["twelvedata", "eodhd", "commodityprice", "fmp", "alphavantage"],
-    commodity: ["eodhd", "commodityprice", "fmp", "alphavantage", "twelvedata"],
-    macro: ["fred", "fmp"],
+    us_stock:       ["finnhub", "financialdata", "eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
+    saudi_stock:    ["sahmk", "eodhd", "marketstack", "twelvedata", "fmp", "alphavantage"],
+    gcc_stock:      ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
+    // marketstack removed — returns 406 for UK/EU/Asia on current plan
+    uk_stock:       ["alphavantage", "fmp", "eodhd", "twelvedata"],
+    european_stock: ["alphavantage", "fmp", "eodhd", "twelvedata"],
+    china_stock:    ["eodhd", "fmp", "twelvedata", "alphavantage"],
+    hongkong_stock: ["eodhd", "fmp", "twelvedata", "alphavantage", "yahoo"],
+    crypto:         ["binance", "coingecko", "financialdata", "twelvedata", "eodhd", "fmp"],
+    // alphavantage before financialdata — AV forex works; FD unreachable
+    forex:          ["twelvedata", "alphavantage", "eodhd", "fmp", "financialdata", "marketstack"],
+    metal:          ["twelvedata", "financialdata", "eodhd", "commodityprice", "fmp", "alphavantage"],
+    commodity:      ["commodityprice", "eodhd", "financialdata", "fmp", "alphavantage", "twelvedata"],
+    macro:          ["fred", "fmp", "alphavantage"],
   };
-  return map[assetClass] ?? ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"];
+  return map[assetClass] ?? ["eodhd", "fmp", "twelvedata", "alphavantage"];
 }

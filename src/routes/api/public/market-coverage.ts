@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { routeQuote, resolveAsset } from "@/lib/market/router";
+import { routeQuote, resolveAsset, getProviderConnected, getProviderCredentialHealth } from "@/lib/market/router";
 import { isEodhdConfigured, getEodhdExchanges } from "@/lib/market/providers/eodhd";
 import { isMarketstackConfigured } from "@/lib/market/providers/marketstack";
-import { getProviderConnected } from "@/lib/market/router";
+
+type DataQuality = "مباشر" | "متأخر" | "احتياطي" | "غير متاح";
 
 interface CoverageItem {
   market: string;
@@ -14,6 +15,7 @@ interface CoverageItem {
   lastPrice: number | null;
   lastProvider: string | null;
   lastError: string | null;
+  dataQuality: DataQuality;
   /** Providers actually attempted in order (after capability + cooldown checks). */
   attempted: string[];
   /** Providers skipped before a network call (capability mismatch or cooldown). */
@@ -22,6 +24,13 @@ interface CoverageItem {
   failedProviders: string[];
   /** Price validation rejections (e.g. "alphavantage: 3.68 rejected below floor 20"). */
   rejectedPrices: string[];
+}
+
+function computeDataQuality(success: boolean, delayed: boolean, fallbackUsed: boolean): DataQuality {
+  if (!success) return "غير متاح";
+  if (fallbackUsed) return "احتياطي";
+  if (delayed) return "متأخر";
+  return "مباشر";
 }
 
 /**
@@ -84,6 +93,7 @@ export const Route = createFileRoute("/api/public/market-coverage")({
               lastPrice: q.price,
               lastProvider: q.provider,
               lastError: q.error ?? null,
+              dataQuality: computeDataQuality(q.success, q.delayed ?? false, q.fallbackUsed ?? false),
               attempted,
               skippedProviders: skipped,
               failedProviders,
@@ -100,6 +110,7 @@ export const Route = createFileRoute("/api/public/market-coverage")({
               lastPrice: null,
               lastProvider: null,
               lastError: e instanceof Error ? e.message : "فشل الاتصال بالمزود",
+              dataQuality: "غير متاح",
               attempted: [],
               skippedProviders: [],
               failedProviders: [],
@@ -142,6 +153,8 @@ export const Route = createFileRoute("/api/public/market-coverage")({
         }
 
         const connectedCount = coverage.filter((c) => c.connected).length;
+        // Credential health is populated at runtime as providers are tried during the coverage test above
+        const providerCredentialStatus = getProviderCredentialHealth();
 
         return new Response(
           JSON.stringify(
@@ -151,6 +164,7 @@ export const Route = createFileRoute("/api/public/market-coverage")({
               eodhdConfigured: isEodhdConfigured(),
               marketstackConfigured: isMarketstackConfigured(),
               connectedProviders: connected,
+              providerCredentialStatus,
               coverage,
               connectedCount,
               totalMarkets: coverage.length,
@@ -158,11 +172,16 @@ export const Route = createFileRoute("/api/public/market-coverage")({
               routingNotes: [
                 "TradingView removed from commodity/metal chains (returned HTTP 404)",
                 "Finnhub removed from forex chain (returned empty quote for OANDA pairs)",
-                "UK stocks: alphavantage first (.L→.LON translation), marketstack last",
-                "European stocks: alphavantage first (.DE→.DEX translation), marketstack last",
-                "WTI/BRENT price validation: price < 20 USD is rejected and next provider tried",
-                "EODHD/Marketstack/Yahoo now registered in capability matrix",
-                "GCC markets: no attempt — not supported by current provider plan",
+                "TwelveData: configured but HTTP 401 — credential_failed cooldown (10 min) applies",
+                "FMP: configured but HTTP 403 — credential_failed cooldown (10 min) applies",
+                "CommodityPriceAPI: configured but HTTP 402 (payment required) — credential_failed cooldown",
+                "FinancialData: unreachable — timeout reduced to 3.5 s to avoid delays",
+                "Marketstack: removed from EU/UK/Asia chains — returns HTTP 406 for non-US symbols",
+                "Forex chain: alphavantage moved before financialdata — AV EURUSD works; FD unreachable",
+                "UK stocks: alphavantage first (.L→.LON); marketstack removed",
+                "European stocks: alphavantage first (.DE→.DEX); marketstack removed",
+                "WTI/BRENT: price < 20 USD rejected; Arabic error when credential failures block all providers",
+                "NewsAPI: supports both NEWSAPI_KEY and NEWS_API_KEY env var names",
               ],
             },
             null,

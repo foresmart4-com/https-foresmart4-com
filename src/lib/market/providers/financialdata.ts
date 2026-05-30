@@ -72,7 +72,7 @@ function pickRow(payload: unknown): Record<string, unknown> | null {
   return obj;
 }
 
-async function timedFetch(url: string, key: string, timeoutMs = 8000) {
+async function timedFetch(url: string, key: string, timeoutMs = 3500) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   const start = Date.now();

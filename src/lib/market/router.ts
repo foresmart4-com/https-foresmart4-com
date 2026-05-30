@@ -384,17 +384,18 @@ const CHAINS: Record<AssetClass, ProviderId[]> = {
   bond:        ["fred", "twelvedata", "alphavantage"],
   treasury:    ["fred"],
   index:       ["fmp", "twelvedata", "finnhub", "tradingview"],
-  // Forex: TwelveData → FinancialData → EODHD → FMP → AlphaVantage → Marketstack
-  // Finnhub removed — returns empty quote for OANDA forex pairs in production
-  forex: ["twelvedata", "financialdata", "eodhd", "fmp", "alphavantage", "marketstack"],
+  // Forex: alphavantage moved before financialdata — AV EURUSD works; financialdata is unreachable
+  // Finnhub removed (empty forex), TwelveData 401 → cools down; AV + EODHD are primary
+  forex: ["twelvedata", "alphavantage", "eodhd", "fmp", "financialdata", "marketstack"],
   // GCC markets: unsupported by current provider plans, no attempt
   gcc_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
-  // UK stocks: AlphaVantage first (.L→.LON translation), marketstack last (406 errors)
-  uk_stock: ["alphavantage", "fmp", "eodhd", "twelvedata", "marketstack"],
-  // European stocks: AlphaVantage first (.DE→.DEX translation), marketstack last
-  european_stock: ["alphavantage", "fmp", "eodhd", "twelvedata", "marketstack"],
-  china_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
-  hongkong_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage", "yahoo"],
+  // UK stocks: AlphaVantage first (.L→.LON); marketstack removed (returns 406 for UK on current plan)
+  uk_stock: ["alphavantage", "fmp", "eodhd", "twelvedata"],
+  // European stocks: AlphaVantage first (.DE→.DEX); marketstack removed (returns 406 for EU on current plan)
+  european_stock: ["alphavantage", "fmp", "eodhd", "twelvedata"],
+  // China/HK: marketstack removed (returns 406 for Asian exchanges on current plan)
+  china_stock: ["eodhd", "fmp", "twelvedata", "alphavantage"],
+  hongkong_stock: ["eodhd", "fmp", "twelvedata", "alphavantage", "yahoo"],
   macro:           ["fred", "fmp", "alphavantage"],
   news:            ["fmp", "finnhub"],
   unknown:         ["fmp", "twelvedata", "finnhub", "alphavantage"],
@@ -404,10 +405,17 @@ const CHAINS: Record<AssetClass, ProviderId[]> = {
 
 // ---------- Cooldown memory ----------
 
-type CooldownReason = "error" | "rate_limited";
+type CooldownReason = "error" | "rate_limited" | "credential_failed";
 interface Cooldown { until: number; reason: CooldownReason; lastError: string }
 const COOLDOWN = new Map<ProviderId, Cooldown>();
-const COOLDOWN_MS = { error: 30_000, rate_limited: 120_000 } as const;
+const COOLDOWN_MS = { error: 30_000, rate_limited: 120_000, credential_failed: 600_000 } as const;
+
+/** Providers that returned a credential error (401/402/403) since last restart. */
+type CredentialErrorType = "unauthorized" | "forbidden" | "plan_restriction";
+const CREDENTIAL_FAILURES = new Map<ProviderId, { errorType: CredentialErrorType; lastError: string }>();
+function recordCredentialFailure(p: ProviderId, errorType: CredentialErrorType, lastError: string) {
+  CREDENTIAL_FAILURES.set(p, { errorType, lastError });
+}
 
 function isCoolingDown(p: ProviderId, now = Date.now()): boolean {
   const c = COOLDOWN.get(p);
@@ -909,6 +917,14 @@ function detectRateLimit(err: unknown): boolean {
   return /429|rate.?limit|throttl|too many requests/i.test(msg);
 }
 
+function detectCredentialFailure(err: unknown): false | CredentialErrorType {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/\b401\b/.test(msg)) return "unauthorized";
+  if (/\b402\b/.test(msg)) return "plan_restriction";
+  if (/\b403\b/.test(msg)) return "forbidden";
+  return false;
+}
+
 export interface RouterOptions {
   /** Bypass cache and force a fresh fetch. */
   force?: boolean;
@@ -932,6 +948,29 @@ export function getProviderConnected(): Partial<Record<ProviderId, boolean>> {
     tradingview:    true,
     alpaca:         !!(process.env.ALPACA_KEY_ID && process.env.ALPACA_SECRET_KEY),
   };
+}
+
+export interface ProviderCredentialHealth {
+  configured: boolean;
+  /** true = tested and valid; false = tested and invalid; null = configured but not yet tested */
+  credentialValid: boolean | null;
+  errorType?: CredentialErrorType;
+}
+
+export function getProviderCredentialHealth(): Record<string, ProviderCredentialHealth> {
+  const connected = getProviderConnected();
+  const out: Record<string, ProviderCredentialHealth> = {};
+  for (const [pid, isConfigured] of Object.entries(connected) as [ProviderId, boolean][]) {
+    const failure = CREDENTIAL_FAILURES.get(pid as ProviderId);
+    if (!isConfigured) {
+      out[pid] = { configured: false, credentialValid: false };
+    } else if (failure) {
+      out[pid] = { configured: true, credentialValid: false, errorType: failure.errorType };
+    } else {
+      out[pid] = { configured: true, credentialValid: null };
+    }
+  }
+  return out;
 }
 
 export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): Promise<RouterQuote> {
@@ -1055,10 +1094,17 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         const rl = detectRateLimit(e);
+        const cf = !rl ? detectCredentialFailure(e) : false;
         recordError(p, msg, rl);
-        // Price validation errors mean the provider is healthy — no cooldown penalty.
+        // Price validation: provider healthy, no cooldown.
+        // Credential failure (401/402/403): 10-min cooldown to avoid repeated auth errors.
         if (!(e instanceof PriceValidationError)) {
-          setCooldown(p, rl ? "rate_limited" : "error", msg);
+          if (cf) {
+            recordCredentialFailure(p, cf, msg);
+            setCooldown(p, "credential_failed", msg);
+          } else {
+            setCooldown(p, rl ? "rate_limited" : "error", msg);
+          }
         }
         lastError = msg;
       }
@@ -1066,6 +1112,11 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
 
     const stale = staleCache(cKey);
     if (stale) return stamp({ ...stale, fallbackUsed: true, error: lastError, attempted, translations, translatedSymbol: lastTranslated, skippedProviders: skipped });
+    // For oil symbols where credential failures blocked all providers, use a clear Arabic message
+    const OIL_NORMALIZED = new Set(["WTI", "BRENT", "USOIL", "UKOIL", "CL", "BZ"]);
+    if (OIL_NORMALIZED.has(asset.normalized.toUpperCase()) && attempted.some((p) => CREDENTIAL_FAILURES.has(p))) {
+      lastError = "مزود النفط غير متاح حاليًا بسبب قيود الخطة أو فشل المزود";
+    }
     return stamp({
       success: false,
       provider: null,

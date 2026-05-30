@@ -89,7 +89,9 @@ function cacheSet<T>(key: string, value: T, freshMs: number, hardMs: number) {
 type KeySlot = { name: string; key: string; cooldownUntil: number };
 function loadKeys(): KeySlot[] {
   const slots: KeySlot[] = [];
-  if (process.env.NEWSAPI_KEY) slots.push({ name: "primary", key: process.env.NEWSAPI_KEY, cooldownUntil: 0 });
+  // Support both NEWSAPI_KEY and NEWS_API_KEY — different environments may use either name
+  const primaryKey = process.env.NEWSAPI_KEY ?? process.env.NEWS_API_KEY;
+  if (primaryKey) slots.push({ name: "primary", key: primaryKey, cooldownUntil: 0 });
   if (process.env.NEWSAPI_KEY_BACKUP) slots.push({ name: "backup", key: process.env.NEWSAPI_KEY_BACKUP, cooldownUntil: 0 });
   return slots;
 }

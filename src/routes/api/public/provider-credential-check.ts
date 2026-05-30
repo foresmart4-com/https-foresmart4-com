@@ -24,6 +24,40 @@ interface ProviderResult {
   endpointType: string;
   errorType: ErrorType;
   messageAr: string;
+  recommendedActionAr: string;
+}
+
+const RECOMMENDED: Partial<Record<string, string>> = {
+  finnhub_ok:                   "لا توجد إجراءات مطلوبة — المزود يعمل بشكل صحيح",
+  finnhub_unauthorized:         "قم بتحديث FINNHUB_API_KEY في Railway بمفتاح جديد من finnhub.io",
+  twelvedata_unauthorized:      "قم بتحديث TWELVEDATA_API_KEY في Railway — المفتاح الحالي مرفوض (HTTP 401). احصل على مفتاح جديد من twelvedata.com/pricing",
+  alphavantage_unauthorized:    "قم بتحديث ALPHAVANTAGE_API_KEY في Railway بمفتاح جديد من alphavantage.co",
+  alphavantage_rate_limited:    "تجاوزت حد الطلبات على AlphaVantage (5 طلبات/دقيقة) — انتظر دقيقة ثم أعد المحاولة",
+  eodhd_unauthorized:           "قم بتحديث EODHD_API_KEY في Railway بمفتاح جديد من eodhd.com",
+  marketstack_ok:               "المزود يعمل — ملاحظة: الخطة الحالية تدعم US stocks فقط وتُعيد 406 للأسهم الأوروبية/الآسيوية",
+  marketstack_plan_restriction: "قم بترقية خطة Marketstack لتشمل البيانات الدولية أو استخدم EODHD/AlphaVantage للأسهم الأوروبية",
+  fmp_forbidden:                "قم بتجديد FMP_API_KEY في Railway — المفتاح يُعيد HTTP 403. قم بتحديثه من financialmodelingprep.com",
+  financialdata_network_error:  "المزود FinancialData غير متاح — تحقق من إمكانية الوصول أو أزل المفتاح من البيئة إذا كانت الخدمة متوقفة",
+  commodityprice_plan_restriction: "قم بتجديد الاشتراك في CommodityPriceAPI — تُعيد HTTP 402 (الدفع مطلوب). الرابط: commoditypriceapi.com",
+  sahmk_ok:                     "لا توجد إجراءات مطلوبة — بيانات السوق السعودي تعمل بشكل صحيح",
+  newsapi_missing_key:          "أضف NEWSAPI_KEY أو NEWS_API_KEY في متغيرات Railway من newsapi.org",
+  newsapi_unauthorized:         "قم بتحديث NEWSAPI_KEY في Railway بمفتاح صالح من newsapi.org",
+};
+
+function getRecommendedActionAr(provider: string, errorType: ErrorType): string {
+  const specific = RECOMMENDED[`${provider}_${errorType}`];
+  if (specific) return specific;
+  switch (errorType) {
+    case "ok":               return "لا توجد إجراءات مطلوبة — المزود يعمل بشكل صحيح";
+    case "missing_key":      return `أضف مفتاح API الخاص بـ ${provider} في متغيرات البيئة في Railway`;
+    case "unauthorized":     return `قم بتحديث مفتاح ${provider.toUpperCase()}_API_KEY في Railway بمفتاح جديد من لوحة تحكم المزود`;
+    case "forbidden":        return `قم بترقية خطة ${provider} أو تجديد صلاحيات المفتاح في لوحة تحكم المزود`;
+    case "plan_restriction": return `قم بترقية خطة ${provider} أو تجديد الاشتراك للوصول إلى هذه البيانات`;
+    case "rate_limited":     return "تجاوز حد الطلبات — انتظر دقيقة ثم أعد المحاولة";
+    case "network_error":    return `تحقق من إمكانية الوصول إلى خوادم ${provider} — قد يكون الموقع معطلاً`;
+    case "empty_quote":      return `المزود متاح لكن الرمز المختبر لم يُعيد سعراً — قد يكون الرمز غير مدعوم في الخطة الحالية`;
+    default:                 return "راجع لوحة تحكم المزود لمزيد من المعلومات";
+  }
 }
 
 const AR: Record<ErrorType, string> = {
@@ -64,10 +98,10 @@ function fromStatus(status: number): ErrorType {
 }
 
 function pass(provider: string, sym: string, ep: string): ProviderResult {
-  return { provider, configured: true, credentialValid: true, httpStatus: 200, testSymbol: sym, endpointType: ep, errorType: "ok", messageAr: AR.ok };
+  return { provider, configured: true, credentialValid: true, httpStatus: 200, testSymbol: sym, endpointType: ep, errorType: "ok", messageAr: AR.ok, recommendedActionAr: getRecommendedActionAr(provider, "ok") };
 }
 function deny(provider: string, configured: boolean, httpStatus: number | null, sym: string, ep: string, errorType: ErrorType): ProviderResult {
-  return { provider, configured, credentialValid: false, httpStatus, testSymbol: sym, endpointType: ep, errorType, messageAr: AR[errorType] };
+  return { provider, configured, credentialValid: false, httpStatus, testSymbol: sym, endpointType: ep, errorType, messageAr: AR[errorType], recommendedActionAr: getRecommendedActionAr(provider, errorType) };
 }
 function noKey(provider: string, sym: string, ep: string): ProviderResult {
   return deny(provider, false, null, sym, ep, "missing_key");
@@ -287,7 +321,8 @@ async function checkSahmk(): Promise<ProviderResult> {
 }
 
 async function checkNewsApi(): Promise<ProviderResult> {
-  const key = process.env.NEWSAPI_KEY;
+  // Support both NEWSAPI_KEY and NEWS_API_KEY — some environments use the underscore variant
+  const key = process.env.NEWSAPI_KEY ?? process.env.NEWS_API_KEY;
   if (!key) return noKey("newsapi", "top-headlines (country=us)", "top-headlines");
   const { status, text } = await probe(
     `https://newsapi.org/v2/top-headlines?country=us&pageSize=1&apiKey=${encodeURIComponent(key)}`
