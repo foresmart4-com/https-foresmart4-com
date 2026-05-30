@@ -213,6 +213,11 @@ import { buildSecondOrderEffects }   from "@/services/foresight/secondOrderEffec
 import { buildTransitionForesight }  from "@/services/foresight/regimeTransitionForesight";
 import { buildPathDependency }       from "@/services/foresight/pathDependencyEngine";
 import { governScenarios }           from "@/services/foresight/scenarioGovernor";
+// Phase-89B: Global Macro + Cross-Asset Intelligence
+import { buildCrossAssetTransmission } from "@/services/global/crossAssetTransmissionEngine";
+import { buildGlobalLiquidityState }   from "@/services/global/globalLiquidityEngine";
+import { buildCapitalFlowProfile }     from "@/services/global/capitalFlowEngine";
+import { governCrossAsset }            from "@/services/global/crossAssetGovernor";
 // Phase-89A: Institutional Research Desk Architecture
 import { buildMacroDeskBriefing }    from "@/services/desks/macroResearchDesk";
 import { buildSectorDeskBriefing }   from "@/services/desks/sectorResearchDesk";
@@ -1451,6 +1456,13 @@ ABSOLUTELY FORBIDDEN: "rebalance now", "allocate X%", "buy this asset now", "gua
 Use this foresight to improve "scenarios", "secondOrderRisks", "thesisChanger", and "missingEvidence".
 Mandatory rules: (1) "scenarios" MUST reflect the pre-computed competition probabilities (BASE/BULL/BEAR) — do not ignore the stated probabilities; (2) "secondOrderRisks" MUST extend beyond the direct effect using → notation; (3) "thesisChanger" MUST name the specific observable transition trigger; (4) ALL scenarios are conditional — use "If [observable condition]" not "will happen". FORBIDDEN: "certain", "inevitable", "guaranteed", "will definitely occur", "foresight proves". Economic foresight is advisory and probabilistic — not predictive, not execution.`;
 
+  // Phase-89B: Global Macro + Cross-Asset Intelligence guidance
+  const globalMacroGuidance = ar
+    ? `عند ظهور "Global macro:" في السياق:
+يحتوي هذا السياق على سلاسل الانتقال المحسوبة عبر الأصول وحالة السيولة العالمية وتدفقات رأس المال. قواعد إلزامية: (1) "secondOrderRisks" يجب أن يمتد عبر الروابط النشطة المحددة — استخدم الرابط الأكثر تأثيراً كنقطة انطلاق للتسلسل؛ (2) إذا كانت "Liquidity[stressed]" نشطة، يجب أن تتضمن "caveats" خطر ضغط المضاعفات عبر الأصول؛ (3) إذا كانت حالة المخاطر "risk_off"، يجب أن تعكس "strategicBias" ذلك — لا ادعاء بنية بنّاءة في بيئة risk-off؛ (4) GCC note: استخدمها لتأطير "sectorLens" و"portfolioImpact" إذا كانت السياق سعودياً. ممنوع: "السوق سيرتفع بسبب"، "مضمون الانتقال"، "ثبت الارتباط". جميع الانتقالات شرطية ومؤشرة لا سببية مؤكدة.`
+    : `When "Global macro:" appears in context:
+This context contains pre-computed cross-asset transmission chains, global liquidity state, and capital flows. Mandatory rules: (1) "secondOrderRisks" MUST extend through the named active links — use the dominant link as the starting chain; (2) if "Liquidity[stressed]" is active, "caveats" MUST include cross-asset multiple-compression risk; (3) if riskMode is "risk_off", "strategicBias" MUST reflect this — do not claim a constructive bias in a risk-off environment; (4) GCC note: use it to frame "sectorLens" and "portfolioImpact" when context is Saudi. FORBIDDEN: "market will rise because", "guaranteed transmission", "correlation proven". All transmissions are conditional and indicative — not confirmed causation.`;
+
   // Phase-89A: Institutional Research Desk guidance
   const researchDeskGuidance = ar
     ? `عند ظهور "Research desks [" في السياق:
@@ -1467,7 +1479,7 @@ This context contains specialist research desk briefings (macro/sector/policy). 
 This context contains pre-computed thesis competition, red-team attack, bias flags, and stress test findings.
 Mandatory rules: (1) constrain "opposingCase" and "caveats" from the specific red-team attack — do not ignore it; (2) if a bias is flagged, apply the stated correction before forming conclusions; (3) if stress level is "fragile" or "critical", incorporate the repair directive in "caveats"; (4) every thesis is a conditional claim — "evidence-weighted" not "certain". ABSOLUTELY FORBIDDEN: ignoring the red-team attack, claiming "competitive" thesis analysis that doesn't address the named attack, "proven", "red-team rejected". All meta-research output is self-critique and advisory only — no execution.`;
 
-  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n${allocationIntelligenceGuidance}\n${frameworkPerspectiveGuidance}\n${committeeGenerationGuidance}\n${foresightGuidance}\n${metaResearchGuidance}\n${researchDeskGuidance}\n\n${base}`;
+  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n${allocationIntelligenceGuidance}\n${frameworkPerspectiveGuidance}\n${committeeGenerationGuidance}\n${foresightGuidance}\n${metaResearchGuidance}\n${researchDeskGuidance}\n${globalMacroGuidance}\n\n${base}`;
 }
 
 // ─── Institutional Reasoning Tracks ───────────────────────────────────────
@@ -3119,6 +3131,51 @@ async function runFusion(
     console.log(`[genesis:89a] primary=${_deskRouting.primaryDesk} active=[${_deskRouting.activeDesks.join(",")}] dominant=${_deskHierarchy.dominantDesk} conf=${_deskHierarchy.evidenceConfidence}`);
   }
 
+  // ── Phase-89B: Global Macro + Cross-Asset Intelligence ───────────────────────
+  // Pure O(1) deterministic pipeline. Runs for investment questions.
+  // Pipeline: cross-asset transmission → global liquidity → capital flows → governor
+  let _globalMacroCtx = "";
+  if (isInvestment) {
+    const _crossAssetLinks  = buildCrossAssetTransmission({
+      tltChangePct:      live?.tltChangePct      ?? null,
+      oilChangePct:      live?.oilChangePct       ?? null,
+      oilPrice:          live?.oilPrice           ?? null,
+      eurUsd:            live?.eurUsd             ?? null,
+      spyChangePct:      live?.spyChangePct       ?? null,
+      creditStressLevel: trackA?.creditStressLevel ?? "moderate",
+      macroBias:         trackA?.macroBias         ?? consensus.dominantBias,
+      isSaudi,
+    });
+    const _globalLiquidity = buildGlobalLiquidityState({
+      tltChangePct:      live?.tltChangePct       ?? null,
+      oilPrice:          live?.oilPrice           ?? null,
+      oilChangePct:      live?.oilChangePct        ?? null,
+      eurUsd:            live?.eurUsd              ?? null,
+      creditStressLevel: trackA?.creditStressLevel ?? "moderate",
+      ratesEnv:          trackA?.ratesEnv          ?? "",
+      macroBias:         trackA?.macroBias         ?? consensus.dominantBias,
+    });
+    const _capitalFlows    = buildCapitalFlowProfile({
+      regime:            trackA?.regime            ?? "macro_transition",
+      macroBias:         trackA?.macroBias         ?? consensus.dominantBias,
+      creditStressLevel: trackA?.creditStressLevel ?? "moderate",
+      oilPrice:          live?.oilPrice            ?? null,
+      oilChangePct:      live?.oilChangePct         ?? null,
+      eurUsd:            live?.eurUsd               ?? null,
+      spyChangePct:      live?.spyChangePct         ?? null,
+      isSaudi,
+    });
+    const _crossAssetGov   = governCrossAsset({
+      transmission: _crossAssetLinks,
+      liquidity:    _globalLiquidity,
+      capitalFlows: _capitalFlows,
+      isSaudi,
+      lang,
+    });
+    _globalMacroCtx = _crossAssetGov.governedCrossAssetCtx;
+    console.log(`[genesis:89b] ${_crossAssetGov.governanceLog}`);
+  }
+
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
     `User question: ${question}`,
@@ -3146,6 +3203,12 @@ async function runFusion(
     // inform all subsequent reasoning (enforcement, fusion, foresight, meta-research).
     _deskSynthesisCtx
       ? `\n\n${_deskSynthesisCtx}`
+      : "",
+    // Phase-89B: Global macro synthesis — cross-asset transmission chains, global
+    // liquidity state, institutional capital flows. Placed immediately after desks
+    // so global macro context grounds all cross-asset reasoning downstream.
+    _globalMacroCtx
+      ? `\n\nGlobal macro: ${_globalMacroCtx}`
       : "",
     // Investment enforcement FIRST — most prominent position before the long fusion block
     investEnforcement ? `\n\n${investEnforcement}` : "",
