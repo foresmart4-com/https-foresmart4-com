@@ -208,6 +208,7 @@ function GenesisPage() {
   const [institutionalModelsResult, setInstitutionalModelsResult] = useState<InstitutionalModelsResult | null>(null); // Phase-51
   const [institutionalValidationResult, setInstitutionalValidationResult] = useState<InstitutionalValidationResult | null>(null); // Phase-52
   const [decisionMemoryResult, setDecisionMemoryResult] = useState<DecisionMemoryResult | null>(null); // Phase-53
+  const [terminalContextOpen, setTerminalContextOpen] = useState(false); // Research terminal: market context collapsed by default
   // Phase-56/57 results derived via useMemo — declared below after firewallResult
   const bottomRef = useRef<HTMLDivElement>(null);
   // Re-reads from localStorage whenever profileVersion bumps (e.g. style preference change).
@@ -1967,118 +1968,115 @@ function GenesisPage() {
         )}
       </div>
 
-      {/* ─── Market Intelligence Panel ──────────────────────────────────── */}
-      {marketIntel.compactContext && (
-        <MarketIntelPanel intel={marketIntel} ar={ar} />
+      {/* ─── Market Intelligence Context (collapsed by default) ─────────── */}
+      {/* Cards and regime labels are secondary to the research terminal experience */}
+      {(marketIntel.compactContext || portfolioIntel.compactContext || coordinationResult) && (
+        <div className="mb-4 rounded-xl border border-border/40 bg-card/30">
+          <button
+            onClick={() => setTerminalContextOpen(v => !v)}
+            className="flex w-full items-center justify-between gap-3 px-4 py-2 text-[10px] text-muted-foreground hover:text-foreground"
+          >
+            <div className="flex items-center gap-1.5">
+              <Activity className="h-3 w-3 shrink-0" />
+              <span className="font-semibold uppercase tracking-wider">
+                {ar ? "سياق السوق والذكاء" : "Market Intelligence Context"}
+              </span>
+              {marketIntel.compactContext && (
+                <span className={cn(
+                  "rounded-md border px-1.5 py-0.5 text-[9px] font-bold",
+                  marketIntel.regime === "risk_on" ? "border-success/30 text-success" :
+                  marketIntel.regime === "risk_off" ? "border-destructive/30 text-destructive" :
+                  "border-border/40 text-muted-foreground",
+                )}>
+                  {marketIntel.regime?.replace(/_/g, "-") ?? "—"}
+                </span>
+              )}
+            </div>
+            <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", terminalContextOpen && "rotate-180")} />
+          </button>
+          {terminalContextOpen && (
+            <div className="border-t border-border/40 px-3 py-2.5 space-y-1.5">
+              {marketIntel.compactContext && (
+                <MarketIntelPanel intel={marketIntel} ar={ar} />
+              )}
+              {portfolioIntel.compactContext && (
+                <PortfolioBrainPanel intel={portfolioIntel} ar={ar} risk={portfolioRisk} />
+              )}
+              {marketScenarios.hasMeaningfulData && (
+                <ScenarioSimPanel sim={marketScenarios} ar={ar} />
+              )}
+              {coordinationResult && (
+                <CoordinationPanel result={coordinationResult} ar={ar} />
+              )}
+              {(strategicSynthesis.bias !== "neutral" || strategicSynthesis.hasConflict) && (
+                <StrategicBiasPanel synthesis={strategicSynthesis} ar={ar} strategyPosture={trustStrategy.strategyPosture} postureLabel={trustStrategy.postureForUI} />
+              )}
+              {firewallResult.hasActiveConstraint && (
+                <FirewallStatusLine result={firewallResult} ar={ar} />
+              )}
+              {coverageResult?.hasHighRelevance && (
+                <ResearchCoverageStatusLine result={coverageResult} ar={ar} />
+              )}
+              {macroEventResult?.hasSignificantEvent && (
+                <MacroEventStatusLine result={macroEventResult} ar={ar} />
+              )}
+              {credibilityResult?.hasLowCredibilityRisk && (
+                <CredibilityStatusLine result={credibilityResult} ar={ar} />
+              )}
+              {debateResult?.hasActiveDebate && (
+                <DebateStatusLine result={debateResult} ar={ar} />
+              )}
+              {workflowResult && workflowResult.state !== "observation" && (
+                <WorkflowStatusLine result={workflowResult} ar={ar} />
+              )}
+              {strategicApprovalResult && strategicApprovalResult.approval !== "informational" && strategicApprovalResult.approval !== "monitored" && (
+                <StrategicApprovalStatusLine result={strategicApprovalResult} ar={ar} />
+              )}
+              {(marketOrchestratorResult || crossMarketRegimeResult) && (
+                marketOrchestratorResult?.state !== "fragmented_market" ||
+                (crossMarketRegimeResult?.label !== "weak_signal_regime" && crossMarketRegimeResult?.label !== "partially_aligned")
+              ) && (
+                <MarketOSStatusLine
+                  orchestrator={marketOrchestratorResult}
+                  crossMarket={crossMarketRegimeResult}
+                  ar={ar}
+                />
+              )}
+              {globalMacroResult && globalMacroResult.macroCycle !== "uncertain_cycle" && (
+                <GlobalMacroStatusLine macro={globalMacroResult} graph={economicGraphResult} ar={ar} />
+              )}
+              {bookIntelligenceResult?.historicalAnalog && (
+                <BookIntelStatusLine result={bookIntelligenceResult} ar={ar} />
+              )}
+              {governanceOSResult && governanceOSResult.governanceState !== "coherent" && (
+                <GovernanceOSStatusLine result={governanceOSResult} ar={ar} />
+              )}
+              {(behavioralMarketResult || portfolioConstructionResult) && (
+                behavioralMarketResult?.label !== "unclear_behavior" ||
+                (portfolioConstructionResult?.label !== "resilient_portfolio" && portfolioConstructionResult?.label !== "insufficient_portfolio_data")
+              ) && (
+                <BehavioralPortfolioStatusLine
+                  behavioral={behavioralMarketResult}
+                  portfolio={portfolioConstructionResult}
+                  ar={ar}
+                />
+              )}
+              {(thesisLabResult || scenarioIntelResult) && (
+                thesisLabResult?.thesisState !== "emerging_thesis" ||
+                (scenarioIntelResult?.scenarioProbability === "favored" || scenarioIntelResult?.hasStressSignal)
+              ) && (
+                <ThesisScenarioStatusLine
+                  thesis={thesisLabResult}
+                  scenario={scenarioIntelResult}
+                  ar={ar}
+                />
+              )}
+            </div>
+          )}
+        </div>
       )}
 
-      {/* ─── Portfolio Brain Panel ──────────────────────────────────────── */}
-      {portfolioIntel.compactContext && (
-        <PortfolioBrainPanel intel={portfolioIntel} ar={ar} risk={portfolioRisk} />
-      )}
-
-      {/* ─── Macro Scenario Panel ───────────────────────────────────────── */}
-      {marketScenarios.hasMeaningfulData && (
-        <ScenarioSimPanel sim={marketScenarios} ar={ar} />
-      )}
-
-      {/* ─── Coordination Panel — Phase 11 ─────────────────────────────── */}
-      {coordinationResult && (
-        <CoordinationPanel result={coordinationResult} ar={ar} />
-      )}
-
-      {/* ─── Strategic Bias — Phase 22 ──────────────────────────────────── */}
-      {(strategicSynthesis.bias !== "neutral" || strategicSynthesis.hasConflict) && (
-        <StrategicBiasPanel synthesis={strategicSynthesis} ar={ar} strategyPosture={trustStrategy.strategyPosture} postureLabel={trustStrategy.postureForUI} />
-      )}
-
-      {/* ─── Decision Firewall — Phase 30 ───────────────────────────────── */}
-      {firewallResult.hasActiveConstraint && (
-        <FirewallStatusLine result={firewallResult} ar={ar} />
-      )}
-
-      {/* ─── Research Coverage — Phase 31 ───────────────────────────────── */}
-      {coverageResult?.hasHighRelevance && (
-        <ResearchCoverageStatusLine result={coverageResult} ar={ar} />
-      )}
-
-      {/* ─── Macro Event — Phase 33 ─────────────────────────────────────── */}
-      {macroEventResult?.hasSignificantEvent && (
-        <MacroEventStatusLine result={macroEventResult} ar={ar} />
-      )}
-
-      {/* ─── Credibility — Phase 34 ─────────────────────────────────────── */}
-      {credibilityResult?.hasLowCredibilityRisk && (
-        <CredibilityStatusLine result={credibilityResult} ar={ar} />
-      )}
-
-      {/* ─── Debate Balance — Phase 32 ──────────────────────────────────── */}
-      {debateResult?.hasActiveDebate && (
-        <DebateStatusLine result={debateResult} ar={ar} />
-      )}
-
-      {/* ─── Approval Workflow — Phase 35 ───────────────────────────────── */}
-      {workflowResult && workflowResult.state !== "observation" && (
-        <WorkflowStatusLine result={workflowResult} ar={ar} />
-      )}
-
-      {/* ─── Strategic Approval — Phase 36 ──────────────────────────────── */}
-      {strategicApprovalResult && strategicApprovalResult.approval !== "informational" && strategicApprovalResult.approval !== "monitored" && (
-        <StrategicApprovalStatusLine result={strategicApprovalResult} ar={ar} />
-      )}
-
-      {/* ─── Market OS + Cross-Market Regime — Phase 40+41 ──────────────── */}
-      {(marketOrchestratorResult || crossMarketRegimeResult) && (
-        marketOrchestratorResult?.state !== "fragmented_market" ||
-        (crossMarketRegimeResult?.label !== "weak_signal_regime" && crossMarketRegimeResult?.label !== "partially_aligned")
-      ) && (
-        <MarketOSStatusLine
-          orchestrator={marketOrchestratorResult}
-          crossMarket={crossMarketRegimeResult}
-          ar={ar}
-        />
-      )}
-
-      {/* ─── Global Macro + Economic Graph — Phase 43+45 ───────────────── */}
-      {globalMacroResult && globalMacroResult.macroCycle !== "uncertain_cycle" && (
-        <GlobalMacroStatusLine macro={globalMacroResult} graph={economicGraphResult} ar={ar} />
-      )}
-
-      {/* ─── Book Intelligence — historical analog ───────────────────────── */}
-      {bookIntelligenceResult?.historicalAnalog && (
-        <BookIntelStatusLine result={bookIntelligenceResult} ar={ar} />
-      )}
-
-      {/* ─── Governance OS — Phase 47 ───────────────────────────────────── */}
-      {governanceOSResult && governanceOSResult.governanceState !== "coherent" && (
-        <GovernanceOSStatusLine result={governanceOSResult} ar={ar} />
-      )}
-
-      {/* ─── Behavioral + Portfolio Construction — Phase 44+48 ───────────── */}
-      {(behavioralMarketResult || portfolioConstructionResult) && (
-        behavioralMarketResult?.label !== "unclear_behavior" ||
-        (portfolioConstructionResult?.label !== "resilient_portfolio" && portfolioConstructionResult?.label !== "insufficient_portfolio_data")
-      ) && (
-        <BehavioralPortfolioStatusLine
-          behavioral={behavioralMarketResult}
-          portfolio={portfolioConstructionResult}
-          ar={ar}
-        />
-      )}
-
-      {/* ─── Thesis Lab + Scenario — Phase 42+46 ────────────────────────── */}
-      {(thesisLabResult || scenarioIntelResult) && (
-        thesisLabResult?.thesisState !== "emerging_thesis" ||
-        (scenarioIntelResult?.scenarioProbability === "favored" || scenarioIntelResult?.hasStressSignal)
-      ) && (
-        <ThesisScenarioStatusLine
-          thesis={thesisLabResult}
-          scenario={scenarioIntelResult}
-          ar={ar}
-        />
-      )}
-
-      {/* ─── Proactive Research Signals — Phase 21 ──────────────────────── */}
+      {/* ─── Proactive Research Signals — always visible ──────────────────── */}
       {researchCandidates.length > 0 && (
         <ProactiveResearchPanel
           candidates={researchCandidates}
@@ -3187,8 +3185,847 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
         </div>
 
         <div className="p-5 space-y-5">
-          {/* Confidence bar + label */}
-          <div className="space-y-1.5">
+
+          {/* ═══════════════════════════════════════════════════════════════════
+              TIER 1 — CIO MEMO + DIRECT ANSWER (always first)
+              Institutional memo is the primary response. Confidence bar,
+              regime badges, and cards are metadata shown at the bottom.
+          ═══════════════════════════════════════════════════════════════════ */}
+
+          {/* Institutional Memo — CIO memo: rendered FIRST before anything else */}
+          {reply.institutionalMemo && engine === "ai" && (
+            <div className="rounded-xl border-2 border-primary/40 bg-primary/4 px-4 py-4 space-y-3">
+              <div className="flex items-center gap-2 mb-0.5">
+                <FileText className="h-4 w-4 text-primary/80" />
+                <div className="text-[11px] uppercase tracking-wider text-primary font-bold">
+                  {ar ? "المذكرة الاستثمارية المؤسسية" : "Institutional Investment Memo"}
+                </div>
+                <span className="ms-auto rounded-md border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary uppercase tracking-wide">
+                  {ar ? "كبير المستثمرين" : "CIO"}
+                </span>
+              </div>
+              <div className="text-sm leading-relaxed text-foreground/90 whitespace-pre-line space-y-2.5">
+                {reply.institutionalMemo.split("\n\n").map((block, i) => {
+                  const boldMatch = block.match(/^\*\*(.+?)\*\*\n([\s\S]+)$/);
+                  if (boldMatch) {
+                    return (
+                      <div key={i} className="border-l-2 border-primary/20 pl-3">
+                        <div className="text-[10px] uppercase tracking-wider text-primary/80 font-bold mb-1">{boldMatch[1]}</div>
+                        <p className="text-sm leading-relaxed text-foreground/90">{boldMatch[2]}</p>
+                      </div>
+                    );
+                  }
+                  return <p key={i} className="text-sm leading-relaxed text-foreground/85">{block}</p>;
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* CIO Direct Answer — headline rendered prominently as the question answer */}
+          <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+            <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-1.5 flex items-center gap-1.5">
+              <Brain className="h-3 w-3" />
+              {ar ? "الإجابة المباشرة" : "CIO Direct Answer"}
+            </div>
+            <p className="text-sm font-semibold leading-snug">{reply.headline}</p>
+          </div>
+
+          {/* Investment thesis + reasoning (follows direct answer) */}
+          {reply.thesis && (
+            <div className="rounded-xl border border-primary/20 bg-primary/4 px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Brain className="h-3.5 w-3.5 text-primary/70" />
+                <div className="text-[10px] uppercase tracking-wider text-primary font-semibold">
+                  {ar ? "الأطروحة الاستثمارية" : "Investment Thesis"}
+                </div>
+              </div>
+              <p className="text-sm font-semibold leading-snug">{reply.thesis}</p>
+              {reply.reasoning && (
+                <p className="mt-1.5 text-xs italic text-foreground/70 leading-relaxed">{reply.reasoning}</p>
+              )}
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════════
+              TIER 2 — COMMITTEE REASONING (visible, collapsible)
+          ═══════════════════════════════════════════════════════════════════ */}
+
+          {/* Phase 82A: Committee Generation Engine — primary institutional reasoning */}
+          {(reply.voiceReasoning || reply.committeeSynthesis) && engine === "ai" && (() => {
+            const vr = reply.voiceReasoning;
+            const cs = reply.committeeSynthesis;
+            const voices: Array<{ key: "macro" | "policy" | "allocator" | "behavioral" | "historical"; labelEn: string; labelAr: string; icon: JSX.Element }> = [
+              { key: "macro",      labelEn: "Macro",      labelAr: "الكلي",    icon: <TrendingUp className="h-3 w-3 mt-0.5 shrink-0 text-primary/60" /> },
+              { key: "policy",     labelEn: "Policy",     labelAr: "السياسة",  icon: <Scale className="h-3 w-3 mt-0.5 shrink-0 text-warning/70" /> },
+              { key: "allocator",  labelEn: "Allocator",  labelAr: "المخصص",  icon: <PieChart className="h-3 w-3 mt-0.5 shrink-0 text-success/60" /> },
+              { key: "behavioral", labelEn: "Behavioral", labelAr: "السلوكي", icon: <Activity className="h-3 w-3 mt-0.5 shrink-0 text-primary/40" /> },
+              { key: "historical", labelEn: "Historical", labelAr: "التاريخي", icon: <BookOpen className="h-3 w-3 mt-0.5 shrink-0 text-muted-foreground/50" /> },
+            ].filter(v => vr?.[v.key]);
+
+            const domVoice = cs?.dominantVoice;
+            const domVoiceLabelAr: Record<string, string> = {
+              macro: "الكلي", policy: "السياسة", allocator: "المخصص",
+              behavioral: "السلوكي", historical: "التاريخي", mixed: "مختلطة",
+            };
+
+            return (
+              <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 space-y-0">
+                <button
+                  type="button"
+                  onClick={() => setCommitteeOpen(o => !o)}
+                  className="flex w-full items-center gap-1.5 flex-wrap text-start"
+                >
+                  <Network className="h-3.5 w-3.5 text-primary/60" />
+                  <div className="text-[10px] uppercase tracking-wider text-primary/70 font-semibold flex-1">
+                    {ar ? "لجنة الاستثمار" : "Investment Committee"}
+                  </div>
+                  {domVoice && (
+                    <span className={cn(
+                      "rounded-md border px-2 py-0.5 text-[9px] uppercase tracking-wider font-bold",
+                      domVoice === "allocator"
+                        ? "border-success/30 bg-success/8 text-success"
+                        : domVoice === "macro"
+                          ? "border-primary/25 bg-primary/8 text-primary"
+                          : domVoice === "policy"
+                            ? "border-warning/30 bg-warning/8 text-warning"
+                            : "border-border/50 bg-muted/30 text-muted-foreground",
+                    )}>
+                      {ar
+                        ? `${domVoiceLabelAr[domVoice] ?? domVoice}-led`
+                        : `${domVoice.charAt(0).toUpperCase() + domVoice.slice(1)}-led`}
+                    </span>
+                  )}
+                  <span className="ms-1 rounded-md border border-border/50 bg-muted/30 px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold text-muted-foreground">
+                    {ar ? "تعليمي" : "Advisory"}
+                  </span>
+                  <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground/50 transition-transform ms-auto", committeeOpen && "rotate-180")} />
+                </button>
+
+                {committeeOpen && (
+                  <div className="mt-3 space-y-3">
+                    {voices.length > 0 && (
+                      <div className="space-y-2.5">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+                          <Layers className="h-3 w-3" />
+                          {ar ? "أصوات اللجنة" : "Committee Voices"}
+                        </div>
+                        {voices.map(v => (
+                          <div key={v.key} className="flex items-start gap-2 text-xs">
+                            {v.icon}
+                            <div className="min-w-0">
+                              <span className="font-semibold text-muted-foreground/80">
+                                {ar ? v.labelAr : v.labelEn}:{" "}
+                              </span>
+                              <span className="text-foreground/80">{vr?.[v.key]}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {cs && (cs.agreement || cs.disagreement || cs.finalStance) && (
+                      <div className="rounded-lg border border-border/30 bg-muted/20 px-3 py-2.5 space-y-1.5">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1 mb-1">
+                          <Compass className="h-3 w-3" />
+                          {ar ? "توليف اللجنة" : "Committee Synthesis"}
+                        </div>
+                        {cs.agreement && (
+                          <div className="flex items-start gap-2 text-xs">
+                            <CheckCircle2 className="h-3 w-3 mt-0.5 shrink-0 text-success/60" />
+                            <div>
+                              <span className="font-semibold text-success/70">{ar ? "نقاط الاتفاق: " : "Agreement: "}</span>
+                              <span className="text-foreground/80">{cs.agreement}</span>
+                            </div>
+                          </div>
+                        )}
+                        {cs.disagreement && (
+                          <div className="flex items-start gap-2 text-xs">
+                            <Scale className="h-3 w-3 mt-0.5 shrink-0 text-warning/60" />
+                            <div>
+                              <span className="font-semibold text-warning/70">{ar ? "نقاط الخلاف: " : "Disagreement: "}</span>
+                              <span className="text-foreground/80">{cs.disagreement}</span>
+                            </div>
+                          </div>
+                        )}
+                        {cs.finalStance && (
+                          <div className="flex items-start gap-2 text-xs border-t border-border/20 pt-1.5 mt-0.5">
+                            <Brain className="h-3 w-3 mt-0.5 shrink-0 text-primary/60" />
+                            <div>
+                              <span className="font-semibold text-primary/70">{ar ? "موقف اللجنة: " : "Final Stance: "}</span>
+                              <span className="text-foreground/80">{cs.finalStance}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Phase 80-81: Framework synthesis and perspective map */}
+          {(reply.frameworkSynthesis || reply.perspectiveMap || reply.reasoningPlurality) && engine === "ai" && (
+            <div className="rounded-xl border border-primary/15 bg-muted/10 px-4 py-3 space-y-3">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <Brain className="h-3.5 w-3.5 text-primary/60" />
+                <div className="text-[10px] uppercase tracking-wider text-primary/70 font-semibold">
+                  {ar ? "الاستدلال المؤسسي" : "Committee Reasoning"}
+                </div>
+                {reply.dominantLens && (
+                  <span className={cn(
+                    "ms-1 rounded-md border px-2 py-0.5 text-[9px] uppercase tracking-wider font-bold",
+                    reply.dominantLens === "allocator"
+                      ? "border-success/30 bg-success/8 text-success"
+                      : reply.dominantLens === "macro"
+                        ? "border-primary/25 bg-primary/8 text-primary"
+                        : reply.dominantLens === "policy"
+                          ? "border-warning/30 bg-warning/8 text-warning"
+                          : "border-border/50 bg-muted/30 text-muted-foreground",
+                  )}>
+                    {ar
+                      ? `العدسة: ${({"macro":"الكلي","policy":"السياسة","allocator":"المخصص","behavioral":"السلوكي","historical":"التاريخي","mixed":"مختلطة"} as Record<string,string>)[reply.dominantLens] ?? reply.dominantLens}`
+                      : `Dominant: ${reply.dominantLens}`}
+                  </span>
+                )}
+              </div>
+              {reply.frameworkSynthesis && (
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+                    <Compass className="h-3 w-3" />
+                    {ar ? "توليف الإطار" : "Framework Synthesis"}
+                  </div>
+                  <p className="text-xs leading-relaxed text-foreground/80">{reply.frameworkSynthesis}</p>
+                </div>
+              )}
+              {reply.perspectiveMap && (
+                <div className="space-y-1.5">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+                    <Layers className="h-3 w-3" />
+                    {ar ? "خريطة العدسات" : "Perspective Map"}
+                  </div>
+                  <div className="space-y-1">
+                    {reply.perspectiveMap.split("|").map((seg, i) => {
+                      const colonIdx = seg.indexOf(":");
+                      if (colonIdx === -1) return null;
+                      const tag = seg.slice(0, colonIdx).trim().toUpperCase();
+                      const text = seg.slice(colonIdx + 1).trim();
+                      if (!tag || !text) return null;
+                      const labelAr: Record<string, string> = {
+                        MACRO: "الكلي", POLICY: "السياسة", ALLOCATOR: "المخصص",
+                        BEHAVIORAL: "السلوكي", HISTORICAL: "التاريخي",
+                      };
+                      return (
+                        <div key={i} className="flex items-start gap-2 text-xs">
+                          {tag === "MACRO" ? <TrendingUp className="h-3 w-3 mt-0.5 shrink-0 text-primary/50" />
+                            : tag === "POLICY" ? <Scale className="h-3 w-3 mt-0.5 shrink-0 text-warning/60" />
+                            : tag === "ALLOCATOR" ? <PieChart className="h-3 w-3 mt-0.5 shrink-0 text-success/50" />
+                            : tag === "BEHAVIORAL" ? <Activity className="h-3 w-3 mt-0.5 shrink-0 text-primary/40" />
+                            : <BookOpen className="h-3 w-3 mt-0.5 shrink-0 text-muted-foreground/50" />}
+                          <div>
+                            <span className="font-semibold text-muted-foreground/80">
+                              {ar ? (labelAr[tag] ?? tag) : tag}:{" "}
+                            </span>
+                            <span className="text-foreground/80">{text}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {reply.reasoningPlurality && (
+                <div className="rounded-lg border border-border/30 bg-muted/20 px-3 py-2">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Network className="h-3 w-3 text-muted-foreground/60" />
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                      {ar ? "نقاش اللجنة" : "Committee Debate"}
+                    </div>
+                  </div>
+                  <p className="text-xs leading-relaxed text-foreground/80">{reply.reasoningPlurality}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Phase 65: Committee debate panel (bull/bear committee split) */}
+          {(reply.committeeBullCase || reply.committeeBearCase || reply.selectionFramework) && engine === "ai" && (
+            <div className="rounded-xl border border-border/40 bg-muted/15 px-4 py-3 space-y-2">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <Compass className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  {ar ? "نقاش لجنة الاستثمار" : "Committee Debate"}
+                </div>
+                <span className="ms-1 rounded-md border border-border/50 bg-muted/30 px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold text-muted-foreground">
+                  {ar ? "تعليمي" : "Advisory"}
+                </span>
+              </div>
+              {reply.selectionFramework && (
+                <div className="flex items-start gap-2 text-xs">
+                  <Brain className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
+                  <div>
+                    <span className="font-semibold text-primary/70">{ar ? "الإطار: " : "Framework: "}</span>
+                    <span className="text-foreground/80">{reply.selectionFramework}</span>
+                  </div>
+                </div>
+              )}
+              {reply.committeeBullCase && (
+                <div className="flex items-start gap-2 text-xs">
+                  <TrendingUp className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/60" />
+                  <div>
+                    <span className="font-semibold text-success/70">{ar ? "الصاعد: " : "Bull: "}</span>
+                    <span className="text-foreground/80">{reply.committeeBullCase}</span>
+                  </div>
+                </div>
+              )}
+              {reply.committeeBearCase && (
+                <div className="flex items-start gap-2 text-xs">
+                  <TrendingDown className="h-3.5 w-3.5 mt-0.5 shrink-0 text-destructive/60" />
+                  <div>
+                    <span className="font-semibold text-destructive/70">{ar ? "الهابط: " : "Bear: "}</span>
+                    <span className="text-foreground/80">{reply.committeeBearCase}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════════
+              TIER 3 — THESIS CASES + MACRO CHAIN
+          ═══════════════════════════════════════════════════════════════════ */}
+
+          {/* Phase 63: Bull/Bear/Base case panel */}
+          {(reply.bullCase || reply.bearCase || reply.baseCase) && engine === "ai" && (
+            <div className="rounded-xl border border-border/40 bg-muted/15 px-4 py-3 space-y-2">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <Scale className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  {ar ? "الحالات الثلاث" : "Bull / Bear / Base"}
+                </div>
+              </div>
+              {reply.bullCase && (
+                <div className="flex items-start gap-2 text-xs">
+                  <TrendingUp className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/60" />
+                  <div>
+                    <span className="font-semibold text-success/70">{ar ? "الصاعد: " : "Bull: "}</span>
+                    <span className="text-foreground/80">{reply.bullCase}</span>
+                  </div>
+                </div>
+              )}
+              {reply.bearCase && (
+                <div className="flex items-start gap-2 text-xs">
+                  <TrendingDown className="h-3.5 w-3.5 mt-0.5 shrink-0 text-destructive/60" />
+                  <div>
+                    <span className="font-semibold text-destructive/70">{ar ? "الهابط: " : "Bear: "}</span>
+                    <span className="text-foreground/80">{reply.bearCase}</span>
+                  </div>
+                </div>
+              )}
+              {reply.baseCase && (
+                <div className="flex items-start gap-2 text-xs">
+                  <Minus className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
+                  <div>
+                    <span className="font-semibold text-primary/70">{ar ? "الأساسي: " : "Base: "}</span>
+                    <span className="text-foreground/80">{reply.baseCase}</span>
+                  </div>
+                </div>
+              )}
+              {reply.dominantCaseJustification && (
+                <p className="text-[11px] italic text-muted-foreground border-t border-border/30 pt-1.5 mt-1">
+                  {reply.dominantCaseJustification}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Phase 63: Macro chain narrative */}
+          {reply.macroChain && engine === "ai" && (
+            <div className="rounded-xl border border-border/30 bg-muted/10 px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <TrendingUp className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  {ar ? "السلسلة الكلية" : "Macro Chain"}
+                </div>
+              </div>
+              <p className="text-xs leading-relaxed text-foreground/80">{reply.macroChain}</p>
+              {(reply.missingEvidence || reply.thesisChanger) && (
+                <div className="mt-2 space-y-1 border-t border-border/20 pt-2">
+                  {reply.missingEvidence && (
+                    <p className="text-[11px] text-muted-foreground">
+                      <span className="font-semibold">{ar ? "أدلة مفقودة: " : "Missing evidence: "}</span>
+                      {reply.missingEvidence}
+                    </p>
+                  )}
+                  {reply.thesisChanger && (
+                    <p className="text-[11px] text-muted-foreground">
+                      <span className="font-semibold">{ar ? "المُغيِّر: " : "Thesis changer: "}</span>
+                      {reply.thesisChanger}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Phase 64: Sector lens narrative */}
+          {reply.sectorLens && engine === "ai" && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Layers className="h-3.5 w-3.5 text-primary/60" />
+                <div className="text-[10px] uppercase tracking-wider text-primary/70 font-semibold">
+                  {ar ? "تحليل القطاعات" : "Sector Intelligence"}
+                </div>
+              </div>
+              <p className="text-xs leading-relaxed text-foreground/80">{reply.sectorLens}</p>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════════
+              TIER 4 — EVIDENCE (executive summary, key drivers, agent views)
+          ═══════════════════════════════════════════════════════════════════ */}
+
+          {/* Phase 8: Executive Summary — research mode */}
+          {reply.executiveSummary && (
+            <div className="rounded-xl border border-primary/40 bg-primary/8 px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <FileText className="h-3.5 w-3.5 text-primary/70" />
+                <div className="text-[10px] uppercase tracking-wider text-primary font-semibold">
+                  {ar ? "الملخص التنفيذي" : "Executive Summary"}
+                </div>
+                <span className="ms-1 rounded-md border border-border/50 bg-muted/30 px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold text-muted-foreground">
+                  {ar ? "تعليمي" : "Advisory"}
+                </span>
+              </div>
+              <p className="text-sm font-medium leading-relaxed text-foreground/90">{reply.executiveSummary}</p>
+            </div>
+          )}
+
+          {/* Phase 12: Agent Arbitration Panel — collapsed as secondary analytical detail */}
+          {(reply.trackViewMacro || reply.trackViewTechnical || reply.trackViewCrossAsset || reply.trackViewRisk || reply.trackViewPositioning) && engine === "ai" && (
+            <div className="rounded-xl border border-border/40 bg-muted/20 px-4 py-3 space-y-2.5">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Network className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  {ar ? "رأي كل وكيل" : "Agent Views"}
+                </div>
+              </div>
+              {reply.trackViewMacro && (
+                <div className="flex items-start gap-2 text-xs">
+                  <TrendingUp className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
+                  <div>
+                    <span className="font-semibold text-primary/70">{ar ? "الكلي (A): " : "Macro (A): "}</span>
+                    <span className="text-foreground/80">{reply.trackViewMacro}</span>
+                  </div>
+                </div>
+              )}
+              {reply.trackViewTechnical && (
+                <div className="flex items-start gap-2 text-xs">
+                  <Activity className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
+                  <div>
+                    <span className="font-semibold text-primary/70">{ar ? "التقني (B): " : "Technical (B): "}</span>
+                    <span className="text-foreground/80">{reply.trackViewTechnical}</span>
+                  </div>
+                </div>
+              )}
+              {reply.trackViewCrossAsset && (
+                <div className="flex items-start gap-2 text-xs">
+                  <Layers className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
+                  <div>
+                    <span className="font-semibold text-primary/70">{ar ? "متعدد الأصول (C): " : "Cross-Asset (C): "}</span>
+                    <span className="text-foreground/80">{reply.trackViewCrossAsset}</span>
+                  </div>
+                </div>
+              )}
+              {reply.trackViewRisk && (
+                <div className="flex items-start gap-2 text-xs">
+                  <ShieldAlert className="h-3.5 w-3.5 mt-0.5 shrink-0 text-warning/60" />
+                  <div>
+                    <span className="font-semibold text-warning/70">{ar ? "المخاطر (D): " : "Risk (D): "}</span>
+                    <span className="text-foreground/80">{reply.trackViewRisk}</span>
+                  </div>
+                </div>
+              )}
+              {reply.trackViewPositioning && (
+                <div className="flex items-start gap-2 text-xs">
+                  <Scale className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
+                  <div>
+                    <span className="font-semibold text-primary/70">{ar ? "التموضع (E): " : "Positioning (E): "}</span>
+                    <span className="text-foreground/80">{reply.trackViewPositioning}</span>
+                  </div>
+                </div>
+              )}
+              {reply.trackViewPortfolio && (
+                <div className="flex items-start gap-2 text-xs">
+                  <PieChart className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/50" />
+                  <div>
+                    <span className="font-semibold text-success/70">{ar ? "المحفظة (F): " : "Portfolio (F): "}</span>
+                    <span className="text-foreground/80">{reply.trackViewPortfolio}</span>
+                  </div>
+                </div>
+              )}
+              {reply.arbitrationReason && (
+                <div className="flex items-start gap-2 rounded-lg border border-success/25 bg-success/5 px-3 py-2 text-xs mt-1">
+                  <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/70" />
+                  <div>
+                    <span className="font-semibold text-success/80">{ar ? "لماذا تتفوق هذه الأطروحة: " : "Why this thesis wins: "}</span>
+                    <span className="text-foreground/80">{reply.arbitrationReason}</span>
+                  </div>
+                </div>
+              )}
+              {reply.disagreementMap && reply.disagreementMap.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <AlertTriangle className="h-3 w-3 text-warning/60 shrink-0" />
+                  {reply.disagreementMap.map((d, i) => (
+                    <span key={i} className="rounded-md border border-warning/30 bg-warning/8 px-2 py-0.5 text-[10px] text-warning font-medium">
+                      {d}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Institutional evidence */}
+          {reply.evidence && reply.evidence.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+                {ar ? "الأدلة المؤسسية" : "Institutional Evidence"}
+              </div>
+              <ul className="space-y-1.5">
+                {reply.evidence.map((e, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-foreground/90">
+                    <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/60" />
+                    <span>{e}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Phase 8: Key Drivers */}
+          {reply.keyDrivers && reply.keyDrivers.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center gap-1.5">
+                <Layers className="h-3 w-3" />
+                {ar ? "المحركات الرئيسية" : "Key Drivers"}
+              </div>
+              <ul className="space-y-1.5">
+                {reply.keyDrivers.map((d, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-foreground/90">
+                    <TrendingUp className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
+                    <span>{d}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Analytical Outlook */}
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+              {ar ? "النظرة التحليلية" : "Analytical Outlook"}
+            </div>
+            <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-line">{reply.outlook}</p>
+          </div>
+
+          {/* Phase 6: Multi-agent synthesis — supporting / opposing / consensus */}
+          {(reply.supportingCase || reply.opposingCase || reply.consensusStrength) && (
+            <div className="space-y-2">
+              {reply.consensusStrength && (
+                <div className="flex items-center gap-2">
+                  <Scale className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    {ar ? "إجماع الوكلاء:" : "Agent consensus:"}
+                  </span>
+                  <span className={cn(
+                    "rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                    reply.consensusStrength === "strong"    ? "bg-success/10 text-success ring-1 ring-success/25" :
+                    reply.consensusStrength === "moderate"  ? "bg-primary/10 text-primary ring-1 ring-primary/25" :
+                    reply.consensusStrength === "weak"      ? "bg-muted/40 text-muted-foreground ring-1 ring-border/40" :
+                    "bg-warning/10 text-warning ring-1 ring-warning/30",
+                  )}>
+                    {ar
+                      ? reply.consensusStrength === "strong" ? "قوي"
+                        : reply.consensusStrength === "moderate" ? "معتدل"
+                        : reply.consensusStrength === "weak" ? "ضعيف" : "متعارض"
+                      : reply.consensusStrength}
+                  </span>
+                  {reply.disagreementNote && (
+                    <span className="flex items-center gap-1 text-[10px] text-warning">
+                      <AlertTriangle className="h-3 w-3 shrink-0" />
+                      {reply.disagreementNote}
+                    </span>
+                  )}
+                </div>
+              )}
+              {reply.supportingCase && (
+                <div className="flex items-start gap-2 rounded-xl border border-success/25 bg-success/5 px-3 py-2 text-xs">
+                  <TrendingUp className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/70" />
+                  <div>
+                    <span className="font-semibold text-success/80">{ar ? "أقوى الحجج الداعمة: " : "Supporting case: "}</span>
+                    <span className="text-foreground/80">{reply.supportingCase}</span>
+                  </div>
+                </div>
+              )}
+              {reply.opposingCase && (
+                <div className="flex items-start gap-2 rounded-xl border border-warning/25 bg-warning/5 px-3 py-2 text-xs">
+                  <TrendingDown className="h-3.5 w-3.5 mt-0.5 shrink-0 text-warning/70" />
+                  <div>
+                    <span className="font-semibold text-warning/80">{ar ? "محامي الشيطان: " : "Devil's advocate: "}</span>
+                    <span className="text-foreground/80">{reply.opposingCase}</span>
+                  </div>
+                </div>
+              )}
+              {reply.crossAssetConfirmation && (
+                <div className="flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs">
+                  <Layers className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/60" />
+                  <div>
+                    <span className="font-semibold text-primary/80">{ar ? "تأكيد الأصول المتقاطعة: " : "Cross-asset confirmation: "}</span>
+                    <span className="text-foreground/80">{reply.crossAssetConfirmation}</span>
+                  </div>
+                </div>
+              )}
+              {reply.positioningSignal && (
+                <div className="flex items-start gap-2 rounded-xl border border-muted/50 bg-muted/20 px-3 py-2 text-xs">
+                  <Scale className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground/60" />
+                  <div>
+                    <span className="font-semibold text-muted-foreground">{ar ? "إشارة التموضع: " : "Positioning signal: "}</span>
+                    <span className="text-foreground/80">{reply.positioningSignal}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════════
+              TIER 5 — SCENARIOS + PORTFOLIO IMPLICATIONS
+          ═══════════════════════════════════════════════════════════════════ */}
+
+          {/* Scenarios */}
+          {reply.scenarios?.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+                {ar ? "السيناريوهات" : "Scenarios"}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {reply.scenarios.map((s, i) => (
+                  <ScenarioCard key={i} scenario={s} index={i} ar={ar} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Portfolio impact */}
+          {reply.portfolioImpact && (
+            <div className="rounded-xl border border-success/25 bg-success/5 px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <PieChart className="h-3.5 w-3.5 text-success/70" />
+                <div className="text-[10px] uppercase tracking-wider text-success font-semibold">
+                  {ar ? "الأثر على محفظتك" : "Portfolio Impact"}
+                </div>
+              </div>
+              <p className="text-sm leading-relaxed text-foreground/90">{reply.portfolioImpact}</p>
+            </div>
+          )}
+
+          {/* Phase 7: Scenario simulation output */}
+          {reply.simulatedScenario && (
+            <div className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Zap className="h-3.5 w-3.5 text-primary/70" />
+                <div className="text-[10px] uppercase tracking-wider text-primary font-semibold">
+                  {ar ? "محاكاة السيناريو" : "Scenario Simulation"}
+                </div>
+                <span className="ms-1 rounded-md border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold text-warning">
+                  {ar ? "تعليمي" : "Advisory"}
+                </span>
+              </div>
+              <p className="text-sm font-semibold text-foreground/90">{reply.simulatedScenario}</p>
+              {reply.expectedImpact && (
+                <p className="text-sm text-foreground/80 leading-relaxed">{reply.expectedImpact}</p>
+              )}
+              {reply.watchlistSensitivity && (
+                <div className="flex items-start gap-2 text-xs text-foreground/80">
+                  <PieChart className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/60" />
+                  <span><span className="font-semibold text-primary/80">{ar ? "محفظتك: " : "Your watchlist: "}</span>{reply.watchlistSensitivity}</span>
+                </div>
+              )}
+              {reply.thesisSensitivity && (
+                <div className="flex items-start gap-2 text-xs text-foreground/80">
+                  <Brain className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/60" />
+                  <span><span className="font-semibold text-primary/80">{ar ? "الأطروحات: " : "Theses: "}</span>{reply.thesisSensitivity}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════════
+              TIER 6 — MONITORING (catalysts, risks, invalidation)
+          ═══════════════════════════════════════════════════════════════════ */}
+
+          {/* Catalysts to watch */}
+          {reply.catalysts && reply.catalysts.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center gap-1.5">
+                <Zap className="h-3 w-3" />
+                {ar ? "المحفزات المرتقبة" : "Catalysts to Watch"}
+              </div>
+              <ul className="space-y-1.5">
+                {reply.catalysts.map((c, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-foreground/90">
+                    <Zap className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/60" />
+                    <span>{c}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Risks */}
+          {reply.risks?.length > 0 && (
+            <div className="rounded-xl border border-warning/30 bg-warning/5 px-4 py-3">
+              <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-warning">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                {ar ? "المخاطر التي تستدعي المراقبة" : "Risks to monitor"}
+              </div>
+              <ul className="space-y-1 ps-4 text-sm text-foreground/90">
+                {reply.risks.map((r, i) => <li key={i} className="list-disc">{r}</li>)}
+              </ul>
+            </div>
+          )}
+
+          {/* Thesis invalidation condition */}
+          {reply.invalidation && (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <XCircle className="h-3.5 w-3.5 text-destructive/70" />
+                <div className="text-[10px] uppercase tracking-wider text-destructive font-semibold">
+                  {ar ? "شرط إلغاء الأطروحة" : "Thesis Invalidation"}
+                </div>
+              </div>
+              <p className="text-sm text-foreground/90">{reply.invalidation}</p>
+            </div>
+          )}
+
+          {/* Phase 8: Watch Items */}
+          {reply.watchItems && reply.watchItems.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center gap-1.5">
+                <Clock className="h-3 w-3" />
+                {ar ? "عناصر المراقبة" : "Watch Items"}
+              </div>
+              <ul className="space-y-1.5">
+                {reply.watchItems.map((w, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-foreground/80">
+                    <Eye className="h-3.5 w-3.5 mt-0.5 shrink-0 text-warning/60" />
+                    <span>{w}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Phase 8: Comparison Table */}
+          {reply.comparisonTable && reply.comparisonTable.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center gap-1.5">
+                <Scale className="h-3 w-3" />
+                {ar ? "جدول المقارنة" : "Comparison Table"}
+                {comparisonPair && (
+                  <span className="ms-1 font-mono text-[10px] text-primary/70">
+                    {comparisonPair[0]} vs {comparisonPair[1]}
+                  </span>
+                )}
+              </div>
+              <div className="rounded-xl border border-border/40 overflow-hidden">
+                {comparisonPair && (
+                  <div className="grid grid-cols-3 border-b border-border/40 bg-muted/30 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <div className="px-3 py-1.5">{ar ? "المقياس" : "Metric"}</div>
+                    <div className="px-3 py-1.5 border-l border-border/30 text-primary/80">{comparisonPair[0]}</div>
+                    <div className="px-3 py-1.5 border-l border-border/30 text-primary/80">{comparisonPair[1]}</div>
+                  </div>
+                )}
+                {reply.comparisonTable.map((row, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "grid grid-cols-3 text-xs",
+                      i > 0 && "border-t border-border/30",
+                      i % 2 === 0 ? "bg-background/40" : "bg-muted/10",
+                    )}
+                  >
+                    <div className="px-3 py-2 font-medium text-muted-foreground">{row.metric}</div>
+                    <div className="px-3 py-2 text-foreground/90 border-l border-border/30">{row.a}</div>
+                    <div className="px-3 py-2 text-foreground/90 border-l border-border/30">{row.b}</div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-1.5 text-[10px] italic text-muted-foreground/60">
+                {ar ? "للأغراض التعليمية — لا يُعتمد كأساس للتداول." : "Educational comparison only — not a basis for trading decisions."}
+              </p>
+            </div>
+          )}
+
+          {/* Uncertainty warning */}
+          {reply.uncertaintyWarning && (
+            <div className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/5 px-4 py-2.5 text-xs text-warning">
+              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span>{reply.uncertaintyWarning}</span>
+            </div>
+          )}
+
+          {/* Caveats / contradiction detection */}
+          {caveatsToShow.length > 0 && engine === "ai" && (
+            <div className="rounded-xl border border-warning/25 bg-warning/5 px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-2">
+                <ShieldAlert className="h-3.5 w-3.5 text-warning/70" />
+                <div className="text-[10px] uppercase tracking-wider text-warning font-semibold">
+                  {ar ? "تحفظات منطقية" : "Reasoning Caveats"}
+                </div>
+                {metaResult?.overconfidenceRisk && (
+                  <span className="ms-auto rounded-md border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[9px] font-bold text-warning uppercase tracking-wide">
+                    {ar ? "خطر الثقة المبالغ فيها" : "Overconfidence risk"}
+                  </span>
+                )}
+              </div>
+              <ul className="space-y-1.5">
+                {caveatsToShow.map((c, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-foreground/80">
+                    <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0 text-warning/60" />
+                    <span>{c}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Overconfidence flag without caveats */}
+          {metaResult?.overconfidenceRisk && caveatsToShow.length === 0 && engine === "ai" && (
+            <div className="flex items-center gap-2 rounded-xl border border-warning/25 bg-warning/5 px-4 py-2 text-xs text-warning">
+              <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+              {ar
+                ? `مراجعة الثقة: ${displayConfidence}% قد يعكس ثقة مبالغاً فيها نسبة للأدلة المتاحة`
+                : `Confidence review: ${displayConfidence}% may reflect overconfidence relative to available evidence`}
+            </div>
+          )}
+
+          {/* View change condition */}
+          {reply.viewChange && (
+            <div className="flex items-start gap-2 rounded-xl border border-border/50 bg-muted/20 px-4 py-2.5 text-xs">
+              <RefreshCw className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
+              <div>
+                <span className="font-semibold text-muted-foreground">{ar ? "تغيير الرأي: " : "View change: "}</span>
+                <span className="text-foreground/80">{reply.viewChange}</span>
+              </div>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════════
+              TIER 7 — ANALYSIS METADATA (confidence, regime — at the bottom)
+              Cards and regime labels are secondary information in the terminal.
+          ═══════════════════════════════════════════════════════════════════ */}
+
+          {/* Confidence bar — metadata, shown at the bottom */}
+          <div className="space-y-1.5 border-t border-border/20 pt-3">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">{ar ? "مستوى الثقة" : "Confidence level"}</span>
               <div className="flex items-center gap-2">
@@ -3313,845 +4150,6 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
             </div>
           )}
 
-          {/* Phase 63: Bull/Bear/Base case panel */}
-          {(reply.bullCase || reply.bearCase || reply.baseCase) && engine === "ai" && (
-            <div className="rounded-xl border border-border/40 bg-muted/15 px-4 py-3 space-y-2">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <Scale className="h-3.5 w-3.5 text-muted-foreground/60" />
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  {ar ? "الحالات الثلاث" : "Bull / Bear / Base"}
-                </div>
-              </div>
-              {reply.bullCase && (
-                <div className="flex items-start gap-2 text-xs">
-                  <TrendingUp className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/60" />
-                  <div>
-                    <span className="font-semibold text-success/70">{ar ? "الصاعد: " : "Bull: "}</span>
-                    <span className="text-foreground/80">{reply.bullCase}</span>
-                  </div>
-                </div>
-              )}
-              {reply.bearCase && (
-                <div className="flex items-start gap-2 text-xs">
-                  <TrendingDown className="h-3.5 w-3.5 mt-0.5 shrink-0 text-destructive/60" />
-                  <div>
-                    <span className="font-semibold text-destructive/70">{ar ? "الهابط: " : "Bear: "}</span>
-                    <span className="text-foreground/80">{reply.bearCase}</span>
-                  </div>
-                </div>
-              )}
-              {reply.baseCase && (
-                <div className="flex items-start gap-2 text-xs">
-                  <Minus className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
-                  <div>
-                    <span className="font-semibold text-primary/70">{ar ? "الأساسي: " : "Base: "}</span>
-                    <span className="text-foreground/80">{reply.baseCase}</span>
-                  </div>
-                </div>
-              )}
-              {reply.dominantCaseJustification && (
-                <p className="text-[11px] italic text-muted-foreground border-t border-border/30 pt-1.5 mt-1">
-                  {reply.dominantCaseJustification}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Phase 64: Sector lens narrative */}
-          {reply.sectorLens && engine === "ai" && (
-            <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <Layers className="h-3.5 w-3.5 text-primary/60" />
-                <div className="text-[10px] uppercase tracking-wider text-primary/70 font-semibold">
-                  {ar ? "تحليل القطاعات" : "Sector Intelligence"}
-                </div>
-              </div>
-              <p className="text-xs leading-relaxed text-foreground/80">{reply.sectorLens}</p>
-            </div>
-          )}
-
-          {/* Phase 65: Committee debate panel */}
-          {(reply.committeeBullCase || reply.committeeBearCase || reply.selectionFramework) && engine === "ai" && (
-            <div className="rounded-xl border border-border/40 bg-muted/15 px-4 py-3 space-y-2">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <Compass className="h-3.5 w-3.5 text-muted-foreground/60" />
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  {ar ? "نقاش لجنة الاستثمار" : "Committee Debate"}
-                </div>
-                <span className="ms-1 rounded-md border border-border/50 bg-muted/30 px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold text-muted-foreground">
-                  {ar ? "تعليمي" : "Advisory"}
-                </span>
-              </div>
-              {reply.selectionFramework && (
-                <div className="flex items-start gap-2 text-xs">
-                  <Brain className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
-                  <div>
-                    <span className="font-semibold text-primary/70">{ar ? "الإطار: " : "Framework: "}</span>
-                    <span className="text-foreground/80">{reply.selectionFramework}</span>
-                  </div>
-                </div>
-              )}
-              {reply.committeeBullCase && (
-                <div className="flex items-start gap-2 text-xs">
-                  <TrendingUp className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/60" />
-                  <div>
-                    <span className="font-semibold text-success/70">{ar ? "الصاعد: " : "Bull: "}</span>
-                    <span className="text-foreground/80">{reply.committeeBullCase}</span>
-                  </div>
-                </div>
-              )}
-              {reply.committeeBearCase && (
-                <div className="flex items-start gap-2 text-xs">
-                  <TrendingDown className="h-3.5 w-3.5 mt-0.5 shrink-0 text-destructive/60" />
-                  <div>
-                    <span className="font-semibold text-destructive/70">{ar ? "الهابط: " : "Bear: "}</span>
-                    <span className="text-foreground/80">{reply.committeeBearCase}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Phase 80-81: Committee Reasoning — framework synthesis, perspective map, dominant lens, reasoning plurality */}
-          {(reply.frameworkSynthesis || reply.perspectiveMap || reply.reasoningPlurality) && engine === "ai" && (
-            <div className="rounded-xl border border-primary/15 bg-muted/10 px-4 py-3 space-y-3">
-              {/* Header + dominant lens badge */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <Brain className="h-3.5 w-3.5 text-primary/60" />
-                <div className="text-[10px] uppercase tracking-wider text-primary/70 font-semibold">
-                  {ar ? "الاستدلال المؤسسي" : "Committee Reasoning"}
-                </div>
-                {reply.dominantLens && (
-                  <span className={cn(
-                    "ms-1 rounded-md border px-2 py-0.5 text-[9px] uppercase tracking-wider font-bold",
-                    reply.dominantLens === "allocator"
-                      ? "border-success/30 bg-success/8 text-success"
-                      : reply.dominantLens === "macro"
-                        ? "border-primary/25 bg-primary/8 text-primary"
-                        : reply.dominantLens === "policy"
-                          ? "border-warning/30 bg-warning/8 text-warning"
-                          : "border-border/50 bg-muted/30 text-muted-foreground",
-                  )}>
-                    {ar
-                      ? `العدسة: ${({"macro":"الكلي","policy":"السياسة","allocator":"المخصص","behavioral":"السلوكي","historical":"التاريخي","mixed":"مختلطة"} as Record<string,string>)[reply.dominantLens] ?? reply.dominantLens}`
-                      : `Dominant: ${reply.dominantLens}`}
-                  </span>
-                )}
-              </div>
-
-              {/* Framework Synthesis */}
-              {reply.frameworkSynthesis && (
-                <div className="space-y-1">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
-                    <Compass className="h-3 w-3" />
-                    {ar ? "توليف الإطار" : "Framework Synthesis"}
-                  </div>
-                  <p className="text-xs leading-relaxed text-foreground/80">{reply.frameworkSynthesis}</p>
-                </div>
-              )}
-
-              {/* Perspective Map — parsed from pipe-separated lens sections */}
-              {reply.perspectiveMap && (
-                <div className="space-y-1.5">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
-                    <Layers className="h-3 w-3" />
-                    {ar ? "خريطة العدسات" : "Perspective Map"}
-                  </div>
-                  <div className="space-y-1">
-                    {reply.perspectiveMap.split("|").map((seg, i) => {
-                      const colonIdx = seg.indexOf(":");
-                      if (colonIdx === -1) return null;
-                      const tag = seg.slice(0, colonIdx).trim().toUpperCase();
-                      const text = seg.slice(colonIdx + 1).trim();
-                      if (!tag || !text) return null;
-                      const labelAr: Record<string, string> = {
-                        MACRO: "الكلي", POLICY: "السياسة", ALLOCATOR: "المخصص",
-                        BEHAVIORAL: "السلوكي", HISTORICAL: "التاريخي",
-                      };
-                      return (
-                        <div key={i} className="flex items-start gap-2 text-xs">
-                          {tag === "MACRO" ? <TrendingUp className="h-3 w-3 mt-0.5 shrink-0 text-primary/50" />
-                            : tag === "POLICY" ? <Scale className="h-3 w-3 mt-0.5 shrink-0 text-warning/60" />
-                            : tag === "ALLOCATOR" ? <PieChart className="h-3 w-3 mt-0.5 shrink-0 text-success/50" />
-                            : tag === "BEHAVIORAL" ? <Activity className="h-3 w-3 mt-0.5 shrink-0 text-primary/40" />
-                            : <BookOpen className="h-3 w-3 mt-0.5 shrink-0 text-muted-foreground/50" />}
-                          <div>
-                            <span className="font-semibold text-muted-foreground/80">
-                              {ar ? (labelAr[tag] ?? tag) : tag}:{" "}
-                            </span>
-                            <span className="text-foreground/80">{text}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Committee Debate — reasoning plurality: agreement, conflict, dominance */}
-              {reply.reasoningPlurality && (
-                <div className="rounded-lg border border-border/30 bg-muted/20 px-3 py-2">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Network className="h-3 w-3 text-muted-foreground/60" />
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                      {ar ? "نقاش اللجنة" : "Committee Debate"}
-                    </div>
-                  </div>
-                  <p className="text-xs leading-relaxed text-foreground/80">{reply.reasoningPlurality}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Phase 82A: Committee Generation Engine — structured multi-voice institutional reasoning */}
-          {(reply.voiceReasoning || reply.committeeSynthesis) && engine === "ai" && (() => {
-            const vr = reply.voiceReasoning;
-            const cs = reply.committeeSynthesis;
-            const voices: Array<{ key: "macro" | "policy" | "allocator" | "behavioral" | "historical"; labelEn: string; labelAr: string; icon: JSX.Element }> = [
-              { key: "macro",      labelEn: "Macro",      labelAr: "الكلي",    icon: <TrendingUp className="h-3 w-3 mt-0.5 shrink-0 text-primary/60" /> },
-              { key: "policy",     labelEn: "Policy",     labelAr: "السياسة",  icon: <Scale className="h-3 w-3 mt-0.5 shrink-0 text-warning/70" /> },
-              { key: "allocator",  labelEn: "Allocator",  labelAr: "المخصص",  icon: <PieChart className="h-3 w-3 mt-0.5 shrink-0 text-success/60" /> },
-              { key: "behavioral", labelEn: "Behavioral", labelAr: "السلوكي", icon: <Activity className="h-3 w-3 mt-0.5 shrink-0 text-primary/40" /> },
-              { key: "historical", labelEn: "Historical", labelAr: "التاريخي", icon: <BookOpen className="h-3 w-3 mt-0.5 shrink-0 text-muted-foreground/50" /> },
-            ].filter(v => vr?.[v.key]);
-
-            const domVoice = cs?.dominantVoice;
-            const domVoiceLabelAr: Record<string, string> = {
-              macro: "الكلي", policy: "السياسة", allocator: "المخصص",
-              behavioral: "السلوكي", historical: "التاريخي", mixed: "مختلطة",
-            };
-
-            return (
-              <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 space-y-0">
-                {/* Header — title + dominant voice badge + toggle */}
-                <button
-                  type="button"
-                  onClick={() => setCommitteeOpen(o => !o)}
-                  className="flex w-full items-center gap-1.5 flex-wrap text-start"
-                >
-                  <Network className="h-3.5 w-3.5 text-primary/60" />
-                  <div className="text-[10px] uppercase tracking-wider text-primary/70 font-semibold flex-1">
-                    {ar ? "لجنة الاستثمار" : "Investment Committee"}
-                  </div>
-                  {domVoice && (
-                    <span className={cn(
-                      "rounded-md border px-2 py-0.5 text-[9px] uppercase tracking-wider font-bold",
-                      domVoice === "allocator"
-                        ? "border-success/30 bg-success/8 text-success"
-                        : domVoice === "macro"
-                          ? "border-primary/25 bg-primary/8 text-primary"
-                          : domVoice === "policy"
-                            ? "border-warning/30 bg-warning/8 text-warning"
-                            : "border-border/50 bg-muted/30 text-muted-foreground",
-                    )}>
-                      {ar
-                        ? `${domVoiceLabelAr[domVoice] ?? domVoice}-led`
-                        : `${domVoice.charAt(0).toUpperCase() + domVoice.slice(1)}-led`}
-                    </span>
-                  )}
-                  <span className="ms-1 rounded-md border border-border/50 bg-muted/30 px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold text-muted-foreground">
-                    {ar ? "تعليمي" : "Advisory"}
-                  </span>
-                  <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground/50 transition-transform ms-auto", committeeOpen && "rotate-180")} />
-                </button>
-
-                {committeeOpen && (
-                  <div className="mt-3 space-y-3">
-                    {/* Voice reasoning rows */}
-                    {voices.length > 0 && (
-                      <div className="space-y-2.5">
-                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
-                          <Layers className="h-3 w-3" />
-                          {ar ? "أصوات اللجنة" : "Committee Voices"}
-                        </div>
-                        {voices.map(v => (
-                          <div key={v.key} className="flex items-start gap-2 text-xs">
-                            {v.icon}
-                            <div className="min-w-0">
-                              <span className="font-semibold text-muted-foreground/80">
-                                {ar ? v.labelAr : v.labelEn}:{" "}
-                              </span>
-                              <span className="text-foreground/80">{vr?.[v.key]}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Committee synthesis */}
-                    {cs && (cs.agreement || cs.disagreement || cs.finalStance) && (
-                      <div className="rounded-lg border border-border/30 bg-muted/20 px-3 py-2.5 space-y-1.5">
-                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1 mb-1">
-                          <Compass className="h-3 w-3" />
-                          {ar ? "توليف اللجنة" : "Committee Synthesis"}
-                        </div>
-                        {cs.agreement && (
-                          <div className="flex items-start gap-2 text-xs">
-                            <CheckCircle2 className="h-3 w-3 mt-0.5 shrink-0 text-success/60" />
-                            <div>
-                              <span className="font-semibold text-success/70">{ar ? "نقاط الاتفاق: " : "Agreement: "}</span>
-                              <span className="text-foreground/80">{cs.agreement}</span>
-                            </div>
-                          </div>
-                        )}
-                        {cs.disagreement && (
-                          <div className="flex items-start gap-2 text-xs">
-                            <Scale className="h-3 w-3 mt-0.5 shrink-0 text-warning/60" />
-                            <div>
-                              <span className="font-semibold text-warning/70">{ar ? "نقاط الخلاف: " : "Disagreement: "}</span>
-                              <span className="text-foreground/80">{cs.disagreement}</span>
-                            </div>
-                          </div>
-                        )}
-                        {cs.finalStance && (
-                          <div className="flex items-start gap-2 text-xs border-t border-border/20 pt-1.5 mt-0.5">
-                            <Brain className="h-3 w-3 mt-0.5 shrink-0 text-primary/60" />
-                            <div>
-                              <span className="font-semibold text-primary/70">{ar ? "موقف اللجنة: " : "Final Stance: "}</span>
-                              <span className="text-foreground/80">{cs.finalStance}</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* Phase 63: Macro chain narrative */}
-          {reply.macroChain && engine === "ai" && (
-            <div className="rounded-xl border border-border/30 bg-muted/10 px-4 py-3">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <TrendingUp className="h-3.5 w-3.5 text-muted-foreground/60" />
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  {ar ? "السلسلة الكلية" : "Macro Chain"}
-                </div>
-              </div>
-              <p className="text-xs leading-relaxed text-foreground/80">{reply.macroChain}</p>
-              {(reply.missingEvidence || reply.thesisChanger) && (
-                <div className="mt-2 space-y-1 border-t border-border/20 pt-2">
-                  {reply.missingEvidence && (
-                    <p className="text-[11px] text-muted-foreground">
-                      <span className="font-semibold">{ar ? "أدلة مفقودة: " : "Missing evidence: "}</span>
-                      {reply.missingEvidence}
-                    </p>
-                  )}
-                  {reply.thesisChanger && (
-                    <p className="text-[11px] text-muted-foreground">
-                      <span className="font-semibold">{ar ? "المُغيِّر: " : "Thesis changer: "}</span>
-                      {reply.thesisChanger}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Phase 8: Executive Summary — top of research report */}
-          {reply.executiveSummary && (
-            <div className="rounded-xl border border-primary/40 bg-primary/8 px-4 py-3">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <FileText className="h-3.5 w-3.5 text-primary/70" />
-                <div className="text-[10px] uppercase tracking-wider text-primary font-semibold">
-                  {ar ? "الملخص التنفيذي" : "Executive Summary"}
-                </div>
-                <span className="ms-1 rounded-md border border-border/50 bg-muted/30 px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold text-muted-foreground">
-                  {ar ? "تعليمي" : "Advisory"}
-                </span>
-              </div>
-              <p className="text-sm font-medium leading-relaxed text-foreground/90">{reply.executiveSummary}</p>
-            </div>
-          )}
-
-          {/* Investment thesis + reasoning */}
-          {reply.thesis && (
-            <div className="rounded-xl border border-primary/30 bg-primary/8 px-4 py-3">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <Brain className="h-3.5 w-3.5 text-primary/70" />
-                <div className="text-[10px] uppercase tracking-wider text-primary font-semibold">
-                  {ar ? "الأطروحة الاستثمارية" : "Investment Thesis"}
-                </div>
-              </div>
-              <p className="text-sm font-semibold leading-snug">{reply.thesis}</p>
-              {reply.reasoning && (
-                <p className="mt-1.5 text-xs italic text-foreground/70 leading-relaxed">{reply.reasoning}</p>
-              )}
-            </div>
-          )}
-
-          {/* Phase 12: Agent Arbitration Panel — per-track views + why base thesis wins */}
-          {(reply.trackViewMacro || reply.trackViewTechnical || reply.trackViewCrossAsset || reply.trackViewRisk || reply.trackViewPositioning) && engine === "ai" && (
-            <div className="rounded-xl border border-border/40 bg-muted/20 px-4 py-3 space-y-2.5">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Network className="h-3.5 w-3.5 text-muted-foreground/60" />
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  {ar ? "رأي كل وكيل" : "Agent Views"}
-                </div>
-              </div>
-              {reply.trackViewMacro && (
-                <div className="flex items-start gap-2 text-xs">
-                  <TrendingUp className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
-                  <div>
-                    <span className="font-semibold text-primary/70">{ar ? "الكلي (A): " : "Macro (A): "}</span>
-                    <span className="text-foreground/80">{reply.trackViewMacro}</span>
-                  </div>
-                </div>
-              )}
-              {reply.trackViewTechnical && (
-                <div className="flex items-start gap-2 text-xs">
-                  <Activity className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
-                  <div>
-                    <span className="font-semibold text-primary/70">{ar ? "التقني (B): " : "Technical (B): "}</span>
-                    <span className="text-foreground/80">{reply.trackViewTechnical}</span>
-                  </div>
-                </div>
-              )}
-              {reply.trackViewCrossAsset && (
-                <div className="flex items-start gap-2 text-xs">
-                  <Layers className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
-                  <div>
-                    <span className="font-semibold text-primary/70">{ar ? "متعدد الأصول (C): " : "Cross-Asset (C): "}</span>
-                    <span className="text-foreground/80">{reply.trackViewCrossAsset}</span>
-                  </div>
-                </div>
-              )}
-              {reply.trackViewRisk && (
-                <div className="flex items-start gap-2 text-xs">
-                  <ShieldAlert className="h-3.5 w-3.5 mt-0.5 shrink-0 text-warning/60" />
-                  <div>
-                    <span className="font-semibold text-warning/70">{ar ? "المخاطر (D): " : "Risk (D): "}</span>
-                    <span className="text-foreground/80">{reply.trackViewRisk}</span>
-                  </div>
-                </div>
-              )}
-              {reply.trackViewPositioning && (
-                <div className="flex items-start gap-2 text-xs">
-                  <Scale className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
-                  <div>
-                    <span className="font-semibold text-primary/70">{ar ? "التموضع (E): " : "Positioning (E): "}</span>
-                    <span className="text-foreground/80">{reply.trackViewPositioning}</span>
-                  </div>
-                </div>
-              )}
-              {reply.trackViewPortfolio && (
-                <div className="flex items-start gap-2 text-xs">
-                  <PieChart className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/50" />
-                  <div>
-                    <span className="font-semibold text-success/70">{ar ? "المحفظة (F): " : "Portfolio (F): "}</span>
-                    <span className="text-foreground/80">{reply.trackViewPortfolio}</span>
-                  </div>
-                </div>
-              )}
-              {reply.arbitrationReason && (
-                <div className="flex items-start gap-2 rounded-lg border border-success/25 bg-success/5 px-3 py-2 text-xs mt-1">
-                  <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/70" />
-                  <div>
-                    <span className="font-semibold text-success/80">{ar ? "لماذا تتفوق هذه الأطروحة: " : "Why this thesis wins: "}</span>
-                    <span className="text-foreground/80">{reply.arbitrationReason}</span>
-                  </div>
-                </div>
-              )}
-              {reply.disagreementMap && reply.disagreementMap.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                  <AlertTriangle className="h-3 w-3 text-warning/60 shrink-0" />
-                  {reply.disagreementMap.map((d, i) => (
-                    <span key={i} className="rounded-md border border-warning/30 bg-warning/8 px-2 py-0.5 text-[10px] text-warning font-medium">
-                      {d}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Headline */}
-          <div className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
-            <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-1">
-              {ar ? "الخلاصة" : "Headline"}
-            </div>
-            <p className="text-sm font-semibold leading-snug">{reply.headline}</p>
-          </div>
-
-          {/* Institutional Memo — server-composed canonical memo in institutional order */}
-          {reply.institutionalMemo && engine === "ai" && (
-            <div className="rounded-xl border border-primary/30 bg-primary/4 px-4 py-4 space-y-3">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <FileText className="h-3.5 w-3.5 text-primary/70" />
-                <div className="text-[10px] uppercase tracking-wider text-primary font-semibold">
-                  {ar ? "المذكرة الاستثمارية المؤسسية" : "Institutional Investment Memo"}
-                </div>
-              </div>
-              <div className="text-sm leading-relaxed text-foreground/90 whitespace-pre-line space-y-2">
-                {reply.institutionalMemo.split("\n\n").map((block, i) => {
-                  const boldMatch = block.match(/^\*\*(.+?)\*\*\n([\s\S]+)$/);
-                  if (boldMatch) {
-                    return (
-                      <div key={i}>
-                        <div className="text-[10px] uppercase tracking-wider text-primary/70 font-semibold mb-0.5">{boldMatch[1]}</div>
-                        <p className="text-sm leading-relaxed text-foreground/85">{boldMatch[2]}</p>
-                      </div>
-                    );
-                  }
-                  return <p key={i} className="text-sm leading-relaxed text-foreground/85">{block}</p>;
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Institutional evidence */}
-          {reply.evidence && reply.evidence.length > 0 && (
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
-                {ar ? "الأدلة المؤسسية" : "Institutional Evidence"}
-              </div>
-              <ul className="space-y-1.5">
-                {reply.evidence.map((e, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-foreground/90">
-                    <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/60" />
-                    <span>{e}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Phase 8: Key Drivers */}
-          {reply.keyDrivers && reply.keyDrivers.length > 0 && (
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center gap-1.5">
-                <Layers className="h-3 w-3" />
-                {ar ? "المحركات الرئيسية" : "Key Drivers"}
-              </div>
-              <ul className="space-y-1.5">
-                {reply.keyDrivers.map((d, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-foreground/90">
-                    <TrendingUp className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/50" />
-                    <span>{d}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Outlook */}
-          <div>
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
-              {ar ? "النظرة التحليلية" : "Analytical Outlook"}
-            </div>
-            <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-line">{reply.outlook}</p>
-          </div>
-
-          {/* Catalysts to watch */}
-          {reply.catalysts && reply.catalysts.length > 0 && (
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center gap-1.5">
-                <Zap className="h-3 w-3" />
-                {ar ? "المحفزات المرتقبة" : "Catalysts to Watch"}
-              </div>
-              <ul className="space-y-1.5">
-                {reply.catalysts.map((c, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-foreground/90">
-                    <Zap className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/60" />
-                    <span>{c}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Portfolio impact */}
-          {reply.portfolioImpact && (
-            <div className="rounded-xl border border-success/25 bg-success/5 px-4 py-3">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <PieChart className="h-3.5 w-3.5 text-success/70" />
-                <div className="text-[10px] uppercase tracking-wider text-success font-semibold">
-                  {ar ? "الأثر على محفظتك" : "Portfolio Impact"}
-                </div>
-              </div>
-              <p className="text-sm leading-relaxed text-foreground/90">{reply.portfolioImpact}</p>
-            </div>
-          )}
-
-          {/* Scenarios */}
-          {reply.scenarios?.length > 0 && (
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
-                {ar ? "السيناريوهات" : "Scenarios"}
-              </div>
-              <div className="grid gap-3 sm:grid-cols-3">
-                {reply.scenarios.map((s, i) => (
-                  <ScenarioCard key={i} scenario={s} index={i} ar={ar} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Risks */}
-          {reply.risks?.length > 0 && (
-            <div className="rounded-xl border border-warning/30 bg-warning/5 px-4 py-3">
-              <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-warning">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                {ar ? "المخاطر التي تستدعي المراقبة" : "Risks to monitor"}
-              </div>
-              <ul className="space-y-1 ps-4 text-sm text-foreground/90">
-                {reply.risks.map((r, i) => <li key={i} className="list-disc">{r}</li>)}
-              </ul>
-            </div>
-          )}
-
-          {/* Thesis invalidation condition */}
-          {reply.invalidation && (
-            <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <XCircle className="h-3.5 w-3.5 text-destructive/70" />
-                <div className="text-[10px] uppercase tracking-wider text-destructive font-semibold">
-                  {ar ? "شرط إلغاء الأطروحة" : "Thesis Invalidation"}
-                </div>
-              </div>
-              <p className="text-sm text-foreground/90">{reply.invalidation}</p>
-            </div>
-          )}
-
-          {/* Confidence drivers */}
-          {reply.confidenceDrivers && reply.confidenceDrivers.length > 0 && (
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
-                {ar ? "محركات الثقة" : "Confidence Drivers"}
-              </div>
-              <ul className="space-y-1.5">
-                {reply.confidenceDrivers.map((d, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-foreground/80">
-                    <CheckCircle2 className="h-3 w-3 mt-0.5 shrink-0 text-success/60" />
-                    <span>{d}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Phase 8: Watch Items */}
-          {reply.watchItems && reply.watchItems.length > 0 && (
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center gap-1.5">
-                <Clock className="h-3 w-3" />
-                {ar ? "عناصر المراقبة" : "Watch Items"}
-              </div>
-              <ul className="space-y-1.5">
-                {reply.watchItems.map((w, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-foreground/80">
-                    <Eye className="h-3.5 w-3.5 mt-0.5 shrink-0 text-warning/60" />
-                    <span>{w}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Phase 8: Comparison Table */}
-          {reply.comparisonTable && reply.comparisonTable.length > 0 && (
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center gap-1.5">
-                <Scale className="h-3 w-3" />
-                {ar ? "جدول المقارنة" : "Comparison Table"}
-                {comparisonPair && (
-                  <span className="ms-1 font-mono text-[10px] text-primary/70">
-                    {comparisonPair[0]} vs {comparisonPair[1]}
-                  </span>
-                )}
-              </div>
-              <div className="rounded-xl border border-border/40 overflow-hidden">
-                {comparisonPair && (
-                  <div className="grid grid-cols-3 border-b border-border/40 bg-muted/30 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    <div className="px-3 py-1.5">{ar ? "المقياس" : "Metric"}</div>
-                    <div className="px-3 py-1.5 border-l border-border/30 text-primary/80">{comparisonPair[0]}</div>
-                    <div className="px-3 py-1.5 border-l border-border/30 text-primary/80">{comparisonPair[1]}</div>
-                  </div>
-                )}
-                {reply.comparisonTable.map((row, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      "grid grid-cols-3 text-xs",
-                      i > 0 && "border-t border-border/30",
-                      i % 2 === 0 ? "bg-background/40" : "bg-muted/10",
-                    )}
-                  >
-                    <div className="px-3 py-2 font-medium text-muted-foreground">{row.metric}</div>
-                    <div className="px-3 py-2 text-foreground/90 border-l border-border/30">{row.a}</div>
-                    <div className="px-3 py-2 text-foreground/90 border-l border-border/30">{row.b}</div>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-1.5 text-[10px] italic text-muted-foreground/60">
-                {ar ? "للأغراض التعليمية — لا يُعتمد كأساس للتداول." : "Educational comparison only — not a basis for trading decisions."}
-              </p>
-            </div>
-          )}
-
-          {/* View change condition */}
-          {reply.viewChange && (
-            <div className="flex items-start gap-2 rounded-xl border border-border/50 bg-muted/20 px-4 py-2.5 text-xs">
-              <RefreshCw className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
-              <div>
-                <span className="font-semibold text-muted-foreground">{ar ? "تغيير الرأي: " : "View change: "}</span>
-                <span className="text-foreground/80">{reply.viewChange}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Phase 7: Scenario simulation output */}
-          {reply.simulatedScenario && (
-            <div className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 space-y-2">
-              <div className="flex items-center gap-1.5">
-                <Zap className="h-3.5 w-3.5 text-primary/70" />
-                <div className="text-[10px] uppercase tracking-wider text-primary font-semibold">
-                  {ar ? "محاكاة السيناريو" : "Scenario Simulation"}
-                </div>
-                <span className="ms-1 rounded-md border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold text-warning">
-                  {ar ? "تعليمي" : "Advisory"}
-                </span>
-              </div>
-              <p className="text-sm font-semibold text-foreground/90">{reply.simulatedScenario}</p>
-              {reply.expectedImpact && (
-                <p className="text-sm text-foreground/80 leading-relaxed">{reply.expectedImpact}</p>
-              )}
-              {reply.watchlistSensitivity && (
-                <div className="flex items-start gap-2 text-xs text-foreground/80">
-                  <PieChart className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/60" />
-                  <span><span className="font-semibold text-primary/80">{ar ? "محفظتك: " : "Your watchlist: "}</span>{reply.watchlistSensitivity}</span>
-                </div>
-              )}
-              {reply.thesisSensitivity && (
-                <div className="flex items-start gap-2 text-xs text-foreground/80">
-                  <Brain className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/60" />
-                  <span><span className="font-semibold text-primary/80">{ar ? "الأطروحات: " : "Theses: "}</span>{reply.thesisSensitivity}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Phase 6: Multi-agent synthesis — supporting / opposing / consensus */}
-          {(reply.supportingCase || reply.opposingCase || reply.consensusStrength) && (
-            <div className="space-y-2">
-              {/* Consensus strength badge */}
-              {reply.consensusStrength && (
-                <div className="flex items-center gap-2">
-                  <Scale className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                    {ar ? "إجماع الوكلاء:" : "Agent consensus:"}
-                  </span>
-                  <span className={cn(
-                    "rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                    reply.consensusStrength === "strong"    ? "bg-success/10 text-success ring-1 ring-success/25" :
-                    reply.consensusStrength === "moderate"  ? "bg-primary/10 text-primary ring-1 ring-primary/25" :
-                    reply.consensusStrength === "weak"      ? "bg-muted/40 text-muted-foreground ring-1 ring-border/40" :
-                    "bg-warning/10 text-warning ring-1 ring-warning/30",
-                  )}>
-                    {ar
-                      ? reply.consensusStrength === "strong" ? "قوي"
-                        : reply.consensusStrength === "moderate" ? "معتدل"
-                        : reply.consensusStrength === "weak" ? "ضعيف" : "متعارض"
-                      : reply.consensusStrength}
-                  </span>
-                  {reply.disagreementNote && (
-                    <span className="flex items-center gap-1 text-[10px] text-warning">
-                      <AlertTriangle className="h-3 w-3 shrink-0" />
-                      {reply.disagreementNote}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Strongest supporting case */}
-              {reply.supportingCase && (
-                <div className="flex items-start gap-2 rounded-xl border border-success/25 bg-success/5 px-3 py-2 text-xs">
-                  <TrendingUp className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success/70" />
-                  <div>
-                    <span className="font-semibold text-success/80">{ar ? "أقوى الحجج الداعمة: " : "Supporting case: "}</span>
-                    <span className="text-foreground/80">{reply.supportingCase}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Devil's advocate — strongest opposing case */}
-              {reply.opposingCase && (
-                <div className="flex items-start gap-2 rounded-xl border border-warning/25 bg-warning/5 px-3 py-2 text-xs">
-                  <TrendingDown className="h-3.5 w-3.5 mt-0.5 shrink-0 text-warning/70" />
-                  <div>
-                    <span className="font-semibold text-warning/80">{ar ? "محامي الشيطان: " : "Devil's advocate: "}</span>
-                    <span className="text-foreground/80">{reply.opposingCase}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Phase 11: Cross-asset confirmation (Track C) */}
-              {reply.crossAssetConfirmation && (
-                <div className="flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs">
-                  <Layers className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/60" />
-                  <div>
-                    <span className="font-semibold text-primary/80">{ar ? "تأكيد الأصول المتقاطعة: " : "Cross-asset confirmation: "}</span>
-                    <span className="text-foreground/80">{reply.crossAssetConfirmation}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Phase 11: Positioning signal (Track E) */}
-              {reply.positioningSignal && (
-                <div className="flex items-start gap-2 rounded-xl border border-muted/50 bg-muted/20 px-3 py-2 text-xs">
-                  <Scale className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground/60" />
-                  <div>
-                    <span className="font-semibold text-muted-foreground">{ar ? "إشارة التموضع: " : "Positioning signal: "}</span>
-                    <span className="text-foreground/80">{reply.positioningSignal}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Uncertainty warning — explains WHY confidence is low (set by institutional brain) */}
-          {reply.uncertaintyWarning && (
-            <div className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/5 px-4 py-2.5 text-xs text-warning">
-              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-              <span>{reply.uncertaintyWarning}</span>
-            </div>
-          )}
-
-          {/* Phase 10: Caveats / contradiction detection — logical tensions in own reasoning */}
-          {caveatsToShow.length > 0 && engine === "ai" && (
-            <div className="rounded-xl border border-warning/25 bg-warning/5 px-4 py-3">
-              <div className="flex items-center gap-1.5 mb-2">
-                <ShieldAlert className="h-3.5 w-3.5 text-warning/70" />
-                <div className="text-[10px] uppercase tracking-wider text-warning font-semibold">
-                  {ar ? "تحفظات منطقية" : "Reasoning Caveats"}
-                </div>
-                {metaResult?.overconfidenceRisk && (
-                  <span className="ms-auto rounded-md border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[9px] font-bold text-warning uppercase tracking-wide">
-                    {ar ? "خطر الثقة المبالغ فيها" : "Overconfidence risk"}
-                  </span>
-                )}
-              </div>
-              <ul className="space-y-1.5">
-                {caveatsToShow.map((c, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-foreground/80">
-                    <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0 text-warning/60" />
-                    <span>{c}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Phase 10: Overconfidence flag without caveats (stand-alone warning) */}
-          {metaResult?.overconfidenceRisk && caveatsToShow.length === 0 && engine === "ai" && (
-            <div className="flex items-center gap-2 rounded-xl border border-warning/25 bg-warning/5 px-4 py-2 text-xs text-warning">
-              <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
-              {ar
-                ? `مراجعة الثقة: ${displayConfidence}% قد يعكس ثقة مبالغاً فيها نسبة للأدلة المتاحة`
-                : `Confidence review: ${displayConfidence}% may reflect overconfidence relative to available evidence`}
-            </div>
-          )}
 
           {/* Confidence gate — advisory-only warning when confidence is very low */}
           {displayConfidence < 40 && reply.suggestedAction && reply.suggestedAction.type !== "none" && actionState === "pending" && (
