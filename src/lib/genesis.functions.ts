@@ -241,6 +241,11 @@ import { buildRedTeamReasoning }     from "@/services/meta/redTeamReasoningEngin
 import { detectBias }                from "@/services/meta/biasDetectionGovernor";
 import { stressTestResearch }        from "@/services/meta/researchStressTestEngine";
 import { governMetaResearch }        from "@/services/meta/metaResearchGovernor";
+// Institutional Narrator: final answer surfacing + quality validation
+import { buildInstitutionalNarrator } from "@/services/narrator/institutionalNarratorGovernor";
+import { validateNarrativeQuality }   from "@/services/narrator/liveNarrativeQualityValidator";
+import type { ThesisCompetitionProfile } from "@/services/meta/thesisCompetitionEngine";
+import type { CioAdvisoryFrame }         from "@/services/advisory/cioAdvisoryEngine";
 
 export interface GenesisScenario {
   label: string;
@@ -3076,6 +3081,17 @@ async function runFusion(
     console.log(`[genesis:88b] ${_foresightGov.governanceLog}`);
   }
 
+  // ── Narrator capture variables — populated inside each intelligence block ────
+  // These are extracted to pass raw typed objects to the narrator governor,
+  // which needs specific values (not just governed context strings) to generate
+  // field-targeted surfacing directives.
+  let _narratorThesisComp:   ThesisCompetitionProfile | null = null;
+  let _narratorCioFrame:     CioAdvisoryFrame | null = null;
+  let _narratorAnalogResult: { dominantEra: string; analogConfidence: number; strength: string; whatDiffers: string } | null = null;
+  let _narratorCrisis:       { isActiveCrisis: boolean; crisisLabel: string } | null = null;
+  let _narratorActiveDesks:  string[] | null = null;
+  let _narratorPrimaryDesk:  string | null = null;
+
   // ── Phase-88C: Meta-Research + Thesis Competition Intelligence ────────────────
   // Pure O(1) deterministic pipeline. Runs only for investment questions.
   // Pipeline: thesis competition → red team → bias detection → stress test → governor
@@ -3110,6 +3126,8 @@ async function runFusion(
       lang,
     });
     _metaResearchCtx = _metaGov.governedMetaCtx;
+    // Narrator capture: raw thesis competition profile for field-specific narration
+    _narratorThesisComp = _thesisComp;
     console.log(`[genesis:88c] ${_metaGov.governanceLog}`);
   }
 
@@ -3153,6 +3171,9 @@ async function runFusion(
       policyBriefing: _policyDesk,
     });
     _deskSynthesisCtx = _deskHierarchy.synthesisContext;
+    // Narrator capture: desk routing for desk-differentiation directive
+    _narratorActiveDesks = _deskRouting.activeDesks;
+    _narratorPrimaryDesk = _deskRouting.primaryDesk;
     console.log(`[genesis:89a] primary=${_deskRouting.primaryDesk} active=[${_deskRouting.activeDesks.join(",")}] dominant=${_deskHierarchy.dominantDesk} conf=${_deskHierarchy.evidenceConfidence}`);
   }
 
@@ -3242,6 +3263,17 @@ async function runFusion(
       lang,
     });
     _historyCtx = _histGov.governedHistoryCtx;
+    // Narrator capture: raw analog + crisis for historical voice directive
+    _narratorAnalogResult = {
+      dominantEra:      _histAnalogy.dominantEra,
+      analogConfidence: _histAnalogy.analogConfidence,
+      strength:         _histAnalogy.strength,
+      whatDiffers:      _histAnalogy.whatDiffers,
+    };
+    _narratorCrisis = {
+      isActiveCrisis: _crisisMemory.isActiveCrisis,
+      crisisLabel:    _crisisMemory.dominantCrisis?.archetype.id ?? "",
+    };
     console.log(`[genesis:89c] ${_histGov.governanceLog}`);
   }
 
@@ -3301,7 +3333,30 @@ async function runFusion(
       lang,
     });
     _advisoryCtx = _advisoryGov.governedAdvisoryCtx;
+    // Narrator capture: raw CIO frame for allocator voice directive
+    _narratorCioFrame = _cioFrame;
     console.log(`[genesis:90a] ${_advisoryGov.governanceLog}`);
+  }
+
+  // ── Institutional Narrator: build mandatory surfacing directive ───────────────
+  // Runs after all intelligence blocks. Generates a field-specific directive
+  // injected LAST in the prompt (highest recency = strongest influence on AI output).
+  // Tells the AI exactly which field should reference which intelligence layer.
+  const _narratorResult = buildInstitutionalNarrator({
+    thesisComp:    _narratorThesisComp,
+    cioFrame:      _narratorCioFrame,
+    analogResult:  _narratorAnalogResult,
+    crisis:        _narratorCrisis,
+    activeDesks:   _narratorActiveDesks,
+    primaryDesk:   _narratorPrimaryDesk,
+    hasGlobalMacro: _globalMacroCtx.length > 0,
+    hasForesight:   _foresightCtx.length > 0,
+    isInvestment,
+    isSaudi,
+    lang,
+  });
+  if (_narratorResult.activeLayerCount > 0) {
+    console.log(`[genesis:narrator] layers=[${_narratorResult.layerCoverage.join(",")}] directive_len=${_narratorResult.directive.length}`);
   }
 
   const sys = buildGenesisSystemPrompt(lang);
@@ -3462,6 +3517,13 @@ async function runFusion(
       : (_governedKnowledge && !_governedKnowledge.isEmpty && _researchRelevance.overallRelevance >= 30)
       ? `\n\nKnowledge authority [${_governedKnowledge.authorityLabel}]: ${_governedKnowledge.governedContext}`
       : "",
+    // Institutional Narrator: mandatory field-surfacing directive — injected LAST so it
+    // is the freshest instruction the AI reads before generating the response.
+    // Tells the AI exactly which response field must reference which intelligence layer.
+    // Prevents generic synthesis by naming specific field targets and expected content.
+    _narratorResult.directive
+      ? `\n\n${_narratorResult.directive}`
+      : "",
   ].join("");
   const user = wrapUserContext(lang, userBody);
 
@@ -3513,6 +3575,17 @@ async function runFusion(
 
   const _postSet = _p12.filter(k => { const v = (sanitized as Record<string,unknown>)[k]; return v != null && v !== "" && !(Array.isArray(v) && (v as unknown[]).length === 0); });
   console.log(`[genesis:p12] post-sanitize: ${_postSet.join(",")||"none"}`);
+
+  // Live Narrative Quality Validator: audit whether the narrator directive was obeyed.
+  // Measures CIO voice, historical analog, thesis competition, and depth surfacing.
+  // Runs immediately after sanitize, before any repair — captures the raw AI output.
+  if (isInvestment && _narratorResult.activeLayerCount > 0) {
+    const _narrativeQuality = validateNarrativeQuality(sanitized, _narratorResult);
+    console.log(`[genesis:narrator] ${_narrativeQuality.validatorLog}`);
+    if (_narrativeQuality.genericFailureFlag) {
+      console.warn(`[genesis:narrator] generic failure — surfacing score=${_narrativeQuality.overallScore} improvements=[${_narrativeQuality.improvements.join("|")}]`);
+    }
+  }
 
   // Deterministic backfill — fills every missing Phase-12 field from raw track outputs
   fillArbitrationFields(sanitized, trackA, trackB, trackC, trackD, trackE, trackF, consensus, lang);
