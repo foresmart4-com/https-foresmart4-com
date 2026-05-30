@@ -59,6 +59,16 @@ export const CAPABILITIES: Record<ProviderId, ProviderCapabilities> = {
   financialdata:{ ...F, supportsUsStock: true, supportsEtf: true, supportsForex: true,
                   supportsCrypto: true, supportsCommodities: true, supportsMetals: true,
                   supportsRealtime: true },
+  // EODHD: broad multi-asset EOD coverage
+  eodhd:        { ...F, supportsUsStock: true, supportsEtf: true, supportsForex: true,
+                  supportsMetals: true, supportsCommodities: true, supportsCrypto: true,
+                  supportsSaudi: true, supportsBond: true, supportsIndex: true,
+                  supportsRealtime: false /* EOD data */ },
+  // Marketstack: equities only, no metals/commodities/forex/crypto
+  marketstack:  { ...F, supportsUsStock: true, supportsEtf: true, supportsSaudi: true,
+                  supportsIndex: true, supportsRealtime: false /* EOD */ },
+  // Yahoo: equities and ETFs only, delayed
+  yahoo:        { ...F, supportsUsStock: true, supportsEtf: true, supportsRealtime: false },
 };
 
 const CLASS_TO_CAP: Record<AssetClass, keyof ProviderCapabilities | null> = {

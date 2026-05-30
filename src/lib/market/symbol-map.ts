@@ -124,6 +124,21 @@ export function translateSymbol(symbol: string, provider: ProviderKey): string {
     return `${key.slice(0, 3)}/${key.slice(3)}`;
   }
 
+  // UK stocks (.L suffix): AlphaVantage expects .LON format
+  if (/\.L$/i.test(key) && provider === "alphavantage") {
+    return key.slice(0, -2) + ".LON";
+  }
+
+  // German (Xetra) stocks (.DE suffix): AlphaVantage expects .DEX format
+  if (/\.DE$/i.test(key) && provider === "alphavantage") {
+    return key.slice(0, -3) + ".DEX";
+  }
+
+  // French stocks (.PA suffix): AlphaVantage expects .PAR format
+  if (/\.PA$/i.test(key) && provider === "alphavantage") {
+    return key.slice(0, -3) + ".PAR";
+  }
+
   return entry?.canonical ?? raw;
 }
 

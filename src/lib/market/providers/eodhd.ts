@@ -49,11 +49,20 @@ export function toEodhdSymbol(symbol: string, assetClass?: string): string {
     if (m) return `${m[1]}${m[2]}.FOREX`;
   }
   if (assetClass === "commodity") {
-    const map: Record<string, string> = { WTI: "CL.COMM", BRENT: "BZ.COMM", NATGAS: "NG.COMM" };
+    // Accept both raw user symbols and canonical aliases from the symbol-map
+    const map: Record<string, string> = {
+      WTI: "CL.COMM", USOIL: "CL.COMM", CL: "CL.COMM",
+      BRENT: "BZ.COMM", UKOIL: "BZ.COMM", BZ: "BZ.COMM",
+      NATGAS: "NG.COMM", NG: "NG.COMM",
+      COPPER: "HG.COMM", HG: "HG.COMM",
+    };
     if (map[s]) return map[s];
   }
   if (assetClass === "metal") {
-    const map: Record<string, string> = { XAUUSD: "GC.COMM", XAGUSD: "SI.COMM", GOLD: "GC.COMM", SILVER: "SI.COMM" };
+    const map: Record<string, string> = {
+      XAUUSD: "GC.COMM", GOLD: "GC.COMM", XAU: "GC.COMM",
+      XAGUSD: "SI.COMM", SILVER: "SI.COMM", XAG: "SI.COMM",
+    };
     if (map[s]) return map[s];
   }
   return s;

@@ -371,22 +371,28 @@ export function resolveAsset(rawSymbol: string): ResolvedAsset {
 
 const CHAINS: Record<AssetClass, ProviderId[]> = {
   us_stock: ["finnhub", "financialdata", "eodhd", "marketstack", "fmp", "alpaca", "twelvedata", "alphavantage"],
-  // Saudi: SAHMK (native) → TwelveData → FMP → AlphaVantage
+  // Saudi: SAHMK (native) → EODHD → TwelveData → FMP → AlphaVantage
   saudi_stock: ["sahmk", "eodhd", "marketstack", "twelvedata", "fmp", "alphavantage"],
   crypto: ["binance", "coingecko", "financialdata", "twelvedata", "eodhd", "fmp"],
-  // Metals: TwelveData → CommodityPriceAPI → FMP → AlphaVantage → TradingView
-  metal: ["twelvedata", "financialdata", "eodhd", "commodityprice", "fmp", "alphavantage", "tradingview"],
-  // Commodities (oil/gas): CommodityPriceAPI → FMP → AlphaVantage → TwelveData → TradingView
-  commodity: ["financialdata", "eodhd", "commodityprice", "fmp", "alphavantage", "twelvedata", "tradingview"],
+  // Metals: TwelveData → FinancialData → EODHD → CommodityPriceAPI → FMP → AlphaVantage
+  // TradingView removed — returns HTTP 404 for metal symbols
+  metal: ["twelvedata", "financialdata", "eodhd", "commodityprice", "fmp", "alphavantage"],
+  // Commodities (oil/gas): CommodityPriceAPI → EODHD → FinancialData → FMP → AlphaVantage → TwelveData
+  // TradingView removed — returns HTTP 404 for commodity symbols
+  commodity: ["commodityprice", "eodhd", "financialdata", "fmp", "alphavantage", "twelvedata"],
   etf:         ["finnhub", "financialdata", "twelvedata", "fmp", "alphavantage"],
   bond:        ["fred", "twelvedata", "alphavantage"],
   treasury:    ["fred"],
   index:       ["fmp", "twelvedata", "finnhub", "tradingview"],
-  // Forex: TwelveData → FMP → AlphaVantage → Finnhub OANDA
-  forex: ["twelvedata", "financialdata", "eodhd", "fmp", "alphavantage", "marketstack", "finnhub"],
+  // Forex: TwelveData → FinancialData → EODHD → FMP → AlphaVantage → Marketstack
+  // Finnhub removed — returns empty quote for OANDA forex pairs in production
+  forex: ["twelvedata", "financialdata", "eodhd", "fmp", "alphavantage", "marketstack"],
+  // GCC markets: unsupported by current provider plans, no attempt
   gcc_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
-  uk_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
-  european_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
+  // UK stocks: AlphaVantage first (.L→.LON translation), marketstack last (406 errors)
+  uk_stock: ["alphavantage", "fmp", "eodhd", "twelvedata", "marketstack"],
+  // European stocks: AlphaVantage first (.DE→.DEX translation), marketstack last
+  european_stock: ["alphavantage", "fmp", "eodhd", "twelvedata", "marketstack"],
   china_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage"],
   hongkong_stock: ["eodhd", "marketstack", "fmp", "twelvedata", "alphavantage", "yahoo"],
   macro:           ["fred", "fmp", "alphavantage"],
@@ -481,6 +487,11 @@ const TTL_MS: Record<AssetClass, number> = {
   crypto: 15_000,
   us_stock: 30_000,
   saudi_stock: 30_000,
+  gcc_stock: 60_000,
+  uk_stock: 60_000,
+  european_stock: 60_000,
+  china_stock: 60_000,
+  hongkong_stock: 60_000,
   etf: 30_000,
   metal: 5 * 60_000,
   commodity: 5 * 60_000,
@@ -488,6 +499,8 @@ const TTL_MS: Record<AssetClass, number> = {
   bond: 5 * 60_000,
   treasury: 30 * 60_000,
   index: 30_000,
+  macro: 5 * 60_000,
+  news: 5 * 60_000,
   unknown: 30_000,
 };
 
@@ -848,6 +861,45 @@ const PROVIDER_KEY: Record<ProviderId, ProviderKey> = {
   financialdata: "financialdata",
 };
 
+// ---------- Price validation ----------
+
+/**
+ * Minimum realistic prices for commodities and metals.
+ * If a provider returns a price below the floor, it is rejected and the next
+ * provider in the chain is tried. This prevents accepting clearly-wrong values
+ * (e.g. AlphaVantage returning 3.68 for WTI crude oil).
+ */
+const PRICE_FLOOR: Partial<Record<string, number>> = {
+  // Oil: WTI/Brent have never sustainably traded below $20 in modern markets
+  WTI: 20, USOIL: 20, CL: 20,
+  BRENT: 20, UKOIL: 20, BZ: 20,
+  // Natural gas floor
+  NATGAS: 0.5, NG: 0.5,
+  // Copper (per lb)
+  COPPER: 1.0, HG: 1.0,
+  // Gold floor
+  XAUUSD: 500, GOLD: 500, XAU: 500,
+  // Silver floor
+  XAGUSD: 5, SILVER: 5, XAG: 5,
+};
+
+/** Thrown when a provider returns a price outside realistic bounds. Does NOT trigger cooldown. */
+class PriceValidationError extends Error {
+  readonly priceRejected = true;
+  constructor(message: string) { super(message); this.name = "PriceValidationError"; }
+}
+
+function checkPriceRealistic(price: number, asset: ResolvedAsset): void {
+  const floor =
+    PRICE_FLOOR[asset.normalized.toUpperCase()] ??
+    PRICE_FLOOR[asset.raw.toUpperCase()];
+  if (floor !== undefined && price < floor) {
+    throw new PriceValidationError(
+      `price ${price} rejected — below floor ${floor} for ${asset.normalized} (${asset.assetClass})`,
+    );
+  }
+}
+
 // ---------- Core router ----------
 
 function detectRateLimit(err: unknown): boolean {
@@ -969,6 +1021,8 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
       const start = Date.now();
       try {
         const r = await runner(asset, translated);
+        // Reject prices that are clearly outside realistic bounds (e.g. AV returning 3.68 for WTI)
+        checkPriceRealistic(r.price, asset);
         const latency = Date.now() - start;
         recordSuccess(p, latency);
         if (i > 0) { fallbackUsed = true; recordFailover(p); }
@@ -1002,7 +1056,10 @@ export async function routeQuote(rawSymbol: string, opts: RouterOptions = {}): P
         const msg = e instanceof Error ? e.message : String(e);
         const rl = detectRateLimit(e);
         recordError(p, msg, rl);
-        setCooldown(p, rl ? "rate_limited" : "error", msg);
+        // Price validation errors mean the provider is healthy — no cooldown penalty.
+        if (!(e instanceof PriceValidationError)) {
+          setCooldown(p, rl ? "rate_limited" : "error", msg);
+        }
         lastError = msg;
       }
     }
