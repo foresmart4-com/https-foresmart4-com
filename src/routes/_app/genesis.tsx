@@ -3774,6 +3774,32 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
             <p className="text-sm font-semibold leading-snug">{reply.headline}</p>
           </div>
 
+          {/* Institutional Memo — server-composed canonical memo in institutional order */}
+          {reply.institutionalMemo && engine === "ai" && (
+            <div className="rounded-xl border border-primary/30 bg-primary/4 px-4 py-4 space-y-3">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <FileText className="h-3.5 w-3.5 text-primary/70" />
+                <div className="text-[10px] uppercase tracking-wider text-primary font-semibold">
+                  {ar ? "المذكرة الاستثمارية المؤسسية" : "Institutional Investment Memo"}
+                </div>
+              </div>
+              <div className="text-sm leading-relaxed text-foreground/90 whitespace-pre-line space-y-2">
+                {reply.institutionalMemo.split("\n\n").map((block, i) => {
+                  const boldMatch = block.match(/^\*\*(.+?)\*\*\n([\s\S]+)$/);
+                  if (boldMatch) {
+                    return (
+                      <div key={i}>
+                        <div className="text-[10px] uppercase tracking-wider text-primary/70 font-semibold mb-0.5">{boldMatch[1]}</div>
+                        <p className="text-sm leading-relaxed text-foreground/85">{boldMatch[2]}</p>
+                      </div>
+                    );
+                  }
+                  return <p key={i} className="text-sm leading-relaxed text-foreground/85">{block}</p>;
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Institutional evidence */}
           {reply.evidence && reply.evidence.length > 0 && (
             <div>

@@ -246,6 +246,11 @@ import { buildInstitutionalNarrator } from "@/services/narrator/institutionalNar
 import { validateNarrativeQuality }   from "@/services/narrator/liveNarrativeQualityValidator";
 import type { ThesisCompetitionProfile } from "@/services/meta/thesisCompetitionEngine";
 import type { CioAdvisoryFrame }         from "@/services/advisory/cioAdvisoryEngine";
+// Root Cause Repair: Reasoning Dominance + Institutional Response Architecture
+import { buildQuestionBinding }         from "@/services/cognition/questionBindingGovernor";
+import { buildReasoningDominance }      from "@/services/cognition/reasoningDominanceGovernor";
+import { composeInstitutionalMemo }     from "@/services/cognition/institutionalMemoComposer";
+import { validateResponseArchitecture } from "@/services/cognition/responseArchitectureValidator";
 
 export interface GenesisScenario {
   label: string;
@@ -375,6 +380,8 @@ export interface GenesisReply {
   validationHarnessScore?: number; // 0-100: mandatory gate validation score
   governorDecision?: string;       // allow/repair_required/insufficient_evidence/stale_memory_warning
   governorCompositeScore?: number; // 0-100: composite across all quality dimensions
+  // Root Cause Repair: Institutional Memo (server-composed; never AI-generated)
+  institutionalMemo?: string;      // canonical memo assembled from reply fields in institutional order
 }
 
 const AskInput = z.object({
@@ -672,6 +679,8 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
     validationHarnessScore: undefined,
     governorDecision: undefined,
     governorCompositeScore: undefined,
+    // Root Cause Repair: composed server-side after all repairs; never read from AI JSON
+    institutionalMemo: undefined,
   };
 }
 
@@ -3359,6 +3368,21 @@ async function runFusion(
     console.log(`[genesis:narrator] layers=[${_narratorResult.layerCoverage.join(",")}] directive_len=${_narratorResult.directive.length}`);
   }
 
+  // ── Root Cause Repair: Question Binding + Reasoning Dominance ────────────────
+  // Question Binding: detect required sections from question, generate binding directive.
+  // Reasoning Dominance: generate memo-reasoning directive forcing institutional order.
+  // Both injected LAST in prompt (after narrator) for maximum recency influence.
+  const _questionBinding = buildQuestionBinding(question, lang);
+  const _reasoningDominance = buildReasoningDominance(
+    _questionBinding.questionIntent, isSaudi, isInvestment, lang,
+  );
+  if (_questionBinding.hasMandatoryOutput) {
+    console.log(`[genesis:binding] intent=${_questionBinding.questionIntent} sections=[${_questionBinding.boundSections.map(s => s.name).join(",")}]`);
+  }
+  if (_reasoningDominance.reasoningFirst) {
+    console.log(`[genesis:dominance] pattern=${_reasoningDominance.dominancePattern} len=${_reasoningDominance.directiveLength}`);
+  }
+
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
     `User question: ${question}`,
@@ -3523,6 +3547,16 @@ async function runFusion(
     // Prevents generic synthesis by naming specific field targets and expected content.
     _narratorResult.directive
       ? `\n\n${_narratorResult.directive}`
+      : "",
+    // Root Cause Repair: Question Binding — mandatory section compliance.
+    // Injected AFTER narrator so it is the very last instruction before generation.
+    _questionBinding.bindingDirective
+      ? `\n\n${_questionBinding.bindingDirective}`
+      : "",
+    // Root Cause Repair: Reasoning Dominance — institutional memo reasoning order.
+    // Forces reasoning-first, template-second. Last in prompt = strongest influence.
+    _reasoningDominance.directive
+      ? `\n\n${_reasoningDominance.directive}`
       : "",
   ].join("");
   const user = wrapUserContext(lang, userBody);
@@ -3874,6 +3908,20 @@ async function runFusion(
       repairApplied: _gateResult?.repairNeeded ?? false,
       isSaudi: _qualityGateIsSaudi,
     });
+  }
+
+  // ── Root Cause Repair: Institutional Memo Composer + Architecture Validator ──
+  // Runs after ALL repairs so memo captures the final, highest-quality reply state.
+  if (isInvestment) {
+    const _memoResult = composeInstitutionalMemo(sanitized, lang);
+    if (_memoResult.memoGrade !== "empty") {
+      sanitized.institutionalMemo = _memoResult.memo;
+    }
+    const _archResult = validateResponseArchitecture(sanitized, _questionBinding, _memoResult);
+    console.log(`[genesis:arch] ${_archResult.validatorLog}`);
+    if (_archResult.architectureFailure) {
+      console.warn(`[genesis:arch] ARCHITECTURE FAILURE — ${_archResult.failureReasons.join(" | ")}`);
+    }
   }
 
   // Step 4: Save thesis snapshot and research patterns to memory
