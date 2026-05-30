@@ -213,6 +213,11 @@ import { buildSecondOrderEffects }   from "@/services/foresight/secondOrderEffec
 import { buildTransitionForesight }  from "@/services/foresight/regimeTransitionForesight";
 import { buildPathDependency }       from "@/services/foresight/pathDependencyEngine";
 import { governScenarios }           from "@/services/foresight/scenarioGovernor";
+// Phase-89C: Economic History + Crisis Intelligence
+import { detectCrisisArchetypes }   from "@/services/history/crisisHistoryLibrary";
+import { buildHistoricalAnalogy }    from "@/services/history/historicalAnalogyEngine";
+import { buildRegimeHistoryProfile } from "@/services/history/regimeHistoryEngine";
+import { governHistory }             from "@/services/history/historyGovernor";
 // Phase-89B: Global Macro + Cross-Asset Intelligence
 import { buildCrossAssetTransmission } from "@/services/global/crossAssetTransmissionEngine";
 import { buildGlobalLiquidityState }   from "@/services/global/globalLiquidityEngine";
@@ -1456,6 +1461,13 @@ ABSOLUTELY FORBIDDEN: "rebalance now", "allocate X%", "buy this asset now", "gua
 Use this foresight to improve "scenarios", "secondOrderRisks", "thesisChanger", and "missingEvidence".
 Mandatory rules: (1) "scenarios" MUST reflect the pre-computed competition probabilities (BASE/BULL/BEAR) — do not ignore the stated probabilities; (2) "secondOrderRisks" MUST extend beyond the direct effect using → notation; (3) "thesisChanger" MUST name the specific observable transition trigger; (4) ALL scenarios are conditional — use "If [observable condition]" not "will happen". FORBIDDEN: "certain", "inevitable", "guaranteed", "will definitely occur", "foresight proves". Economic foresight is advisory and probabilistic — not predictive, not execution.`;
 
+  // Phase-89C: Economic History + Crisis Intelligence guidance
+  const historyCrisisGuidance = ar
+    ? `عند ظهور "Crisis[" أو "Analog[" أو "Regime history[" في السياق:
+قواعد إلزامية: (1) "Crisis[" → أدرج نمط الانتقال المحدد في "secondOrderRisks" — لا تتجاهل الأنماط المحددة المكتشفة؛ (2) "Analog[STRONG|" → يجب أن تتضمن "caveats" حقل "Differs" المحدد — القياس التاريخي بدون الاختلاف الهيكلي هو بحث ضحل؛ (3) "Analog[WEAK|" → لا تجعل القياس التاريخي محوراً للحجة؛ (4) "Regime history[" → استخدم الأعراف التاريخية لتأطير المدى الزمني لـ"thesisChanger" (أنظمة مماثلة استمرت X-Y شهراً). ممنوع مطلقاً: "التاريخ يثبت"، "سيكرر نفسه"، "مضمون بالسابقة"، "حدث دائماً". التاريخ سياق لا تنبؤ — كل القياسات شرطية.`
+    : `When "Crisis[", "Analog[", or "Regime history[" appears in context:
+Mandatory rules: (1) "Crisis[" → incorporate the specific transmission pattern in "secondOrderRisks" — do not ignore the named archetype; (2) "Analog[STRONG|" → "caveats" MUST include the specific "Differs" field — historical analog without structural differentiation is shallow research; (3) "Analog[WEAK|" → do not make the historical analog the anchor of the argument; (4) "Regime history[" → use historical norms to frame the time-horizon in "thesisChanger" (similar regimes lasted X-Y months). ABSOLUTELY FORBIDDEN: "history proves", "will repeat", "guaranteed by precedent", "has always happened". History is context not prediction — all analogies are conditional.`;
+
   // Phase-89B: Global Macro + Cross-Asset Intelligence guidance
   const globalMacroGuidance = ar
     ? `عند ظهور "Global macro:" في السياق:
@@ -1479,7 +1491,7 @@ This context contains specialist research desk briefings (macro/sector/policy). 
 This context contains pre-computed thesis competition, red-team attack, bias flags, and stress test findings.
 Mandatory rules: (1) constrain "opposingCase" and "caveats" from the specific red-team attack — do not ignore it; (2) if a bias is flagged, apply the stated correction before forming conclusions; (3) if stress level is "fragile" or "critical", incorporate the repair directive in "caveats"; (4) every thesis is a conditional claim — "evidence-weighted" not "certain". ABSOLUTELY FORBIDDEN: ignoring the red-team attack, claiming "competitive" thesis analysis that doesn't address the named attack, "proven", "red-team rejected". All meta-research output is self-critique and advisory only — no execution.`;
 
-  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n${allocationIntelligenceGuidance}\n${frameworkPerspectiveGuidance}\n${committeeGenerationGuidance}\n${foresightGuidance}\n${metaResearchGuidance}\n${researchDeskGuidance}\n${globalMacroGuidance}\n\n${base}`;
+  return `${jsonOnlyPrefix}\n\n${knowledgeGuidance}\n${paperGuidance}\n${firewallGuidance}\n${coverageGuidance}\n${macroEventGuidance}\n${credibilityGuidance}\n${debateGuidance}\n${workflowGuidance}\n${attributionGuidance}\n${learningGovernanceGuidance}\n${strategicApprovalGuidance}\n${marketOsGuidance}\n${crossMarketGuidance}\n${thesisLabGuidance}\n${scenarioGuidance}\n${macroMemoryGuidance}\n${econGraphGuidance}\n${bookIntelGuidance}\n${behavioralGuidance}\n${portfolioConstructionGuidance}\n${governanceOSGuidance}\n${sandboxGuidance}\n${knowledgeReviewGuidance}\n${liveAcquisitionGuidance}\n${institutionalModelsGuidance}\n${historicalValidationGuidance}\n${decisionMemoryGuidance}\n${investmentSynthesisGuidance}\n${institutionalReasoningGuidance}\n${sectorIntelligenceGuidance}\n${committeeDebateGuidance}\n${crossMarketFusionGuidance}\n${allocationIntelligenceGuidance}\n${frameworkPerspectiveGuidance}\n${committeeGenerationGuidance}\n${foresightGuidance}\n${metaResearchGuidance}\n${researchDeskGuidance}\n${globalMacroGuidance}\n${historyCrisisGuidance}\n\n${base}`;
 }
 
 // ─── Institutional Reasoning Tracks ───────────────────────────────────────
@@ -3176,6 +3188,50 @@ async function runFusion(
     console.log(`[genesis:89b] ${_crossAssetGov.governanceLog}`);
   }
 
+  // ── Phase-89C: Economic History + Crisis Intelligence ─────────────────────
+  // Pure O(1) deterministic pipeline. Runs for investment questions.
+  // Pipeline: crisis library → historical analogy → regime history → governor
+  let _historyCtx = "";
+  if (isInvestment) {
+    const _crisisMemory = detectCrisisArchetypes({
+      question,
+      ctx,
+      creditStressLevel: trackA?.creditStressLevel ?? "moderate",
+      oilChangePct:      live?.oilChangePct         ?? null,
+      oilPrice:          live?.oilPrice             ?? null,
+      macroBias:         trackA?.macroBias          ?? consensus.dominantBias,
+      tltChangePct:      live?.tltChangePct          ?? null,
+      spyChangePct:      live?.spyChangePct          ?? null,
+    });
+    const _histAnalogy = buildHistoricalAnalogy({
+      regime:            trackA?.regime            ?? "macro_transition",
+      macroBias:         trackA?.macroBias         ?? consensus.dominantBias,
+      creditStressLevel: trackA?.creditStressLevel ?? "moderate",
+      ratesEnv:          trackA?.ratesEnv          ?? "",
+      oilChangePct:      live?.oilChangePct         ?? null,
+      oilPrice:          live?.oilPrice             ?? null,
+      tltChangePct:      live?.tltChangePct          ?? null,
+      spyChangePct:      live?.spyChangePct          ?? null,
+    });
+    const _regimeHist  = buildRegimeHistoryProfile({
+      question,
+      ctx,
+      ratesEnv:          trackA?.ratesEnv          ?? "",
+      creditStressLevel: trackA?.creditStressLevel ?? "moderate",
+      oilChangePct:      live?.oilChangePct         ?? null,
+      oilPrice:          live?.oilPrice             ?? null,
+      tltChangePct:      live?.tltChangePct          ?? null,
+    });
+    const _histGov = governHistory({
+      crisis:  _crisisMemory,
+      analogy: _histAnalogy,
+      regime:  _regimeHist,
+      lang,
+    });
+    _historyCtx = _histGov.governedHistoryCtx;
+    console.log(`[genesis:89c] ${_histGov.governanceLog}`);
+  }
+
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
     `User question: ${question}`,
@@ -3209,6 +3265,12 @@ async function runFusion(
     // so global macro context grounds all cross-asset reasoning downstream.
     _globalMacroCtx
       ? `\n\nGlobal macro: ${_globalMacroCtx}`
+      : "",
+    // Phase-89C: Economic history + crisis intelligence — crisis archetypes,
+    // historical analogy, regime cycle norms. Placed after global macro so history
+    // context enriches secondOrderRisks, caveats, and thesisChanger fields.
+    _historyCtx
+      ? `\n\nHistory: ${_historyCtx}`
       : "",
     // Investment enforcement FIRST — most prominent position before the long fusion block
     investEnforcement ? `\n\n${investEnforcement}` : "",
