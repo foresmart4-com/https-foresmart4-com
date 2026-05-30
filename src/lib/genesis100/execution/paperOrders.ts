@@ -1,4 +1,4 @@
-export type PaperOrderStatus = "proposed" | "approved" | "paper_submitted" | "simulated_fill" | "rejected" | "cancelled";
+export type PaperOrderStatus = "proposed" | "approved" | "paper_submitted" | "simulated_fill" | "fill_failed" | "rejected" | "cancelled";
 
 export interface PaperOrder {
   id: string;
@@ -14,6 +14,7 @@ export interface PaperOrder {
   createdAt: string;
   updatedAt: string;
   fillPrice: number | null;
+  fillPriceSource: "live" | "last_known" | "failed" | null;
   fillTimestamp: string | null;
   rejectedReason: string | null;
   source: "genesis100-ai" | "manual";
@@ -41,6 +42,7 @@ export function createPaperOrder(params: {
     createdAt: now,
     updatedAt: now,
     fillPrice: null,
+    fillPriceSource: null,
     fillTimestamp: null,
     rejectedReason: null,
   };
@@ -65,12 +67,26 @@ export function submitPaperOrder(id: string): PaperOrder | null {
   return order;
 }
 
-export function fillPaperOrder(id: string, fillPrice: number): PaperOrder | null {
+export function fillPaperOrder(
+  id: string,
+  fillPrice: number,
+  fillPriceSource: PaperOrder["fillPriceSource"] = "live",
+): PaperOrder | null {
   const order = orders.find((o) => o.id === id);
   if (!order || order.status !== "paper_submitted") return null;
   order.status = "simulated_fill";
   order.fillPrice = fillPrice;
+  order.fillPriceSource = fillPriceSource;
   order.fillTimestamp = new Date().toISOString();
+  order.updatedAt = new Date().toISOString();
+  return order;
+}
+
+export function failFillPaperOrder(id: string): PaperOrder | null {
+  const order = orders.find((o) => o.id === id);
+  if (!order || order.status !== "paper_submitted") return null;
+  order.status = "fill_failed";
+  order.fillPriceSource = "failed";
   order.updatedAt = new Date().toISOString();
   return order;
 }

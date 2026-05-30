@@ -85,6 +85,36 @@ interface ScoreApi {
   aiDecisionSummaryEn?: string;
   provider: string | null;
   price: number | null;
+  // Phase A — Gemini intelligence
+  arabicReasoning?: string;
+  geminiAnalysisUsed?: boolean;
+  schoolsBreakdown?: {
+    keynesian: number;
+    monetarist: number;
+    austrian: number;
+    behavioral: number;
+    valueinvesting: number;
+    globalMacro: number;
+  } | null;
+}
+
+interface PositionMonitorResult {
+  orderId: string;
+  symbol: string;
+  action: string;
+  currentPrice: number | null;
+  entryPrice: number;
+  pnlPercent: number;
+  pnlAmount: number;
+  stopLossPrice: number;
+  takeProfitStage1: number;
+  takeProfitStage2: number;
+  takeProfitStage3: number;
+  daysHeld: number;
+  maxHoldingDays: number;
+  riskRewardRatio: number;
+  arabicAction: string;
+  alertLevel: "critical" | "warning" | "info" | "ok";
 }
 
 interface AllocationApi {
@@ -261,6 +291,7 @@ function Genesis100Page() {
   const [debate, setDebate] = useState<DebateApi | null>(null);
   const [consensus, setConsensus] = useState<ConsensusApi | null>(null);
   const [riskWarnings, setRiskWarnings] = useState<string[]>([]);
+  const [positionMonitor, setPositionMonitor] = useState<PositionMonitorResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -282,6 +313,7 @@ function Genesis100Page() {
       getJson<SourceRegistryApi>("/api/public/genesis100/source-registry"),
       getJson<DebateApi>("/api/public/genesis100/debate"),
       getJson<ConsensusApi>("/api/public/genesis100/consensus"),
+      getJson<{ positions: PositionMonitorResult[] }>("/api/public/genesis100/position-monitor").catch(() => ({ positions: [] })),
     ]);
     setStatus(s);
     setAllocations(a.allocations ?? []);
@@ -294,6 +326,7 @@ function Genesis100Page() {
     setSourceRegistry(sr);
     setDebate(db);
     setConsensus(cs);
+    setPositionMonitor((pm as { positions: PositionMonitorResult[] }).positions ?? []);
   };
 
   useEffect(() => {
@@ -306,7 +339,7 @@ function Genesis100Page() {
     setRunning(true);
     setError(null);
     try {
-      const cycle = await getJson<CycleApi>("/api/public/genesis100/run-cycle", { method: "POST" });
+      const cycle = await getJson<CycleApi & { positionMonitor?: PositionMonitorResult[] }>("/api/public/genesis100/run-cycle", { method: "POST" });
       setScores(cycle.scores ?? []);
       setAllocations(cycle.allocations ?? []);
       setDecisions(cycle.decisions ?? []);
@@ -314,6 +347,7 @@ function Genesis100Page() {
       setPositionSizingSummary(cycle.positionSizingSummary ?? null);
       setArchive(cycle.topDecisions ?? []);
       setRiskWarnings(cycle.riskWarnings ?? []);
+      if (cycle.positionMonitor) setPositionMonitor(cycle.positionMonitor);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Cycle failed");
@@ -587,24 +621,132 @@ function Genesis100Page() {
         <CardContent className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-muted-foreground">
-              <tr><th className="p-2">Symbol</th><th className="p-2">Bucket</th><th className="p-2">Decision</th><th className="p-2">Credibility %</th><th className="p-2">Risk %</th><th className="p-2">Stop Loss</th><th className="p-2">Reason</th><th className="p-2">Recommendation</th></tr>
+              <tr>
+                <th className="p-2">Symbol</th>
+                <th className="p-2">Bucket</th>
+                <th className="p-2">Score</th>
+                <th className="p-2">Credibility %</th>
+                <th className="p-2">Risk %</th>
+                <th className="p-2">Stop Loss</th>
+                <th className="p-2">{t("تحليل AI", "AI Source")}</th>
+                <th className="p-2">Recommendation</th>
+              </tr>
             </thead>
             <tbody>
               {topScores.map((s) => (
-                <tr key={s.symbol} className="border-t">
-                  <td className="p-2 font-medium">{s.symbol}</td>
-                  <td className="p-2">{s.bucket}</td>
-                  <td className="p-2">{(s.finalDecisionScore ?? s.finalGenesisScore).toFixed(1)}</td>
-                  <td className="p-2">{(s.decisionCredibilityPercent ?? s.decisionConfidencePercent ?? s.confidenceScore).toFixed(1)}%</td>
-                  <td className="p-2">{(s.riskPercent ?? 0).toFixed(1)}%</td>
-                  <td className="p-2">{s.stopLossUrgency ?? "-"}</td>
-                  <td className="p-2 max-w-xs text-muted-foreground">{s.primaryReason ?? s.provider ?? "-"}</td>
-                  <td className="p-2"><Badge variant="outline">{s.recommendation}</Badge></td>
-                </tr>
+                <>
+                  <tr key={s.symbol} className="border-t">
+                    <td className="p-2 font-medium">{s.symbol}</td>
+                    <td className="p-2">{s.bucket}</td>
+                    <td className="p-2">{(s.finalDecisionScore ?? s.finalGenesisScore).toFixed(1)}</td>
+                    <td className="p-2">{(s.decisionCredibilityPercent ?? s.decisionConfidencePercent ?? s.confidenceScore).toFixed(1)}%</td>
+                    <td className="p-2">{(s.riskPercent ?? 0).toFixed(1)}%</td>
+                    <td className="p-2">{s.stopLossUrgency ?? "-"}</td>
+                    <td className="p-2">
+                      {s.geminiAnalysisUsed
+                        ? <Badge className="bg-primary/10 text-primary border-primary/30 text-xs">{t("تحليل ذكي", "Gemini AI")}</Badge>
+                        : <Badge variant="outline" className="text-xs text-muted-foreground">{t("تحليل احترازي", "Heuristic")}</Badge>}
+                    </td>
+                    <td className="p-2"><Badge variant="outline">{s.recommendation}</Badge></td>
+                  </tr>
+                  {s.arabicReasoning && (
+                    <tr key={`${s.symbol}-ar`} className="bg-muted/30">
+                      <td colSpan={8} className="px-3 pb-2 text-xs text-muted-foreground" dir="rtl">
+                        <span className="font-medium text-foreground">{s.symbol}: </span>{s.arabicReasoning}
+                        {s.schoolsBreakdown && (
+                          <span className="ml-2 text-xs opacity-70">
+                            {" "}[K:{s.schoolsBreakdown.keynesian} M:{s.schoolsBreakdown.monetarist} A:{s.schoolsBreakdown.austrian} B:{s.schoolsBreakdown.behavioral} V:{s.schoolsBreakdown.valueinvesting} G:{s.schoolsBreakdown.globalMacro}]
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </>
               ))}
               {!topScores.length && <tr><td colSpan={8} className="p-4 text-center text-muted-foreground">{t("شغّل دورة AI لعرض التصنيف.", "Run an AI cycle to populate rankings.")}</td></tr>}
             </tbody>
           </table>
+        </CardContent>
+      </Card>
+
+      {/* Phase C — Position Monitor Panel */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4" />
+            {t("مراقبة المراكز المفتوحة", "Open Position Monitor")}
+            <Badge variant="outline" className="border-amber-500/40 text-amber-700 text-xs">{t("محاكاة ورقية فقط", "Paper only")}</Badge>
+            {positionMonitor.some(p => p.alertLevel === "critical") && (
+              <Badge className="bg-destructive text-destructive-foreground text-xs animate-pulse">{t("تنبيه: وقف خسارة!", "STOP LOSS HIT")}</Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {positionMonitor.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("لا توجد مراكز مفتوحة. شغّل دورة AI أولاً.", "No open positions. Run an AI cycle first.")}</p>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground mb-3" dir="rtl">محاكاة ورقية — لا تنفيذ حقيقي. هذه تنبيهات استشارية. يجب على الإنسان تأكيد أي إجراء.</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-left text-muted-foreground">
+                    <tr>
+                      <th className="p-2">Symbol</th>
+                      <th className="p-2">{t("دخول", "Entry")}</th>
+                      <th className="p-2">{t("حالي", "Current")}</th>
+                      <th className="p-2">PnL %</th>
+                      <th className="p-2">{t("وقف الخسارة", "Stop Loss")}</th>
+                      <th className="p-2">TP1</th>
+                      <th className="p-2">TP2</th>
+                      <th className="p-2">TP3</th>
+                      <th className="p-2">{t("أيام", "Days")}</th>
+                      <th className="p-2">{t("الحالة", "Status")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {positionMonitor.map((p) => {
+                      const alertClass =
+                        p.alertLevel === "critical" ? "bg-destructive/10 border-destructive/30" :
+                        p.alertLevel === "warning" ? "bg-amber-50 dark:bg-amber-950/20 border-amber-300/30" :
+                        p.alertLevel === "info" ? "bg-primary/5 border-primary/20" : "";
+                      return (
+                        <tr key={p.orderId} className={`border-t ${alertClass}`}>
+                          <td className="p-2 font-medium">{p.symbol}</td>
+                          <td className="p-2">{p.entryPrice.toFixed(4)}</td>
+                          <td className="p-2">{p.currentPrice?.toFixed(4) ?? "—"}</td>
+                          <td className={`p-2 font-medium ${p.pnlPercent >= 0 ? "text-green-600" : "text-destructive"}`}>
+                            {p.pnlPercent >= 0 ? "+" : ""}{p.pnlPercent.toFixed(2)}%
+                          </td>
+                          <td className="p-2 text-destructive text-xs">{p.stopLossPrice.toFixed(4)}</td>
+                          <td className="p-2 text-green-600 text-xs">{p.takeProfitStage1.toFixed(4)}</td>
+                          <td className="p-2 text-green-600 text-xs">{p.takeProfitStage2.toFixed(4)}</td>
+                          <td className="p-2 text-green-600 text-xs">{p.takeProfitStage3.toFixed(4)}</td>
+                          <td className="p-2">{p.daysHeld}/{p.maxHoldingDays}</td>
+                          <td className="p-2">
+                            <Badge
+                              variant="outline"
+                              className={
+                                p.alertLevel === "critical" ? "border-destructive text-destructive" :
+                                p.alertLevel === "warning" ? "border-amber-500 text-amber-700" :
+                                p.alertLevel === "info" ? "border-primary text-primary" : ""
+                              }
+                            >
+                              {p.action.replace(/_/g, " ")}
+                            </Badge>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {positionMonitor.filter(p => p.alertLevel !== "ok").map(p => (
+                <div key={`alert-${p.orderId}`} className="rounded-md bg-muted/50 p-2 text-xs" dir="rtl">
+                  <span className="font-medium">{p.symbol}:</span> {p.arabicAction}
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

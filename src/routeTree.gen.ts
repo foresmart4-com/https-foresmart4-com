@@ -117,6 +117,7 @@ import { Route as ApiPublicGenesis100RunCycleRouteImport } from './routes/api/pu
 import { Route as ApiPublicGenesis100ResearchSandboxRouteImport } from './routes/api/public/genesis100/research-sandbox'
 import { Route as ApiPublicGenesis100ReportRouteImport } from './routes/api/public/genesis100/report'
 import { Route as ApiPublicGenesis100PositionSizingRouteImport } from './routes/api/public/genesis100/position-sizing'
+import { Route as ApiPublicGenesis100PositionMonitorRouteImport } from './routes/api/public/genesis100/position-monitor'
 import { Route as ApiPublicGenesis100NotificationsRouteImport } from './routes/api/public/genesis100/notifications'
 import { Route as ApiPublicGenesis100MarketSentimentRouteImport } from './routes/api/public/genesis100/market-sentiment'
 import { Route as ApiPublicGenesis100KnowledgeAcquisitionRouteImport } from './routes/api/public/genesis100/knowledge-acquisition'
@@ -758,6 +759,12 @@ const ApiPublicGenesis100PositionSizingRoute =
     path: '/api/public/genesis100/position-sizing',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicGenesis100PositionMonitorRoute =
+  ApiPublicGenesis100PositionMonitorRouteImport.update({
+    id: '/api/public/genesis100/position-monitor',
+    path: '/api/public/genesis100/position-monitor',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicGenesis100NotificationsRoute =
   ApiPublicGenesis100NotificationsRouteImport.update({
     id: '/api/public/genesis100/notifications',
@@ -1367,6 +1374,7 @@ export interface FileRoutesByFullPath {
   '/api/public/genesis100/knowledge-acquisition': typeof ApiPublicGenesis100KnowledgeAcquisitionRoute
   '/api/public/genesis100/market-sentiment': typeof ApiPublicGenesis100MarketSentimentRoute
   '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
+  '/api/public/genesis100/position-monitor': typeof ApiPublicGenesis100PositionMonitorRoute
   '/api/public/genesis100/position-sizing': typeof ApiPublicGenesis100PositionSizingRoute
   '/api/public/genesis100/report': typeof ApiPublicGenesis100ReportRoute
   '/api/public/genesis100/research-sandbox': typeof ApiPublicGenesis100ResearchSandboxRoute
@@ -1557,6 +1565,7 @@ export interface FileRoutesByTo {
   '/api/public/genesis100/knowledge-acquisition': typeof ApiPublicGenesis100KnowledgeAcquisitionRoute
   '/api/public/genesis100/market-sentiment': typeof ApiPublicGenesis100MarketSentimentRoute
   '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
+  '/api/public/genesis100/position-monitor': typeof ApiPublicGenesis100PositionMonitorRoute
   '/api/public/genesis100/position-sizing': typeof ApiPublicGenesis100PositionSizingRoute
   '/api/public/genesis100/report': typeof ApiPublicGenesis100ReportRoute
   '/api/public/genesis100/research-sandbox': typeof ApiPublicGenesis100ResearchSandboxRoute
@@ -1749,6 +1758,7 @@ export interface FileRoutesById {
   '/api/public/genesis100/knowledge-acquisition': typeof ApiPublicGenesis100KnowledgeAcquisitionRoute
   '/api/public/genesis100/market-sentiment': typeof ApiPublicGenesis100MarketSentimentRoute
   '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
+  '/api/public/genesis100/position-monitor': typeof ApiPublicGenesis100PositionMonitorRoute
   '/api/public/genesis100/position-sizing': typeof ApiPublicGenesis100PositionSizingRoute
   '/api/public/genesis100/report': typeof ApiPublicGenesis100ReportRoute
   '/api/public/genesis100/research-sandbox': typeof ApiPublicGenesis100ResearchSandboxRoute
@@ -1941,6 +1951,7 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/knowledge-acquisition'
     | '/api/public/genesis100/market-sentiment'
     | '/api/public/genesis100/notifications'
+    | '/api/public/genesis100/position-monitor'
     | '/api/public/genesis100/position-sizing'
     | '/api/public/genesis100/report'
     | '/api/public/genesis100/research-sandbox'
@@ -2131,6 +2142,7 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/knowledge-acquisition'
     | '/api/public/genesis100/market-sentiment'
     | '/api/public/genesis100/notifications'
+    | '/api/public/genesis100/position-monitor'
     | '/api/public/genesis100/position-sizing'
     | '/api/public/genesis100/report'
     | '/api/public/genesis100/research-sandbox'
@@ -2322,6 +2334,7 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/knowledge-acquisition'
     | '/api/public/genesis100/market-sentiment'
     | '/api/public/genesis100/notifications'
+    | '/api/public/genesis100/position-monitor'
     | '/api/public/genesis100/position-sizing'
     | '/api/public/genesis100/report'
     | '/api/public/genesis100/research-sandbox'
@@ -2460,6 +2473,7 @@ export interface RootRouteChildren {
   ApiPublicGenesis100KnowledgeAcquisitionRoute: typeof ApiPublicGenesis100KnowledgeAcquisitionRoute
   ApiPublicGenesis100MarketSentimentRoute: typeof ApiPublicGenesis100MarketSentimentRoute
   ApiPublicGenesis100NotificationsRoute: typeof ApiPublicGenesis100NotificationsRoute
+  ApiPublicGenesis100PositionMonitorRoute: typeof ApiPublicGenesis100PositionMonitorRoute
   ApiPublicGenesis100PositionSizingRoute: typeof ApiPublicGenesis100PositionSizingRoute
   ApiPublicGenesis100ReportRoute: typeof ApiPublicGenesis100ReportRoute
   ApiPublicGenesis100ResearchSandboxRoute: typeof ApiPublicGenesis100ResearchSandboxRoute
@@ -3241,6 +3255,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/genesis100/position-sizing'
       fullPath: '/api/public/genesis100/position-sizing'
       preLoaderRoute: typeof ApiPublicGenesis100PositionSizingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/genesis100/position-monitor': {
+      id: '/api/public/genesis100/position-monitor'
+      path: '/api/public/genesis100/position-monitor'
+      fullPath: '/api/public/genesis100/position-monitor'
+      preLoaderRoute: typeof ApiPublicGenesis100PositionMonitorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/genesis100/notifications': {
@@ -4061,6 +4082,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicGenesis100MarketSentimentRoute:
     ApiPublicGenesis100MarketSentimentRoute,
   ApiPublicGenesis100NotificationsRoute: ApiPublicGenesis100NotificationsRoute,
+  ApiPublicGenesis100PositionMonitorRoute:
+    ApiPublicGenesis100PositionMonitorRoute,
   ApiPublicGenesis100PositionSizingRoute:
     ApiPublicGenesis100PositionSizingRoute,
   ApiPublicGenesis100ReportRoute: ApiPublicGenesis100ReportRoute,

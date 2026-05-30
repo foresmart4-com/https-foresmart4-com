@@ -1,4 +1,7 @@
 import { routeQuote, resolveAsset, type AssetClass, type RouterQuote } from "@/lib/market/router";
+import { analyzeAssetWithGemini, type GenesisIntelligenceOutput } from "@/lib/genesis100/intelligence/genesisIntelligenceEngine";
+import { loadLatestState, saveDecisionCycle } from "@/lib/genesis100/persistence/genesisStore";
+import { checkOpenPositions } from "@/lib/genesis100/execution/positionMonitor";
 
 export type GenesisStatus = "draft" | "active_analysis" | "paper_trading" | "execution_ready" | "paused";
 export type GenesisRiskProfile = "conservative" | "balanced" | "growth";
@@ -171,6 +174,19 @@ export interface GenesisScore {
   quoteSnapshot: Partial<RouterQuote>;
   dataSources: string[];
   riskNotes: string[];
+  // Phase A — Gemini intelligence layer
+  arabicReasoning: string;
+  keyRisks: string[];
+  keyOpportunities: string[];
+  geminiAnalysisUsed: boolean;
+  schoolsBreakdown: {
+    keynesian: number;
+    monetarist: number;
+    austrian: number;
+    behavioral: number;
+    valueinvesting: number;
+    globalMacro: number;
+  } | null;
 }
 
 export interface GenesisAllocation {
@@ -357,6 +373,8 @@ export interface GenesisCycleResult {
     emergencyTriggers: string[];
     quarterlyReviewSupported: true;
   };
+  // Phase C — position monitor (advisory only)
+  positionMonitor?: import("@/lib/genesis100/execution/positionMonitor").PositionMonitorResult[];
 }
 
 export interface GenesisReport {
@@ -509,6 +527,31 @@ const STATE: {
   lastPortfolioDecision: null,
   lastCycle: null,
 };
+
+// Phase B — lazy Supabase hydration (runs once on first runGenesisCycle call)
+let _stateHydrated = false;
+let _hydratePromise: Promise<void> | null = null;
+
+async function hydrateStateFromDB(): Promise<void> {
+  if (_stateHydrated) return;
+  if (_hydratePromise) { await _hydratePromise; return; }
+  _hydratePromise = (async () => {
+    try {
+      const saved = await loadLatestState();
+      if (saved?.decisionArchive.length) {
+        STATE.decisionArchive = saved.decisionArchive;
+        STATE.previousRecommendations = saved.previousRecommendations;
+        STATE.currentWeights = saved.currentWeights;
+        console.info(`[genesis] Hydrated state from DB: ${saved.decisionArchive.length} archived decisions`);
+      }
+    } catch (err) {
+      console.warn("[genesis] State hydration failed, using in-memory defaults:", err);
+    } finally {
+      _stateHydrated = true;
+    }
+  })();
+  await _hydratePromise;
+}
 
 function clamp(n: number, min = 0, max = 100): number {
   return Math.max(min, Math.min(max, n));
@@ -791,7 +834,16 @@ async function quoteWithTimeout(symbol: string, timeoutMs = genesisQuoteTimeoutM
   return Promise.race([routeQuote(symbol), timeout]);
 }
 
-function scoreAsset(asset: GenesisUniverseAsset, quote: RouterQuote): GenesisScore {
+function marketRegionFor(asset: GenesisUniverseAsset): string {
+  if (asset.bucket === "saudi_stock") return "GCC/Saudi Arabia";
+  if (asset.bucket === "crypto") return "Global/Digital Assets";
+  if (asset.bucket === "forex") return "Global/FX";
+  if (asset.bucket === "commodity") return "Global/Commodities";
+  if (asset.bucket === "macro") return "Global/Macro";
+  return "US/North America";
+}
+
+function scoreAsset(asset: GenesisUniverseAsset, quote: RouterQuote, intelligenceData?: GenesisIntelligenceOutput): GenesisScore {
   const assetClass = quote.assetClass || resolveAsset(asset.symbol).assetClass;
   const bucket = bucketFor(asset.symbol, assetClass);
   const changePercent = typeof quote.changePercent === "number" ? quote.changePercent : 0;
@@ -805,13 +857,15 @@ function scoreAsset(asset: GenesisUniverseAsset, quote: RouterQuote): GenesisSco
   const liquidityScore = quote.volume && quote.volume > 0
     ? clamp(55 + Math.log10(Number(quote.volume) + 1) * 6)
     : quote.success ? 58 : 25;
-  const macroScore = bucket === "macro" ? 62 : bucket === "etf" ? 64 : bucket === "forex" ? 55 : 58;
-  const macroSensitivityScore = clamp(bucket === "macro" ? 82 : bucket === "commodity" || bucket === "forex" ? 68 : bucket === "crypto" ? 61 : 54);
-  const newsImpactScore = clamp(bucket === "us_stock" || bucket === "saudi_stock" ? 58 : 50);
-  const sentimentScore = clamp(50 + changePercent * 2);
+  // Phase A: Gemini overrides placeholder math when available
+  const ai = intelligenceData?.geminiUsed ? intelligenceData : null;
+  const macroScore = ai ? ai.macroScore : (bucket === "macro" ? 62 : bucket === "etf" ? 64 : bucket === "forex" ? 55 : 58);
+  const macroSensitivityScore = clamp(ai ? ai.schoolsConsensus : (bucket === "macro" ? 82 : bucket === "commodity" || bucket === "forex" ? 68 : bucket === "crypto" ? 61 : 54));
+  const newsImpactScore = clamp(ai ? ai.sentimentScore : (bucket === "us_stock" || bucket === "saudi_stock" ? 58 : 50));
+  const sentimentScore = clamp(ai ? ai.sentimentScore : 50 + changePercent * 2);
   const newsSentimentScore = sentimentScore;
-  const fundamentalsScore = clamp(bucket === "crypto" || bucket === "forex" ? 50 : bucket === "etf" ? 68 : quote.success ? 62 : 40);
-  const sectorStrengthScore = clamp(bucket === "etf" ? 66 : bucket === "commodity" ? 60 : bucket === "crypto" ? 58 : 57 + changePercent);
+  const fundamentalsScore = clamp(ai ? ai.fundamentalsScore : (bucket === "crypto" || bucket === "forex" ? 50 : bucket === "etf" ? 68 : quote.success ? 62 : 40));
+  const sectorStrengthScore = clamp(ai ? ai.schoolsConsensus : (bucket === "etf" ? 66 : bucket === "commodity" ? 60 : bucket === "crypto" ? 58 : 57 + changePercent));
   const technicalStructureScore = clamp((priceMomentumScore + trendStrengthScore + volatilityScore) / 3);
   const capitalEfficiencyScore = clamp((liquidityScore + fundamentalsScore + technicalStructureScore) / 3);
   const riskAdjustedReturnScore = clamp((priceMomentumScore * 0.45) + (trendStrengthScore * 0.25) + (volatilityScore * 0.30));
@@ -977,6 +1031,12 @@ function scoreAsset(asset: GenesisUniverseAsset, quote: RouterQuote): GenesisSco
     },
     dataSources: [quote.provider, ...(quote.attempted ?? [])].filter(Boolean) as string[],
     riskNotes,
+    // Phase A — Gemini intelligence fields
+    arabicReasoning: ai?.arabicReasoning ?? aiDecisionSummaryAr,
+    keyRisks: ai?.keyRisks ?? riskNotes,
+    keyOpportunities: ai?.keyOpportunities ?? [],
+    geminiAnalysisUsed: Boolean(ai),
+    schoolsBreakdown: ai?.schoolsBreakdown ?? null,
   };
 }
 
@@ -1033,6 +1093,47 @@ export function getGenesisUniverse(input?: Request | URLSearchParams | null) {
   };
 }
 
+// Phase A: run Gemini intelligence calls in batches of 3 to respect rate limits
+async function fetchIntelligenceBatch(
+  assets: GenesisUniverseAsset[],
+  quotes: RouterQuote[],
+): Promise<(GenesisIntelligenceOutput | undefined)[]> {
+  const BATCH_SIZE = 3;
+  const results: (GenesisIntelligenceOutput | undefined)[] = new Array(assets.length);
+  const riskBudgetRemaining = round(
+    Math.max(0, (1 - Object.values(STATE.currentWeights).reduce((a, b) => a + b, 0)) * 100),
+    2,
+  );
+
+  for (let i = 0; i < assets.length; i += BATCH_SIZE) {
+    const batch = assets.slice(i, i + BATCH_SIZE);
+    const batchQuotes = quotes.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.all(
+      batch.map((asset, j) => {
+        const q = batchQuotes[j];
+        return analyzeAssetWithGemini({
+          symbol: asset.symbol,
+          assetClass: q.assetClass || resolveAsset(asset.symbol).assetClass,
+          marketRegion: marketRegionFor(asset),
+          price: q.price,
+          changePercent: q.changePercent,
+          provider: q.provider,
+          providerReliable: q.success && !q.fallbackUsed,
+          portfolioContext: {
+            totalCapital: STATE.wallet.capital,
+            currentAllocation: round((STATE.currentWeights[asset.symbol] ?? 0) * 100, 2),
+            riskBudgetRemaining,
+          },
+        }).catch(() => undefined);
+      }),
+    );
+    for (let j = 0; j < batch.length; j++) {
+      results[i + j] = batchResults[j];
+    }
+  }
+  return results;
+}
+
 export async function analyzeGenesisUniverse(): Promise<GenesisScore[]> {
   const quotes = await Promise.all(GENESIS_UNIVERSE.map(async (asset) => {
     try {
@@ -1059,7 +1160,10 @@ export async function analyzeGenesisUniverse(): Promise<GenesisScore[]> {
     }
   }));
 
-  const scores = GENESIS_UNIVERSE.map((asset, index) => scoreAsset(asset, quotes[index]))
+  // Phase A: fetch Gemini analysis in parallel batches of 3
+  const intelligenceResults = await fetchIntelligenceBatch(GENESIS_UNIVERSE, quotes);
+
+  const scores = GENESIS_UNIVERSE.map((asset, index) => scoreAsset(asset, quotes[index], intelligenceResults[index]))
     .sort((a, b) => b.finalGenesisScore - a.finalGenesisScore);
 
   STATE.lastScores = scores;
@@ -1322,6 +1426,9 @@ function buildPositionSizingSummary(scores: GenesisScore[], allocations: Genesis
 }
 
 export async function runGenesisCycle(input?: Request | URLSearchParams | null): Promise<GenesisCycleResult> {
+  // Phase B: hydrate state from Supabase on first call (no-op after that)
+  await hydrateStateFromDB();
+
   const entitlement = getGenesisEntitlement(input ?? null);
   const cycleId = `genesis-${Date.now()}`;
   if (!entitlement.allowed || STATE.controls.aiMode === "off") {
@@ -1389,6 +1496,9 @@ export async function runGenesisCycle(input?: Request | URLSearchParams | null):
   };
   STATE.decisions = [...decisions, ...STATE.decisions].slice(0, 500);
 
+  // Phase C: check existing open positions for stop loss / take profit alerts (advisory)
+  const positionMonitor = await checkOpenPositions(STATE.wallet.capital).catch(() => undefined);
+
   const cycle: GenesisCycleResult = {
     cycleId,
     timestamp: new Date().toISOString(),
@@ -1439,10 +1549,17 @@ export async function runGenesisCycle(input?: Request | URLSearchParams | null):
       ],
       quarterlyReviewSupported: true,
     },
+    positionMonitor,
   };
 
   STATE.lastCycle = cycle;
   STATE.lastPortfolioDecision = portfolioDecision;
+
+  // Phase B: persist cycle to Supabase (fire and forget — never blocks the response)
+  saveDecisionCycle(cycle).catch((err) =>
+    console.warn("[genesis] Cycle persistence failed:", err),
+  );
+
   return cycle;
 }
 
