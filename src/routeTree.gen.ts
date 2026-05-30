@@ -85,6 +85,7 @@ import { Route as ApiPublicRouterTestRouteImport } from './routes/api/public/rou
 import { Route as ApiPublicRouterRegressionRouteImport } from './routes/api/public/router-regression'
 import { Route as ApiPublicQuoteRouteImport } from './routes/api/public/quote'
 import { Route as ApiPublicProviderHealthFullRouteImport } from './routes/api/public/provider-health-full'
+import { Route as ApiPublicProviderCredentialCheckRouteImport } from './routes/api/public/provider-credential-check'
 import { Route as ApiPublicMoyasarWebhookRouteImport } from './routes/api/public/moyasar-webhook'
 import { Route as ApiPublicMarketIntelligenceRouteImport } from './routes/api/public/market-intelligence'
 import { Route as ApiPublicMarketDataSourceAuditRouteImport } from './routes/api/public/market-data-source-audit'
@@ -578,6 +579,12 @@ const ApiPublicProviderHealthFullRoute =
   ApiPublicProviderHealthFullRouteImport.update({
     id: '/api/public/provider-health-full',
     path: '/api/public/provider-health-full',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicProviderCredentialCheckRoute =
+  ApiPublicProviderCredentialCheckRouteImport.update({
+    id: '/api/public/provider-credential-check',
+    path: '/api/public/provider-credential-check',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicMoyasarWebhookRoute = ApiPublicMoyasarWebhookRouteImport.update({
@@ -1276,6 +1283,7 @@ export interface FileRoutesByFullPath {
   '/api/public/market-data-source-audit': typeof ApiPublicMarketDataSourceAuditRoute
   '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
+  '/api/public/provider-credential-check': typeof ApiPublicProviderCredentialCheckRoute
   '/api/public/provider-health-full': typeof ApiPublicProviderHealthFullRoute
   '/api/public/quote': typeof ApiPublicQuoteRoute
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
@@ -1465,6 +1473,7 @@ export interface FileRoutesByTo {
   '/api/public/market-data-source-audit': typeof ApiPublicMarketDataSourceAuditRoute
   '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
+  '/api/public/provider-credential-check': typeof ApiPublicProviderCredentialCheckRoute
   '/api/public/provider-health-full': typeof ApiPublicProviderHealthFullRoute
   '/api/public/quote': typeof ApiPublicQuoteRoute
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
@@ -1656,6 +1665,7 @@ export interface FileRoutesById {
   '/api/public/market-data-source-audit': typeof ApiPublicMarketDataSourceAuditRoute
   '/api/public/market-intelligence': typeof ApiPublicMarketIntelligenceRoute
   '/api/public/moyasar-webhook': typeof ApiPublicMoyasarWebhookRoute
+  '/api/public/provider-credential-check': typeof ApiPublicProviderCredentialCheckRoute
   '/api/public/provider-health-full': typeof ApiPublicProviderHealthFullRoute
   '/api/public/quote': typeof ApiPublicQuoteRoute
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
@@ -1847,6 +1857,7 @@ export interface FileRouteTypes {
     | '/api/public/market-data-source-audit'
     | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
+    | '/api/public/provider-credential-check'
     | '/api/public/provider-health-full'
     | '/api/public/quote'
     | '/api/public/router-regression'
@@ -2036,6 +2047,7 @@ export interface FileRouteTypes {
     | '/api/public/market-data-source-audit'
     | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
+    | '/api/public/provider-credential-check'
     | '/api/public/provider-health-full'
     | '/api/public/quote'
     | '/api/public/router-regression'
@@ -2226,6 +2238,7 @@ export interface FileRouteTypes {
     | '/api/public/market-data-source-audit'
     | '/api/public/market-intelligence'
     | '/api/public/moyasar-webhook'
+    | '/api/public/provider-credential-check'
     | '/api/public/provider-health-full'
     | '/api/public/quote'
     | '/api/public/router-regression'
@@ -2363,6 +2376,7 @@ export interface RootRouteChildren {
   ApiPublicMarketDataSourceAuditRoute: typeof ApiPublicMarketDataSourceAuditRoute
   ApiPublicMarketIntelligenceRoute: typeof ApiPublicMarketIntelligenceRoute
   ApiPublicMoyasarWebhookRoute: typeof ApiPublicMoyasarWebhookRoute
+  ApiPublicProviderCredentialCheckRoute: typeof ApiPublicProviderCredentialCheckRoute
   ApiPublicProviderHealthFullRoute: typeof ApiPublicProviderHealthFullRoute
   ApiPublicQuoteRoute: typeof ApiPublicQuoteRoute
   ApiPublicRouterRegressionRoute: typeof ApiPublicRouterRegressionRoute
@@ -3003,6 +3017,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/provider-health-full'
       fullPath: '/api/public/provider-health-full'
       preLoaderRoute: typeof ApiPublicProviderHealthFullRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/provider-credential-check': {
+      id: '/api/public/provider-credential-check'
+      path: '/api/public/provider-credential-check'
+      fullPath: '/api/public/provider-credential-check'
+      preLoaderRoute: typeof ApiPublicProviderCredentialCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/moyasar-webhook': {
@@ -3953,6 +3974,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMarketDataSourceAuditRoute: ApiPublicMarketDataSourceAuditRoute,
   ApiPublicMarketIntelligenceRoute: ApiPublicMarketIntelligenceRoute,
   ApiPublicMoyasarWebhookRoute: ApiPublicMoyasarWebhookRoute,
+  ApiPublicProviderCredentialCheckRoute: ApiPublicProviderCredentialCheckRoute,
   ApiPublicProviderHealthFullRoute: ApiPublicProviderHealthFullRoute,
   ApiPublicQuoteRoute: ApiPublicQuoteRoute,
   ApiPublicRouterRegressionRoute: ApiPublicRouterRegressionRoute,

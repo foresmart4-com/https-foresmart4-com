@@ -93,6 +93,7 @@ export const Route = createFileRoute("/api/public/provider-health-full")({
           configured: registry.filter((p) => p.configured).length,
           total: registry.length,
           timestamp: new Date().toISOString(),
+          credentialCheckEndpoint: "/api/public/provider-credential-check",
         }, null, 2), {
           headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
         });
