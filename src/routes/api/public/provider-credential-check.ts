@@ -54,11 +54,12 @@ async function probe(url: string, init: RequestInit = {}): Promise<{ status: num
 }
 
 function fromStatus(status: number): ErrorType {
-  if (status === 0)             return "network_error";
-  if (status === 401)           return "unauthorized";
-  if (status === 403)           return "forbidden";
-  if (status === 406 || status === 426) return "plan_restriction";
-  if (status === 429)           return "rate_limited";
+  if (status === 0)                      return "network_error";
+  if (status === 401)                    return "unauthorized";
+  if (status === 402)                    return "plan_restriction";
+  if (status === 403)                    return "forbidden";
+  if (status === 406 || status === 426)  return "plan_restriction";
+  if (status === 429)                    return "rate_limited";
   return "network_error";
 }
 
