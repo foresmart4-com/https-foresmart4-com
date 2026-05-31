@@ -722,6 +722,39 @@ export type Database = {
         }
         Relationships: []
       }
+      genesis_knowledge_base: {
+        Row: {
+          id: string
+          category: string
+          title: string
+          summary: string
+          source: string
+          source_url: string | null
+          valid_until: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          category: string
+          title: string
+          summary: string
+          source: string
+          source_url?: string | null
+          valid_until: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          category?: string
+          title?: string
+          summary?: string
+          source?: string
+          source_url?: string | null
+          valid_until?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       interest_leads: {
         Row: {
           created_at: string
