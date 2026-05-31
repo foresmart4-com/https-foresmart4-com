@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { fetchRealMacroContext } from "@/lib/genesis100/macro/macroDataService";
+import { callAIGateway } from "@/lib/ai-gateway.server";
 
 const InputSchema = z.object({
   question: z.string().min(1).max(3000),
@@ -69,7 +70,7 @@ const SYSTEM_PROMPT = `
 export const askGenesisAdvisor = createServerFn({ method: "POST" })
   .inputValidator((d) => InputSchema.parse(d))
   .handler(async ({ data }) => {
-    const { question } = data;
+    const { question, lang } = data;
 
     const macro = await fetchRealMacroContext().catch(() => null);
 
@@ -89,37 +90,18 @@ export const askGenesisAdvisor = createServerFn({ method: "POST" })
 سؤال المستخدم: ${question}
 `;
 
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=" +
-        process.env.GEMINI_API_KEY,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: SYSTEM_PROMPT }],
-          },
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: userMessage }],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 4000,
-          },
-        }),
-      }
-    );
+    const result = await callAIGateway<string>({
+      system: SYSTEM_PROMPT,
+      user: userMessage,
+      language: lang,
+      model: "google/gemini-2.5-flash",
+      maxTokens: 4000,
+      temperature: 0.3,
+    });
 
-    if (!response.ok) {
-      return { text: "", error: `Gemini API error: ${response.status}` };
+    if (result.error) {
+      return { text: "", error: `AI error: ${result.error}` };
     }
 
-    const responseData = await response.json();
-    const text =
-      responseData.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-
-    return { text, error: null };
+    return { text: result.raw, error: null };
   });
