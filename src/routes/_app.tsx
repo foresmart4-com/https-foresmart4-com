@@ -96,8 +96,6 @@ function AppLayout() {
     { to: "/settings", icon: Settings, label: t("nav.settings"), hint: hint("الإعدادات", "Settings") },
   ];
 
-  const editorUrl = "https://lovable.dev/projects/5a68377c-93dc-42f4-9999-fc0850af1ae2";
-
   const handleSignOut = async () => { await signOut(); navigate({ to: "/" }); };
 
   const NavList = ({ onItemClick }: { onItemClick?: () => void }) => (
@@ -146,16 +144,6 @@ function AppLayout() {
 
   const SidebarFooter = () => (
     <div className="space-y-1 border-t border-sidebar-border p-2">
-      {import.meta.env.DEV && <a
-        href={editorUrl}
-        target="_blank"
-        rel="noreferrer"
-        title={hint("نشر آخر تحديثات الواجهة إلى الموقع المباشر بنقرة واحدة", "Publish the latest frontend to the live site in one click")}
-        className="flex w-full items-center gap-3 rounded-lg gradient-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 min-h-11"
-      >
-        <Rocket className="h-4 w-4 shrink-0" />
-        {!collapsed && <span>{hint("نشر التحديث", "Publish update")}</span>}
-      </a>}
       <button
         onClick={() => setLang(lang === "ar" ? "en" : "ar")}
         className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/60 min-h-11"
