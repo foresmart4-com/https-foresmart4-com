@@ -33,6 +33,7 @@ function stdDev(values: number[]): number {
 export function getDynamicWeights(
   macro: MacroContext,
   asset: AssetContext,
+  learnedHints?: Partial<ConsensusWeights>,
 ): ConsensusWeights {
   let w: ConsensusWeights = {
     keynesian: 0.15,
@@ -73,10 +74,25 @@ export function getDynamicWeights(
     w = { keynesian: 0.05, monetarist: 0.20, austrian: 0.30, behavioral: 0.10, valueInvesting: 0.05, globalMacro: 0.30 };
   }
 
-  // Normalize
+  // Normalize regime-based weights
   const total = Object.values(w).reduce((a, b) => a + b, 0);
   const keys = Object.keys(w) as (keyof ConsensusWeights)[];
   keys.forEach((k) => { w[k] = w[k] / total; });
+
+  // Blend with learned weight hints (30% learning, 70% regime logic)
+  if (learnedHints) {
+    keys.forEach((k) => {
+      const hint = learnedHints[k];
+      if (hint != null) {
+        w[k] = w[k] * 0.7 + hint * 0.3;
+      }
+    });
+    // Re-normalize after blend
+    const blendedTotal = Object.values(w).reduce((a, b) => a + b, 0);
+    if (blendedTotal > 0) {
+      keys.forEach((k) => { w[k] = w[k] / blendedTotal; });
+    }
+  }
 
   return w;
 }

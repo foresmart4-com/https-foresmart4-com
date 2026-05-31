@@ -2,6 +2,11 @@ import { routeQuote, resolveAsset, type AssetClass, type RouterQuote } from "@/l
 import { analyzeAssetWithGemini, type GenesisIntelligenceOutput } from "@/lib/genesis100/intelligence/genesisIntelligenceEngine";
 import { loadLatestState, saveDecisionCycle } from "@/lib/genesis100/persistence/genesisStore";
 import { checkOpenPositions } from "@/lib/genesis100/execution/positionMonitor";
+import type { ConsensusWeights } from "@/lib/genesis100/algorithms/consensusEngine";
+import { analyzeLearningOutcomes, type LearningInsights } from "@/lib/genesis100/algorithms/learningEngine";
+import { evaluateArchiveOutcomes, type LearningDecisionInput } from "@/lib/genesis100/learning/outcomeTracker";
+import { applyLearningToWeights } from "@/lib/genesis100/learning/weightAdjuster";
+import { fetchRealMacroContext } from "@/lib/genesis100/macro/macroDataService";
 
 export type GenesisStatus = "draft" | "active_analysis" | "paper_trading" | "execution_ready" | "paused";
 export type GenesisRiskProfile = "conservative" | "balanced" | "growth";
@@ -187,6 +192,10 @@ export interface GenesisScore {
     valueinvesting: number;
     globalMacro: number;
   } | null;
+  // Phase D/E — structured consensus fields carried into archive
+  dominantSchool: string | null;
+  consensusAgreementLevel: string | null;
+  structuredConsensusScore: number | null;
 }
 
 export interface GenesisAllocation {
@@ -306,6 +315,12 @@ export interface GenesisArchivedDecision {
   executionMode: GenesisExecutionMode;
   intelligenceVersion: typeof GENESIS_INTELLIGENCE_VERSION;
   createdBy: "genesis100-ai";
+  // Phase E — learning loop fields
+  schoolScoresAtDecision?: Record<string, number>;
+  dominantSchoolAtDecision?: string;
+  consensusAgreementLevel?: string | null;
+  structuredConsensusScore?: number | null;
+  geminiAnalysisUsed?: boolean;
 }
 
 export interface GenesisIntelligenceV2 {
@@ -375,6 +390,9 @@ export interface GenesisCycleResult {
   };
   // Phase C — position monitor (advisory only)
   positionMonitor?: import("@/lib/genesis100/execution/positionMonitor").PositionMonitorResult[];
+  // Phase E — learning loop
+  learningInsights?: LearningInsights;
+  learnedWeightsApplied?: boolean;
 }
 
 export interface GenesisReport {
@@ -484,6 +502,9 @@ const STATE: {
   decisionArchive: GenesisArchivedDecision[];
   lastPortfolioDecision: GenesisPortfolioDecision | null;
   lastCycle: GenesisCycleResult | null;
+  // Phase E — learning loop state
+  learnedConsensusWeights: ConsensusWeights | null;
+  lastLearningInsights: LearningInsights | null;
 } = {
   wallet: {
     id: "genesis-100-isolated-wallet",
@@ -526,6 +547,8 @@ const STATE: {
   decisionArchive: [],
   lastPortfolioDecision: null,
   lastCycle: null,
+  learnedConsensusWeights: null,
+  lastLearningInsights: null,
 };
 
 // Phase B — lazy Supabase hydration (runs once on first runGenesisCycle call)
@@ -1037,6 +1060,10 @@ function scoreAsset(asset: GenesisUniverseAsset, quote: RouterQuote, intelligenc
     keyOpportunities: ai?.keyOpportunities ?? [],
     geminiAnalysisUsed: Boolean(ai),
     schoolsBreakdown: ai?.schoolsBreakdown ?? null,
+    // Phase D/E — consensus fields carried into archive
+    dominantSchool: intelligenceData?.dominantSchool ?? null,
+    consensusAgreementLevel: intelligenceData?.consensusAgreementLevel ?? null,
+    structuredConsensusScore: intelligenceData?.structuredConsensusScore ?? null,
   };
 }
 
@@ -1094,6 +1121,7 @@ export function getGenesisUniverse(input?: Request | URLSearchParams | null) {
 }
 
 // Phase A: run Gemini intelligence calls in batches of 3 to respect rate limits
+// Phase E: passes real macro context and learned weights into each call
 async function fetchIntelligenceBatch(
   assets: GenesisUniverseAsset[],
   quotes: RouterQuote[],
@@ -1104,6 +1132,9 @@ async function fetchIntelligenceBatch(
     Math.max(0, (1 - Object.values(STATE.currentWeights).reduce((a, b) => a + b, 0)) * 100),
     2,
   );
+
+  // Phase E: fetch real macro context once per batch run (6h cached)
+  const realMacroContext = await fetchRealMacroContext().catch(() => undefined);
 
   for (let i = 0; i < assets.length; i += BATCH_SIZE) {
     const batch = assets.slice(i, i + BATCH_SIZE);
@@ -1124,6 +1155,9 @@ async function fetchIntelligenceBatch(
             currentAllocation: round((STATE.currentWeights[asset.symbol] ?? 0) * 100, 2),
             riskBudgetRemaining,
           },
+          // Phase E: real macro and learned weights from previous cycle
+          realMacroContext,
+          learnedWeightHints: STATE.learnedConsensusWeights ?? undefined,
         }).catch(() => undefined);
       }),
     );
@@ -1390,6 +1424,21 @@ function archiveDecisions(cycleId: string, scores: GenesisScore[], allocations: 
       executionMode: targetWeight > 0 && STATE.controls.aiMode === "full_ai" ? "paper" : "analysis_only",
       intelligenceVersion: GENESIS_INTELLIGENCE_VERSION,
       createdBy: "genesis100-ai" as const,
+      // Phase E: learning loop — school scores and consensus metadata
+      schoolScoresAtDecision: score.schoolsBreakdown
+        ? {
+            keynesian: score.schoolsBreakdown.keynesian,
+            monetarist: score.schoolsBreakdown.monetarist,
+            austrian: score.schoolsBreakdown.austrian,
+            behavioral: score.schoolsBreakdown.behavioral,
+            valueinvesting: score.schoolsBreakdown.valueinvesting,
+            globalMacro: score.schoolsBreakdown.globalMacro,
+          }
+        : {},
+      dominantSchoolAtDecision: score.dominantSchool ?? "unknown",
+      consensusAgreementLevel: score.consensusAgreementLevel ?? null,
+      structuredConsensusScore: score.structuredConsensusScore ?? null,
+      geminiAnalysisUsed: score.geminiAnalysisUsed,
     };
   });
 
@@ -1499,6 +1548,49 @@ export async function runGenesisCycle(input?: Request | URLSearchParams | null):
   // Phase C: check existing open positions for stop loss / take profit alerts (advisory)
   const positionMonitor = await checkOpenPositions(STATE.wallet.capital).catch(() => undefined);
 
+  // Phase E: learning loop — evaluate past decisions, update school weights
+  let learningInsights: LearningInsights | undefined;
+  let learnedWeightsApplied = false;
+  try {
+    // Build current price map from freshly-fetched scores (avoids redundant quote calls)
+    const currentPriceMap = new Map<string, number>(
+      scores
+        .filter((s): s is GenesisScore & { price: number } => s.price != null)
+        .map((s) => [s.symbol, s.price]),
+    );
+
+    // Cast archive to the slim type outcomeTracker expects (structural subtype)
+    const archiveForLearning: LearningDecisionInput[] = STATE.decisionArchive.map((d) => ({
+      id: d.id,
+      symbol: d.symbol,
+      timestamp: d.timestamp,
+      newRecommendation: d.newRecommendation,
+      finalApprovalPercent: d.finalApprovalPercent,
+      quoteSnapshot: { price: d.quoteSnapshot.price },
+      schoolScoresAtDecision: d.schoolScoresAtDecision ?? {},
+      dominantSchoolAtDecision: d.dominantSchoolAtDecision ?? "unknown",
+      assetClass: d.assetClass,
+    }));
+
+    const outcomes = await evaluateArchiveOutcomes(archiveForLearning, currentPriceMap);
+    learningInsights = analyzeLearningOutcomes(outcomes);
+    STATE.lastLearningInsights = learningInsights;
+
+    if (!learningInsights.dataInsufficient) {
+      const currentWeights: ConsensusWeights = STATE.learnedConsensusWeights ?? {
+        keynesian: 0.15, monetarist: 0.20, austrian: 0.10,
+        behavioral: 0.15, valueInvesting: 0.20, globalMacro: 0.20,
+      };
+      STATE.learnedConsensusWeights = applyLearningToWeights(learningInsights, currentWeights);
+      learnedWeightsApplied = true;
+      console.info(
+        `[genesis] Learning applied: accuracy=${(learningInsights.overallAccuracy * 100).toFixed(1)}% evaluated=${learningInsights.totalEvaluated}`,
+      );
+    }
+  } catch (err) {
+    console.warn("[genesis] Learning loop failed (non-blocking):", err);
+  }
+
   const cycle: GenesisCycleResult = {
     cycleId,
     timestamp: new Date().toISOString(),
@@ -1550,6 +1642,9 @@ export async function runGenesisCycle(input?: Request | URLSearchParams | null):
       quarterlyReviewSupported: true,
     },
     positionMonitor,
+    // Phase E — learning loop results
+    learningInsights,
+    learnedWeightsApplied,
   };
 
   STATE.lastCycle = cycle;
@@ -1561,6 +1656,13 @@ export async function runGenesisCycle(input?: Request | URLSearchParams | null):
   );
 
   return cycle;
+}
+
+export function getGenesisLearningState() {
+  return {
+    lastLearningInsights: STATE.lastLearningInsights,
+    learnedConsensusWeights: STATE.learnedConsensusWeights,
+  };
 }
 
 export function getGenesisAllocations(input?: Request | URLSearchParams | null) {

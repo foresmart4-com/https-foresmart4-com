@@ -7,11 +7,13 @@ import { callAIGateway, safeParseJson } from "@/lib/ai-gateway.server";
 import {
   buildMacroContextFromScores,
   buildAssetContextFromQuote,
+  type MacroContext,
 } from "@/lib/genesis100/algorithms/economicFramework";
 import { analyzeAllSchools } from "@/lib/genesis100/algorithms/economicSchools";
 import {
   getDynamicWeights,
   buildConsensus,
+  type ConsensusWeights,
 } from "@/lib/genesis100/algorithms/consensusEngine";
 import { calculateOptimalPosition } from "@/lib/genesis100/algorithms/riskManagement";
 import type { OptimalPositionOutput } from "@/lib/genesis100/algorithms/riskManagement";
@@ -29,6 +31,9 @@ export interface GenesisIntelligenceInput {
     currentAllocation: number;
     riskBudgetRemaining: number;
   };
+  // Phase E — optional real macro context and learned weights from previous cycles
+  realMacroContext?: MacroContext;
+  learnedWeightHints?: Partial<ConsensusWeights>;
 }
 
 export interface GenesisIntelligenceOutput {
@@ -78,9 +83,10 @@ function neutralFallback(
   marketRegion?: string,
   price?: number | null,
   changePercent?: number | null,
+  realMacroCtx?: MacroContext,
 ): GenesisIntelligenceOutput {
-  // Phase D: still run structured schools even when Gemini is unavailable
-  const macroCtxFallback = buildMacroContextFromScores(50, 50, 50);
+  // Phase D/E: run structured schools even when Gemini is unavailable
+  const macroCtxFallback = realMacroCtx ?? buildMacroContextFromScores(50, 50, 50);
   const assetCtxFallback = buildAssetContextFromQuote(
     symbol ?? "UNKNOWN",
     assetClass ?? "us_stock",
@@ -188,7 +194,8 @@ function runAlgorithmLayer(
   parsed: GenesisIntelligenceOutput,
   input: GenesisIntelligenceInput,
 ): GenesisIntelligenceOutput {
-  const macroCtx = buildMacroContextFromScores(
+  // Phase E: use real FRED macro context when available, else derive from Gemini scores
+  const macroCtx = input.realMacroContext ?? buildMacroContextFromScores(
     parsed.macroScore,
     parsed.sentimentScore,
     parsed.geopoliticalRisk,
@@ -202,7 +209,8 @@ function runAlgorithmLayer(
     null,
   );
   const schools = analyzeAllSchools(assetCtx, macroCtx);
-  const weights = getDynamicWeights(macroCtx, assetCtx);
+  // Phase E: blend in learned weight hints from previous cycles
+  const weights = getDynamicWeights(macroCtx, assetCtx, input.learnedWeightHints);
   const consensus = buildConsensus(schools, weights, assetCtx);
 
   const riskProfile = input.price
@@ -321,7 +329,7 @@ Return ONLY this exact JSON structure:
 
     if (result.error || !result.data) {
       console.warn(`[genesis-intelligence] Gemini unavailable for ${symbol}: ${result.error}`);
-      return neutralFallback(undefined, symbol, input.assetClass, input.marketRegion, input.price, input.changePercent);
+      return neutralFallback(undefined, symbol, input.assetClass, input.marketRegion, input.price, input.changePercent, input.realMacroContext);
     }
 
     // Try parsed data first, then fallback to raw extraction
@@ -331,10 +339,10 @@ Return ONLY this exact JSON structure:
 
     if (!validated) {
       console.warn(`[genesis-intelligence] Validation failed for ${symbol}`);
-      return neutralFallback("تعذر استخراج التحليل المنظم من استجابة النموذج", symbol, input.assetClass, input.marketRegion, input.price, input.changePercent);
+      return neutralFallback("تعذر استخراج التحليل المنظم من استجابة النموذج", symbol, input.assetClass, input.marketRegion, input.price, input.changePercent, input.realMacroContext);
     }
 
-    // Phase D: run structured economic algorithm layer
+    // Phase D/E: run structured economic algorithm layer (with real macro + learned weights)
     const withAlgorithms = runAlgorithmLayer(validated, input);
     _cache.set(key, withAlgorithms);
     console.info(
@@ -343,6 +351,6 @@ Return ONLY this exact JSON structure:
     return withAlgorithms;
   } catch (err) {
     console.error(`[genesis-intelligence] Unexpected error for ${symbol}:`, err);
-    return neutralFallback(undefined, symbol, input.assetClass, input.marketRegion, input.price, input.changePercent);
+    return neutralFallback(undefined, symbol, input.assetClass, input.marketRegion, input.price, input.changePercent, input.realMacroContext);
   }
 }
