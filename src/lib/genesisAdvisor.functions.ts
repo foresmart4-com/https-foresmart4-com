@@ -67,7 +67,7 @@ const SYSTEM_PROMPT = `
 `;
 
 export const askGenesisAdvisor = createServerFn({ method: "POST" })
-  .validator(InputSchema)
+  .inputValidator((d) => InputSchema.parse(d))
   .handler(async ({ data }) => {
     const { question } = data;
 
