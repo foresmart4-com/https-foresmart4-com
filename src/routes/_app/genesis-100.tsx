@@ -371,7 +371,20 @@ function Genesis100Page() {
   };
 
   if (loading) {
-    return <div className="grid min-h-[50vh] place-items-center text-muted-foreground">{t("جاري تحميل Genesis 100...", "Loading Genesis 100...")}</div>;
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <span className="text-muted-foreground">{t("جاري تحميل Genesis 100...", "Loading Genesis 100...")}</span>
+          </div>
+          <Button onClick={runCycle} disabled={running}>
+            {running ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+            {t("تشغيل دورة AI", "Run AI Cycle")}
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (

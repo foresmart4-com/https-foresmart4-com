@@ -306,3 +306,17 @@ export async function shouldRefresh(): Promise<boolean> {
   if (!last) return true;
   return last.getTime() < Date.now() - 6 * 3600 * 1000;
 }
+
+// Start learning 1 minute after server start
+setTimeout(() => {
+  fetchAndLearn().catch(err =>
+    console.warn("[knowledge] Auto-learn failed:", err)
+  );
+}, 60000);
+
+// Then every 6 hours
+setInterval(() => {
+  fetchAndLearn().catch(err =>
+    console.warn("[knowledge] Auto-learn failed:", err)
+  );
+}, 6 * 60 * 60 * 1000);

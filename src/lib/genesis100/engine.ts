@@ -551,6 +551,29 @@ const STATE: {
   lastLearningInsights: null,
 };
 
+// Auto-cycle: runs every 6 hours automatically
+let _autoCycleTimer: ReturnType<typeof setInterval> | null = null;
+
+function startAutoCycle(): void {
+  if (_autoCycleTimer) return; // already running
+  // Run immediately 30 seconds after server start
+  setTimeout(() => {
+    runGenesisCycle().catch(err =>
+      console.warn("[genesis] Auto-cycle failed:", err)
+    );
+  }, 30000);
+
+  // Then every 6 hours
+  _autoCycleTimer = setInterval(() => {
+    runGenesisCycle().catch(err =>
+      console.warn("[genesis] Auto-cycle failed:", err)
+    );
+  }, 6 * 60 * 60 * 1000);
+}
+
+// Start auto-cycle when module loads
+startAutoCycle();
+
 // Phase B — lazy Supabase hydration (runs once on first runGenesisCycle call)
 let _stateHydrated = false;
 let _hydratePromise: Promise<void> | null = null;
