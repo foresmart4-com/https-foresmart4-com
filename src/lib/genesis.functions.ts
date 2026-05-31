@@ -260,6 +260,7 @@ import { validateInstitutionalDecision }   from "@/services/institutional/instit
 // Genesis Copilot Intelligence Upgrade: real FRED macro context for institutional prompts
 import { fetchRealMacroContext } from "@/lib/genesis100/macro/macroDataService";
 import type { MacroContext } from "@/lib/genesis100/algorithms/economicFramework";
+import { getHistoricalParallel } from "@/lib/genesis100/knowledge/economicHistory";
 
 export interface GenesisScenario {
   label: string;
@@ -957,7 +958,7 @@ const GENESIS_SCHEMA = `{
 function buildInstitutionalMacroContext(macro: MacroContext, lang: Lang): string {
   if (lang !== "ar") return "";
   const oilStr = macro.oilPrice > 0 ? `${macro.oilPrice.toFixed(0)}$` : "غير متاح حالياً";
-  return [
+  const lines = [
     "=== السياق الاقتصادي المؤسسي — بيانات Federal Reserve الحقيقية ===",
     `بيئة الفائدة: ${macro.monetaryEnvironment} | التضخم: ${macro.inflationLevel.toFixed(1)}% (${macro.inflationEnvironment})`,
     `دورة الأعمال: ${macro.businessCycle} | النمو العالمي: ${macro.globalGrowthTrend} | نظام المخاطر: ${macro.riskRegime}`,
@@ -971,7 +972,14 @@ function buildInstitutionalMacroContext(macro: MacroContext, lang: Lang): string
     "- كل توصية تشمل: درجة الثقة (0-100%)، المخاطر الرئيسية، وقف الخسارة المقترح، هدف السعر، الأفق الزمني",
     "- هذا تحليل استشاري وليس ضمانًا للأرباح",
     "=================================================================",
-  ].join("\n");
+  ];
+
+  const histContext = getHistoricalParallel(macro);
+  if (histContext) {
+    lines.push("", histContext);
+  }
+
+  return lines.join("\n");
 }
 
 function buildGenesisSystemPrompt(lang: Lang): string {

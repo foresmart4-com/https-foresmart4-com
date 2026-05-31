@@ -216,6 +216,55 @@ async function fetchNewsData(): Promise<number> {
   return saved;
 }
 
+async function fetchFOMCMinutes(): Promise<number> {
+  let saved = 0;
+  try {
+    const res = await fetchWithTimeout(
+      "https://www.federalreserve.gov/feeds/press_all.xml",
+      10000,
+    );
+    if (!res?.ok) return 0;
+    const text = await res.text();
+
+    const itemMatches = text.match(/<item>[\s\S]*?<\/item>/g);
+    if (!itemMatches?.length) return 0;
+
+    for (const item of itemMatches.slice(0, 5)) {
+      const titleMatch = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>|<title>(.*?)<\/title>/);
+      const descMatch  = item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>|<description>(.*?)<\/description>/s);
+
+      const title = (titleMatch?.[1] ?? titleMatch?.[2] ?? "").trim();
+      const desc  = (descMatch?.[1]  ?? descMatch?.[2]  ?? "").trim().replace(/<[^>]+>/g, " ");
+
+      if (title.length < 5) continue;
+
+      const isFomc =
+        /FOMC|Federal Open Market|rate decision|monetary policy|basis points/i.test(title + desc);
+
+      if (!isFomc) continue;
+
+      const summary = await summarizeWithGemini(
+        `بيان من الاحتياطي الفيدرالي الأمريكي:\n${title}\n${desc.slice(0, 800)}`,
+        "central_bank",
+      );
+
+      await saveKnowledge(
+        "central_bank",
+        title.slice(0, 200),
+        summary,
+        "Federal Reserve FOMC",
+        "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      );
+      saved++;
+
+      await new Promise((r) => setTimeout(r, GEMINI_DELAY));
+    }
+  } catch (e) {
+    console.warn("[knowledge] FOMC fetch failed:", e);
+  }
+  return saved;
+}
+
 async function fetchAcademicData(): Promise<number> {
   let saved = 0;
   try {
@@ -271,6 +320,7 @@ export async function fetchAndLearn(): Promise<{
   try { saved += await fetchIMFData();       } catch { errors++; }
   try { saved += await fetchNewsData();      } catch { errors++; }
   try { saved += await fetchAcademicData();  } catch { errors++; }
+  try { saved += await fetchFOMCMinutes();   } catch { errors++; }
 
   await cleanOldEntries().catch(() => {});
 
