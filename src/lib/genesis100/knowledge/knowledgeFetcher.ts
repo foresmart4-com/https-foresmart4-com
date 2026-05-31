@@ -125,6 +125,52 @@ async function fetchWorldBankData(): Promise<number> {
       );
       saved++;
     }
+
+    // Trade exports (% of GDP)
+    const tradeRes = await fetchWithTimeout(
+      "https://api.worldbank.org/v2/country/US;CN;SA;DE;JP/indicator/NE.EXP.GNFS.ZS?format=json&mrv=1&per_page=10",
+    );
+    if (tradeRes?.ok) {
+      const tradeData = await tradeRes.json() as [unknown, Array<{ value: number | null; country: { value: string }; date: string }>];
+      const tradeEntries = tradeData[1]?.filter((e) => e.value !== null).slice(0, 5);
+      if (tradeEntries?.length) {
+        const content = tradeEntries
+          .map((e) => `${e.country.value}: صادرات ${e.value?.toFixed(1)}% من الناتج المحلي (${e.date})`)
+          .join("\n");
+        const summary = await summarizeWithGemini(`بيانات الصادرات والتجارة الدولية:\n${content}`, "macro_data");
+        await saveKnowledge(
+          "macro_data",
+          `مؤشر التجارة الدولية — ${new Date().toLocaleDateString("ar")}`,
+          summary,
+          "World Bank",
+          "https://api.worldbank.org",
+        );
+        saved++;
+      }
+    }
+
+    // Foreign direct investment (% of GDP)
+    const fdiRes = await fetchWithTimeout(
+      "https://api.worldbank.org/v2/country/US;CN;SA;DE;JP/indicator/BX.KLT.DINV.WD.GD.ZS?format=json&mrv=1&per_page=10",
+    );
+    if (fdiRes?.ok) {
+      const fdiData = await fdiRes.json() as [unknown, Array<{ value: number | null; country: { value: string }; date: string }>];
+      const fdiEntries = fdiData[1]?.filter((e) => e.value !== null).slice(0, 5);
+      if (fdiEntries?.length) {
+        const content = fdiEntries
+          .map((e) => `${e.country.value}: استثمار أجنبي مباشر ${e.value?.toFixed(2)}% من الناتج المحلي (${e.date})`)
+          .join("\n");
+        const summary = await summarizeWithGemini(`بيانات الاستثمار الأجنبي المباشر:\n${content}`, "macro_data");
+        await saveKnowledge(
+          "macro_data",
+          `الاستثمار الأجنبي المباشر — ${new Date().toLocaleDateString("ar")}`,
+          summary,
+          "World Bank",
+          "https://api.worldbank.org",
+        );
+        saved++;
+      }
+    }
   } catch (e) {
     console.warn("[knowledge] World Bank fetch failed:", e);
   }
@@ -305,6 +351,197 @@ async function fetchAcademicData(): Promise<number> {
   return saved;
 }
 
+async function fetchSECEarnings(): Promise<number> {
+  let saved = 0;
+  try {
+    const companies = [
+      { ticker: "AAPL",  cik: "0000320193", name: "Apple" },
+      { ticker: "MSFT",  cik: "0000789019", name: "Microsoft" },
+      { ticker: "NVDA",  cik: "0001045810", name: "NVIDIA" },
+      { ticker: "GOOGL", cik: "0001652044", name: "Alphabet" },
+      { ticker: "AMZN",  cik: "0001018724", name: "Amazon" },
+      { ticker: "META",  cik: "0001326801", name: "Meta" },
+      { ticker: "TSLA",  cik: "0001318605", name: "Tesla" },
+      { ticker: "JPM",   cik: "0000019617", name: "JPMorgan" },
+    ];
+
+    for (const company of companies.slice(0, 4)) {
+      const url = `https://data.sec.gov/submissions/CIK${company.cik}.json`;
+      const res = await fetchWithTimeout(url, 8000);
+      if (!res?.ok) continue;
+
+      const data = await res.json() as {
+        name?: string;
+        filings?: {
+          recent?: {
+            form?: string[];
+            filingDate?: string[];
+            primaryDocument?: string[];
+          };
+        };
+      };
+
+      const filings = data.filings?.recent;
+      if (!filings) continue;
+
+      const idx = filings.form?.findIndex((f) => f === "10-Q" || f === "10-K") ?? -1;
+      if (idx === -1) continue;
+
+      const filingDate = filings.filingDate?.[idx] ?? "";
+      const formType   = filings.form?.[idx] ?? "";
+
+      const summary = await summarizeWithGemini(
+        `تقرير أرباح ${company.name} (${company.ticker})
+نوع التقرير: ${formType}
+تاريخ الإيداع: ${filingDate}
+الشركة: ${data.name ?? company.name}
+قدم تحليلاً مختصراً لتوقعات هذه الشركة بناءً على نوع التقرير وتاريخه.`,
+        "sector_analysis",
+      );
+
+      await saveKnowledge(
+        "sector_analysis",
+        `تقرير ${company.name} — ${formType} (${filingDate})`,
+        summary,
+        "SEC EDGAR",
+        `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${company.cik}&type=10-Q&dateb=&owner=include&count=10`,
+      );
+      saved++;
+
+      await new Promise((r) => setTimeout(r, GEMINI_DELAY));
+    }
+  } catch (e) {
+    console.warn("[knowledge] SEC EDGAR fetch failed:", e);
+  }
+  return saved;
+}
+
+async function fetchBISRates(): Promise<number> {
+  let saved = 0;
+  try {
+    const res = await fetchWithTimeout(
+      "https://stats.bis.org/api/v1/data/BIS,WS_CBPOL_D,1.0/D.US;XM;GB;JP;CN;SA.P?format=jsondata&lastNObservations=3",
+      8000,
+    );
+    if (!res?.ok) return 0;
+
+    const data = await res.json() as {
+      dataSets?: Array<{
+        series?: Record<string, { observations?: Record<string, number[]> }>;
+      }>;
+    };
+
+    const series = data.dataSets?.[0]?.series;
+    if (!series) return 0;
+
+    const countryNames: Record<string, string> = {
+      US: "الولايات المتحدة",
+      XM: "منطقة اليورو",
+      GB: "بريطانيا",
+      JP: "اليابان",
+      CN: "الصين",
+      SA: "المملكة العربية السعودية",
+    };
+
+    const rates: string[] = [];
+    for (const [key, value] of Object.entries(series)) {
+      const countryCode = key.split(":")[1] ?? "";
+      const countryName = countryNames[countryCode] ?? countryCode;
+      const obs = value.observations ?? {};
+      const lastObs = Object.values(obs).slice(-1)[0];
+      if (lastObs?.[0] != null) {
+        rates.push(`${countryName}: ${lastObs[0].toFixed(2)}%`);
+      }
+    }
+
+    if (rates.length === 0) return 0;
+
+    const summary = await summarizeWithGemini(
+      `معدلات الفائدة للبنوك المركزية الرئيسية (BIS):\n${rates.join("\n")}`,
+      "central_bank",
+    );
+
+    await saveKnowledge(
+      "central_bank",
+      `معدلات الفائدة العالمية — ${new Date().toLocaleDateString("ar")}`,
+      summary,
+      "BIS Statistics",
+      "https://stats.bis.org",
+    );
+    saved++;
+  } catch (e) {
+    console.warn("[knowledge] BIS fetch failed:", e);
+  }
+  return saved;
+}
+
+async function fetchGeopoliticalNews(): Promise<number> {
+  const key = process.env.NEWS_API_KEY;
+  if (!key) return 0;
+  let saved = 0;
+
+  const geopoliticalQueries = [
+    "US China trade war tariffs 2025",
+    "Russia Ukraine war economic sanctions",
+    "Middle East conflict oil supply",
+    "OPEC oil production cut increase",
+    "Federal Reserve rate decision inflation",
+    "ECB interest rate eurozone",
+    "Saudi Arabia Vision 2030 economy",
+    "China GDP growth slowdown",
+    "Global recession risk 2025 2026",
+    "Dollar index DXY emerging markets",
+  ];
+
+  for (const query of geopoliticalQueries.slice(0, 6)) {
+    try {
+      const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=en&pageSize=2&sortBy=publishedAt&apiKey=${key}`;
+      const res = await fetchWithTimeout(url, 6000);
+      if (!res?.ok) continue;
+
+      const data = await res.json() as {
+        articles?: Array<{
+          title?: string;
+          description?: string;
+          source?: { name?: string };
+          url?: string;
+        }>;
+      };
+
+      for (const article of (data.articles ?? []).slice(0, 1)) {
+        if (!article.title || !article.description) continue;
+
+        const isGeopolitical =
+          /sanction|war|conflict|OPEC|tariff|trade|China|Russia|Middle East/i.test(
+            article.title + " " + article.description,
+          );
+
+        const category = isGeopolitical ? "geopolitical" : "market_news";
+
+        const summary = await summarizeWithGemini(
+          `${article.title}\n${article.description}`,
+          category,
+        );
+        if (!summary) continue;
+
+        await saveKnowledge(
+          category,
+          article.title.slice(0, 200),
+          summary,
+          article.source?.name ?? "NewsAPI",
+          article.url,
+        );
+        saved++;
+
+        await new Promise((r) => setTimeout(r, GEMINI_DELAY));
+      }
+    } catch (e) {
+      console.warn(`[knowledge] Geo news failed for: ${query}`, e);
+    }
+  }
+  return saved;
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────
 
 export async function fetchAndLearn(): Promise<{
@@ -316,11 +553,14 @@ export async function fetchAndLearn(): Promise<{
   let saved  = 0;
   let errors = 0;
 
-  try { saved += await fetchWorldBankData(); } catch { errors++; }
-  try { saved += await fetchIMFData();       } catch { errors++; }
-  try { saved += await fetchNewsData();      } catch { errors++; }
-  try { saved += await fetchAcademicData();  } catch { errors++; }
-  try { saved += await fetchFOMCMinutes();   } catch { errors++; }
+  try { saved += await fetchWorldBankData();      } catch { errors++; }
+  try { saved += await fetchIMFData();            } catch { errors++; }
+  try { saved += await fetchNewsData();           } catch { errors++; }
+  try { saved += await fetchAcademicData();       } catch { errors++; }
+  try { saved += await fetchFOMCMinutes();        } catch { errors++; }
+  try { saved += await fetchSECEarnings();        } catch { errors++; }
+  try { saved += await fetchBISRates();           } catch { errors++; }
+  try { saved += await fetchGeopoliticalNews();   } catch { errors++; }
 
   await cleanOldEntries().catch(() => {});
 

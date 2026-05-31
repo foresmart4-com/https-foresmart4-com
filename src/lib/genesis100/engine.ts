@@ -7,6 +7,7 @@ import { analyzeLearningOutcomes, type LearningInsights } from "@/lib/genesis100
 import { evaluateArchiveOutcomes, type LearningDecisionInput } from "@/lib/genesis100/learning/outcomeTracker";
 import { applyLearningToWeights } from "@/lib/genesis100/learning/weightAdjuster";
 import { fetchRealMacroContext } from "@/lib/genesis100/macro/macroDataService";
+import { analyzeTechnical } from "@/lib/genesis100/algorithms/technicalAnalysis";
 
 export type GenesisStatus = "draft" | "active_analysis" | "paper_trading" | "execution_ready" | "paused";
 export type GenesisRiskProfile = "conservative" | "balanced" | "growth";
@@ -196,6 +197,13 @@ export interface GenesisScore {
   dominantSchool: string | null;
   consensusAgreementLevel: string | null;
   structuredConsensusScore: number | null;
+  // Technical analysis signals
+  technicalSignal: {
+    trend: string;
+    momentum: string;
+    rsiSignal: string;
+    arabicSummary: string;
+  };
 }
 
 export interface GenesisAllocation {
@@ -894,6 +902,7 @@ function scoreAsset(asset: GenesisUniverseAsset, quote: RouterQuote, intelligenc
   const bucket = bucketFor(asset.symbol, assetClass);
   const changePercent = typeof quote.changePercent === "number" ? quote.changePercent : 0;
   const absChange = Math.abs(changePercent);
+  const technical = analyzeTechnical([], [], changePercent);
 
   const priceMomentumScore = clamp(50 + changePercent * 6);
   const trendStrengthScore = clamp(50 + changePercent * 4 + (quote.success ? 8 : -12));
@@ -1077,6 +1086,12 @@ function scoreAsset(asset: GenesisUniverseAsset, quote: RouterQuote, intelligenc
     },
     dataSources: [quote.provider, ...(quote.attempted ?? [])].filter(Boolean) as string[],
     riskNotes,
+    technicalSignal: {
+      trend:         technical.trend,
+      momentum:      technical.momentum,
+      rsiSignal:     technical.rsiSignal,
+      arabicSummary: technical.arabicSummary,
+    },
     // Phase A — Gemini intelligence fields
     arabicReasoning: ai?.arabicReasoning ?? aiDecisionSummaryAr,
     keyRisks: ai?.keyRisks ?? riskNotes,

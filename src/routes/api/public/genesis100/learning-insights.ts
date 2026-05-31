@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getGenesisArchive, getGenesisLearningState } from "@/lib/genesis100/engine";
 import { analyzeLearningOutcomes } from "@/lib/genesis100/algorithms/learningEngine";
 import { evaluateArchiveOutcomes, type LearningDecisionInput } from "@/lib/genesis100/learning/outcomeTracker";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export const Route = createFileRoute(
   "/api/public/genesis100/learning-insights"
@@ -34,6 +35,37 @@ export const Route = createFileRoute(
         const incorrect = outcomes.filter((o) => o.wasCorrect === false).length;
         const pending = archive.length - evaluated;
 
+        // Knowledge base health stats
+        const knowledgeBaseStats = await (async () => {
+          try {
+            const { data: kbRows } = await supabaseAdmin
+              .from("genesis_knowledge_base")
+              .select("category, title, created_at")
+              .neq("category", "system_meta")
+              .order("created_at", { ascending: false });
+
+            if (!kbRows?.length) return null;
+
+            const byCategory: Record<string, number> = {};
+            for (const row of kbRows) {
+              byCategory[row.category] = (byCategory[row.category] ?? 0) + 1;
+            }
+
+            const centralBankRows = kbRows.filter((r) => r.category === "central_bank");
+            const lastFOMCEntry = centralBankRows[0]?.title ?? null;
+
+            return {
+              total: kbRows.length,
+              byCategory,
+              newestEntry: kbRows[0]?.created_at ?? null,
+              oldestEntry: kbRows[kbRows.length - 1]?.created_at ?? null,
+              lastFOMCEntry,
+            };
+          } catch {
+            return null;
+          }
+        })();
+
         return new Response(
           JSON.stringify(
             {
@@ -45,6 +77,7 @@ export const Route = createFileRoute(
               totalArchived: archive.length,
               learnedWeights: learnedConsensusWeights,
               arabicLearningReport: insights.arabicLearningReport,
+              knowledgeBaseStats,
               note: "Decisions evaluated after 7+ days. wasCorrect requires actual market data.",
             },
             null,
