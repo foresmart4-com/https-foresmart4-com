@@ -1,3 +1,5 @@
+import { getCachedMacroContext } from "@/lib/genesis100/macro/macroDataService";
+
 interface TimeSeriesPoint {
   date: string;
   value: number;
@@ -9,236 +11,256 @@ interface HistoricalSeries {
   data: TimeSeriesPoint[];
   latestValue: number;
   changeFrom1YearAgo: number;
-  changeFrom5YearsAgo: number;
   trend: "rising" | "falling" | "stable";
   trendStrength: number;
 }
 
 const FRED_SERIES = {
-  fedFunds:    { id: "FEDFUNDS",      name: "معدل الفائدة الفيدرالية" },
-  cpi:         { id: "CPIAUCSL",      name: "مؤشر أسعار المستهلك" },
-  unemployment:{ id: "UNRATE",        name: "معدل البطالة" },
-  gdp:         { id: "GDPC1",         name: "الناتج المحلي الحقيقي" },
-  m2:          { id: "M2SL",          name: "عرض النقود M2" },
-  yield10y:    { id: "DGS10",         name: "عائد سندات 10 سنوات" },
-  yield2y:     { id: "DGS2",          name: "عائد سندات سنتين" },
-  creditSpread:{ id: "BAMLH0A0HYM2",  name: "فارق ائتمان السندات" },
-  dollarIndex: { id: "DTWEXBGS",      name: "مؤشر الدولار" },
-  housingStarts:{ id: "HOUST",        name: "تصاريح البناء" },
+  fedFunds:     { id: "FEDFUNDS",     name: "معدل الفائدة الفيدرالية" },
+  cpi:          { id: "CPIAUCSL",     name: "مؤشر أسعار المستهلك" },
+  unemployment: { id: "UNRATE",       name: "معدل البطالة" },
+  yield10y:     { id: "DGS10",        name: "عائد سندات 10 سنوات" },
+  yield2y:      { id: "DGS2",         name: "عائد سندات سنتين" },
+  dollarIndex:  { id: "DTWEXBGS",     name: "مؤشر الدولار" },
 };
 
 const CACHE_6H = 6 * 3600 * 1000;
 const _cache = new Map<string, { data: HistoricalSeries; ts: number }>();
 
+// Use AbortController instead of AbortSignal.timeout() — Workers runtime compatible
+async function fetchWithAbort(url: string, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function fetchFREDSeries(
   seriesId: string,
   name: string,
-  limit = 60,
 ): Promise<HistoricalSeries | null> {
-  const cacheKey = `${seriesId}-${limit}`;
+  const cacheKey = seriesId;
   const cached = _cache.get(cacheKey);
   if (cached && Date.now() - cached.ts < CACHE_6H) return cached.data;
 
   const key = process.env.FRED_API_KEY;
-  if (!key) return null;
-
-  try {
-    const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${key}&limit=${limit}&sort_order=desc&file_type=json`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) return null;
-
-    const json = await res.json() as {
-      observations: Array<{ date: string; value: string }>;
-    };
-
-    const points: TimeSeriesPoint[] = json.observations
-      .filter((o) => o.value !== "." && !isNaN(Number(o.value)))
-      .map((o) => ({ date: o.date, value: Number(o.value) }))
-      .reverse();
-
-    if (points.length < 4) return null;
-
-    const latest       = points[points.length - 1].value;
-    const oneYearAgo   = points[Math.max(0, points.length - 13)]?.value ?? latest;
-    const fiveYearsAgo = points[Math.max(0, points.length - 61)]?.value ?? latest;
-
-    const changeFrom1Y = ((latest - oneYearAgo)   / Math.abs(oneYearAgo))   * 100;
-    const changeFrom5Y = ((latest - fiveYearsAgo) / Math.abs(fiveYearsAgo)) * 100;
-
-    // Linear regression over last 12 points
-    const recent = points.slice(-12);
-    const n     = recent.length;
-    const sumX  = recent.reduce((s, _, i) => s + i, 0);
-    const sumY  = recent.reduce((s, p) => s + p.value, 0);
-    const sumXY = recent.reduce((s, p, i) => s + i * p.value, 0);
-    const sumX2 = recent.reduce((s, _, i) => s + i * i, 0);
-    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-
-    const avgValue        = sumY / n;
-    const normalizedSlope = avgValue !== 0 ? (slope / Math.abs(avgValue)) * 100 : 0;
-
-    const trend: HistoricalSeries["trend"] =
-      normalizedSlope > 0.5 ? "rising" : normalizedSlope < -0.5 ? "falling" : "stable";
-    const trendStrength = Math.min(100, Math.abs(normalizedSlope) * 10);
-
-    const result: HistoricalSeries = {
-      seriesId,
-      name,
-      data: points.slice(-24),
-      latestValue: latest,
-      changeFrom1YearAgo: changeFrom1Y,
-      changeFrom5YearsAgo: changeFrom5Y,
-      trend,
-      trendStrength,
-    };
-
-    _cache.set(cacheKey, { data: result, ts: Date.now() });
-    return result;
-  } catch {
+  if (!key) {
+    console.error(`[fred-historical] FRED_API_KEY missing — cannot fetch ${seriesId}`);
     return null;
   }
+
+  // Try limit=24 first (2 years monthly), fall back to limit=12 if that fails
+  for (const limit of [24, 12]) {
+    try {
+      const url =
+        `https://api.stlouisfed.org/fred/series/observations` +
+        `?series_id=${seriesId}&api_key=${key}&limit=${limit}&sort_order=desc&file_type=json`;
+
+      const res = await fetchWithAbort(url, 8000);
+
+      if (!res.ok) {
+        const body = await res.text().catch(() => "(unreadable)");
+        console.error(`[fred-historical] ${seriesId} HTTP ${res.status}: ${body.slice(0, 200)}`);
+        continue;
+      }
+
+      const json = await res.json() as {
+        observations?: Array<{ date: string; value: string }>;
+        error_message?: string;
+      };
+
+      if (json.error_message) {
+        console.error(`[fred-historical] ${seriesId} FRED error: ${json.error_message}`);
+        continue;
+      }
+
+      const points: TimeSeriesPoint[] = (json.observations ?? [])
+        .filter((o) => o.value !== "." && o.value !== "" && !isNaN(Number(o.value)))
+        .map((o) => ({ date: o.date, value: Number(o.value) }))
+        .reverse(); // chronological order
+
+      if (points.length < 3) {
+        console.warn(`[fred-historical] ${seriesId} returned only ${points.length} valid points (limit=${limit})`);
+        continue;
+      }
+
+      const latest     = points[points.length - 1].value;
+      const yearAgoIdx = Math.max(0, points.length - 13);
+      const oneYearAgo = points[yearAgoIdx]?.value ?? latest;
+      const changeFrom1Y = Math.abs(oneYearAgo) > 0
+        ? ((latest - oneYearAgo) / Math.abs(oneYearAgo)) * 100
+        : 0;
+
+      // Linear regression over all available points
+      const n     = points.length;
+      const sumX  = points.reduce((s, _, i) => s + i, 0);
+      const sumY  = points.reduce((s, p) => s + p.value, 0);
+      const sumXY = points.reduce((s, p, i) => s + i * p.value, 0);
+      const sumX2 = points.reduce((s, _, i) => s + i * i, 0);
+      const denom = n * sumX2 - sumX * sumX;
+      const slope = denom !== 0 ? (n * sumXY - sumX * sumY) / denom : 0;
+
+      const avgValue        = sumY / n;
+      const normalizedSlope = avgValue !== 0 ? (slope / Math.abs(avgValue)) * 100 : 0;
+      const trend: HistoricalSeries["trend"] =
+        normalizedSlope > 0.5 ? "rising" : normalizedSlope < -0.5 ? "falling" : "stable";
+      const trendStrength = Math.min(100, Math.abs(normalizedSlope) * 10);
+
+      const result: HistoricalSeries = {
+        seriesId,
+        name,
+        data: points,
+        latestValue: latest,
+        changeFrom1YearAgo: changeFrom1Y,
+        trend,
+        trendStrength,
+      };
+
+      _cache.set(cacheKey, { data: result, ts: Date.now() });
+      console.info(`[fred-historical] ${seriesId} loaded: latest=${latest} trend=${trend} points=${points.length}`);
+      return result;
+    } catch (err) {
+      console.error(`[fred-historical] ${seriesId} fetch error (limit=${limit}):`, err);
+    }
+  }
+  return null;
 }
 
 function forecastNextPeriods(series: HistoricalSeries, periods = 3): number[] {
   const values = series.data.map((p) => p.value);
-  if (values.length < 6) return [];
+  if (values.length < 4) return Array(periods).fill(series.latestValue);
 
-  const mean    = values.reduce((s, v) => s + v, 0) / values.length;
-  const n       = values.length;
-  const sumX    = values.reduce((s, _, i) => s + i, 0);
-  const sumY    = values.reduce((s, v) => s + v, 0);
-  const sumXY   = values.reduce((s, v, i) => s + i * v, 0);
-  const sumX2   = values.reduce((s, _, i) => s + i * i, 0);
-  const slope   = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+  const n         = values.length;
+  const sumX      = values.reduce((s, _, i) => s + i, 0);
+  const sumY      = values.reduce((s, v) => s + v, 0);
+  const sumXY     = values.reduce((s, v, i) => s + i * v, 0);
+  const sumX2     = values.reduce((s, _, i) => s + i * i, 0);
+  const denom     = n * sumX2 - sumX * sumX;
+  const slope     = denom !== 0 ? (n * sumXY - sumX * sumY) / denom : 0;
   const intercept = (sumY - slope * sumX) / n;
 
-  const latest = values[values.length - 1];
-  const meanReversionStrength = 0.3;
-  const forecasts: number[] = [];
+  const mean   = sumY / n;
+  const latest = values[n - 1];
+  const meanRevStrength = 0.3;
 
-  for (let i = 1; i <= periods; i++) {
+  return Array.from({ length: periods }, (_, idx) => {
+    const i = idx + 1;
     const trendForecast = intercept + slope * (n - 1 + i);
-    const deviation     = latest - mean;
-    const meanRevAdj    = -deviation * meanReversionStrength * (i / periods);
-    forecasts.push(trendForecast + meanRevAdj);
-  }
-  return forecasts;
+    const meanRevAdj    = -(latest - mean) * meanRevStrength * (i / periods);
+    return trendForecast + meanRevAdj;
+  });
 }
 
 export interface RealEconomicForecast {
-  fedFundsRate: {
-    current: number;
-    forecast3M: number;
-    trend: string;
-    arabicSummary: string;
-  };
-  inflation: {
-    current: number;
-    yoyChange: number;
-    forecast3M: number;
-    trend: string;
-    arabicSummary: string;
-  };
-  unemployment: {
-    current: number;
-    yoyChange: number;
-    forecast3M: number;
-    trend: string;
-    arabicSummary: string;
-  };
-  yieldCurve: {
-    yield10y: number;
-    yield2y: number;
-    spread: number;
-    inverted: boolean;
-    arabicSummary: string;
-  };
-  dollarIndex: {
-    current: number;
-    trend: string;
-    arabicSummary: string;
-  };
+  fedFundsRate: { current: number; forecast3M: number; trend: string; arabicSummary: string };
+  inflation:    { current: number; yoyChange: number; forecast3M: number; trend: string; arabicSummary: string };
+  unemployment: { current: number; yoyChange: number; forecast3M: number; trend: string; arabicSummary: string };
+  yieldCurve:   { yield10y: number; yield2y: number; spread: number; inverted: boolean; arabicSummary: string };
+  dollarIndex:  { current: number; trend: string; arabicSummary: string };
   overallForecastSummary: string;
   dataConfidence: number;
+  dataSource: "fred_live" | "fred_partial" | "macro_cache_fallback";
 }
 
-export async function buildRealEconomicForecast(): Promise<RealEconomicForecast | null> {
-  const [fedFunds, cpi, unemployment, yield10y, yield2y, dollar] =
-    await Promise.all([
-      fetchFREDSeries(FRED_SERIES.fedFunds.id,     FRED_SERIES.fedFunds.name,     60),
-      fetchFREDSeries(FRED_SERIES.cpi.id,          FRED_SERIES.cpi.name,          60),
-      fetchFREDSeries(FRED_SERIES.unemployment.id, FRED_SERIES.unemployment.name, 60),
-      fetchFREDSeries(FRED_SERIES.yield10y.id,     FRED_SERIES.yield10y.name,     60),
-      fetchFREDSeries(FRED_SERIES.yield2y.id,      FRED_SERIES.yield2y.name,      60),
-      fetchFREDSeries(FRED_SERIES.dollarIndex.id,  FRED_SERIES.dollarIndex.name,  60),
-    ]);
+export async function buildRealEconomicForecast(): Promise<RealEconomicForecast> {
+  console.info("[fred-historical] buildRealEconomicForecast() starting...");
 
-  if (!fedFunds || !cpi || !unemployment) return null;
+  const [fedFunds, cpi, unemployment, yield10y, yield2y, dollar] = await Promise.all([
+    fetchFREDSeries(FRED_SERIES.fedFunds.id,     FRED_SERIES.fedFunds.name),
+    fetchFREDSeries(FRED_SERIES.cpi.id,          FRED_SERIES.cpi.name),
+    fetchFREDSeries(FRED_SERIES.unemployment.id, FRED_SERIES.unemployment.name),
+    fetchFREDSeries(FRED_SERIES.yield10y.id,     FRED_SERIES.yield10y.name),
+    fetchFREDSeries(FRED_SERIES.yield2y.id,      FRED_SERIES.yield2y.name),
+    fetchFREDSeries(FRED_SERIES.dollarIndex.id,  FRED_SERIES.dollarIndex.name),
+  ]);
 
-  const fedForecast  = forecastNextPeriods(fedFunds, 3);
-  const cpiForecast  = forecastNextPeriods(cpi, 3);
-  const unempForecast = forecastNextPeriods(unemployment, 3);
+  const loadedCount = [fedFunds, cpi, unemployment, yield10y, yield2y, dollar].filter(Boolean).length;
+  console.info(`[fred-historical] Loaded ${loadedCount}/6 FRED series`);
 
-  const cpiNow      = cpi.latestValue;
-  const cpiYearAgo  = cpi.data[Math.max(0, cpi.data.length - 13)]?.value ?? cpiNow;
-  const yoyInflation = ((cpiNow - cpiYearAgo) / cpiYearAgo) * 100;
+  // Fallback: use cached MacroContext values when FRED series are unavailable
+  const cached = getCachedMacroContext();
 
-  const y10    = yield10y?.latestValue ?? 4.5;
-  const y2     = yield2y?.latestValue  ?? 4.8;
-  const spread = y10 - y2;
+  const fedRate   = fedFunds?.latestValue   ?? cached?.interestRateDifferential != null
+    ? (cached?.interestRateDifferential ?? 0) + 1.5   // differential is rate - 1.5 baseline
+    : 5.33;
+  const cpiLevel  = cpi?.latestValue        ?? 310;    // approximate CPI index level
+  const uRate     = unemployment?.latestValue ?? (cached?.businessCycle === "contraction" ? 5.5 : 4.2);
+  const y10       = yield10y?.latestValue   ?? 4.5;
+  const y2        = yield2y?.latestValue    ?? 4.8;
+  const dollarVal = dollar?.latestValue     ?? 100;
+
+  // YoY inflation from CPI series if available, else from macroContext
+  const yoyInflation = cpi
+    ? (() => {
+        const now     = cpi.latestValue;
+        const yearAgo = cpi.data[Math.max(0, cpi.data.length - 13)]?.value ?? now;
+        return Math.abs(yearAgo) > 0 ? ((now - yearAgo) / yearAgo) * 100 : cached?.inflationLevel ?? 3.0;
+      })()
+    : (cached?.inflationLevel ?? 3.0);
+
+  // Forecasts — use series if loaded, else hold current value
+  const fedForecast  = fedFunds  ? forecastNextPeriods(fedFunds, 3)  : [fedRate, fedRate, fedRate];
+  const cpiForecast  = cpi       ? forecastNextPeriods(cpi, 3)       : [cpiLevel, cpiLevel, cpiLevel];
+  const unempForecast = unemployment ? forecastNextPeriods(unemployment, 3) : [uRate, uRate, uRate];
+
+  const spread   = y10 - y2;
   const inverted = spread < 0;
 
-  const dollarCurrent = dollar?.latestValue ?? 100;
-  const dollarTrend   = dollar?.trend ?? "stable";
+  const dollarTrend = dollar?.trend ?? "stable";
 
-  const loadedCount = [fedFunds, cpi, unemployment, yield10y, yield2y, dollar]
-    .filter(Boolean).length;
   const dataConfidence = Math.round((loadedCount / 6) * 100);
+  const dataSource: RealEconomicForecast["dataSource"] =
+    loadedCount === 6 ? "fred_live" :
+    loadedCount > 0   ? "fred_partial" :
+    "macro_cache_fallback";
 
   const overallForecastSummary = `=== التوقعات الاقتصادية المبنية على بيانات FRED التاريخية ===
 
 الفائدة الأمريكية:
-- الحالية: ${fedFunds.latestValue.toFixed(2)}%
-- التوقع خلال 3 أشهر: ${fedForecast[2]?.toFixed(2) ?? "غير متاح"}%
-- الاتجاه: ${fedFunds.trend === "rising" ? "صاعد" : fedFunds.trend === "falling" ? "هابط" : "مستقر"}
+- الحالية: ${fedRate.toFixed(2)}%
+- التوقع خلال 3 أشهر: ${fedForecast[2]?.toFixed(2) ?? fedRate.toFixed(2)}%
+- الاتجاه: ${fedFunds?.trend === "rising" ? "صاعد" : fedFunds?.trend === "falling" ? "هابط" : "مستقر"}
 
 التضخم (CPI):
 - التغير السنوي: ${yoyInflation.toFixed(2)}%
-- الاتجاه: ${cpi.trend === "rising" ? "متصاعد ⚠️" : cpi.trend === "falling" ? "متراجع ✅" : "مستقر"}
+- الاتجاه: ${cpi?.trend === "rising" ? "متصاعد ⚠️" : cpi?.trend === "falling" ? "متراجع ✅" : "مستقر"}
 
 البطالة:
-- الحالية: ${unemployment.latestValue.toFixed(1)}%
-- التوقع خلال 3 أشهر: ${unempForecast[2]?.toFixed(1) ?? "غير متاح"}%
+- الحالية: ${uRate.toFixed(1)}%
+- التوقع خلال 3 أشهر: ${unempForecast[2]?.toFixed(1) ?? uRate.toFixed(1)}%
 
 منحنى العائد:
 - 10 سنوات: ${y10.toFixed(2)}% | سنتان: ${y2.toFixed(2)}%
 - الفارق: ${spread.toFixed(2)}%
 - ${inverted ? "⚠️ منحنى مقلوب — إشارة ركود تاريخياً" : "✅ منحنى طبيعي"}
 
-مؤشر الدولار: ${dollarCurrent.toFixed(1)} (${dollarTrend === "rising" ? "قوي" : dollarTrend === "falling" ? "ضعيف" : "مستقر"})
+مؤشر الدولار: ${dollarVal.toFixed(1)} (${dollarTrend === "rising" ? "قوي" : dollarTrend === "falling" ? "ضعيف" : "مستقر"})
 
-ثقة التحليل: ${dataConfidence}% (بناءً على ${loadedCount}/6 مصادر FRED)`.trim();
+ثقة التحليل: ${dataConfidence}% — مصدر: ${dataSource} (${loadedCount}/6 مصادر FRED)`.trim();
 
   return {
     fedFundsRate: {
-      current: fedFunds.latestValue,
-      forecast3M: fedForecast[2] ?? fedFunds.latestValue,
-      trend: fedFunds.trend,
-      arabicSummary: `الفائدة ${fedFunds.latestValue.toFixed(2)}% — توقع: ${fedForecast[2]?.toFixed(2) ?? "مستقر"}%`,
+      current:    fedRate,
+      forecast3M: fedForecast[2] ?? fedRate,
+      trend:      fedFunds?.trend ?? "stable",
+      arabicSummary: `الفائدة ${fedRate.toFixed(2)}% — توقع: ${fedForecast[2]?.toFixed(2) ?? fedRate.toFixed(2)}%`,
     },
     inflation: {
-      current: cpi.latestValue,
-      yoyChange: yoyInflation,
-      forecast3M: cpiForecast[2] ?? cpi.latestValue,
-      trend: cpi.trend,
-      arabicSummary: `التضخم السنوي ${yoyInflation.toFixed(2)}% — ${cpi.trend === "rising" ? "متصاعد" : cpi.trend === "falling" ? "متراجع" : "مستقر"}`,
+      current:    cpiLevel,
+      yoyChange:  yoyInflation,
+      forecast3M: cpiForecast[2] ?? cpiLevel,
+      trend:      cpi?.trend ?? "stable",
+      arabicSummary: `التضخم السنوي ${yoyInflation.toFixed(2)}% — ${cpi?.trend === "rising" ? "متصاعد" : cpi?.trend === "falling" ? "متراجع" : "مستقر"}`,
     },
     unemployment: {
-      current: unemployment.latestValue,
-      yoyChange: unemployment.changeFrom1YearAgo,
-      forecast3M: unempForecast[2] ?? unemployment.latestValue,
-      trend: unemployment.trend,
-      arabicSummary: `البطالة ${unemployment.latestValue.toFixed(1)}% — توقع: ${unempForecast[2]?.toFixed(1) ?? "مستقر"}%`,
+      current:    uRate,
+      yoyChange:  unemployment?.changeFrom1YearAgo ?? 0,
+      forecast3M: unempForecast[2] ?? uRate,
+      trend:      unemployment?.trend ?? "stable",
+      arabicSummary: `البطالة ${uRate.toFixed(1)}% — توقع: ${unempForecast[2]?.toFixed(1) ?? uRate.toFixed(1)}%`,
     },
     yieldCurve: {
       yield10y: y10,
@@ -250,11 +272,12 @@ export async function buildRealEconomicForecast(): Promise<RealEconomicForecast 
         : `منحنى طبيعي (${spread.toFixed(2)}%) — لا إشارة ركود`,
     },
     dollarIndex: {
-      current: dollarCurrent,
-      trend: dollarTrend,
-      arabicSummary: `الدولار ${dollarCurrent.toFixed(1)} — ${dollarTrend === "rising" ? "قوي يضغط على الأسواق الناشئة" : dollarTrend === "falling" ? "ضعيف يدعم السلع والناشئة" : "مستقر"}`,
+      current: dollarVal,
+      trend:   dollarTrend,
+      arabicSummary: `الدولار ${dollarVal.toFixed(1)} — ${dollarTrend === "rising" ? "قوي يضغط على الأسواق الناشئة" : dollarTrend === "falling" ? "ضعيف يدعم السلع والناشئة" : "مستقر"}`,
     },
     overallForecastSummary,
     dataConfidence,
+    dataSource,
   };
 }
