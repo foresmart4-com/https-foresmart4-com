@@ -1,6 +1,9 @@
 /** Genesis conversation history — localStorage ring buffer (max 50 entries). */
 const KEY = "foresmart.genesis.history.v1";
 const DIGEST_KEY = "foresmart.genesis.digest.v1";
+// Session context — sessionStorage (cleared on browser close; survives in-tab navigation)
+const SESSION_KEY = "genesis_session_context";
+const SESSION_MAX = 5;
 const MAX = 100;
 const DECAY_HALF_LIFE_DAYS = 3; // weight halves every 3 days
 
@@ -177,5 +180,39 @@ export const genesisMemory = {
   /** Number of weekly digest records persisted. */
   weeklyDigestCount(): number {
     return readDigests().length;
+  },
+};
+
+// ─── Session context — survives in-tab navigation, cleared on browser close ──
+
+export interface SessionMessage {
+  id: string;
+  question: string;
+  reply: unknown; // GenesisReply — typed as unknown to avoid circular dep
+  engine: "ai" | "heuristic";
+  providerIdentity?: string;
+  routingMode?: string;
+  tracksUsed?: number;
+  dominantBias?: "bullish" | "bearish" | "neutral";
+}
+
+export const genesisSession = {
+  save(messages: SessionMessage[]): void {
+    if (typeof sessionStorage === "undefined") return;
+    try {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(messages.slice(-SESSION_MAX)));
+    } catch {}
+  },
+
+  load(): SessionMessage[] {
+    if (typeof sessionStorage === "undefined") return [];
+    try {
+      return JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? "[]") as SessionMessage[];
+    } catch { return []; }
+  },
+
+  clear(): void {
+    if (typeof sessionStorage === "undefined") return;
+    try { sessionStorage.removeItem(SESSION_KEY); } catch {}
   },
 };

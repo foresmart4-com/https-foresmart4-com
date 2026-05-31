@@ -185,15 +185,16 @@ export function routeGenesisAI(
     return buildDecision("heuristic_fallback", "heuristic_mode", "heuristic", 0, 0.0, availability, true);
   }
 
-  // ── Both Gemini + OpenAI available: split by depth ───────────────────────
-  // Gemini handles fast/lightweight analysis; OpenAI handles deep synthesis.
+  // ── Both Gemini + OpenAI available: Gemini is primary for ALL requests ──────
+  // Gemini carries the full institutional FRED macro context and 6-school prompts;
+  // OpenAI is held as emergency fallback only (handled in genesis.functions.ts).
   if (hasGemini && hasOpenAI) {
     if (depth === "fast") {
       const model = fastModelOverride ?? DEFAULT_FAST_MODEL;
       return buildDecision("gemini_fast", "fast_reasoning", model, 800, 0.3, availability, false);
     } else {
-      const model = deepModelOverride ?? DEFAULT_OPENAI_MODEL;
-      return buildDecision("openai_deep", "deep_reasoning", model, 4096, 0.4, availability, false);
+      const model = deepModelOverride ?? DEFAULT_DEEP_MODEL;
+      return buildDecision("gemini_deep", "deep_reasoning", model, 4096, 0.4, availability, false);
     }
   }
 

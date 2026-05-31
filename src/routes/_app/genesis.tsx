@@ -15,7 +15,7 @@ import { researchMemory } from "@/services/learning/researchMemory";
 import { intelligenceGraph, type GraphSummary } from "@/services/learning/intelligenceGraph";
 import { extractGraphFromReply } from "@/services/learning/graphExtractor";
 import { memoryAgent } from "@/services/agents/memoryAgent";
-import { genesisMemory } from "@/services/learning/genesisMemory";
+import { genesisMemory, genesisSession, type SessionMessage } from "@/services/learning/genesisMemory";
 import { memoryIntelligence } from "@/services/learning/memoryIntelligence";
 import { aiMemory } from "@/services/learning/aiMemory";
 import { clearMemory as clearSignalMemory, getMemory } from "@/services/learning/signalMemory";
@@ -225,6 +225,42 @@ function GenesisPage() {
   useEffect(() => {
     memoryIntelligence.compress();
   }, []);
+
+  // Fix 2: Restore last conversation on page return (within same browser session)
+  useEffect(() => {
+    const saved = genesisSession.load();
+    if (saved.length > 0) {
+      setExchanges(saved.map((m) => ({
+        id: m.id,
+        question: m.question,
+        reply: m.reply as import("@/lib/genesis.functions").GenesisReply,
+        engine: m.engine,
+        providerIdentity: m.providerIdentity as import("@/services/ai/providerRouter").ProviderIdentity | undefined,
+        routingMode: m.routingMode as import("@/services/ai/providerRouter").RoutingMode | undefined,
+        tracksUsed: m.tracksUsed,
+        dominantBias: m.dominantBias,
+        actionState: null,
+        feedback: null,
+        comparisonPair: null,
+      })));
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fix 2: Persist up to 5 recent exchanges to sessionStorage on every update
+  useEffect(() => {
+    if (exchanges.length === 0) return;
+    const toSave: SessionMessage[] = exchanges.slice(-5).map((e) => ({
+      id: e.id,
+      question: e.question,
+      reply: e.reply,
+      engine: e.engine,
+      providerIdentity: e.providerIdentity,
+      routingMode: e.routingMode,
+      tracksUsed: e.tracksUsed,
+      dominantBias: e.dominantBias,
+    }));
+    genesisSession.save(toSave);
+  }, [exchanges]);
 
   const assets = market?.assets ?? [];
   const marketIntel = useMemo(() => computeMarketIntel(assets), [assets]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -2092,13 +2128,14 @@ function GenesisPage() {
           <EmptyState ar={ar} suggestions={suggestions} onSelect={(s) => send(s)} />
         )}
 
-        {exchanges.map((ex) => (
+        {exchanges.map((ex, idx) => (
           <ExchangeCard
             key={ex.id}
             exchange={ex}
             ar={ar}
             confModifier={confModifier}
             eceVal={eceVal}
+            isFirstExchange={idx === 0}
             onConfirm={(action) => executeAction(ex.id, action)}
             onDismiss={() => dismissAction(ex.id)}
             onDefer={() => deferAction(ex.id)}
@@ -2138,7 +2175,7 @@ function GenesisPage() {
           <div className="flex items-center gap-2">
             {exchanges.length > 0 && (
               <button
-                onClick={() => setExchanges([])}
+                onClick={() => { setExchanges([]); genesisSession.clear(); }}
                 className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
               >
                 <RefreshCw className="h-3 w-3" />
@@ -3051,11 +3088,12 @@ function StrategicBiasPanel({
   );
 }
 
-function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss, onDefer, onFeedback, comparisonPair }: {
+function ExchangeCard({ exchange, ar, confModifier, eceVal, isFirstExchange, onConfirm, onDismiss, onDefer, onFeedback, comparisonPair }: {
   exchange: Exchange;
   ar: boolean;
   confModifier: number;
   eceVal: number;
+  isFirstExchange: boolean;
   onConfirm: (a: GenesisSuggestedAction) => void;
   onDismiss: () => void;
   onDefer: () => void;
@@ -4193,8 +4231,10 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, onConfirm, onDismiss
             </div>
           )}
 
-          {/* Disclaimer */}
-          <p className="text-center text-[11px] italic text-muted-foreground">{reply.disclaimer}</p>
+          {/* Disclaimer — shown once per session (first response only) */}
+          {isFirstExchange && (
+            <p className="text-center text-[11px] italic text-muted-foreground">{reply.disclaimer}</p>
+          )}
 
           {/* Feedback row */}
           <div className="flex items-center justify-center gap-3 pt-1">
