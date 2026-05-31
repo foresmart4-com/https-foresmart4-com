@@ -261,8 +261,8 @@ import { validateInstitutionalDecision }   from "@/services/institutional/instit
 import { fetchRealMacroContext } from "@/lib/genesis100/macro/macroDataService";
 import type { MacroContext } from "@/lib/genesis100/algorithms/economicFramework";
 import { getHistoricalParallel } from "@/lib/genesis100/knowledge/economicHistory";
-import { buildEconomicForecast } from "@/lib/genesis100/algorithms/forecastingEngine";
-import { getSectorRotation } from "@/lib/genesis100/algorithms/sectorRotation";
+import { buildRealEconomicForecast } from "@/lib/genesis100/forecasting/fredHistorical";
+import { getRealSectorRotation } from "@/lib/genesis100/forecasting/sectorRotationReal";
 
 export interface GenesisScenario {
   label: string;
@@ -957,7 +957,7 @@ const GENESIS_SCHEMA = `{
 // Builds the institutional macro context block injected at the top of every Gemini prompt
 // when real FRED data is available. Arabic-only: English prompts already have deep
 // institutional framing; Arabic users get this extra grounding layer.
-function buildInstitutionalMacroContext(macro: MacroContext, lang: Lang): string {
+async function buildInstitutionalMacroContextAsync(macro: MacroContext, lang: Lang): Promise<string> {
   if (lang !== "ar") return "";
   const oilStr = macro.oilPrice > 0 ? `${macro.oilPrice.toFixed(0)}$` : "غير متاح حالياً";
   const lines = [
@@ -977,21 +977,20 @@ function buildInstitutionalMacroContext(macro: MacroContext, lang: Lang): string
   ];
 
   const histContext = getHistoricalParallel(macro);
-  if (histContext) {
-    lines.push("", histContext);
+  if (histContext) lines.push("", histContext);
+
+  const [realForecast, realSectors] = await Promise.all([
+    buildRealEconomicForecast().catch(() => null),
+    getRealSectorRotation().catch(() => null),
+  ]);
+
+  if (realForecast) {
+    lines.push("", realForecast.overallForecastSummary);
   }
 
-  const forecast = buildEconomicForecast(macro, "3month");
-  const sectors  = getSectorRotation(macro);
-
-  lines.push(
-    "",
-    "=== توقعات الأشهر الثلاثة القادمة ===",
-    forecast.arabicForecastSummary,
-    "",
-    "=== دوران القطاعات الموصى به ===",
-    sectors.arabicAnalysis,
-  );
+  if (realSectors) {
+    lines.push("", realSectors.arabicAnalysis);
+  }
 
   return lines.join("\n");
 }
@@ -4339,7 +4338,7 @@ export const askGenesis = createServerFn({ method: "POST" })
     const tracksUsed = [trackA, trackB, trackC, trackD, trackE, trackF].filter(Boolean).length;
     // Real FRED macro context — used to build institutional Arabic prompt prefix
     const realMacro = (settledMacro.status === "fulfilled" ? settledMacro.value : null) ?? null;
-    const institutionalContext = realMacro ? buildInstitutionalMacroContext(realMacro, lang) : "";
+    const institutionalContext = realMacro ? await buildInstitutionalMacroContextAsync(realMacro, lang) : "";
     if (realMacro) {
       console.info(`[genesis:macro] FRED macro loaded: rate_env=${realMacro.monetaryEnvironment} inflation=${realMacro.inflationLevel.toFixed(1)}% cycle=${realMacro.businessCycle} confidence=${realMacro.dataConfidence}%`);
     }
