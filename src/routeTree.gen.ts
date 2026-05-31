@@ -45,6 +45,7 @@ import { Route as AppHelpRouteImport } from './routes/_app/help'
 import { Route as AppHeatmapRouteImport } from './routes/_app/heatmap'
 import { Route as AppGrowthPlanRouteImport } from './routes/_app/growth-plan'
 import { Route as AppGlobalIntelRouteImport } from './routes/_app/global-intel'
+import { Route as AppGenesisAdvisorRouteImport } from './routes/_app/genesis-advisor'
 import { Route as AppGenesis100RouteImport } from './routes/_app/genesis-100'
 import { Route as AppGenesisRouteImport } from './routes/_app/genesis'
 import { Route as AppExternalAccountsRouteImport } from './routes/_app/external-accounts'
@@ -379,6 +380,11 @@ const AppGrowthPlanRoute = AppGrowthPlanRouteImport.update({
 const AppGlobalIntelRoute = AppGlobalIntelRouteImport.update({
   id: '/global-intel',
   path: '/global-intel',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGenesisAdvisorRoute = AppGenesisAdvisorRouteImport.update({
+  id: '/genesis-advisor',
+  path: '/genesis-advisor',
   getParentRoute: () => AppRoute,
 } as any)
 const AppGenesis100Route = AppGenesis100RouteImport.update({
@@ -1263,6 +1269,7 @@ export interface FileRoutesByFullPath {
   '/external-accounts': typeof AppExternalAccountsRoute
   '/genesis': typeof AppGenesisRoute
   '/genesis-100': typeof AppGenesis100Route
+  '/genesis-advisor': typeof AppGenesisAdvisorRoute
   '/global-intel': typeof AppGlobalIntelRoute
   '/growth-plan': typeof AppGrowthPlanRoute
   '/heatmap': typeof AppHeatmapRoute
@@ -1456,6 +1463,7 @@ export interface FileRoutesByTo {
   '/external-accounts': typeof AppExternalAccountsRoute
   '/genesis': typeof AppGenesisRoute
   '/genesis-100': typeof AppGenesis100Route
+  '/genesis-advisor': typeof AppGenesisAdvisorRoute
   '/global-intel': typeof AppGlobalIntelRoute
   '/growth-plan': typeof AppGrowthPlanRoute
   '/heatmap': typeof AppHeatmapRoute
@@ -1651,6 +1659,7 @@ export interface FileRoutesById {
   '/_app/external-accounts': typeof AppExternalAccountsRoute
   '/_app/genesis': typeof AppGenesisRoute
   '/_app/genesis-100': typeof AppGenesis100Route
+  '/_app/genesis-advisor': typeof AppGenesisAdvisorRoute
   '/_app/global-intel': typeof AppGlobalIntelRoute
   '/_app/growth-plan': typeof AppGrowthPlanRoute
   '/_app/heatmap': typeof AppHeatmapRoute
@@ -1846,6 +1855,7 @@ export interface FileRouteTypes {
     | '/external-accounts'
     | '/genesis'
     | '/genesis-100'
+    | '/genesis-advisor'
     | '/global-intel'
     | '/growth-plan'
     | '/heatmap'
@@ -2039,6 +2049,7 @@ export interface FileRouteTypes {
     | '/external-accounts'
     | '/genesis'
     | '/genesis-100'
+    | '/genesis-advisor'
     | '/global-intel'
     | '/growth-plan'
     | '/heatmap'
@@ -2233,6 +2244,7 @@ export interface FileRouteTypes {
     | '/_app/external-accounts'
     | '/_app/genesis'
     | '/_app/genesis-100'
+    | '/_app/genesis-advisor'
     | '/_app/global-intel'
     | '/_app/growth-plan'
     | '/_app/heatmap'
@@ -2779,6 +2791,13 @@ declare module '@tanstack/react-router' {
       path: '/global-intel'
       fullPath: '/global-intel'
       preLoaderRoute: typeof AppGlobalIntelRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/genesis-advisor': {
+      id: '/_app/genesis-advisor'
+      path: '/genesis-advisor'
+      fullPath: '/genesis-advisor'
+      preLoaderRoute: typeof AppGenesisAdvisorRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/genesis-100': {
@@ -3906,6 +3925,7 @@ interface AppRouteChildren {
   AppExternalAccountsRoute: typeof AppExternalAccountsRoute
   AppGenesisRoute: typeof AppGenesisRoute
   AppGenesis100Route: typeof AppGenesis100Route
+  AppGenesisAdvisorRoute: typeof AppGenesisAdvisorRoute
   AppGlobalIntelRoute: typeof AppGlobalIntelRoute
   AppGrowthPlanRoute: typeof AppGrowthPlanRoute
   AppHeatmapRoute: typeof AppHeatmapRoute
@@ -3963,6 +3983,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppExternalAccountsRoute: AppExternalAccountsRoute,
   AppGenesisRoute: AppGenesisRoute,
   AppGenesis100Route: AppGenesis100Route,
+  AppGenesisAdvisorRoute: AppGenesisAdvisorRoute,
   AppGlobalIntelRoute: AppGlobalIntelRoute,
   AppGrowthPlanRoute: AppGrowthPlanRoute,
   AppHeatmapRoute: AppHeatmapRoute,

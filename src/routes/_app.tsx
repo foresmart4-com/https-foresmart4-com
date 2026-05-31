@@ -60,6 +60,7 @@ function AppLayout() {
     { to: "/dashboard", icon: LayoutDashboard, label: t("nav.dashboard"), hint: hint("نظرة عامة شاملة على حسابك والأسواق", "Overview of your account and markets") },
     { to: "/ai-dashboard", icon: Brain, label: t("nav.aiDashboard"), hint: hint("لوحة الذكاء الاصطناعي والتحليلات اللحظية", "AI dashboard and real-time analytics") },
     { to: "/genesis", icon: Bot, label: hint("Genesis Copilot", "Genesis Copilot"), hint: hint("مساعد الاستثمار الذكي التفاعلي", "Interactive AI investment copilot") },
+    { to: "/genesis-advisor", icon: Brain, label: hint("Genesis المستشار المؤسسي", "Genesis Institutional Advisor"), hint: hint("تحليل مؤسسي عميق بالمدارس الاقتصادية الستة", "Deep institutional analysis with 6 economic schools") },
     { to: "/market-universe", icon: Compass, label: hint("كون الأسهم", "Market Universe"), hint: hint("ابحث في S&P 500 و Nasdaq 100 مع أسعار حقيقية", "Search S&P 500 and Nasdaq 100 with live quotes") },
     { to: "/backtest-lab", icon: GraduationCap, label: t("nav.backtestLab"), hint: hint("اختبر استراتيجيات على بيانات تاريخية", "Test strategies against historical data") },
     { to: "/decision-engine", icon: Cpu, label: t("nav.decisionEngine"), hint: hint("محرك القرار الكمي", "Quantitative decision engine") },
