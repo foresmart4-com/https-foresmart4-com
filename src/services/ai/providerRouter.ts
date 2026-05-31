@@ -109,7 +109,7 @@ function buildStabilityControls(
 const DISPLAY_LABELS: Record<ProviderIdentity, string> = {
   gemini_fast:        "Gemini Fast",
   gemini_deep:        "Gemini Deep",
-  openai_deep:        "OpenAI Deep",
+  openai_deep:        "Gemini Deep",   // always show Gemini brand to users
   heuristic_fallback: "Heuristic",
   unavailable:        "AI Unavailable",
 };
@@ -117,7 +117,7 @@ const DISPLAY_LABELS: Record<ProviderIdentity, string> = {
 const DISPLAY_LABELS_AR: Record<ProviderIdentity, string> = {
   gemini_fast:        "Gemini سريع",
   gemini_deep:        "Gemini عميق",
-  openai_deep:        "OpenAI عميق",
+  openai_deep:        "Gemini عميق",   // always show Gemini brand to users
   heuristic_fallback: "تحليل إرشادي",
   unavailable:        "AI غير متاح",
 };

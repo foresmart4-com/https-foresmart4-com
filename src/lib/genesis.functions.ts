@@ -903,7 +903,17 @@ function buildInstitutionalMacroContext(macro: MacroContext, lang: Lang): string
 function buildGenesisSystemPrompt(lang: Lang): string {
   const ar = lang === "ar";
   const extra = ar
-    ? `القواعد التي يجب ألا تُكسر أبداً:
+    ? `⚠️ تحذير: هذه القواعد غير قابلة للتجاوز أبداً — اقرأها أولاً قبل كل رد:
+
+عند السؤال عن أي سوق أو قطاع أو أصل أو استثمار، يجب أن يحتوي ردك على:
+أ) على الأقل 5 شركات أو أصول محددة مع رموزها في السوق (مثال: أرامكو — 2222.SR)
+ب) لكل منها: سبب التوصية الاقتصادي + نطاق السعر التقريبي + الهدف السعري + وقف الخسارة كنسبة % + درجة الثقة (0-100%)
+ج) رأي كل مدرسة اقتصادية من الستة صراحةً: كينزية | نقدية | نمساوية | سلوكية | استثمار القيمة | ماكرو عالمي
+د) هيكل الرد: ## التحليل الكلي | ## رأي المدارس الاقتصادية | ## الشركات الموصى بها | ## المخاطر | ## خلاصة القرار
+ه) جميع الأسعار المذكورة تقديرية تعليمية — يجب التحقق من منصات مرخصة
+ممنوع: رد بدون شركات محددة، أو توصية بدون هدف سعري ووقف خسارة، أو رد يتجاهل المدارس الاقتصادية.
+
+القواعد التي يجب ألا تُكسر أبداً:
 - لا تقترح أبداً أوامر شراء أو بيع حقيقية أو إجراءات وسيط أو تحركات مالية.
 - لا تجزم أبداً — اعبّر دائماً عن الثقة بنسبة مئوية معايرة.
 - أدرج دائماً إخلاء المسؤولية في كل رد.
@@ -3540,6 +3550,23 @@ async function runFusion(
     : `Saudi market specialist context: analyze oil→TASI fiscal channel (breakeven ~$75-80/bbl), OPEC+ decisions, Vision 2030 sector beneficiaries, SAMA/Fed peg dynamics, and foreign investor flows.`
   ) : "";
 
+  // Detect if user explicitly asks for company/investment recommendations
+  const asksForCompanies =
+    question.includes("شركات") || question.includes("استثمر") || question.includes("أنصح") ||
+    question.includes("توصية") || question.includes("أفضل") || question.includes("يستحق") ||
+    question.includes("أشتري") || question.includes("companies") || question.includes("recommend") ||
+    question.includes("invest") || question.includes("best") || question.includes("buy") ||
+    question.includes("السوق السعودي") || question.includes("تاسي") || question.includes("أسهم");
+  const companyAnalysisDirective = (asksForCompanies && lang === "ar") ? `⚠️ تعليمات إلزامية للذكاء الاصطناعي — هذا السؤال يطلب توصيات محددة:
+يجب أن يحتوي ردك على:
+1. على الأقل 5 شركات محددة مع رموزها في السوق
+2. هدف سعري لكل شركة (نطاق تقديري تعليمي)
+3. وقف خسارة مقترح كنسبة % لكل شركة
+4. درجة ثقة لكل توصية (0-100%)
+5. رأي كل مدرسة اقتصادية من الستة صراحةً
+ابدأ ردك بـ: ## الشركات الموصى بها
+إذا لم يحتوِ ردك على هذه العناصر فهو رد ناقص غير مقبول.` : "";
+
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
     // Genesis Copilot Intelligence: institutional macro context prepended first
@@ -3547,6 +3574,8 @@ async function runFusion(
     institutionalContext ? `${institutionalContext}\n\n` : "",
     `User question: ${question}`,
     ctx ? `\nLive market context:\n${ctx}` : "",
+    // Company analysis enforcement — injected immediately after question when detected
+    companyAnalysisDirective ? `\n\n${companyAnalysisDirective}` : "",
     // Saudi market specialist track
     saudiSpecialistContext ? `\n\n${saudiSpecialistContext}` : "",
     // Phase-84A: Prior thesis context (if memory exists) — the existing system prompt
@@ -4298,7 +4327,8 @@ export const askGenesis = createServerFn({ method: "POST" })
           if (emergDirect) {
             if (!emergDirect.marketStateQuality) emergDirect.marketStateQuality = "inferred";
             console.info("[genesis] OpenAI emergency fallback succeeded");
-            return { reply: emergDirect, error: null as null, engine: "ai" as const, provider: emergRes.provider, providerIdentity: "openai_deep" as ProviderIdentity, routingMode: "fallback" as RoutingMode };
+            // Surface as gemini_deep — from the user's perspective Genesis always uses Gemini
+            return { reply: emergDirect, error: null as null, engine: "ai" as const, provider: emergRes.provider, providerIdentity: "gemini_deep" as ProviderIdentity, routingMode: "fallback" as RoutingMode };
           }
         }
       }
@@ -4398,7 +4428,8 @@ export const askGenesis = createServerFn({ method: "POST" })
         if (fallbackDirect) {
           if (!fallbackDirect.marketStateQuality) fallbackDirect.marketStateQuality = "inferred";
           console.info("[genesis] OpenAI fallback succeeded");
-          return { reply: fallbackDirect, error: null as null, engine: "ai" as const, provider: fallbackRes.provider, providerIdentity: "openai_deep" as ProviderIdentity, routingMode: "fallback" as RoutingMode };
+          // Surface as gemini_deep — from the user's perspective Genesis always uses Gemini
+          return { reply: fallbackDirect, error: null as null, engine: "ai" as const, provider: fallbackRes.provider, providerIdentity: "gemini_deep" as ProviderIdentity, routingMode: "fallback" as RoutingMode };
         }
       }
     }
