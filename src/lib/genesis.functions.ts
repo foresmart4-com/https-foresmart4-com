@@ -257,6 +257,9 @@ import { buildCommitteeDebate }            from "@/services/institutional/commit
 import { buildCapitalAllocatorProfile }    from "@/services/institutional/capitalAllocatorEngine";
 import { buildCapitalCycleAnalysis }       from "@/services/institutional/historicalCapitalCycleEngine";
 import { validateInstitutionalDecision }   from "@/services/institutional/institutionalDecisionValidator";
+// Genesis Copilot Intelligence Upgrade: real FRED macro context for institutional prompts
+import { fetchRealMacroContext } from "@/lib/genesis100/macro/macroDataService";
+import type { MacroContext } from "@/lib/genesis100/algorithms/economicFramework";
 
 export interface GenesisScenario {
   label: string;
@@ -873,6 +876,29 @@ const GENESIS_SCHEMA = `{
   "activatedKnowledge": "string — 1 sentence listing the knowledge domains used in this response (e.g. 'Oil/Fiscal Transmission, SAMA/Fed Peg, Aramco/Dividends, Allocator Playbook'). Required for investment questions — omitting this signals that knowledge grounding was not applied." (optional — mandatory for investment questions),
   "valuationEarningsView": "string — 1-2 sentences: explicitly distinguish whether the expected return driver is (a) P/E multiple expansion (fragile, policy-driven, reverses on tightening) or (b) EPS/earnings growth (durable, revenue+margin driven). State which is currently dominant and whether the thesis relies on the more fragile or more durable component. Required for all investment questions." (optional — mandatory for investment questions)
 }`;
+
+// Builds the institutional macro context block injected at the top of every Gemini prompt
+// when real FRED data is available. Arabic-only: English prompts already have deep
+// institutional framing; Arabic users get this extra grounding layer.
+function buildInstitutionalMacroContext(macro: MacroContext, lang: Lang): string {
+  if (lang !== "ar") return "";
+  const oilStr = macro.oilPrice > 0 ? `${macro.oilPrice.toFixed(0)}$` : "غير متاح حالياً";
+  return [
+    "=== السياق الاقتصادي المؤسسي — بيانات Federal Reserve الحقيقية ===",
+    `بيئة الفائدة: ${macro.monetaryEnvironment} | التضخم: ${macro.inflationLevel.toFixed(1)}% (${macro.inflationEnvironment})`,
+    `دورة الأعمال: ${macro.businessCycle} | النمو العالمي: ${macro.globalGrowthTrend} | نظام المخاطر: ${macro.riskRegime}`,
+    `مرحلة دورة الديون: ${macro.debtCyclePhase} | اتجاه الفائدة: ${macro.interestRateTrend} | فارق الفائدة: ${macro.interestRateDifferential.toFixed(2)}%`,
+    `تدفقات رأس المال: ${macro.capitalFlowTrend} | المخاطر الجيوسياسية: ${macro.geopoliticalRiskLevel} | النفط: ${oilStr}`,
+    `ثقة البيانات: ${macro.dataConfidence}%`,
+    "",
+    "التعليمات المؤسسية الإضافية:",
+    "- حلل كل سؤال من منظور المدارس الاقتصادية الستة: كينزية، نقدية، نمساوية، سلوكية، استثمار القيمة، ماكرو عالمي",
+    "- للسوق السعودي: اربط أداء تاسي بأسعار النفط دائماً، وأدرج تأثير رؤية 2030 وسياسة ساما",
+    "- كل توصية تشمل: درجة الثقة (0-100%)، المخاطر الرئيسية، وقف الخسارة المقترح، هدف السعر، الأفق الزمني",
+    "- هذا تحليل استشاري وليس ضمانًا للأرباح",
+    "=================================================================",
+  ].join("\n");
+}
 
 function buildGenesisSystemPrompt(lang: Lang): string {
   const ar = lang === "ar";
@@ -2552,6 +2578,7 @@ async function runFusion(
   isExpress: boolean,
   eceScore?: number,
   providerIdentity?: string,
+  institutionalContext?: string,
 ): Promise<GenesisReply | null> {
   // ── Detection — must run before any field that depends on isInvestment/isSaudi ──
   const isInvestment = serverDetectInvestmentIntent(question, ctx);
@@ -3474,10 +3501,29 @@ async function runFusion(
     console.log(`[genesis:dominance] pattern=${_reasoningDominance.dominancePattern} len=${_reasoningDominance.directiveLength}`);
   }
 
+  // Saudi market specialist context — injected when question targets Saudi/TASI/Gulf
+  const saudiSpecialistContext = isSaudi ? (lang === "ar"
+    ? `أنت متخصص في السوق السعودي. حلّل بعمق العلاقة بين:
+- أسعار النفط وأداء تاسي (نقطة التعادل ~75-80 دولار/برميل)
+- قرارات أوبك+ وتأثيرها على الإيرادات والإنفاق الحكومي
+- رؤية 2030 والقطاعات المستفيدة (سياحة، ترفيه، تعدين، طاقة متجددة)
+- السياسة النقدية للبنك المركزي السعودي (ساما) وارتباطها بالفيدرالي الأمريكي
+- موسم الأرباح الفصلية للشركات السعودية الرئيسية (أرامكو، سابك، الراجحي، الأهلي، مدينة المعرفة)
+- تدفقات المستثمرين الأجانب ومؤشرات الملكية الأجنبية
+- نسب التقييم (P/E تاسي ~15-20x) مقارنة بالأسواق الناشئة
+- الدولار (DXY) وتأثيره على ربط الريال وتنافسية الصادرات`
+    : `Saudi market specialist context: analyze oil→TASI fiscal channel (breakeven ~$75-80/bbl), OPEC+ decisions, Vision 2030 sector beneficiaries, SAMA/Fed peg dynamics, and foreign investor flows.`
+  ) : "";
+
   const sys = buildGenesisSystemPrompt(lang);
   const userBody = [
+    // Genesis Copilot Intelligence: institutional macro context prepended first
+    // so the AI reads real FRED data before any other context.
+    institutionalContext ? `${institutionalContext}\n\n` : "",
     `User question: ${question}`,
     ctx ? `\nLive market context:\n${ctx}` : "",
+    // Saudi market specialist track
+    saudiSpecialistContext ? `\n\n${saudiSpecialistContext}` : "",
     // Phase-84A: Prior thesis context (if memory exists) — the existing system prompt
     // rule 16 (THESIS EVOLUTION) already handles the "Prior thesis:" format.
     _priorThesis ? `\n\n${buildPriorThesisContext(_priorThesis, lang)}` : "",
@@ -4118,10 +4164,11 @@ export const askGenesis = createServerFn({ method: "POST" })
     const routing = routeGenesisAI(isExpress ? "fast" : "deep", availability);
     console.info(`[genesis:router] identity=${routing.providerIdentity} mode=${routing.routingMode} fallback=${routing.isFallback}`);
 
-    // ── Multi-agent parallel path ── live market + specialist agents ──────────
+    // ── Multi-agent parallel path ── live market + specialist agents + FRED macro ─
     // Always runs unconditionally: Phase-12 arbitration fields require track outputs.
     // Tracks skipped in express mode resolve to null via Promise.resolve(null).
-    const [liveSettled, settledA, settledB, settledC, settledD, settledE, settledF] = await Promise.allSettled([
+    // FRED macro runs in parallel (6-hour cache; adds zero serial latency on warm calls).
+    const [liveSettled, settledA, settledB, settledC, settledD, settledE, settledF, settledMacro] = await Promise.allSettled([
       withTimeout(buildLiveMarketState(), 6000),
       runTrackA(lang, data.question, data.marketContext, null),
       isExpress ? Promise.resolve(null) : runTrackB(lang, data.question, data.marketContext, null),
@@ -4129,6 +4176,7 @@ export const askGenesis = createServerFn({ method: "POST" })
       runTrackD(lang, data.question, data.marketContext, null),
       isExpress ? Promise.resolve(null) : runTrackE(lang, data.question, data.marketContext, null),
       isExpress ? Promise.resolve(null) : runTrackF(lang, data.question, data.marketContext),
+      withTimeout(fetchRealMacroContext(), 4500),
     ]);
 
     const live = (liveSettled.status === "fulfilled" ? liveSettled.value : null) ?? null;
@@ -4139,13 +4187,19 @@ export const askGenesis = createServerFn({ method: "POST" })
     const trackE = settledE.status === "fulfilled" ? settledE.value : null;
     const trackF = settledF.status === "fulfilled" ? settledF.value : null;
     const tracksUsed = [trackA, trackB, trackC, trackD, trackE, trackF].filter(Boolean).length;
+    // Real FRED macro context — used to build institutional Arabic prompt prefix
+    const realMacro = (settledMacro.status === "fulfilled" ? settledMacro.value : null) ?? null;
+    const institutionalContext = realMacro ? buildInstitutionalMacroContext(realMacro, lang) : "";
+    if (realMacro) {
+      console.info(`[genesis:macro] FRED macro loaded: rate_env=${realMacro.monetaryEnvironment} inflation=${realMacro.inflationLevel.toFixed(1)}% cycle=${realMacro.businessCycle} confidence=${realMacro.dataConfidence}%`);
+    }
 
     // Pure consensus engine — no AI call, runs on track outputs only.
     const consensus = computeConsensus(trackA, trackB, trackC, trackD, trackE);
 
     // Attempt fusion when at least one track succeeded.
     if (tracksUsed >= 1) {
-      const fused = await runFusion(lang, data.question, data.marketContext, trackA, trackB, trackC, trackD, trackE, trackF, consensus, live, tracksUsed, isExpress, data.eceScore, routing.providerIdentity);
+      const fused = await runFusion(lang, data.question, data.marketContext, trackA, trackB, trackC, trackD, trackE, trackF, consensus, live, tracksUsed, isExpress, data.eceScore, routing.providerIdentity, institutionalContext);
       if (fused?.headline) {
         fused.marketStateQuality = live?.marketStateQuality ?? fused.marketStateQuality ?? "inferred";
         return { reply: fused, error: null as null, engine: "ai" as const, tracksUsed, provider, dominantBias: consensus.dominantBias, providerIdentity: routing.providerIdentity, routingMode: routing.routingMode };
@@ -4174,6 +4228,8 @@ export const askGenesis = createServerFn({ method: "POST" })
       isSaudi: _fbIsSaudi, lang,
     }) : null;
     const user = wrapUserContext(lang, [
+      // Genesis Copilot Intelligence: institutional macro prefix in fallback path too
+      institutionalContext ? `${institutionalContext}\n\n` : "",
       `User question: ${data.question}`,
       data.marketContext ? `\nLive market context:\n${data.marketContext}` : "",
       _fbEnforcementCtx ? `\n\n${_fbEnforcementCtx}` : "",
