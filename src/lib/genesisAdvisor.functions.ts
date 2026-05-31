@@ -6,6 +6,9 @@ import { fetchAndLearn, shouldRefresh } from "@/lib/genesis100/knowledge/knowled
 import { getRelevantKnowledge } from "@/lib/genesis100/knowledge/knowledgeRetriever";
 import { getEconomicPrinciples } from "@/lib/genesis100/knowledge/economicPrinciples";
 import { getHistoricalParallel } from "@/lib/genesis100/knowledge/economicHistory";
+import { buildEconomicForecast } from "@/lib/genesis100/algorithms/forecastingEngine";
+import { getSectorRotation } from "@/lib/genesis100/algorithms/sectorRotation";
+import { calibrateConfidence } from "@/lib/genesis100/algorithms/confidenceCalibrator";
 
 const InputSchema = z.object({
   question: z.string().min(1).max(3000),
@@ -87,10 +90,18 @@ export const askGenesisAdvisor = createServerFn({ method: "POST" })
 
     const principles = macro ? getEconomicPrinciples(macro) : "";
     const historicalContext = macro ? getHistoricalParallel(macro) : "";
+    const forecast = macro ? buildEconomicForecast(macro, "3month") : null;
+    const sectorRotation = macro ? getSectorRotation(macro) : null;
+    const confidence = macro ? calibrateConfidence(macro, 0, 6) : null;
 
     const userMessage = [
       knowledge ? `${knowledge}\n\n` : "",
       historicalContext ? `${historicalContext}\n\n` : "",
+      forecast ? `${forecast.arabicForecastSummary}\n\n` : "",
+      sectorRotation
+        ? `=== دوران القطاعات الموصى به ===\nالقطاعات المفضلة: ${sectorRotation.preferredSectors.join("، ")}\nتجنب: ${sectorRotation.avoidSectors.join("، ")}\n${sectorRotation.arabicAnalysis}\n\n`
+        : "",
+      confidence ? `${confidence.arabicConfidenceStatement}\n\n` : "",
       macro
         ? `=== البيانات الاقتصادية الحقيقية (Federal Reserve) ===
 بيئة الفائدة: ${macro.monetaryEnvironment}

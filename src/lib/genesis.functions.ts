@@ -261,6 +261,8 @@ import { validateInstitutionalDecision }   from "@/services/institutional/instit
 import { fetchRealMacroContext } from "@/lib/genesis100/macro/macroDataService";
 import type { MacroContext } from "@/lib/genesis100/algorithms/economicFramework";
 import { getHistoricalParallel } from "@/lib/genesis100/knowledge/economicHistory";
+import { buildEconomicForecast } from "@/lib/genesis100/algorithms/forecastingEngine";
+import { getSectorRotation } from "@/lib/genesis100/algorithms/sectorRotation";
 
 export interface GenesisScenario {
   label: string;
@@ -978,6 +980,18 @@ function buildInstitutionalMacroContext(macro: MacroContext, lang: Lang): string
   if (histContext) {
     lines.push("", histContext);
   }
+
+  const forecast = buildEconomicForecast(macro, "3month");
+  const sectors  = getSectorRotation(macro);
+
+  lines.push(
+    "",
+    "=== توقعات الأشهر الثلاثة القادمة ===",
+    forecast.arabicForecastSummary,
+    "",
+    "=== دوران القطاعات الموصى به ===",
+    sectors.arabicAnalysis,
+  );
 
   return lines.join("\n");
 }
