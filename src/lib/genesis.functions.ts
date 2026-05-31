@@ -391,6 +391,24 @@ export interface GenesisReply {
   governorCompositeScore?: number; // 0-100: composite across all quality dimensions
   // Root Cause Repair: Institutional Memo (server-composed; never AI-generated)
   institutionalMemo?: string;      // canonical memo assembled from reply fields in institutional order
+  // Institutional analysis — rendered as dedicated UI sections (not buried in outlook)
+  recommendedCompanies?: Array<{
+    name: string;
+    symbol: string;
+    reason: string;
+    priceRange: string;
+    target: string;
+    stopLoss: string;
+    confidence: number;
+  }>;
+  schoolsAnalysis?: {
+    keynesian?: string;
+    monetarist?: string;
+    austrian?: string;
+    behavioral?: string;
+    valueInvesting?: string;
+    globalMacro?: string;
+  };
 }
 
 const AskInput = z.object({
@@ -680,6 +698,43 @@ function sanitizeReply(obj: Partial<GenesisReply>, lang: Lang): GenesisReply | n
     secondOrderRisks: cleanStr(obj.secondOrderRisks),
     activatedKnowledge: cleanStr(obj.activatedKnowledge),
     valuationEarningsView: cleanStr(obj.valuationEarningsView),
+    // Institutional analysis — recommended companies + economic schools
+    recommendedCompanies: (() => {
+      if (!Array.isArray(obj.recommendedCompanies)) return undefined;
+      const rows = (obj.recommendedCompanies as unknown[]).filter(
+        (r): r is GenesisReply["recommendedCompanies"] extends Array<infer T> ? T : never =>
+          typeof r === "object" && r !== null &&
+          typeof (r as { name?: unknown }).name === "string" &&
+          typeof (r as { symbol?: unknown }).symbol === "string" &&
+          (r as { name: string }).name.trim().length > 0,
+      ).map((r) => ({
+        name:       ((r as { name: string }).name ?? "").trim().slice(0, 100),
+        symbol:     ((r as { symbol: string }).symbol ?? "").trim().toUpperCase().slice(0, 20),
+        reason:     ((r as { reason?: string }).reason ?? "").trim().slice(0, 300),
+        priceRange: ((r as { priceRange?: string }).priceRange ?? "").trim().slice(0, 50),
+        target:     ((r as { target?: string }).target ?? "").trim().slice(0, 50),
+        stopLoss:   ((r as { stopLoss?: string }).stopLoss ?? "").trim().slice(0, 20),
+        confidence: typeof (r as { confidence?: unknown }).confidence === "number"
+          ? Math.max(0, Math.min(100, Math.round((r as { confidence: number }).confidence)))
+          : 50,
+      }));
+      return rows.length > 0 ? rows : undefined;
+    })(),
+    schoolsAnalysis: (() => {
+      const s = obj.schoolsAnalysis;
+      if (typeof s !== "object" || s === null) return undefined;
+      const o = s as Record<string, unknown>;
+      const clean = (v: unknown) => typeof v === "string" && v.trim() ? v.trim().slice(0, 300) : undefined;
+      const result = {
+        keynesian:     clean(o["keynesian"]),
+        monetarist:    clean(o["monetarist"]),
+        austrian:      clean(o["austrian"]),
+        behavioral:    clean(o["behavioral"]),
+        valueInvesting:clean(o["valueInvesting"]),
+        globalMacro:   clean(o["globalMacro"]),
+      };
+      return Object.values(result).some(Boolean) ? result : undefined;
+    })(),
     // Phase-83A/83B/84A: scores set deterministically post-sanitize; never from AI JSON
     knowledgeUseScore: undefined,
     depthRulesScore: undefined,
@@ -874,7 +929,26 @@ const GENESIS_SCHEMA = `{
   } (optional — required when voiceReasoning is set),
   "secondOrderRisks": "string — 1-2 sentences: second-order contagion effects flowing from the primary scenario, BEYOND the direct macro impact. Use arrow notation: 'if [primary event] → [direct effect] generates [second-order effect] → [further downstream impact] — extending beyond [direct sector]'. For Saudi: connect oil→fiscal→credit→real estate→consumption chain. Required for all investment questions." (optional — set for investment questions),
   "activatedKnowledge": "string — 1 sentence listing the knowledge domains used in this response (e.g. 'Oil/Fiscal Transmission, SAMA/Fed Peg, Aramco/Dividends, Allocator Playbook'). Required for investment questions — omitting this signals that knowledge grounding was not applied." (optional — mandatory for investment questions),
-  "valuationEarningsView": "string — 1-2 sentences: explicitly distinguish whether the expected return driver is (a) P/E multiple expansion (fragile, policy-driven, reverses on tightening) or (b) EPS/earnings growth (durable, revenue+margin driven). State which is currently dominant and whether the thesis relies on the more fragile or more durable component. Required for all investment questions." (optional — mandatory for investment questions)
+  "valuationEarningsView": "string — 1-2 sentences: explicitly distinguish whether the expected return driver is (a) P/E multiple expansion (fragile, policy-driven, reverses on tightening) or (b) EPS/earnings growth (durable, revenue+margin driven). State which is currently dominant and whether the thesis relies on the more fragile or more durable component. Required for all investment questions." (optional — mandatory for investment questions),
+  "recommendedCompanies": [
+    {
+      "name": "string — company name in Arabic or English",
+      "symbol": "string — exchange ticker e.g. 2222.SR or AAPL",
+      "reason": "string — 1-2 sentence economic rationale (oil channel, Vision 2030, earnings growth, etc.)",
+      "priceRange": "string — approximate current trading range e.g. '25-28 SAR' (educational estimate)",
+      "target": "string — price target for stated horizon e.g. '32 SAR'",
+      "stopLoss": "string — suggested stop-loss as % from entry e.g. '-8%'",
+      "confidence": <integer 0-100>
+    }
+  ] (optional — REQUIRED when question asks for companies, recommendations, or investments in any market; provide 3-5 companies),
+  "schoolsAnalysis": {
+    "keynesian": "string — 1 sentence Keynesian view: aggregate demand, government spending, multiplier",
+    "monetarist": "string — 1 sentence Monetarist view: interest rates, money supply, inflation",
+    "austrian": "string — 1 sentence Austrian view: capital cycles, real value, credit expansion",
+    "behavioral": "string — 1 sentence Behavioral view: market sentiment, crowd psychology, positioning",
+    "valueInvesting": "string — 1 sentence Value Investing view: valuation, margin of safety, earnings quality",
+    "globalMacro": "string — 1 sentence Global Macro view: capital flows, geopolitics, currency dynamics"
+  } (optional — REQUIRED when question asks for companies, recommendations, or market analysis)
 }`;
 
 // Builds the institutional macro context block injected at the top of every Gemini prompt

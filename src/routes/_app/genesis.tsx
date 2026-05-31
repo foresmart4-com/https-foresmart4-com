@@ -3285,6 +3285,106 @@ function ExchangeCard({ exchange, ar, confModifier, eceVal, isFirstExchange, onC
           )}
 
           {/* ═══════════════════════════════════════════════════════════════════
+              TIER 1.5 — RECOMMENDED COMPANIES + ECONOMIC SCHOOLS
+              These are the new fields that were previously invisible.
+              Placed here so they appear directly after the thesis,
+              before the committee debate.
+          ═══════════════════════════════════════════════════════════════════ */}
+
+          {/* Recommended Companies */}
+          {reply.recommendedCompanies && reply.recommendedCompanies.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-success font-bold">
+                <TrendingUp className="h-3.5 w-3.5 text-success" />
+                {ar ? "الشركات الموصى بها" : "Recommended Companies"}
+                <span className="ms-1 rounded-md border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold text-warning">
+                  {ar ? "تقديري تعليمي" : "Advisory"}
+                </span>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {reply.recommendedCompanies.map((co, i) => (
+                  <div key={i} className="rounded-xl border border-success/25 bg-success/5 px-3 py-3 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <span className="text-sm font-bold text-foreground/90">{co.name}</span>
+                        {co.symbol && (
+                          <span className="ms-1.5 rounded-md bg-muted/60 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-muted-foreground">
+                            {co.symbol}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <div className={cn(
+                          "rounded-md px-1.5 py-0.5 text-[10px] font-bold",
+                          co.confidence >= 65 ? "bg-success/15 text-success" :
+                          co.confidence >= 45 ? "bg-primary/15 text-primary" :
+                                                "bg-warning/15 text-warning",
+                        )}>
+                          {co.confidence}%
+                        </div>
+                      </div>
+                    </div>
+                    {co.reason && (
+                      <p className="text-xs text-foreground/75 leading-relaxed">{co.reason}</p>
+                    )}
+                    <div className="grid grid-cols-3 gap-1 pt-0.5">
+                      {co.priceRange && (
+                        <div className="rounded-lg bg-muted/40 px-2 py-1.5 text-center">
+                          <div className="text-[9px] text-muted-foreground mb-0.5">{ar ? "السعر الحالي" : "Range"}</div>
+                          <div className="text-xs font-semibold text-foreground/80">{co.priceRange}</div>
+                        </div>
+                      )}
+                      {co.target && (
+                        <div className="rounded-lg bg-success/10 px-2 py-1.5 text-center">
+                          <div className="text-[9px] text-success/70 mb-0.5">{ar ? "الهدف" : "Target"}</div>
+                          <div className="text-xs font-bold text-success">{co.target}</div>
+                        </div>
+                      )}
+                      {co.stopLoss && (
+                        <div className="rounded-lg bg-destructive/10 px-2 py-1.5 text-center">
+                          <div className="text-[9px] text-destructive/70 mb-0.5">{ar ? "وقف الخسارة" : "Stop"}</div>
+                          <div className="text-xs font-bold text-destructive">{co.stopLoss}</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Economic Schools Analysis */}
+          {reply.schoolsAnalysis && Object.values(reply.schoolsAnalysis).some(Boolean) && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-primary font-bold">
+                <Layers className="h-3.5 w-3.5 text-primary" />
+                {ar ? "المدارس الاقتصادية الستة" : "Six Economic Schools"}
+              </div>
+              <div className="grid gap-1.5 sm:grid-cols-2">
+                {([
+                  { key: "keynesian",      labelAr: "الكينزية",         labelEn: "Keynesian" },
+                  { key: "monetarist",     labelAr: "النقدية",          labelEn: "Monetarist" },
+                  { key: "austrian",       labelAr: "النمساوية",        labelEn: "Austrian" },
+                  { key: "behavioral",     labelAr: "السلوكية",         labelEn: "Behavioral" },
+                  { key: "valueInvesting", labelAr: "استثمار القيمة",   labelEn: "Value Investing" },
+                  { key: "globalMacro",    labelAr: "الماكرو العالمي",  labelEn: "Global Macro" },
+                ] as const).map(({ key, labelAr, labelEn }) => {
+                  const text = reply.schoolsAnalysis?.[key];
+                  if (!text) return null;
+                  return (
+                    <div key={key} className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2 space-y-0.5">
+                      <div className="text-[9px] uppercase tracking-wider font-bold text-primary/70">
+                        {ar ? labelAr : labelEn}
+                      </div>
+                      <p className="text-xs leading-relaxed text-foreground/80">{text}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════════
               TIER 2 — COMMITTEE REASONING (visible, collapsible)
           ═══════════════════════════════════════════════════════════════════ */}
 
