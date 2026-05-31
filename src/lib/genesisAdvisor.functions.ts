@@ -90,14 +90,21 @@ export const askGenesisAdvisor = createServerFn({ method: "POST" })
 سؤال المستخدم: ${question}
 `;
 
-    const result = await callAIGateway<string>({
+    const callArgs = {
       system: SYSTEM_PROMPT,
       user: userMessage,
       language: lang,
-      model: "google/gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       maxTokens: 4000,
       temperature: 0.3,
-    });
+    };
+
+    let result = await callAIGateway<string>(callArgs);
+    if (result.error?.includes("rate_limit")) {
+      await new Promise((r) => setTimeout(r, 3000));
+      const retry = await callAIGateway<string>(callArgs);
+      return { text: retry.raw ?? "", error: retry.error ?? null };
+    }
 
     if (result.error) {
       return { text: "", error: `AI error: ${result.error}` };
