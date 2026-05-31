@@ -3,6 +3,43 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
+const OWNER_EMAIL = "ayyaf08@hotmail.com";
+
+// Auto-approve the site owner (Option C): if the authenticated user's email
+// matches the owner email and they have no role, grant admin immediately.
+// This bootstraps the very first login on a fresh Supabase project.
+export const autoApproveOwnerFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ role: "admin" | "pending" }> => {
+    const claims = context.claims as Record<string, unknown>;
+    const email = (claims.email as string | undefined)?.toLowerCase() ?? "";
+
+    if (email !== OWNER_EMAIL) return { role: "pending" };
+
+    // Check if already has admin role
+    const { data: existing } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (existing) return { role: "admin" };
+
+    // Insert admin role — supabaseAdmin bypasses RLS
+    const { error } = await supabaseAdmin
+      .from("user_roles")
+      .insert({ user_id: context.userId, role: "admin" });
+
+    if (error) {
+      console.error("[auto-approve] Failed to insert admin role:", error.message);
+      return { role: "pending" };
+    }
+
+    console.info("[auto-approve] Owner", context.userId, "auto-promoted to admin");
+    return { role: "admin" };
+  });
+
 const RoleEnum = z.enum(["admin", "subscriber", "pending"]);
 
 const Input = z.object({

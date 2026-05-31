@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./auth";
+import { autoApproveOwnerFn } from "./members.functions";
 
 export const DISCLAIMER_VERSION = "2026-05-08-v1";
 const ACCEPT_CACHE_PREFIX = "fs-disclaimer-accepted:";
@@ -33,6 +35,7 @@ export type AppRole = "admin" | "subscriber" | "pending";
 
 export function useAccess() {
   const { user } = useAuth();
+  const autoApproveOwner = useServerFn(autoApproveOwnerFn);
   // Hydrate optimistically from localStorage so the disclaimer modal does not
   // re-flash on every page load for users who have already accepted it.
   const [role, setRole] = useState<AppRole | null>(null);
@@ -79,14 +82,23 @@ export function useAccess() {
       }
     }
 
-    // Step 3: Only fall back to "pending" when both checks returned no role.
+    // Step 3: If still no role, attempt owner auto-approval (bootstraps fresh Supabase project).
+    if (!resolvedRole) {
+      try {
+        const { role: ownerRole } = await autoApproveOwner({});
+        if (ownerRole === "admin") resolvedRole = "admin";
+      } catch {
+        // Non-critical: fall through to "pending"
+      }
+    }
+
     const primary: AppRole = resolvedRole ?? "pending";
     setRole(primary);
     const serverAccepted = acc === true;
     if (serverAccepted) writeLocalCache();
     setAccepted(serverAccepted);
     setLoading(false);
-  }, [user]);
+  }, [user, autoApproveOwner]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
