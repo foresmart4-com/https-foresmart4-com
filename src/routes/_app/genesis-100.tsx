@@ -301,32 +301,32 @@ function Genesis100Page() {
 
   const load = async () => {
     setError(null);
-    const [s, a, d, c, n, ar, intel, fw, sr, db, cs] = await Promise.all([
-      getJson<StatusApi>("/api/public/genesis100/status"),
-      getJson<{ allocations: AllocationApi[] }>("/api/public/genesis100/allocations"),
-      getJson<{ decisions: DecisionApi[] }>("/api/public/genesis100/decisions"),
-      getJson<ControlsApi>("/api/public/genesis100/controls"),
-      getJson<NotificationsApi>("/api/public/genesis100/notifications"),
-      getJson<{ archive: ArchiveDecisionApi[] }>("/api/public/genesis100/archive"),
-      getJson<IntelligenceApi>("/api/public/genesis100/intelligence"),
-      getJson<FirewallApi>("/api/public/genesis100/decision-firewall"),
-      getJson<SourceRegistryApi>("/api/public/genesis100/source-registry"),
-      getJson<DebateApi>("/api/public/genesis100/debate"),
-      getJson<ConsensusApi>("/api/public/genesis100/consensus"),
+    const [s, a, d, c, n, ar, intel, fw, sr, db, cs, pm] = await Promise.all([
+      getJson<StatusApi>("/api/public/genesis100/status").catch(() => null),
+      getJson<{ allocations: AllocationApi[] }>("/api/public/genesis100/allocations").catch(() => ({ allocations: [] })),
+      getJson<{ decisions: DecisionApi[] }>("/api/public/genesis100/decisions").catch(() => ({ decisions: [] })),
+      getJson<ControlsApi>("/api/public/genesis100/controls").catch(() => null),
+      getJson<NotificationsApi>("/api/public/genesis100/notifications").catch(() => null),
+      getJson<{ archive: ArchiveDecisionApi[] }>("/api/public/genesis100/archive").catch(() => ({ archive: [] })),
+      getJson<IntelligenceApi>("/api/public/genesis100/intelligence").catch(() => null),
+      getJson<FirewallApi>("/api/public/genesis100/decision-firewall").catch(() => null),
+      getJson<SourceRegistryApi>("/api/public/genesis100/source-registry").catch(() => null),
+      getJson<DebateApi>("/api/public/genesis100/debate").catch(() => null),
+      getJson<ConsensusApi>("/api/public/genesis100/consensus").catch(() => null),
       getJson<{ positions: PositionMonitorResult[] }>("/api/public/genesis100/position-monitor").catch(() => ({ positions: [] })),
     ]);
     setStatus(s);
-    setAllocations(a.allocations ?? []);
-    setDecisions(d.decisions ?? []);
+    setAllocations(a?.allocations ?? []);
+    setDecisions(d?.decisions ?? []);
     setControls(c);
     setNotifications(n);
-    setArchive(ar.archive ?? []);
+    setArchive(ar?.archive ?? []);
     setIntelligence(intel);
     setFirewall(fw);
     setSourceRegistry(sr);
     setDebate(db);
     setConsensus(cs);
-    setPositionMonitor((pm as { positions: PositionMonitorResult[] }).positions ?? []);
+    setPositionMonitor(pm?.positions ?? []);
   };
 
   useEffect(() => {
