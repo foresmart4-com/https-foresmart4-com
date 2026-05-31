@@ -1,8 +1,20 @@
-// Genesis Intelligence Engine — Phase A
+// Genesis Intelligence Engine — Phase A+D
 // Calls Gemini AI to produce institutional scores replacing placeholder math.
+// Phase D adds structured economic algorithm layer underneath Gemini.
 // Server-side only. Uses same callAIGateway pattern as genesis.functions.ts.
 
 import { callAIGateway, safeParseJson } from "@/lib/ai-gateway.server";
+import {
+  buildMacroContextFromScores,
+  buildAssetContextFromQuote,
+} from "@/lib/genesis100/algorithms/economicFramework";
+import { analyzeAllSchools } from "@/lib/genesis100/algorithms/economicSchools";
+import {
+  getDynamicWeights,
+  buildConsensus,
+} from "@/lib/genesis100/algorithms/consensusEngine";
+import { calculateOptimalPosition } from "@/lib/genesis100/algorithms/riskManagement";
+import type { OptimalPositionOutput } from "@/lib/genesis100/algorithms/riskManagement";
 
 export interface GenesisIntelligenceInput {
   symbol: string;
@@ -40,6 +52,12 @@ export interface GenesisIntelligenceOutput {
   dataQualityWarning: string | null;
   analysisTimestamp: number;
   geminiUsed: boolean;
+  // Phase D — structured economic algorithm layer
+  consensusAgreementLevel: "strong" | "moderate" | "weak" | "conflicted" | null;
+  dominantSchool: string | null;
+  conflictingSchools: string[];
+  structuredConsensusScore: number | null;
+  riskProfile: OptimalPositionOutput | null;
 }
 
 // 5-minute in-memory cache per symbol (keyed by symbol + 5-min bucket)
@@ -53,7 +71,26 @@ function clamp0100(n: number): number {
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
-function neutralFallback(warning?: string): GenesisIntelligenceOutput {
+function neutralFallback(
+  warning?: string,
+  symbol?: string,
+  assetClass?: string,
+  marketRegion?: string,
+  price?: number | null,
+  changePercent?: number | null,
+): GenesisIntelligenceOutput {
+  // Phase D: still run structured schools even when Gemini is unavailable
+  const macroCtxFallback = buildMacroContextFromScores(50, 50, 50);
+  const assetCtxFallback = buildAssetContextFromQuote(
+    symbol ?? "UNKNOWN",
+    assetClass ?? "us_stock",
+    marketRegion ?? "Global",
+    price ?? null,
+    changePercent ?? null,
+    null,
+  );
+  const schoolsFallback = analyzeAllSchools(assetCtxFallback, macroCtxFallback);
+
   return {
     macroScore: 50,
     sentimentScore: 50,
@@ -66,17 +103,22 @@ function neutralFallback(warning?: string): GenesisIntelligenceOutput {
     keyRisks: ["عدم توفر بيانات كافية للتحليل الكامل"],
     keyOpportunities: ["قد تظهر فرص عند استعادة الاتصال بنموذج الذكاء الاصطناعي"],
     schoolsBreakdown: {
-      keynesian: 50,
-      monetarist: 50,
-      austrian: 50,
-      behavioral: 50,
-      valueinvesting: 50,
-      globalMacro: 50,
+      keynesian: schoolsFallback.keynesian.score,
+      monetarist: schoolsFallback.monetarist.score,
+      austrian: schoolsFallback.austrian.score,
+      behavioral: schoolsFallback.behavioral.score,
+      valueinvesting: schoolsFallback.valueInvesting.score,
+      globalMacro: schoolsFallback.globalMacro.score,
     },
     dataQualityWarning:
       warning ?? "تحليل احترازي بسبب عدم توفر نموذج الذكاء الاصطناعي",
     analysisTimestamp: Date.now(),
     geminiUsed: false,
+    consensusAgreementLevel: null,
+    dominantSchool: null,
+    conflictingSchools: [],
+    structuredConsensusScore: null,
+    riskProfile: null,
   };
 }
 
@@ -133,6 +175,64 @@ function validateAndClamp(raw: unknown): GenesisIntelligenceOutput | null {
         : null,
     analysisTimestamp: Date.now(),
     geminiUsed: true,
+    // Phase D fields populated after Gemini parse in analyzeAssetWithGemini()
+    consensusAgreementLevel: null,
+    dominantSchool: null,
+    conflictingSchools: [],
+    structuredConsensusScore: null,
+    riskProfile: null,
+  };
+}
+
+function runAlgorithmLayer(
+  parsed: GenesisIntelligenceOutput,
+  input: GenesisIntelligenceInput,
+): GenesisIntelligenceOutput {
+  const macroCtx = buildMacroContextFromScores(
+    parsed.macroScore,
+    parsed.sentimentScore,
+    parsed.geopoliticalRisk,
+  );
+  const assetCtx = buildAssetContextFromQuote(
+    input.symbol,
+    input.assetClass,
+    input.marketRegion,
+    input.price,
+    input.changePercent,
+    null,
+  );
+  const schools = analyzeAllSchools(assetCtx, macroCtx);
+  const weights = getDynamicWeights(macroCtx, assetCtx);
+  const consensus = buildConsensus(schools, weights, assetCtx);
+
+  const riskProfile = input.price
+    ? calculateOptimalPosition({
+        symbol: input.symbol,
+        assetClass: input.assetClass,
+        entryPrice: input.price,
+        confidence: parsed.confidenceInAnalysis,
+        portfolioCapital: input.portfolioContext.totalCapital,
+        currentExposurePercent: input.portfolioContext.currentAllocation,
+        historicalVolatility: 0,
+        agreementLevel: consensus.agreementLevel,
+      })
+    : null;
+
+  return {
+    ...parsed,
+    schoolsBreakdown: {
+      keynesian: schools.keynesian.score,
+      monetarist: schools.monetarist.score,
+      austrian: schools.austrian.score,
+      behavioral: schools.behavioral.score,
+      valueinvesting: schools.valueInvesting.score,
+      globalMacro: schools.globalMacro.score,
+    },
+    consensusAgreementLevel: consensus.agreementLevel,
+    dominantSchool: consensus.dominantSchool,
+    conflictingSchools: consensus.conflictingSchools,
+    structuredConsensusScore: consensus.adjustedScore,
+    riskProfile,
   };
 }
 
@@ -221,7 +321,7 @@ Return ONLY this exact JSON structure:
 
     if (result.error || !result.data) {
       console.warn(`[genesis-intelligence] Gemini unavailable for ${symbol}: ${result.error}`);
-      return neutralFallback();
+      return neutralFallback(undefined, symbol, input.assetClass, input.marketRegion, input.price, input.changePercent);
     }
 
     // Try parsed data first, then fallback to raw extraction
@@ -231,16 +331,18 @@ Return ONLY this exact JSON structure:
 
     if (!validated) {
       console.warn(`[genesis-intelligence] Validation failed for ${symbol}`);
-      return neutralFallback("تعذر استخراج التحليل المنظم من استجابة النموذج");
+      return neutralFallback("تعذر استخراج التحليل المنظم من استجابة النموذج", symbol, input.assetClass, input.marketRegion, input.price, input.changePercent);
     }
 
-    _cache.set(key, validated);
+    // Phase D: run structured economic algorithm layer
+    const withAlgorithms = runAlgorithmLayer(validated, input);
+    _cache.set(key, withAlgorithms);
     console.info(
-      `[genesis-intelligence] ${symbol} → macro=${validated.macroScore} sentiment=${validated.sentimentScore} fundamentals=${validated.fundamentalsScore} gemini=true`,
+      `[genesis-intelligence] ${symbol} → macro=${validated.macroScore} sentiment=${validated.sentimentScore} fundamentals=${validated.fundamentalsScore} consensus=${withAlgorithms.consensusAgreementLevel} dominant=${withAlgorithms.dominantSchool} gemini=true`,
     );
-    return validated;
+    return withAlgorithms;
   } catch (err) {
     console.error(`[genesis-intelligence] Unexpected error for ${symbol}:`, err);
-    return neutralFallback();
+    return neutralFallback(undefined, symbol, input.assetClass, input.marketRegion, input.price, input.changePercent);
   }
 }

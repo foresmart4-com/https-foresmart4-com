@@ -120,6 +120,7 @@ import { Route as ApiPublicGenesis100PositionSizingRouteImport } from './routes/
 import { Route as ApiPublicGenesis100PositionMonitorRouteImport } from './routes/api/public/genesis100/position-monitor'
 import { Route as ApiPublicGenesis100NotificationsRouteImport } from './routes/api/public/genesis100/notifications'
 import { Route as ApiPublicGenesis100MarketSentimentRouteImport } from './routes/api/public/genesis100/market-sentiment'
+import { Route as ApiPublicGenesis100LearningInsightsRouteImport } from './routes/api/public/genesis100/learning-insights'
 import { Route as ApiPublicGenesis100KnowledgeAcquisitionRouteImport } from './routes/api/public/genesis100/knowledge-acquisition'
 import { Route as ApiPublicGenesis100IntelligenceRouteImport } from './routes/api/public/genesis100/intelligence'
 import { Route as ApiPublicGenesis100GovernanceRouteImport } from './routes/api/public/genesis100/governance'
@@ -777,6 +778,12 @@ const ApiPublicGenesis100MarketSentimentRoute =
     path: '/api/public/genesis100/market-sentiment',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicGenesis100LearningInsightsRoute =
+  ApiPublicGenesis100LearningInsightsRouteImport.update({
+    id: '/api/public/genesis100/learning-insights',
+    path: '/api/public/genesis100/learning-insights',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicGenesis100KnowledgeAcquisitionRoute =
   ApiPublicGenesis100KnowledgeAcquisitionRouteImport.update({
     id: '/api/public/genesis100/knowledge-acquisition',
@@ -1372,6 +1379,7 @@ export interface FileRoutesByFullPath {
   '/api/public/genesis100/governance': typeof ApiPublicGenesis100GovernanceRoute
   '/api/public/genesis100/intelligence': typeof ApiPublicGenesis100IntelligenceRoute
   '/api/public/genesis100/knowledge-acquisition': typeof ApiPublicGenesis100KnowledgeAcquisitionRoute
+  '/api/public/genesis100/learning-insights': typeof ApiPublicGenesis100LearningInsightsRoute
   '/api/public/genesis100/market-sentiment': typeof ApiPublicGenesis100MarketSentimentRoute
   '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
   '/api/public/genesis100/position-monitor': typeof ApiPublicGenesis100PositionMonitorRoute
@@ -1563,6 +1571,7 @@ export interface FileRoutesByTo {
   '/api/public/genesis100/governance': typeof ApiPublicGenesis100GovernanceRoute
   '/api/public/genesis100/intelligence': typeof ApiPublicGenesis100IntelligenceRoute
   '/api/public/genesis100/knowledge-acquisition': typeof ApiPublicGenesis100KnowledgeAcquisitionRoute
+  '/api/public/genesis100/learning-insights': typeof ApiPublicGenesis100LearningInsightsRoute
   '/api/public/genesis100/market-sentiment': typeof ApiPublicGenesis100MarketSentimentRoute
   '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
   '/api/public/genesis100/position-monitor': typeof ApiPublicGenesis100PositionMonitorRoute
@@ -1756,6 +1765,7 @@ export interface FileRoutesById {
   '/api/public/genesis100/governance': typeof ApiPublicGenesis100GovernanceRoute
   '/api/public/genesis100/intelligence': typeof ApiPublicGenesis100IntelligenceRoute
   '/api/public/genesis100/knowledge-acquisition': typeof ApiPublicGenesis100KnowledgeAcquisitionRoute
+  '/api/public/genesis100/learning-insights': typeof ApiPublicGenesis100LearningInsightsRoute
   '/api/public/genesis100/market-sentiment': typeof ApiPublicGenesis100MarketSentimentRoute
   '/api/public/genesis100/notifications': typeof ApiPublicGenesis100NotificationsRoute
   '/api/public/genesis100/position-monitor': typeof ApiPublicGenesis100PositionMonitorRoute
@@ -1949,6 +1959,7 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/governance'
     | '/api/public/genesis100/intelligence'
     | '/api/public/genesis100/knowledge-acquisition'
+    | '/api/public/genesis100/learning-insights'
     | '/api/public/genesis100/market-sentiment'
     | '/api/public/genesis100/notifications'
     | '/api/public/genesis100/position-monitor'
@@ -2140,6 +2151,7 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/governance'
     | '/api/public/genesis100/intelligence'
     | '/api/public/genesis100/knowledge-acquisition'
+    | '/api/public/genesis100/learning-insights'
     | '/api/public/genesis100/market-sentiment'
     | '/api/public/genesis100/notifications'
     | '/api/public/genesis100/position-monitor'
@@ -2332,6 +2344,7 @@ export interface FileRouteTypes {
     | '/api/public/genesis100/governance'
     | '/api/public/genesis100/intelligence'
     | '/api/public/genesis100/knowledge-acquisition'
+    | '/api/public/genesis100/learning-insights'
     | '/api/public/genesis100/market-sentiment'
     | '/api/public/genesis100/notifications'
     | '/api/public/genesis100/position-monitor'
@@ -2471,6 +2484,7 @@ export interface RootRouteChildren {
   ApiPublicGenesis100GovernanceRoute: typeof ApiPublicGenesis100GovernanceRoute
   ApiPublicGenesis100IntelligenceRoute: typeof ApiPublicGenesis100IntelligenceRoute
   ApiPublicGenesis100KnowledgeAcquisitionRoute: typeof ApiPublicGenesis100KnowledgeAcquisitionRoute
+  ApiPublicGenesis100LearningInsightsRoute: typeof ApiPublicGenesis100LearningInsightsRoute
   ApiPublicGenesis100MarketSentimentRoute: typeof ApiPublicGenesis100MarketSentimentRoute
   ApiPublicGenesis100NotificationsRoute: typeof ApiPublicGenesis100NotificationsRoute
   ApiPublicGenesis100PositionMonitorRoute: typeof ApiPublicGenesis100PositionMonitorRoute
@@ -3278,6 +3292,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicGenesis100MarketSentimentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/genesis100/learning-insights': {
+      id: '/api/public/genesis100/learning-insights'
+      path: '/api/public/genesis100/learning-insights'
+      fullPath: '/api/public/genesis100/learning-insights'
+      preLoaderRoute: typeof ApiPublicGenesis100LearningInsightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/genesis100/knowledge-acquisition': {
       id: '/api/public/genesis100/knowledge-acquisition'
       path: '/api/public/genesis100/knowledge-acquisition'
@@ -4079,6 +4100,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicGenesis100IntelligenceRoute: ApiPublicGenesis100IntelligenceRoute,
   ApiPublicGenesis100KnowledgeAcquisitionRoute:
     ApiPublicGenesis100KnowledgeAcquisitionRoute,
+  ApiPublicGenesis100LearningInsightsRoute:
+    ApiPublicGenesis100LearningInsightsRoute,
   ApiPublicGenesis100MarketSentimentRoute:
     ApiPublicGenesis100MarketSentimentRoute,
   ApiPublicGenesis100NotificationsRoute: ApiPublicGenesis100NotificationsRoute,
