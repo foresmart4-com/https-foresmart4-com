@@ -168,14 +168,20 @@ export interface RealEconomicForecast {
 export async function buildRealEconomicForecast(): Promise<RealEconomicForecast> {
   console.info("[fred-historical] buildRealEconomicForecast() starting...");
 
-  const [fedFunds, cpi, unemployment, yield10y, yield2y, dollar] = await Promise.all([
-    fetchFREDSeries(FRED_SERIES.fedFunds.id,     FRED_SERIES.fedFunds.name),
-    fetchFREDSeries(FRED_SERIES.cpi.id,          FRED_SERIES.cpi.name),
-    fetchFREDSeries(FRED_SERIES.unemployment.id, FRED_SERIES.unemployment.name),
-    fetchFREDSeries(FRED_SERIES.yield10y.id,     FRED_SERIES.yield10y.name),
-    fetchFREDSeries(FRED_SERIES.yield2y.id,      FRED_SERIES.yield2y.name),
-    fetchFREDSeries(FRED_SERIES.dollarIndex.id,  FRED_SERIES.dollarIndex.name),
-  ]);
+  const seriesDefs = [
+    { id: FRED_SERIES.fedFunds.id,     name: FRED_SERIES.fedFunds.name },
+    { id: FRED_SERIES.cpi.id,          name: FRED_SERIES.cpi.name },
+    { id: FRED_SERIES.unemployment.id, name: FRED_SERIES.unemployment.name },
+    { id: FRED_SERIES.yield10y.id,     name: FRED_SERIES.yield10y.name },
+    { id: FRED_SERIES.yield2y.id,      name: FRED_SERIES.yield2y.name },
+    { id: FRED_SERIES.dollarIndex.id,  name: FRED_SERIES.dollarIndex.name },
+  ];
+  const fetchedResults: Array<HistoricalSeries | null> = [];
+  for (const s of seriesDefs) {
+    fetchedResults.push(await fetchFREDSeries(s.id, s.name).catch(() => null));
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  const [fedFunds, cpi, unemployment, yield10y, yield2y, dollar] = fetchedResults;
 
   const loadedCount = [fedFunds, cpi, unemployment, yield10y, yield2y, dollar].filter(Boolean).length;
   console.info(`[fred-historical] Loaded ${loadedCount}/6 FRED series`);
@@ -183,9 +189,10 @@ export async function buildRealEconomicForecast(): Promise<RealEconomicForecast>
   // Fallback: use cached MacroContext values when FRED series are unavailable
   const cached = getCachedMacroContext();
 
-  const fedRate   = fedFunds?.latestValue   ?? cached?.interestRateDifferential != null
-    ? (cached?.interestRateDifferential ?? 0) + 1.5   // differential is rate - 1.5 baseline
-    : 5.33;
+  const fedRate = fedFunds?.latestValue
+    ?? cached?.interestRateDifferential != null
+    ? Math.max(0, (cached?.interestRateDifferential ?? 0) + 3.5)
+    : 4.33;
   const cpiLevel  = cpi?.latestValue        ?? 310;    // approximate CPI index level
   const uRate     = unemployment?.latestValue ?? (cached?.businessCycle === "contraction" ? 5.5 : 4.2);
   const y10       = yield10y?.latestValue   ?? 4.5;
