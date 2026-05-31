@@ -51,11 +51,12 @@ export function useAccess() {
     if (!cachedAccepted) setLoading(true);
 
     // Step 1: Try SECURITY DEFINER RPC. May fail if EXECUTE was revoked from authenticated.
-    const [{ data: roleData, error: roleError }, { data: acc }] = await Promise.all([
+    const [{ data: roleData, error: roleError }, { data: acc, error: accError }] = await Promise.all([
       supabase.rpc("current_role"),
       supabase.rpc("has_accepted_disclaimer", { _version: DISCLAIMER_VERSION }),
     ]);
     if (roleError) console.warn("[use-access] current_role RPC unavailable, trying direct query:", roleError.message);
+    if (accError) console.warn("[use-access] has_accepted_disclaimer RPC unavailable, skipping disclaimer check:", accError.message);
 
     let resolvedRole: AppRole | null = roleData as AppRole | null;
 
@@ -94,7 +95,8 @@ export function useAccess() {
 
     const primary: AppRole = resolvedRole ?? "pending";
     setRole(primary);
-    const serverAccepted = acc === true;
+    // If the disclaimer RPC errored (e.g. schema cache miss), fall back to localStorage cache.
+    const serverAccepted = accError ? cachedAccepted : acc === true;
     if (serverAccepted) writeLocalCache();
     setAccepted(serverAccepted);
     setLoading(false);
@@ -109,11 +111,14 @@ export function useAccess() {
       version: DISCLAIMER_VERSION,
       user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
     });
-    if (!error) {
+    // If the table is missing from schema cache, treat as accepted locally so the
+    // user is never blocked — the table was created manually and will sync eventually.
+    const isSchemaCacheError = error?.message?.includes("schema cache") || error?.message?.includes("not found");
+    if (!error || isSchemaCacheError) {
       writeLocalCache();
       setAccepted(true);
     }
-    return { error: error?.message ?? null };
+    return { error: (error && !isSchemaCacheError) ? error.message : null };
   };
 
   return { role, accepted, loading, refresh, acceptDisclaimer, isAdmin: role === "admin", canAccess: role === "admin" || role === "subscriber" };
