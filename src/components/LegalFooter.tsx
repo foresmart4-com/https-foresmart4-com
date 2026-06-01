@@ -31,9 +31,10 @@ export function LegalFooter({ variant = "full", className = "" }: Props) {
             </Link>
           ))}
         </div>
-        <p className="max-w-3xl text-center text-[11px] leading-relaxed text-muted-foreground/70">
+        {/* DISCLAIMER — temporarily disabled */}
+        {/* <p className="max-w-3xl text-center text-[11px] leading-relaxed text-muted-foreground/70">
           {lang === "ar" ? DISCLAIMER_AR : DISCLAIMER_EN}
-        </p>
+        </p> */}
       </div>
     );
   }
@@ -53,9 +54,10 @@ export function LegalFooter({ variant = "full", className = "" }: Props) {
             ))}
           </nav>
         </div>
-        <p className="border-t border-border/30 pt-4 text-center text-[11px] leading-relaxed text-muted-foreground/70 max-w-4xl mx-auto">
+        {/* DISCLAIMER — temporarily disabled */}
+        {/* <p className="border-t border-border/30 pt-4 text-center text-[11px] leading-relaxed text-muted-foreground/70 max-w-4xl mx-auto">
           {lang === "ar" ? DISCLAIMER_AR : DISCLAIMER_EN}
-        </p>
+        </p> */}
       </div>
     </footer>
   );

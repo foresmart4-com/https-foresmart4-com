@@ -1,5 +1,5 @@
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -18,7 +18,7 @@ import { StripeSubscriptionCheckout, type SubPriceId } from "@/components/Stripe
 import { PayPalCheckoutButton } from "@/components/PayPalCheckoutButton";
 import { LegalFooter } from "@/components/LegalFooter";
 
-export const Route = createFileRoute("/_app/subscription")({ component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><SubscriptionPage /></ErrorBoundary> });
+export const Route = createFileRoute("/_app/subscription")({ component: () => <Navigate to="/dashboard" /> });
 
 const PRICE_MAP: Record<string, SubPriceId> = {
   quarterly:      "quarterly_sar",

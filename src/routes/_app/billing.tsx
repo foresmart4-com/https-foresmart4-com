@@ -1,5 +1,5 @@
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { listProviders, BILLING_PLANS } from "@/services/billing/providers";
 import { LegalFooter } from "@/components/LegalFooter";
 
-export const Route = createFileRoute("/_app/billing")({ component: () => <ErrorBoundary fallbackTitle="تعذر تحميل الصفحة"><BillingPage /></ErrorBoundary> });
+export const Route = createFileRoute("/_app/billing")({ component: () => <Navigate to="/dashboard" /> });
 
 function BillingPage() {
   const { lang, dir } = useI18n();

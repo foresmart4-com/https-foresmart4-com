@@ -1,4 +1,4 @@
-import { isDisclaimerAcknowledged, acknowledgeDisclaimer } from "@/lib/ui/disclaimerState";
+// import { isDisclaimerAcknowledged, acknowledgeDisclaimer } from "@/lib/ui/disclaimerState"; // DISCLAIMER — temporarily disabled
 import { createFileRoute, Outlet, Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { LoginRequired } from "@/components/LoginRequired";
 import { useState, useEffect } from "react";
@@ -12,7 +12,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
   LayoutDashboard, LineChart, Bell, Archive, User as UserIcon,
-  Brain, LogOut, Globe2, Menu, Users, Wallet, Building, Briefcase, Link2, Sprout, Crown, Settings, Zap, Eye, Search, Flame, CalendarDays, GraduationCap, Layers, Cpu, Activity, HelpCircle, Compass, Bot, History, Rocket,
+  Brain, LogOut, Globe2, Menu, Users, Wallet, Building, Briefcase, Link2, Sprout, Settings, Zap, Eye, Search, Flame, CalendarDays, GraduationCap, Layers, Cpu, Activity, HelpCircle, Compass, Bot, History, Rocket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
@@ -23,6 +23,7 @@ export const Route = createFileRoute("/_app")({
 });
 
 
+{/* DISCLAIMER — temporarily disabled
 function DisclaimerBanner({ t, userId }: { t: (key: string) => string; userId?: string }) {
   const [ack, setAck] = useState(() => isDisclaimerAcknowledged(userId));
   useEffect(() => {
@@ -38,6 +39,7 @@ function DisclaimerBanner({ t, userId }: { t: (key: string) => string; userId?: 
     </div>
   );
 }
+*/}
 
 function AppLayout() {
   const { user, loading, signOut } = useAuth();
@@ -60,7 +62,6 @@ function AppLayout() {
     { to: "/dashboard", icon: LayoutDashboard, label: t("nav.dashboard"), hint: hint("نظرة عامة شاملة على حسابك والأسواق", "Overview of your account and markets") },
     { to: "/ai-dashboard", icon: Brain, label: t("nav.aiDashboard"), hint: hint("لوحة الذكاء الاصطناعي والتحليلات اللحظية", "AI dashboard and real-time analytics") },
     { to: "/genesis", icon: Bot, label: hint("Genesis Copilot", "Genesis Copilot"), hint: hint("مساعد الاستثمار الذكي التفاعلي", "Interactive AI investment copilot") },
-    { to: "/genesis-advisor", icon: Brain, label: hint("Genesis المستشار المؤسسي", "Genesis Institutional Advisor"), hint: hint("تحليل مؤسسي عميق بالمدارس الاقتصادية الستة", "Deep institutional analysis with 6 economic schools") },
     { to: "/market-universe", icon: Compass, label: hint("كون الأسهم", "Market Universe"), hint: hint("ابحث في S&P 500 و Nasdaq 100 مع أسعار حقيقية", "Search S&P 500 and Nasdaq 100 with live quotes") },
     { to: "/backtest-lab", icon: GraduationCap, label: t("nav.backtestLab"), hint: hint("اختبر استراتيجيات على بيانات تاريخية", "Test strategies against historical data") },
     { to: "/decision-engine", icon: Cpu, label: t("nav.decisionEngine"), hint: hint("محرك القرار الكمي", "Quantitative decision engine") },
@@ -72,8 +73,6 @@ function AppLayout() {
     { to: "/paper-trading", icon: GraduationCap, label: t("nav.simulation"), hint: hint("تداول تجريبي آمن بدون مخاطر", "Risk-free paper trading") },
     { to: "/assets-portfolio", icon: Briefcase, label: hint("محفظة الأصول", "Assets Portfolio"), hint: hint("محفظة شاملة: أسهم، ETFs، سندات، كريبتو، معادن، كاش", "Universal portfolio: stocks, ETFs, bonds, crypto, metals, cash") },
     { to: "/wallet", icon: Wallet, label: t("nav.wallet"), hint: hint("أرصدة Binance الحقيقية (كريبتو فقط)", "Real Binance balances (crypto only)") },
-    { to: "/subscription", icon: Crown, label: t("nav.subscription"), hint: hint("خطط الاشتراك والدفع عبر PayPal", "Subscription plans & PayPal checkout") },
-    { to: "/billing", icon: Crown, label: t("nav.billing"), hint: hint("الفواتير وحالة الاشتراك", "Billing & subscription status") },
     { to: "/portfolios", icon: Briefcase, label: t("nav.watchlists"), hint: hint("المحافظ والمراقبة", "Portfolios & watchlists") },
     { to: "/external-accounts", icon: Link2, label: t("nav.external"), hint: hint("ربط Alpaca, IBKR, محافظ كريبتو", "Link Alpaca, IBKR, crypto wallets") },
     { to: "/bank-accounts", icon: Building, label: t("nav.banks"), hint: hint("الحسابات البنكية", "Bank accounts") },
@@ -246,7 +245,8 @@ function AppLayout() {
           <AccessGate>
             <Outlet />
           </AccessGate>
-          <div className="px-4 sm:px-6 py-1 text-center"><a href="/disclaimer" className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground">إخلاء المسؤولية</a></div>
+          {/* DISCLAIMER — temporarily disabled */}
+          {/* <div className="px-4 sm:px-6 py-1 text-center"><a href="/disclaimer" className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground">إخلاء المسؤولية</a></div> */}
         </main>
       </div>
     </div>

@@ -3,6 +3,8 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { askGenesis, type GenesisReply, type GenesisSuggestedAction } from "@/lib/genesis.functions";
+import { askGenesisAdvisor } from "@/lib/genesisAdvisor.functions";
+import ReactMarkdown from "react-markdown";
 import { createAlert } from "@/lib/alerts.functions";
 import { getMarketData, type AssetQuote } from "@/lib/market-data";
 import { useI18n } from "@/lib/i18n";
@@ -34,7 +36,7 @@ import {
   TrendingUp, TrendingDown, Minus, Navigation, Eye, Bell,
   ChevronRight, RefreshCw, Scale, PieChart,
   ThumbsUp, ThumbsDown, ChevronDown, Trash2, Database, Zap, XCircle,
-  BookOpen, FileText, Layers, Clock, Network, FlaskConical, Gauge, ShieldAlert, Compass,
+  BookOpen, FileText, Layers, Clock, Network, FlaskConical, Gauge, ShieldAlert, Compass, Loader2,
 } from "lucide-react";
 import { evaluateReply, scoreToQuality, type MetaReasoningResult } from "@/services/reasoning/metaReasoning";
 import { coordinateIntelligence, type CoordinationResult } from "@/services/intelligence/coordinatorEngine";
@@ -165,6 +167,7 @@ function GenesisPage() {
   const ar = lang === "ar";
   const navigate = useNavigate();
   const ask = useServerFn(askGenesis);
+  const askAdvisorFn = useServerFn(askGenesisAdvisor);
   const alertFn = useServerFn(createAlert);
   const marketFn = useServerFn(getMarketData);
   const { data: market } = useQuery({ queryKey: ["market"], queryFn: () => marketFn() });
@@ -173,6 +176,11 @@ function GenesisPage() {
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
+  const [activeTab, setActiveTab] = useState<"copilot" | "advisor">("copilot");
+  const [advisorQuestion, setAdvisorQuestion] = useState("");
+  const [advisorResult, setAdvisorResult] = useState<string | null>(null);
+  const [advisorError, setAdvisorError] = useState<string | null>(null);
+  const [advisorLoading, setAdvisorLoading] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [researchMode, setResearchMode] = useState(false);
   const [researchCount, setResearchCount] = useState(() => researchMemory.count());
@@ -1391,8 +1399,100 @@ function GenesisPage() {
 
   const suggestions = ar ? SUGGESTED_AR : SUGGESTED_EN;
 
+  const handleAdvisorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!advisorQuestion.trim() || advisorLoading) return;
+    setAdvisorLoading(true);
+    setAdvisorResult(null);
+    setAdvisorError(null);
+    try {
+      const res = await askAdvisorFn({ data: { question: advisorQuestion.trim(), lang: "ar" } });
+      if (res.error) setAdvisorError(res.error);
+      else setAdvisorResult(res.text ?? null);
+    } catch (err) {
+      setAdvisorError(err instanceof Error ? err.message : "حدث خطأ غير متوقع");
+    } finally {
+      setAdvisorLoading(false);
+    }
+  };
+
   return (
     <div className="container mx-auto max-w-4xl p-4 sm:p-6">
+
+      {/* ─── Tab Toggle ───────────────────────────────────────────────── */}
+      <div className="flex gap-2 mb-4">
+        <Button
+          variant={activeTab === "copilot" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setActiveTab("copilot")}
+        >
+          Genesis Copilot
+        </Button>
+        <Button
+          variant={activeTab === "advisor" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setActiveTab("advisor")}
+        >
+          المستشار المؤسسي
+        </Button>
+      </div>
+
+      {/* ─── Advisor Tab ──────────────────────────────────────────────── */}
+      {activeTab === "advisor" && (
+        <div className="space-y-6" dir="rtl">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-amber-500/10">
+              <Brain className="h-7 w-7 text-amber-500" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Genesis المستشار المؤسسي</h1>
+              <p className="text-sm text-muted-foreground">تحليل اقتصادي مؤسسي مبني على بيانات Federal Reserve</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs">
+            {["Ray Dalio", "Warren Buffett", "George Soros", "BlackRock"].map((name) => (
+              <span key={name} className="px-2 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">{name}</span>
+            ))}
+          </div>
+          <form onSubmit={handleAdvisorSubmit} className="space-y-3">
+            <textarea
+              value={advisorQuestion}
+              onChange={(e) => setAdvisorQuestion(e.target.value)}
+              placeholder="اكتب سؤالك الاستثماري هنا... مثال: ما رأيك في السوق السعودي الآن؟"
+              className="w-full min-h-[120px] rounded-md border border-input bg-background px-3 py-2 text-base resize-none text-right focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              dir="rtl"
+              disabled={advisorLoading}
+            />
+            <Button type="submit" disabled={advisorLoading || !advisorQuestion.trim()} className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold" size="lg">
+              {advisorLoading ? (
+                <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Genesis يحلل...</span>
+              ) : (
+                <span className="flex items-center gap-2"><Send className="h-4 w-4" />تحليل</span>
+              )}
+            </Button>
+          </form>
+          {advisorError && (
+            <div className="flex items-start gap-2 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>{advisorError}</span>
+            </div>
+          )}
+          {advisorResult && (
+            <div className="rounded-xl border bg-card p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-4 pb-3 border-b">
+                <Brain className="h-4 w-4 text-amber-500" />
+                <span className="text-sm font-medium text-amber-600 dark:text-amber-400">تحليل Genesis المؤسسي</span>
+              </div>
+              <div className="prose prose-sm dark:prose-invert max-w-none text-right [&>h2]:text-lg [&>h2]:font-bold [&>h2]:mt-5 [&>h2]:mb-2 [&>p]:leading-relaxed [&>ul]:list-disc [&>ul]:pr-4 [&>table]:w-full [&>table]:text-sm">
+                <ReactMarkdown>{advisorResult}</ReactMarkdown>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Copilot Tab ──────────────────────────────────────────────── */}
+      {activeTab === "copilot" && (<>
 
       {/* ─── Hero ─────────────────────────────────────────────────────── */}
       <div className="ornament-border relative mb-6 overflow-hidden rounded-2xl shadow-elegant">
@@ -2213,6 +2313,7 @@ function GenesisPage() {
           ? "Genesis لا ينفذ أي أوامر تداول حقيقية ولا يتصل بأي وسيط مالي. جميع التحليلات تعليمية ومحاكاتية فقط."
           : "Genesis does not execute real trades and has no connection to any broker or financial execution system. All analysis is educational and simulative only."}
       </p>
+      </>)}
     </div>
   );
 }
