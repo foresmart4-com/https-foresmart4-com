@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAIGateway } from "@/lib/ai-gateway.server";
 import { KNOWLEDGE_SOURCES } from "./knowledgeSources";
+import { sendEmail } from "@/lib/email.service";
 
 const FETCH_TIMEOUT = 8000;
 const MAX_ENTRIES   = 500;
@@ -930,22 +931,19 @@ export async function fetchAndLearn(): Promise<{
     valid_until: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
   });
 
-  if (saved > 0) {
-    void import("@/lib/email/resend.server").then(({ sendEmail }) =>
-      sendEmail({
-        to: "Ayyaf08@hotmail.com",
-        subject: `Genesis تعلّم ${saved} مصدر جديد`,
-        html: `<div dir="rtl" style="font-family:Arial;padding:20px;">
-          <h2>🧠 Genesis اكتمل دورة التعلم</h2>
-          <p>تم حفظ <strong>${saved}</strong> مدخل جديد</p>
-          <p>الأخطاء: ${errors}</p>
-          <p>التاريخ: ${new Date().toLocaleString("ar-SA")}</p>
-        </div>`,
-        template: "genesis_learning",
-        category: "notification",
-        lang: "ar",
-      }).catch(() => {})
-    );
+  if (saved > 5) {
+    sendEmail({
+      to: "Ayyaf08@hotmail.com",
+      subject: `Genesis تعلّم ${saved} مصدر جديد`,
+      html: `
+        <div dir="rtl" style="font-family:Arial;padding:20px;">
+          <h2>🧠 Genesis أكمل دورة التعلم</h2>
+          <p>حُفظ: <strong>${saved}</strong> مدخل</p>
+          <p>أخطاء: ${errors}</p>
+          <p>${new Date().toLocaleString("ar-SA")}</p>
+        </div>
+      `,
+    }).catch(() => {});
   }
 
   console.info(`[genesis-knowledge] Done. saved=${saved} errors=${errors}`);

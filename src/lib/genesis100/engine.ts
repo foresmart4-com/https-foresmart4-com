@@ -8,6 +8,7 @@ import { evaluateArchiveOutcomes, type LearningDecisionInput } from "@/lib/genes
 import { applyLearningToWeights } from "@/lib/genesis100/learning/weightAdjuster";
 import { fetchRealMacroContext } from "@/lib/genesis100/macro/macroDataService";
 import { analyzeTechnical } from "@/lib/genesis100/algorithms/technicalAnalysis";
+import { sendEmail } from "@/lib/email.service";
 
 export type GenesisStatus = "draft" | "active_analysis" | "paper_trading" | "execution_ready" | "paused";
 export type GenesisRiskProfile = "conservative" | "balanced" | "growth";
@@ -1694,7 +1695,7 @@ export async function runGenesisCycle(input?: Request | URLSearchParams | null):
   );
 
   // Fire-and-forget: notify owner of Genesis cycle results
-  void import("@/lib/email/resend.server").then(async ({ sendEmail }) => {
+  void (async () => {
     const top = cycle.topApprovedDecisions.slice(0, 5);
     if (top.length === 0) return;
     const actionColor = (action: string) =>
@@ -1712,7 +1713,7 @@ export async function runGenesisCycle(input?: Request | URLSearchParams | null):
         <td style="padding:8px;color:#aaa;">${d.decisionConfidencePercent}%</td>
         <td style="padding:8px;color:#aaa;">$${d.quoteSnapshot?.price ?? "—"}</td>
       </tr>`).join("");
-    await sendEmail({
+    sendEmail({
       to: "Ayyaf08@hotmail.com",
       subject: `Genesis — دورة تحليل جديدة | ${cycle.approvedDecisionCount} موافق`,
       html: `<div dir="rtl" style="font-family:Arial;padding:20px;background:#0a0a0a;color:#ffffff;">
@@ -1729,11 +1730,8 @@ export async function runGenesisCycle(input?: Request | URLSearchParams | null):
         </table>
         <p style="color:#888;font-size:12px;">هذا تحليل استشاري — ليس توصية مالية مرخصة</p>
       </div>`,
-      template: "genesis_cycle",
-      category: "ai_alert",
-      lang: "ar",
-    });
-  }).catch((err) => console.warn("[genesis] Email notification failed:", err));
+    }).catch((err) => console.warn("[genesis] Email notification failed:", err));
+  })();
 
   return cycle;
 }
