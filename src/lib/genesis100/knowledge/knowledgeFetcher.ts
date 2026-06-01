@@ -370,6 +370,7 @@ async function parseAndSaveFeed(
   sourceUrl: string,
   labelPrefix: string,
   maxItems = 3,
+  category = "economic_research",
 ): Promise<number> {
   let saved = 0;
   const res = await fetchWithTimeout(url, 10000);
@@ -392,11 +393,11 @@ async function parseAndSaveFeed(
 
     const summary = await summarizeWithGemini(
       `${labelPrefix}:\n${title}\n${desc.slice(0, 800)}`,
-      "economic_research",
+      category,
     );
     if (!summary) continue;
 
-    await saveKnowledge("economic_research", title.slice(0, 200), summary, sourceName, sourceUrl);
+    await saveKnowledge(category, title.slice(0, 200), summary, sourceName, sourceUrl);
     saved++;
     await new Promise((r) => setTimeout(r, GEMINI_DELAY));
   }
@@ -646,6 +647,250 @@ async function fetchGeopoliticalNews(): Promise<number> {
   return saved;
 }
 
+// ─── New source fetchers ───────────────────────────────────────────────────
+
+const CB_FEEDS = [
+  { url: "https://www.federalreserve.gov/feeds/speeches.xml",          source: "Federal Reserve Speeches",  category: "central_bank" },
+  { url: "https://www.ecb.europa.eu/rss/speeches.rss",                 source: "ECB Speeches",              category: "central_bank" },
+  { url: "https://www.ecb.europa.eu/rss/press.rss",                    source: "ECB Press Releases",        category: "central_bank" },
+  { url: "https://www.bankofengland.co.uk/rss/publications",           source: "Bank of England",           category: "central_bank" },
+  { url: "https://www.boj.or.jp/en/rss/release.xml",                   source: "Bank of Japan",             category: "central_bank" },
+  { url: "https://www.bis.org/feeds/bisqtrly.xml",                     source: "BIS Quarterly Review",      category: "economic_research" },
+] as const;
+
+async function fetchCentralBankFeeds(): Promise<number> {
+  let saved = 0;
+  for (const feed of CB_FEEDS) {
+    try {
+      const res = await fetchWithTimeout(feed.url, 8000);
+      if (!res?.ok) continue;
+      const text = await res.text();
+      const items = text.match(/<item>[\s\S]*?<\/item>/g) ?? [];
+      for (const item of items.slice(0, 2)) {
+        const title = (item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>|<title>(.*?)<\/title>/)?.[1] ?? "").trim();
+        const desc  = (item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>|<description>(.*?)<\/description>/s)?.[1] ?? "")
+          .replace(/<[^>]+>/g, " ").trim();
+        if (title.length < 5) continue;
+        const isRelevant = /rate|inflation|GDP|monetary|policy|growth|recession|market|financial|banking|trade|debt|credit|interest|oil|energy/i.test(title + " " + desc);
+        if (!isRelevant) continue;
+        const summary = await summarizeWithGemini(`بيان من ${feed.source}:\n${title}\n${desc.slice(0, 600)}`, feed.category);
+        await saveKnowledge(feed.category, title.slice(0, 200), summary, feed.source);
+        saved++;
+        await new Promise((r) => setTimeout(r, GEMINI_DELAY));
+      }
+    } catch (e) {
+      console.warn(`[central-bank-feeds] ${feed.source}:`, e);
+    }
+  }
+  return saved;
+}
+
+const ACADEMIC_FEEDS = [
+  { url: "https://feeds.nberpubs.org/nber/new",                        source: "NBER Working Papers",  label: "بحث اقتصادي من NBER" },
+  { url: "https://www.ecb.europa.eu/rss/wps.rss",                      source: "ECB Research Papers",  label: "ورقة بحثية من البنك المركزي الأوروبي" },
+  { url: "https://www.federalreserve.gov/feeds/working_papers.xml",    source: "Fed Research",         label: "بحث من الفيدرالي الأمريكي" },
+] as const;
+
+async function fetchAcademicResearch(): Promise<number> {
+  let saved = 0;
+  for (const feed of ACADEMIC_FEEDS) {
+    try {
+      saved += await parseAndSaveFeed(feed.url, feed.source, feed.url, feed.label, 2, "economic_research");
+    } catch (e) {
+      console.warn(`[academic] ${feed.source}:`, e);
+    }
+  }
+  // OECD economic outlook
+  try {
+    const res = await fetchWithTimeout(
+      "https://stats.oecd.org/sdmx-json/data/EO/USA+CHN+DEU+JPN+GBR+SAU.GDP+CPI+UNR.A/all?startTime=2024&endTime=2025&format=jsondata",
+      8000,
+    );
+    if (res?.ok) {
+      const data = await res.json() as Record<string, unknown>;
+      const summary = await summarizeWithGemini(
+        `بيانات OECD الاقتصادية:\n${JSON.stringify(data).slice(0, 800)}`,
+        "macro_data",
+      );
+      if (summary) {
+        await saveKnowledge("macro_data", `توقعات OECD — ${new Date().toLocaleDateString("ar")}`, summary, "OECD Economic Outlook");
+        saved++;
+      }
+    }
+  } catch (e) {
+    console.warn("[oecd]:", e);
+  }
+  return saved;
+}
+
+async function fetchEnergyData(): Promise<number> {
+  let saved = 0;
+  // EIA weekly oil prices
+  try {
+    const res = await fetchWithTimeout(
+      "https://api.eia.gov/v2/petroleum/pri/spt/data/?api_key=DEMO_KEY&frequency=weekly&data[0]=value&sort[0][column]=period&sort[0][direction]=desc&length=4",
+      8000,
+    );
+    if (res?.ok) {
+      const data = await res.json() as { response?: { data?: Array<{ period: string; "product-name": string; value: number }> } };
+      const entries = data.response?.data ?? [];
+      if (entries.length > 0) {
+        const content = entries.map((e) => `${e["product-name"]}: $${e.value} (${e.period})`).join("\n");
+        const summary = await summarizeWithGemini(`أسعار النفط من EIA:\n${content}`, "macro_data");
+        if (summary) {
+          await saveKnowledge("macro_data", `أسعار النفط — EIA (${new Date().toLocaleDateString("ar")})`, summary, "EIA Energy Data");
+          saved++;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("[eia]:", e);
+  }
+  // OPEC RSS
+  try {
+    saved += await parseAndSaveFeed(
+      "https://www.opec.org/opec_web/en/rss.htm",
+      "OPEC",
+      "https://www.opec.org",
+      "تقرير أوبك",
+      2,
+      "geopolitical",
+    );
+  } catch (e) {
+    console.warn("[opec]:", e);
+  }
+  // World Bank commodity price index
+  try {
+    const res = await fetchWithTimeout(
+      "https://api.worldbank.org/v2/country/WLD/indicator/PCOMM?format=json&mrv=3&per_page=5",
+      8000,
+    );
+    if (res?.ok) {
+      const data = await res.json() as [unknown, Array<{ value: number | null; date: string }>];
+      const entries = data[1]?.filter((e) => e.value !== null) ?? [];
+      if (entries.length > 0) {
+        const content = entries.map((e) => `مؤشر السلع: ${e.value?.toFixed(2)} (${e.date})`).join("\n");
+        const summary = await summarizeWithGemini(`مؤشر أسعار السلع العالمي:\n${content}`, "macro_data");
+        if (summary) {
+          await saveKnowledge("macro_data", `مؤشر السلع العالمي — World Bank`, summary, "World Bank Commodities");
+          saved++;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("[wb-commodities]:", e);
+  }
+  return saved;
+}
+
+const SAUDI_INDICATORS = [
+  { url: "https://api.worldbank.org/v2/country/SA/indicator/NY.GDP.MKTP.KD.ZG?format=json&mrv=4",                                        title: "نمو الاقتصاد السعودي" },
+  { url: "https://api.worldbank.org/v2/country/SA/indicator/FP.CPI.TOTL.ZG?format=json&mrv=4",                                           title: "التضخم في السعودية" },
+  { url: "https://api.worldbank.org/v2/country/SA/indicator/NY.GDP.PETR.RT.ZS?format=json&mrv=4",                                        title: "النفط كنسبة من GDP السعودي" },
+  { url: "https://api.worldbank.org/v2/country/SA/indicator/BX.KLT.DINV.WD.GD.ZS?format=json&mrv=4",                                    title: "الاستثمار الأجنبي في السعودية" },
+  { url: "https://api.worldbank.org/v2/country/SA;AE;KW;QA;BH;OM/indicator/NY.GDP.MKTP.KD.ZG?format=json&mrv=2&per_page=20",            title: "نمو دول الخليج" },
+] as const;
+
+async function fetchSaudiGCCData(): Promise<number> {
+  let saved = 0;
+  for (const indicator of SAUDI_INDICATORS) {
+    try {
+      const res = await fetchWithTimeout(indicator.url, 8000);
+      if (!res?.ok) continue;
+      const data = await res.json() as [unknown, Array<{ value: number | null; date: string; country: { value: string } }>];
+      const entries = data[1]?.filter((e) => e.value !== null).slice(0, 4) ?? [];
+      if (entries.length === 0) continue;
+      const content = entries.map((e) => `${e.country?.value ?? "SA"}: ${e.value?.toFixed(2)} (${e.date})`).join("\n");
+      const summary = await summarizeWithGemini(`${indicator.title}:\n${content}`, "sector_analysis");
+      if (summary) {
+        await saveKnowledge("sector_analysis", `${indicator.title} — ${new Date().toLocaleDateString("ar")}`, summary, "World Bank — Saudi/GCC");
+        saved++;
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    } catch (e) {
+      console.warn(`[saudi-gcc] ${indicator.title}:`, e);
+    }
+  }
+  return saved;
+}
+
+async function fetchFinancialStability(): Promise<number> {
+  let saved = 0;
+  // FDIC US banking health
+  try {
+    const res = await fetchWithTimeout(
+      "https://banks.data.fdic.gov/api/financials?limit=5&sort_by=REPDTE&sort_order=DESC&fields=REPDTE,ASSET,DEP,LNLSNET,ROA,ROE",
+      8000,
+    );
+    if (res?.ok) {
+      const data = await res.json() as { data?: Array<{ data: { REPDTE: string; ASSET: number; ROA: number; ROE: number } }> };
+      const latest = data.data?.[0]?.data;
+      if (latest) {
+        const summary = await summarizeWithGemini(
+          `صحة البنوك الأمريكية (FDIC):\nالأصول: $${(latest.ASSET / 1e9).toFixed(0)}B\nROA: ${latest.ROA?.toFixed(2)}%\nROE: ${latest.ROE?.toFixed(2)}%\nالفترة: ${latest.REPDTE}`,
+          "central_bank",
+        );
+        if (summary) {
+          await saveKnowledge("central_bank", `صحة البنوك الأمريكية — FDIC`, summary, "FDIC Bank Statistics");
+          saved++;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("[fdic]:", e);
+  }
+  // World Bank banking sector credit
+  try {
+    const res = await fetchWithTimeout(
+      "https://api.worldbank.org/v2/country/US;CN;DE;JP;GB;SA/indicator/GFDD.DI.01?format=json&mrv=3&per_page=15",
+      8000,
+    );
+    if (res?.ok) {
+      const data = await res.json() as WBResponse;
+      const entries = data[1]?.filter((e) => e.value !== null) ?? [];
+      if (entries.length > 0) {
+        const content = entries.map((e) => `${e.country.value}: ${e.value?.toFixed(2)}% (${e.date})`).join("\n");
+        const summary = await summarizeWithGemini(`الائتمان المصرفي كنسبة من GDP:\n${content}`, "central_bank");
+        if (summary) {
+          await saveKnowledge("central_bank", `الائتمان المصرفي العالمي`, summary, "World Bank Financial");
+          saved++;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("[wb-financial]:", e);
+  }
+  return saved;
+}
+
+const FOOD_INDICATORS = [
+  { url: "https://api.worldbank.org/v2/country/WLD/indicator/AG.PRD.FOOD.XD?format=json&mrv=3", title: "مؤشر إنتاج الغذاء العالمي" },
+  { url: "https://api.worldbank.org/v2/country/WLD/indicator/AG.PRD.CROP.XD?format=json&mrv=3", title: "مؤشر إنتاج المحاصيل العالمي" },
+  { url: "https://api.worldbank.org/v2/country/WLD/indicator/FP.WPI.TOTL?format=json&mrv=3",    title: "مؤشر أسعار الجملة العالمي" },
+] as const;
+
+async function fetchFoodAgricultureData(): Promise<number> {
+  let saved = 0;
+  for (const indicator of FOOD_INDICATORS) {
+    try {
+      const res = await fetchWithTimeout(indicator.url, 8000);
+      if (!res?.ok) continue;
+      const data = await res.json() as [unknown, Array<{ value: number | null; date: string }>];
+      const latest = data[1]?.find((e) => e.value !== null);
+      if (!latest) continue;
+      const summary = await summarizeWithGemini(`${indicator.title}: ${latest.value?.toFixed(2)} (${latest.date})`, "macro_data");
+      if (summary) {
+        await saveKnowledge("macro_data", `${indicator.title} — ${latest.date}`, summary, "World Bank Agriculture");
+        saved++;
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    } catch (e) {
+      console.warn(`[food-agri] ${indicator.title}:`, e);
+    }
+  }
+  return saved;
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────
 
 export async function fetchAndLearn(): Promise<{
@@ -657,14 +902,22 @@ export async function fetchAndLearn(): Promise<{
   let saved  = 0;
   let errors = 0;
 
-  try { saved += await fetchWorldBankData();      } catch { errors++; }
-  try { saved += await fetchIMFData();            } catch { errors++; }
-  try { saved += await fetchNewsData();           } catch { errors++; }
-  try { saved += await fetchAcademicData();       } catch { errors++; }
-  try { saved += await fetchFOMCMinutes();        } catch { errors++; }
-  try { saved += await fetchSECEarnings();        } catch { errors++; }
-  try { saved += await fetchBISRates();           } catch { errors++; }
-  try { saved += await fetchGeopoliticalNews();   } catch { errors++; }
+  // ── Existing sources ──────────────────────────────────────────────────────
+  try { saved += await fetchWorldBankData();       } catch { errors++; }
+  try { saved += await fetchIMFData();             } catch { errors++; }
+  try { saved += await fetchNewsData();            } catch { errors++; }
+  try { saved += await fetchAcademicData();        } catch { errors++; }
+  try { saved += await fetchFOMCMinutes();         } catch { errors++; }
+  try { saved += await fetchSECEarnings();         } catch { errors++; }
+  try { saved += await fetchBISRates();            } catch { errors++; }
+  try { saved += await fetchGeopoliticalNews();    } catch { errors++; }
+  // ── New sources ────────────────────────────────────────────────────────────
+  try { saved += await fetchCentralBankFeeds();    } catch { errors++; }
+  try { saved += await fetchAcademicResearch();    } catch { errors++; }
+  try { saved += await fetchEnergyData();          } catch { errors++; }
+  try { saved += await fetchSaudiGCCData();        } catch { errors++; }
+  try { saved += await fetchFinancialStability();  } catch { errors++; }
+  try { saved += await fetchFoodAgricultureData(); } catch { errors++; }
 
   await cleanOldEntries().catch(() => {});
 
@@ -701,39 +954,38 @@ export async function shouldRefresh(): Promise<boolean> {
   return last.getTime() < Date.now() - 6 * 3600 * 1000;
 }
 
+const FREE_SOURCES = [
+  { name: "World Bank",   url: "https://api.worldbank.org/v2/country/US/indicator/NY.GDP.MKTP.KD.ZG?format=json&mrv=1&per_page=1" },
+  { name: "IMF",          url: "https://www.imf.org/external/datamapper/api/v1/NGDP_RPCH/USA" },
+  { name: "BIS",          url: "https://stats.bis.org/api/v1/data/BIS,WS_CBPOL_D,1.0/D.US.P?format=jsondata&lastNObservations=1" },
+  { name: "ECB RSS",      url: "https://www.ecb.europa.eu/rss/speeches.rss" },
+  { name: "BOE RSS",      url: "https://www.bankofengland.co.uk/rss/publications" },
+  { name: "Fed Research", url: "https://www.federalreserve.gov/feeds/working_papers.xml" },
+  { name: "NBER",         url: "https://feeds.nberpubs.org/nber/new" },
+  { name: "EIA",          url: "https://api.eia.gov/v2/petroleum/pri/spt/data/?api_key=DEMO_KEY&length=1" },
+  { name: "OPEC",         url: "https://www.opec.org/opec_web/en/rss.htm" },
+  { name: "FDIC",         url: "https://banks.data.fdic.gov/api/financials?limit=1" },
+  { name: "GDELT",        url: "https://api.gdeltproject.org/api/v2/doc/doc?query=economy&mode=artlist&maxrecords=1&format=json" },
+] as const;
+
 async function verifyFreeSourcesConnected(): Promise<void> {
-  console.info("[genesis-sources] Verifying free data sources...");
-
-  try {
-    const wb = await fetchWithTimeout(
-      "https://api.worldbank.org/v2/country/US/indicator/NY.GDP.MKTP.KD.ZG?format=json&mrv=1&per_page=1",
-      5000,
-    );
-    console.info(`[world-bank] ✅ Connected — HTTP ${wb?.status}`);
-  } catch {
-    console.warn("[world-bank] ❌ Not reachable");
+  console.info("[genesis-sources] Verifying all free data sources...");
+  let connected = 0;
+  for (const source of FREE_SOURCES) {
+    try {
+      const res = await fetchWithTimeout(source.url, 5000);
+      if (res && res.status < 400) {
+        console.info(`[${source.name}] ✅ HTTP ${res.status}`);
+        connected++;
+      } else {
+        console.warn(`[${source.name}] ⚠️ HTTP ${res?.status ?? "timeout"}`);
+      }
+    } catch {
+      console.warn(`[${source.name}] ❌ unreachable`);
+    }
+    await new Promise((r) => setTimeout(r, 500));
   }
-
-  try {
-    const imf = await fetchWithTimeout(
-      "https://www.imf.org/external/datamapper/api/v1/NGDP_RPCH/USA",
-      5000,
-    );
-    console.info(`[imf] ✅ Connected — HTTP ${imf?.status}`);
-  } catch {
-    console.warn("[imf] ❌ Not reachable");
-  }
-
-  try {
-    const bis = await fetchWithTimeout(
-      "https://stats.bis.org/api/v1/data/BIS,WS_CBPOL_D,1.0/D.US.P?format=jsondata&lastNObservations=1",
-      5000,
-    );
-    console.info(`[bis] ✅ Connected — HTTP ${bis?.status}`);
-  } catch {
-    console.warn("[bis] ❌ Not reachable");
-  }
-
+  // FRED check with API key
   const fredKey = process.env.FRED_API_KEY;
   if (fredKey) {
     try {
@@ -741,13 +993,15 @@ async function verifyFreeSourcesConnected(): Promise<void> {
         `https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=${fredKey}&limit=1&file_type=json`,
         5000,
       );
-      console.info(`[fred] ✅ Connected — HTTP ${fred?.status}`);
+      console.info(`[FRED] ✅ HTTP ${fred?.status}`);
+      connected++;
     } catch {
-      console.warn("[fred] ❌ Not reachable");
+      console.warn("[FRED] ❌ unreachable");
     }
   } else {
-    console.warn("[fred] ❌ FRED_API_KEY missing in Railway");
+    console.warn("[FRED] ❌ FRED_API_KEY missing in Railway");
   }
+  console.info(`[genesis-sources] ${connected}/${FREE_SOURCES.length + (fredKey ? 1 : 0)} sources reachable`);
 }
 
 // Start learning 1 minute after server start
@@ -764,7 +1018,7 @@ setInterval(() => {
   );
 }, 6 * 60 * 60 * 1000);
 
-// Run verification 2 minutes after server start
+// Run verification 3 minutes after server start
 setTimeout(() => {
   verifyFreeSourcesConnected().catch(console.warn);
-}, 2 * 60 * 1000);
+}, 3 * 60 * 1000);
