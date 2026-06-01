@@ -1693,6 +1693,48 @@ export async function runGenesisCycle(input?: Request | URLSearchParams | null):
     console.warn("[genesis] Cycle persistence failed:", err),
   );
 
+  // Fire-and-forget: notify owner of Genesis cycle results
+  void import("@/lib/email/resend.server").then(async ({ sendEmail }) => {
+    const top = cycle.topApprovedDecisions.slice(0, 5);
+    if (top.length === 0) return;
+    const actionColor = (action: string) =>
+      ["strong_buy", "buy", "accumulate", "increase"].includes(action) ? "#00ff88" :
+      ["exit", "decrease"].includes(action) ? "#ff4444" : "#ffaa00";
+    const actionAr: Record<string, string> = {
+      strong_buy: "شراء قوي", buy: "شراء", accumulate: "تراكم", hold: "انتظار",
+      reduce: "تقليص", exit: "خروج", watch: "مراقبة", increase: "زيادة",
+      decrease: "تخفيض", blocked_low_credibility: "محجوب",
+    };
+    const rows = top.map((d) => `
+      <tr style="border-bottom:1px solid #222;">
+        <td style="padding:8px;color:#fff;">${d.symbol}</td>
+        <td style="padding:8px;color:${actionColor(d.action)};font-weight:bold;">${actionAr[d.action] ?? d.action}</td>
+        <td style="padding:8px;color:#aaa;">${d.decisionConfidencePercent}%</td>
+        <td style="padding:8px;color:#aaa;">$${d.quoteSnapshot?.price ?? "—"}</td>
+      </tr>`).join("");
+    await sendEmail({
+      to: "Ayyaf08@hotmail.com",
+      subject: `Genesis — دورة تحليل جديدة | ${cycle.approvedDecisionCount} موافق`,
+      html: `<div dir="rtl" style="font-family:Arial;padding:20px;background:#0a0a0a;color:#ffffff;">
+        <h2 style="color:#d4a017;">Genesis 100 — دورة تحليل جديدة</h2>
+        <p style="color:#aaa;">نظام السوق: <strong style="color:#fff;">${cycle.portfolioDecision.marketRegime}</strong> | المخاطر: <strong>${cycle.portfolioDecision.portfolioRiskLevel}</strong></p>
+        <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+          <thead><tr style="background:#1a1a1a;">
+            <th style="padding:8px;color:#888;text-align:right;">الأصل</th>
+            <th style="padding:8px;color:#888;text-align:right;">القرار</th>
+            <th style="padding:8px;color:#888;text-align:right;">الثقة</th>
+            <th style="padding:8px;color:#888;text-align:right;">السعر</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <p style="color:#888;font-size:12px;">هذا تحليل استشاري — ليس توصية مالية مرخصة</p>
+      </div>`,
+      template: "genesis_cycle",
+      category: "ai_alert",
+      lang: "ar",
+    });
+  }).catch((err) => console.warn("[genesis] Email notification failed:", err));
+
   return cycle;
 }
 

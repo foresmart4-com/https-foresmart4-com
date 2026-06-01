@@ -81,6 +81,7 @@ import { Route as ApiWebhooksLemonsqueezyRouteImport } from './routes/api/webhoo
 import { Route as ApiPublicVersionRouteImport } from './routes/api/public/version'
 import { Route as ApiPublicVaultStatusRouteImport } from './routes/api/public/vault-status'
 import { Route as ApiPublicUiHealthRouteImport } from './routes/api/public/ui-health'
+import { Route as ApiPublicTestEmailRouteImport } from './routes/api/public/test-email'
 import { Route as ApiPublicSupportedMarketsRouteImport } from './routes/api/public/supported-markets'
 import { Route as ApiPublicRouterTestRouteImport } from './routes/api/public/router-test'
 import { Route as ApiPublicRouterRegressionRouteImport } from './routes/api/public/router-regression'
@@ -562,6 +563,11 @@ const ApiPublicVaultStatusRoute = ApiPublicVaultStatusRouteImport.update({
 const ApiPublicUiHealthRoute = ApiPublicUiHealthRouteImport.update({
   id: '/api/public/ui-health',
   path: '/api/public/ui-health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTestEmailRoute = ApiPublicTestEmailRouteImport.update({
+  id: '/api/public/test-email',
+  path: '/api/public/test-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicSupportedMarketsRoute =
@@ -1331,6 +1337,7 @@ export interface FileRoutesByFullPath {
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
   '/api/public/supported-markets': typeof ApiPublicSupportedMarketsRoute
+  '/api/public/test-email': typeof ApiPublicTestEmailRoute
   '/api/public/ui-health': typeof ApiPublicUiHealthRoute
   '/api/public/vault-status': typeof ApiPublicVaultStatusRoute
   '/api/public/version': typeof ApiPublicVersionRoute
@@ -1527,6 +1534,7 @@ export interface FileRoutesByTo {
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
   '/api/public/supported-markets': typeof ApiPublicSupportedMarketsRoute
+  '/api/public/test-email': typeof ApiPublicTestEmailRoute
   '/api/public/ui-health': typeof ApiPublicUiHealthRoute
   '/api/public/vault-status': typeof ApiPublicVaultStatusRoute
   '/api/public/version': typeof ApiPublicVersionRoute
@@ -1725,6 +1733,7 @@ export interface FileRoutesById {
   '/api/public/router-regression': typeof ApiPublicRouterRegressionRoute
   '/api/public/router-test': typeof ApiPublicRouterTestRoute
   '/api/public/supported-markets': typeof ApiPublicSupportedMarketsRoute
+  '/api/public/test-email': typeof ApiPublicTestEmailRoute
   '/api/public/ui-health': typeof ApiPublicUiHealthRoute
   '/api/public/vault-status': typeof ApiPublicVaultStatusRoute
   '/api/public/version': typeof ApiPublicVersionRoute
@@ -1923,6 +1932,7 @@ export interface FileRouteTypes {
     | '/api/public/router-regression'
     | '/api/public/router-test'
     | '/api/public/supported-markets'
+    | '/api/public/test-email'
     | '/api/public/ui-health'
     | '/api/public/vault-status'
     | '/api/public/version'
@@ -2119,6 +2129,7 @@ export interface FileRouteTypes {
     | '/api/public/router-regression'
     | '/api/public/router-test'
     | '/api/public/supported-markets'
+    | '/api/public/test-email'
     | '/api/public/ui-health'
     | '/api/public/vault-status'
     | '/api/public/version'
@@ -2316,6 +2327,7 @@ export interface FileRouteTypes {
     | '/api/public/router-regression'
     | '/api/public/router-test'
     | '/api/public/supported-markets'
+    | '/api/public/test-email'
     | '/api/public/ui-health'
     | '/api/public/vault-status'
     | '/api/public/version'
@@ -2459,6 +2471,7 @@ export interface RootRouteChildren {
   ApiPublicRouterRegressionRoute: typeof ApiPublicRouterRegressionRoute
   ApiPublicRouterTestRoute: typeof ApiPublicRouterTestRoute
   ApiPublicSupportedMarketsRoute: typeof ApiPublicSupportedMarketsRoute
+  ApiPublicTestEmailRoute: typeof ApiPublicTestEmailRoute
   ApiPublicUiHealthRoute: typeof ApiPublicUiHealthRoute
   ApiPublicVaultStatusRoute: typeof ApiPublicVaultStatusRoute
   ApiPublicVersionRoute: typeof ApiPublicVersionRoute
@@ -3071,6 +3084,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/ui-health'
       fullPath: '/api/public/ui-health'
       preLoaderRoute: typeof ApiPublicUiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/test-email': {
+      id: '/api/public/test-email'
+      path: '/api/public/test-email'
+      fullPath: '/api/public/test-email'
+      preLoaderRoute: typeof ApiPublicTestEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/supported-markets': {
@@ -4106,6 +4126,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicRouterRegressionRoute: ApiPublicRouterRegressionRoute,
   ApiPublicRouterTestRoute: ApiPublicRouterTestRoute,
   ApiPublicSupportedMarketsRoute: ApiPublicSupportedMarketsRoute,
+  ApiPublicTestEmailRoute: ApiPublicTestEmailRoute,
   ApiPublicUiHealthRoute: ApiPublicUiHealthRoute,
   ApiPublicVaultStatusRoute: ApiPublicVaultStatusRoute,
   ApiPublicVersionRoute: ApiPublicVersionRoute,
