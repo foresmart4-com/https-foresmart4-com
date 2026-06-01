@@ -2,6 +2,8 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAIGateway } from "@/lib/ai-gateway.server";
 import { KNOWLEDGE_SOURCES } from "./knowledgeSources";
 import { sendEmail } from "@/lib/email.service";
+import { fetchFMPData } from "./fmpFetcher";
+import { fetchTwelveData } from "./twelvedataFetcher";
 
 const FETCH_TIMEOUT = 8000;
 const MAX_ENTRIES   = 500;
@@ -919,6 +921,8 @@ export async function fetchAndLearn(): Promise<{
   try { saved += await fetchSaudiGCCData();        } catch { errors++; }
   try { saved += await fetchFinancialStability();  } catch { errors++; }
   try { saved += await fetchFoodAgricultureData(); } catch { errors++; }
+  try { saved += await fetchFMPData();             } catch { errors++; }
+  try { saved += await fetchTwelveData();          } catch { errors++; }
 
   await cleanOldEntries().catch(() => {});
 
