@@ -45,7 +45,7 @@ export const KNOWLEDGE_SOURCES = {
       "IMF World Bank economic forecast",
     ],
     endpoint: "https://newsapi.org/v2/everything",
-    get key(): string | undefined { return process.env.NEWS_API_KEY; },
+    get key(): string | undefined { return process.env.NEWSAPI_KEY ?? process.env.NEWS_API_KEY; },
   },
 
   // ─── Free Academic / Research Feeds ──────────────────────────────────────

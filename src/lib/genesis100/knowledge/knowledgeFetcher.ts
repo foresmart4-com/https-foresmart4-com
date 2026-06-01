@@ -266,7 +266,7 @@ async function fetchIMFData(): Promise<number> {
 }
 
 async function fetchNewsData(): Promise<number> {
-  const key = process.env.NEWS_API_KEY;
+  const key = process.env.NEWSAPI_KEY ?? process.env.NEWS_API_KEY;
   if (!key) return 0;
   let saved = 0;
 
@@ -582,7 +582,7 @@ async function fetchBISRates(): Promise<number> {
 }
 
 async function fetchGeopoliticalNews(): Promise<number> {
-  const key = process.env.NEWS_API_KEY;
+  const key = process.env.NEWSAPI_KEY ?? process.env.NEWS_API_KEY;
   if (!key) return 0;
   let saved = 0;
 
