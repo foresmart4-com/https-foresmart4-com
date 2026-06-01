@@ -20,8 +20,38 @@ const biasColor: Record<string, string> = {
   bullish: "text-emerald-500", bearish: "text-red-500", neutral: "text-muted-foreground",
 };
 
+const KIND_AR: Record<string, string> = {
+  supply_shock: "صدمة العرض",
+  event_driven: "محرك الأحداث",
+  macro_tailwind: "دعم الماكرو",
+  breakout: "اختراق",
+};
+const BIAS_AR: Record<string, string> = { bullish: "صاعد", bearish: "هابط", neutral: "محايد" };
+const SEV_AR: Record<string, string> = { low: "منخفض", medium: "متوسط", high: "مرتفع", critical: "حرج" };
+const SCENARIO_AR: Record<string, string> = {
+  "Bull case": "سيناريو صاعد",
+  "Base case": "سيناريو أساسي",
+  "Bear case": "سيناريو هابط",
+};
+
+function tKind(v: string, ar: boolean) { return ar ? (KIND_AR[v] ?? v) : v; }
+function tBias(v: string, ar: boolean) { return ar ? (BIAS_AR[v] ?? v) : v; }
+function tSev(v: string, ar: boolean) { return ar ? (SEV_AR[v] ?? v) : v; }
+function tScenario(v: string, ar: boolean) { return ar ? (SCENARIO_AR[v] ?? v) : v; }
+function tDriver(d: string, ar: boolean): string {
+  if (!ar) return d;
+  const strong = d.match(/^Strong tape move \((.+)\)$/);
+  if (strong) return `حركة سعرية قوية (${strong[1]})`;
+  const macro = d.match(/^(\d+) macro print\(s\) align with (\w+) bias$/);
+  if (macro) return `${macro[1]} إشارة ماكرو متوافقة`;
+  if (d === "Geopolitical flow supportive") return "التدفق الجيوسياسي داعم";
+  if (d === "Supply-chain stress detected") return "ضغط سلسلة الإمداد مرصود";
+  return d;
+}
+
 export function GlobalIntelPanel() {
   const { lang } = useI18n();
+  const ar = lang === "ar";
   const [snap, setSnap] = useState<GlobalIntelSnapshot | null>(null);
   const [loading, setLoading] = useState(false);
   const [narrative, setNarrative] = useState<Awaited<ReturnType<typeof aiGlobalNarrative>> | null>(null);
@@ -114,7 +144,7 @@ export function GlobalIntelPanel() {
                 <ul className="mt-1 space-y-1">
                   {narrative.result.topBias.map((b, i) => (
                     <li key={i} className="flex justify-between text-xs">
-                      <span><b>{b.asset}</b> · <span className={biasColor[b.bias] ?? ""}>{lang === "ar" ? (b.bias === "bullish" ? "صعودي" : b.bias === "bearish" ? "هبوطي" : "محايد") : b.bias}</span></span>
+                      <span><b>{b.asset}</b> · <span className={biasColor[b.bias] ?? ""}>{tBias(b.bias, ar)}</span></span>
                       <span className="text-muted-foreground">{(b.confidence * 100).toFixed(0)}%</span>
                     </li>
                   ))}
@@ -150,8 +180,8 @@ export function GlobalIntelPanel() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <span className="font-semibold">{o.assetName}</span>
-                      <span className={`ms-2 text-sm ${biasColor[o.bias]}`}>{lang === "ar" ? (o.bias === "bullish" ? "صعودي" : o.bias === "bearish" ? "هبوطي" : "محايد") : o.bias}</span>
-                      <Badge variant="outline" className="ms-2">{o.kind}</Badge>
+                      <span className={`ms-2 text-sm ${biasColor[o.bias]}`}>{tBias(o.bias, ar)}</span>
+                      <Badge variant="outline" className="ms-2">{tKind(o.kind, ar)}</Badge>
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {lang === "ar" ? "ثقة" : "Conf"} {(o.confidence * 100).toFixed(0)}% · {lang === "ar" ? "العائد المتوقع" : "EV"} {o.expectedReturn}% · {o.horizonHrs}{lang === "ar" ? "س" : "h"}
@@ -164,13 +194,13 @@ export function GlobalIntelPanel() {
                       <div className="flex flex-wrap gap-1">
                         {exp.scenarios.map((s, i) => (
                           <Badge key={i} variant="secondary" className="text-[10px]">
-                            {s.label} {Math.round(s.probability * 100)}%
+                            {tScenario(s.label, ar)} {Math.round(s.probability * 100)}%
                           </Badge>
                         ))}
                       </div>
                       {o.drivers.length > 0 && (
                         <ul className="list-disc ps-4 text-muted-foreground">
-                          {o.drivers.slice(0, 3).map((d, i) => <li key={i}>{d}</li>)}
+                          {o.drivers.slice(0, 3).map((d, i) => <li key={i}>{tDriver(d, ar)}</li>)}
                         </ul>
                       )}
                     </div>
@@ -187,9 +217,9 @@ export function GlobalIntelPanel() {
             <Card key={g.id}><CardContent className="flex items-center justify-between gap-3 p-3 text-sm">
               <div className="flex items-center gap-2"><AlertTriangle className="h-4 w-4" /> <span>{g.headline}</span></div>
               <div className="flex gap-2">
-                <Badge className={sevColor[g.severity]}>{g.severity}</Badge>
+                <Badge className={sevColor[g.severity]}>{tSev(g.severity, ar)}</Badge>
                 <Badge variant="outline">{g.region}</Badge>
-                <span className={`text-xs ${biasColor[g.marketImpact]}`}>{g.marketImpact}</span>
+                <span className={`text-xs ${biasColor[g.marketImpact]}`}>{tBias(g.marketImpact, ar)}</span>
               </div>
             </CardContent></Card>
           ))}
@@ -201,9 +231,9 @@ export function GlobalIntelPanel() {
             <Card key={e.id}><CardContent className="flex items-center justify-between p-3 text-sm">
               <span><b>{e.indicator}</b> · {e.region}</span>
               <div className="flex gap-2">
-                <Badge variant="outline">v {e.value.toFixed(2)}</Badge>
-                {e.surprise !== undefined && <Badge variant="outline">surp {e.surprise.toFixed(2)}</Badge>}
-                <span className={`text-xs ${biasColor[e.marketImpact]}`}>{e.marketImpact}</span>
+                <Badge variant="outline">{ar ? "ق" : "v"} {e.value.toFixed(2)}</Badge>
+                {e.surprise !== undefined && <Badge variant="outline">{ar ? "مفاجأة" : "surp"} {e.surprise.toFixed(2)}</Badge>}
+                <span className={`text-xs ${biasColor[e.marketImpact]}`}>{tBias(e.marketImpact, ar)}</span>
               </div>
             </CardContent></Card>
           ))}
@@ -215,8 +245,8 @@ export function GlobalIntelPanel() {
             <Card key={w.id}><CardContent className="flex items-center justify-between p-3 text-sm">
               <div className="flex items-center gap-2"><CloudRain className="h-4 w-4" /> <span>{w.kind} · {w.region}</span></div>
               <div className="flex gap-2">
-                <Badge className={sevColor[w.severity]}>{w.severity}</Badge>
-                <Badge variant="outline">supply {Math.round(w.supplyChainRisk * 100)}%</Badge>
+                <Badge className={sevColor[w.severity]}>{tSev(w.severity, ar)}</Badge>
+                <Badge variant="outline">{ar ? "مخاطر الإمداد" : "supply"} {Math.round(w.supplyChainRisk * 100)}%</Badge>
                 <span className="text-xs text-muted-foreground">{w.affectedCommodities.join(", ")}</span>
               </div>
             </CardContent></Card>

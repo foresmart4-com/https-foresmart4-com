@@ -84,13 +84,44 @@ function LiveClock() {
   return <span className="font-mono text-sm tabular-nums">{now.toUTCString().slice(17, 25)} UTC</span>;
 }
 
+const ACTION_STYLE: Record<string, string> = {
+  BUY: "bg-success/15 text-success border-success/30 shadow-[0_0_12px_rgba(34,197,94,0.25)]",
+  SELL: "bg-danger/15 text-danger border-danger/30 shadow-[0_0_12px_rgba(239,68,68,0.25)]",
+  HOLD: "bg-warning/15 text-warning border-warning/30",
+};
+const ACTION_AR: Record<string, string> = { BUY: "شراء", SELL: "بيع", HOLD: "انتظار", WAIT: "انتظار" };
+const REASON_PATCHES: [string, string][] = [
+  ["Trend + news alignment:", "توافق الاتجاه والأخبار:"],
+  ["Negative confluence:", "تعارض سلبي:"],
+  ["Mixed signals — waiting for confirmation.", "إشارات متضاربة — انتظار التأكيد."],
+  ["news bias", "تحيز الأخبار"],
+  ["macro Greed", "جشع الماكرو"],
+  ["Long bias", "تحيز صاعد"],
+  ["Momentum impulse", "دفعة الزخم"],
+  ["Volatility compression detected", "ضغط التقلب مرصود"],
+  ["Compression +", "ضغط +"],
+  ["breakout probability elevated.", "احتمالية الاختراق مرتفعة."],
+  ["Historically resolves into", "تاريخياً يتحول إلى"],
+  ["Probabilistic edge favors", "الحافة الاحتمالية تفضل"],
+  ["Oversold", "ذروة بيع"],
+  ["Overbought", "ذروة شراء"],
+  ["momentum fading, distribution risk.", "تراجع الزخم، مخاطر توزيع."],
+  ["stabilizing momentum", "استقرار الزخم"],
+  ["supportive news flow.", "تدفق إخباري داعم."],
+  ["neutral news flow.", "تدفق إخباري محايد."],
+];
+function translateReason(reason: string, ar: boolean): string {
+  if (!ar) return reason;
+  let r = reason;
+  for (const [en, arText] of REASON_PATCHES) r = r.replace(en, arText);
+  return r;
+}
+
 function ActionBadge({ action }: { action: string }) {
-  const map: Record<string, string> = {
-    BUY: "bg-success/15 text-success border-success/30 shadow-[0_0_12px_rgba(34,197,94,0.25)]",
-    SELL: "bg-danger/15 text-danger border-danger/30 shadow-[0_0_12px_rgba(239,68,68,0.25)]",
-    HOLD: "bg-warning/15 text-warning border-warning/30",
-  };
-  return <span className={cn("rounded-md border px-2 py-0.5 text-[11px] font-bold tracking-wider", map[action])}>{action}</span>;
+  const { lang } = useI18n();
+  const ar = lang === "ar";
+  const label = ar ? (ACTION_AR[action] ?? action) : action;
+  return <span className={cn("rounded-md border px-2 py-0.5 text-[11px] font-bold tracking-wider", ACTION_STYLE[action])}>{label}</span>;
 }
 
 function SentimentDot({ s }: { s: string }) {
@@ -470,7 +501,7 @@ function AIDashboardPage() {
                     <RiskHeat value={s.risk} />
                   </div>
                 </div>
-                <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{s.reason}</p>
+                <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{translateReason(s.reason, ar)}</p>
                 <div className="mt-2 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
                   <span>RSI {s.rsi}</span>
                   <span>{relTime(s.timestamp, ar)}</span>
@@ -564,7 +595,7 @@ function AIDashboardPage() {
                         n.impact === "Medium" ? "border-warning/40 text-warning" :
                         "border-muted-foreground/30 text-muted-foreground",
                       )}>
-                        {n.impact}
+                        {ar ? (n.impact === "High" ? "عالي" : n.impact === "Medium" ? "متوسط" : "منخفض") : n.impact}
                       </Badge>
                     </div>
                   </div>
