@@ -26,6 +26,12 @@ const KIND_AR: Record<string, string> = {
   macro_tailwind: "دعم الماكرو",
   breakout: "اختراق",
 };
+const WEATHER_KIND_AR: Record<string, string> = {
+  "Hurricane": "إعصار", "Typhoon": "تيفون", "Flood": "فيضان",
+  "Drought": "جفاف", "Heatwave": "موجة حرارة", "Cold snap": "موجة برد",
+  "Storm": "عاصفة", "Wildfire": "حريق غابات", "Earthquake": "زلزال",
+  "Blizzard": "عاصفة ثلجية", "Frost": "صقيع", "Tornado": "إعصار أرضي",
+};
 const BIAS_AR: Record<string, string> = { bullish: "صاعد", bearish: "هابط", neutral: "محايد" };
 const SEV_AR: Record<string, string> = { low: "منخفض", medium: "متوسط", high: "مرتفع", critical: "حرج" };
 const SCENARIO_AR: Record<string, string> = {
@@ -243,7 +249,7 @@ export function GlobalIntelPanel() {
         <TabsContent value="weather" className="space-y-2">
           {snap?.weatherEvents.map((w) => (
             <Card key={w.id}><CardContent className="flex items-center justify-between p-3 text-sm">
-              <div className="flex items-center gap-2"><CloudRain className="h-4 w-4" /> <span>{w.kind} · {w.region}</span></div>
+              <div className="flex items-center gap-2"><CloudRain className="h-4 w-4" /> <span>{ar ? (WEATHER_KIND_AR[w.kind] ?? w.kind) : w.kind} · {w.region}</span></div>
               <div className="flex gap-2">
                 <Badge className={sevColor[w.severity]}>{tSev(w.severity, ar)}</Badge>
                 <Badge variant="outline">{ar ? "مخاطر الإمداد" : "supply"} {Math.round(w.supplyChainRisk * 100)}%</Badge>

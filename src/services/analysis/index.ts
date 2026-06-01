@@ -71,11 +71,11 @@ export interface MarketIntel {
   generatedAt: number;
 }
 
-export async function getMarketIntel(keys?: AssetKey[]): Promise<MarketIntel> {
+export async function getMarketIntel(keys?: AssetKey[], lang?: string): Promise<MarketIntel> {
   const [quotes, news] = await Promise.all([fetchAllQuotes(keys), fetchNews(6)]);
   const sentiment = calculateMarketSentiment(quotes, news);
   const signals = generateSignals(quotes, news, sentiment);
-  const summary = buildSummary(quotes, signals);
+  const summary = buildSummary(quotes, signals, lang);
   const insight = await generateMarketInsight(quotes, signals, news, sentiment);
 
   const events = classifyEvents(news);

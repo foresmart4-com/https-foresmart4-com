@@ -99,31 +99,42 @@ async function cleanOldEntries(): Promise<void> {
 
 // ─── Source fetchers ───────────────────────────────────────────────────────
 
+type WBRow = { value: number | null; country: { value: string }; date: string };
+type WBResponse = [unknown, WBRow[]];
+
 async function fetchWorldBankData(): Promise<number> {
   let saved = 0;
   try {
-    const res = await fetchWithTimeout(KNOWLEDGE_SOURCES.worldBank.gdpGrowth);
-    if (!res?.ok) return 0;
-    const data = await res.json() as [unknown, Array<{ value: number | null; country: { value: string }; date: string }>];
-    const entries = data[1]?.filter((e) => e.value !== null).slice(0, 8);
+    // GDP Growth — 10 major economies
+    const gdpRes = await fetchWithTimeout(
+      "https://api.worldbank.org/v2/country/US;CN;SA;DE;JP;GB;IN;BR;KR;RU/indicator/NY.GDP.MKTP.KD.ZG?format=json&mrv=2&per_page=30",
+    );
+    if (gdpRes?.ok) {
+      const data = await gdpRes.json() as WBResponse;
+      const entries = data[1]?.filter((e) => e.value !== null).slice(0, 10);
+      if (entries?.length) {
+        const content = entries
+          .map((e) => `${e.country.value}: نمو الناتج المحلي ${e.value?.toFixed(2)}% (${e.date})`)
+          .join("\n");
+        const summary = await summarizeWithGemini(`بيانات نمو الناتج المحلي العالمي:\n${content}`, "macro_data");
+        await saveKnowledge("macro_data", `نمو الناتج المحلي العالمي — ${new Date().toLocaleDateString("ar")}`, summary, "World Bank");
+        saved++;
+      }
+    }
 
-    if (entries?.length) {
-      const content = entries
-        .map((e) => `${e.country.value}: نمو الناتج المحلي ${e.value?.toFixed(2)}% (${e.date})`)
-        .join("\n");
-
-      const summary = await summarizeWithGemini(
-        `بيانات نمو الناتج المحلي العالمي:\n${content}`,
-        "macro_data",
-      );
-
-      await saveKnowledge(
-        "macro_data",
-        `نمو الناتج المحلي العالمي — ${new Date().toLocaleDateString("ar")}`,
-        summary,
-        "World Bank",
-      );
-      saved++;
+    // Inflation rates
+    const inflRes = await fetchWithTimeout(KNOWLEDGE_SOURCES.worldBank.inflation);
+    if (inflRes?.ok) {
+      const data = await inflRes.json() as WBResponse;
+      const entries = data[1]?.filter((e) => e.value !== null).slice(0, 8);
+      if (entries?.length) {
+        const content = entries
+          .map((e) => `${e.country.value}: تضخم ${e.value?.toFixed(2)}% (${e.date})`)
+          .join("\n");
+        const summary = await summarizeWithGemini(`بيانات التضخم العالمي:\n${content}`, "macro_data");
+        await saveKnowledge("macro_data", `معدلات التضخم العالمية — ${new Date().toLocaleDateString("ar")}`, summary, "World Bank", "https://api.worldbank.org");
+        saved++;
+      }
     }
 
     // Trade exports (% of GDP)
@@ -131,20 +142,14 @@ async function fetchWorldBankData(): Promise<number> {
       "https://api.worldbank.org/v2/country/US;CN;SA;DE;JP/indicator/NE.EXP.GNFS.ZS?format=json&mrv=1&per_page=10",
     );
     if (tradeRes?.ok) {
-      const tradeData = await tradeRes.json() as [unknown, Array<{ value: number | null; country: { value: string }; date: string }>];
+      const tradeData = await tradeRes.json() as WBResponse;
       const tradeEntries = tradeData[1]?.filter((e) => e.value !== null).slice(0, 5);
       if (tradeEntries?.length) {
         const content = tradeEntries
           .map((e) => `${e.country.value}: صادرات ${e.value?.toFixed(1)}% من الناتج المحلي (${e.date})`)
           .join("\n");
         const summary = await summarizeWithGemini(`بيانات الصادرات والتجارة الدولية:\n${content}`, "macro_data");
-        await saveKnowledge(
-          "macro_data",
-          `مؤشر التجارة الدولية — ${new Date().toLocaleDateString("ar")}`,
-          summary,
-          "World Bank",
-          "https://api.worldbank.org",
-        );
+        await saveKnowledge("macro_data", `مؤشر التجارة الدولية — ${new Date().toLocaleDateString("ar")}`, summary, "World Bank", "https://api.worldbank.org");
         saved++;
       }
     }
@@ -154,20 +159,29 @@ async function fetchWorldBankData(): Promise<number> {
       "https://api.worldbank.org/v2/country/US;CN;SA;DE;JP/indicator/BX.KLT.DINV.WD.GD.ZS?format=json&mrv=1&per_page=10",
     );
     if (fdiRes?.ok) {
-      const fdiData = await fdiRes.json() as [unknown, Array<{ value: number | null; country: { value: string }; date: string }>];
+      const fdiData = await fdiRes.json() as WBResponse;
       const fdiEntries = fdiData[1]?.filter((e) => e.value !== null).slice(0, 5);
       if (fdiEntries?.length) {
         const content = fdiEntries
           .map((e) => `${e.country.value}: استثمار أجنبي مباشر ${e.value?.toFixed(2)}% من الناتج المحلي (${e.date})`)
           .join("\n");
         const summary = await summarizeWithGemini(`بيانات الاستثمار الأجنبي المباشر:\n${content}`, "macro_data");
-        await saveKnowledge(
-          "macro_data",
-          `الاستثمار الأجنبي المباشر — ${new Date().toLocaleDateString("ar")}`,
-          summary,
-          "World Bank",
-          "https://api.worldbank.org",
-        );
+        await saveKnowledge("macro_data", `الاستثمار الأجنبي المباشر — ${new Date().toLocaleDateString("ar")}`, summary, "World Bank", "https://api.worldbank.org");
+        saved++;
+      }
+    }
+
+    // Current account balance
+    const caRes = await fetchWithTimeout(KNOWLEDGE_SOURCES.worldBank.currentAccount);
+    if (caRes?.ok) {
+      const caData = await caRes.json() as WBResponse;
+      const caEntries = caData[1]?.filter((e) => e.value !== null).slice(0, 6);
+      if (caEntries?.length) {
+        const content = caEntries
+          .map((e) => `${e.country.value}: رصيد الحساب الجاري ${e.value?.toLocaleString("ar")} مليار دولار (${e.date})`)
+          .join("\n");
+        const summary = await summarizeWithGemini(`بيانات الحساب الجاري العالمي:\n${content}`, "macro_data");
+        await saveKnowledge("macro_data", `الحساب الجاري العالمي — ${new Date().toLocaleDateString("ar")}`, summary, "World Bank", "https://api.worldbank.org");
         saved++;
       }
     }
@@ -177,34 +191,73 @@ async function fetchWorldBankData(): Promise<number> {
   return saved;
 }
 
+type IMFValues = Record<string, Record<string, number>>;
+
+function extractIMFLines(values: IMFValues, limit = 7): string[] {
+  return Object.entries(values)
+    .map(([country, yearData]) => {
+      const years = Object.entries(yearData).slice(-2);
+      return `${country}: ${years.map(([y, v]) => `${y}: ${Number(v).toFixed(1)}%`).join(", ")}`;
+    })
+    .slice(0, limit);
+}
+
 async function fetchIMFData(): Promise<number> {
   let saved = 0;
   try {
-    const res = await fetchWithTimeout(KNOWLEDGE_SOURCES.imf.weoGrowth);
-    if (!res?.ok) return 0;
-    const data = await res.json() as { values?: { NGDP_RPCH: Record<string, Record<string, number>> } };
-    const values = data.values?.NGDP_RPCH;
-    if (!values) return 0;
+    // GDP Growth forecasts
+    const growthRes = await fetchWithTimeout(KNOWLEDGE_SOURCES.imf.weoGrowth);
+    if (growthRes?.ok) {
+      const data = await growthRes.json() as { values?: { NGDP_RPCH: IMFValues } };
+      const values = data.values?.NGDP_RPCH;
+      if (values) {
+        const lines = extractIMFLines(values);
+        const summary = await summarizeWithGemini(`توقعات صندوق النقد الدولي للنمو:\n${lines.join("\n")}`, "macro_data");
+        await saveKnowledge("macro_data", `توقعات IMF للنمو الاقتصادي — ${new Date().toLocaleDateString("ar")}`, summary, "IMF World Economic Outlook");
+        saved++;
+      }
+    }
 
-    const lines = Object.entries(values)
-      .map(([country, yearData]) => {
-        const years = Object.entries(yearData).slice(-2);
-        return `${country}: ${years.map(([y, v]) => `${y}: ${Number(v).toFixed(1)}%`).join(", ")}`;
-      })
-      .slice(0, 7);
+    // Inflation forecasts
+    const inflRes = await fetchWithTimeout(KNOWLEDGE_SOURCES.imf.weoInflation);
+    if (inflRes?.ok) {
+      const data = await inflRes.json() as { values?: { PCPIPCH: IMFValues } };
+      const values = data.values?.PCPIPCH;
+      if (values) {
+        const lines = extractIMFLines(values);
+        const summary = await summarizeWithGemini(`توقعات IMF للتضخم:\n${lines.join("\n")}`, "macro_data");
+        await saveKnowledge("macro_data", `توقعات IMF للتضخم — ${new Date().toLocaleDateString("ar")}`, summary, "IMF World Economic Outlook", "https://www.imf.org/external/datamapper");
+        saved++;
+      }
+    }
 
-    const summary = await summarizeWithGemini(
-      `توقعات صندوق النقد الدولي للنمو:\n${lines.join("\n")}`,
-      "macro_data",
+    // Current account balance (% of GDP)
+    const caRes = await fetchWithTimeout(KNOWLEDGE_SOURCES.imf.currentAccount);
+    if (caRes?.ok) {
+      const data = await caRes.json() as { values?: { BCA_NGDPD: IMFValues } };
+      const values = data.values?.BCA_NGDPD;
+      if (values) {
+        const lines = extractIMFLines(values);
+        const summary = await summarizeWithGemini(`توقعات IMF للحساب الجاري:\n${lines.join("\n")}`, "macro_data");
+        await saveKnowledge("macro_data", `الحساب الجاري IMF — ${new Date().toLocaleDateString("ar")}`, summary, "IMF World Economic Outlook", "https://www.imf.org/external/datamapper");
+        saved++;
+      }
+    }
+
+    // Government debt (% of GDP)
+    const debtRes = await fetchWithTimeout(
+      "https://www.imf.org/external/datamapper/api/v1/GGXWDG_NGDP/USA/CHN/SAU/DEU/JPN/GBR",
     );
-
-    await saveKnowledge(
-      "macro_data",
-      `توقعات IMF للنمو الاقتصادي — ${new Date().toLocaleDateString("ar")}`,
-      summary,
-      "IMF World Economic Outlook",
-    );
-    saved++;
+    if (debtRes?.ok) {
+      const data = await debtRes.json() as { values?: { GGXWDG_NGDP: IMFValues } };
+      const values = data.values?.GGXWDG_NGDP;
+      if (values) {
+        const lines = extractIMFLines(values);
+        const summary = await summarizeWithGemini(`بيانات IMF للدين الحكومي:\n${lines.join("\n")}`, "macro_data");
+        await saveKnowledge("macro_data", `الدين الحكومي IMF — ${new Date().toLocaleDateString("ar")}`, summary, "IMF World Economic Outlook", "https://www.imf.org/external/datamapper");
+        saved++;
+      }
+    }
   } catch (e) {
     console.warn("[knowledge] IMF fetch failed:", e);
   }
@@ -311,43 +364,69 @@ async function fetchFOMCMinutes(): Promise<number> {
   return saved;
 }
 
+async function parseAndSaveFeed(
+  url: string,
+  sourceName: string,
+  sourceUrl: string,
+  labelPrefix: string,
+  maxItems = 3,
+): Promise<number> {
+  let saved = 0;
+  const res = await fetchWithTimeout(url, 10000);
+  if (!res?.ok) return 0;
+  const text = await res.text();
+
+  const titleMatches = text.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/g);
+  const descMatches  = text.match(/<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/g);
+
+  if (!titleMatches?.length) return 0;
+
+  for (let i = 0; i < Math.min(maxItems, titleMatches.length); i++) {
+    const title = titleMatches[i]
+      .replace(/<\/?title>/g, "").replace(/<!\[CDATA\[|\]\]>/g, "").trim();
+    const desc  = (descMatches?.[i] ?? "")
+      .replace(/<\/?description>/g, "").replace(/<!\[CDATA\[|\]\]>/g, "")
+      .replace(/<[^>]+>/g, " ").trim();
+
+    if (title.length < 5) continue;
+
+    const summary = await summarizeWithGemini(
+      `${labelPrefix}:\n${title}\n${desc.slice(0, 800)}`,
+      "economic_research",
+    );
+    if (!summary) continue;
+
+    await saveKnowledge("economic_research", title.slice(0, 200), summary, sourceName, sourceUrl);
+    saved++;
+    await new Promise((r) => setTimeout(r, GEMINI_DELAY));
+  }
+  return saved;
+}
+
 async function fetchAcademicData(): Promise<number> {
   let saved = 0;
   try {
-    const res = await fetchWithTimeout(KNOWLEDGE_SOURCES.academic.fedResearch);
-    if (!res?.ok) return 0;
-    const text = await res.text();
-
-    const titleMatches = text.match(/<title>([^<]+)<\/title>/g);
-    const descMatches  = text.match(/<description>([^<]+)<\/description>/g);
-
-    if (titleMatches?.length && descMatches?.length) {
-      for (let i = 0; i < Math.min(3, titleMatches.length); i++) {
-        const title = titleMatches[i].replace(/<\/?title>/g, "").trim();
-        const desc  = (descMatches[i] ?? "").replace(/<\/?description>/g, "").trim();
-
-        if (title.length < 5) continue;
-
-        const summary = await summarizeWithGemini(
-          `بحث من الفيدرالي الأمريكي:\n${title}\n${desc}`,
-          "economic_research",
-        );
-
-        await saveKnowledge(
-          "economic_research",
-          title.slice(0, 200),
-          summary,
-          "Federal Reserve Research",
-          "https://www.federalreserve.gov",
-        );
-        saved++;
-
-        await new Promise((r) => setTimeout(r, GEMINI_DELAY));
-      }
-    }
+    saved += await parseAndSaveFeed(
+      KNOWLEDGE_SOURCES.academic.fedResearch,
+      "Federal Reserve Research",
+      "https://www.federalreserve.gov",
+      "بحث من الفيدرالي الأمريكي",
+    );
   } catch (e) {
-    console.warn("[knowledge] Academic fetch failed:", e);
+    console.warn("[knowledge] Fed research fetch failed:", e);
   }
+
+  try {
+    saved += await parseAndSaveFeed(
+      KNOWLEDGE_SOURCES.academic.bisResearch,
+      "BIS Working Papers",
+      "https://www.bis.org",
+      "ورقة بحثية من بنك التسويات الدولية",
+    );
+  } catch (e) {
+    console.warn("[knowledge] BIS research fetch failed:", e);
+  }
+
   return saved;
 }
 
@@ -416,59 +495,84 @@ async function fetchSECEarnings(): Promise<number> {
   return saved;
 }
 
+type BISDataSet = { series?: Record<string, { observations?: Record<string, number[]> }> };
+type BISResponse = { dataSets?: BISDataSet[] };
+
+function extractBISRates(series: Record<string, { observations?: Record<string, number[]> }>, countryNames: Record<string, string>): string[] {
+  const rates: string[] = [];
+  for (const [key, value] of Object.entries(series)) {
+    const parts = key.split(":");
+    const countryCode = parts[1] ?? parts[0] ?? "";
+    const countryName = countryNames[countryCode] ?? countryCode;
+    const obs = value.observations ?? {};
+    const lastObs = Object.values(obs).slice(-1)[0];
+    if (lastObs?.[0] != null) {
+      rates.push(`${countryName}: ${lastObs[0].toFixed(2)}%`);
+    }
+  }
+  return rates;
+}
+
 async function fetchBISRates(): Promise<number> {
   let saved = 0;
+  const countryNames: Record<string, string> = {
+    US: "الولايات المتحدة (الفيدرالي)",
+    XM: "منطقة اليورو (ECB)",
+    GB: "بريطانيا (BOE)",
+    JP: "اليابان (BOJ)",
+    CN: "الصين (PBOC)",
+    SA: "المملكة العربية السعودية (SAMA)",
+    AU: "أستراليا (RBA)",
+    CA: "كندا (BOC)",
+    CH: "سويسرا (SNB)",
+    SE: "السويد (Riksbank)",
+  };
+
   try {
-    const res = await fetchWithTimeout(
-      "https://stats.bis.org/api/v1/data/BIS,WS_CBPOL_D,1.0/D.US;XM;GB;JP;CN;SA.P?format=jsondata&lastNObservations=3",
+    // Policy rates — 10 major central banks
+    const ratesRes = await fetchWithTimeout(
+      "https://stats.bis.org/api/v1/data/BIS,WS_CBPOL_D,1.0/D.US;XM;GB;JP;CN;SA;AU;CA;CH;SE.P?format=jsondata&lastNObservations=5",
       8000,
     );
-    if (!res?.ok) return 0;
-
-    const data = await res.json() as {
-      dataSets?: Array<{
-        series?: Record<string, { observations?: Record<string, number[]> }>;
-      }>;
-    };
-
-    const series = data.dataSets?.[0]?.series;
-    if (!series) return 0;
-
-    const countryNames: Record<string, string> = {
-      US: "الولايات المتحدة",
-      XM: "منطقة اليورو",
-      GB: "بريطانيا",
-      JP: "اليابان",
-      CN: "الصين",
-      SA: "المملكة العربية السعودية",
-    };
-
-    const rates: string[] = [];
-    for (const [key, value] of Object.entries(series)) {
-      const countryCode = key.split(":")[1] ?? "";
-      const countryName = countryNames[countryCode] ?? countryCode;
-      const obs = value.observations ?? {};
-      const lastObs = Object.values(obs).slice(-1)[0];
-      if (lastObs?.[0] != null) {
-        rates.push(`${countryName}: ${lastObs[0].toFixed(2)}%`);
+    if (ratesRes?.ok) {
+      const data = await ratesRes.json() as BISResponse;
+      const series = data.dataSets?.[0]?.series;
+      if (series) {
+        const rates = extractBISRates(series, countryNames);
+        if (rates.length > 0) {
+          const summary = await summarizeWithGemini(
+            `معدلات الفائدة للبنوك المركزية الرئيسية (BIS):\n${rates.join("\n")}`,
+            "central_bank",
+          );
+          await saveKnowledge("central_bank", `معدلات الفائدة العالمية — ${new Date().toLocaleDateString("ar")}`, summary, "BIS Statistics", "https://stats.bis.org");
+          saved++;
+        }
       }
     }
 
-    if (rates.length === 0) return 0;
-
-    const summary = await summarizeWithGemini(
-      `معدلات الفائدة للبنوك المركزية الرئيسية (BIS):\n${rates.join("\n")}`,
-      "central_bank",
+    // Credit-to-GDP gap (early warning indicator for financial crises)
+    const gapRes = await fetchWithTimeout(
+      "https://stats.bis.org/api/v1/data/BIS,WS_TC_GAPS,1.0/Q.US;CN;DE;JP;GB;SA.ALL.A?format=jsondata&lastNObservations=4",
+      8000,
     );
-
-    await saveKnowledge(
-      "central_bank",
-      `معدلات الفائدة العالمية — ${new Date().toLocaleDateString("ar")}`,
-      summary,
-      "BIS Statistics",
-      "https://stats.bis.org",
-    );
-    saved++;
+    if (gapRes?.ok) {
+      const data = await gapRes.json() as BISResponse;
+      const series = data.dataSets?.[0]?.series;
+      if (series) {
+        const gaps = extractBISRates(series, {
+          US: "الولايات المتحدة", CN: "الصين", DE: "ألمانيا",
+          JP: "اليابان", GB: "بريطانيا", SA: "المملكة العربية السعودية",
+        });
+        if (gaps.length > 0) {
+          const summary = await summarizeWithGemini(
+            `فجوة الائتمان إلى الناتج المحلي (مؤشر إنذار مبكر للأزمات المالية):\n${gaps.join("\n")}`,
+            "central_bank",
+          );
+          await saveKnowledge("central_bank", `فجوة الائتمان إلى الناتج المحلي — ${new Date().toLocaleDateString("ar")}`, summary, "BIS Statistics", "https://stats.bis.org");
+          saved++;
+        }
+      }
+    }
   } catch (e) {
     console.warn("[knowledge] BIS fetch failed:", e);
   }
@@ -597,6 +701,55 @@ export async function shouldRefresh(): Promise<boolean> {
   return last.getTime() < Date.now() - 6 * 3600 * 1000;
 }
 
+async function verifyFreeSourcesConnected(): Promise<void> {
+  console.info("[genesis-sources] Verifying free data sources...");
+
+  try {
+    const wb = await fetchWithTimeout(
+      "https://api.worldbank.org/v2/country/US/indicator/NY.GDP.MKTP.KD.ZG?format=json&mrv=1&per_page=1",
+      5000,
+    );
+    console.info(`[world-bank] ✅ Connected — HTTP ${wb?.status}`);
+  } catch {
+    console.warn("[world-bank] ❌ Not reachable");
+  }
+
+  try {
+    const imf = await fetchWithTimeout(
+      "https://www.imf.org/external/datamapper/api/v1/NGDP_RPCH/USA",
+      5000,
+    );
+    console.info(`[imf] ✅ Connected — HTTP ${imf?.status}`);
+  } catch {
+    console.warn("[imf] ❌ Not reachable");
+  }
+
+  try {
+    const bis = await fetchWithTimeout(
+      "https://stats.bis.org/api/v1/data/BIS,WS_CBPOL_D,1.0/D.US.P?format=jsondata&lastNObservations=1",
+      5000,
+    );
+    console.info(`[bis] ✅ Connected — HTTP ${bis?.status}`);
+  } catch {
+    console.warn("[bis] ❌ Not reachable");
+  }
+
+  const fredKey = process.env.FRED_API_KEY;
+  if (fredKey) {
+    try {
+      const fred = await fetchWithTimeout(
+        `https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=${fredKey}&limit=1&file_type=json`,
+        5000,
+      );
+      console.info(`[fred] ✅ Connected — HTTP ${fred?.status}`);
+    } catch {
+      console.warn("[fred] ❌ Not reachable");
+    }
+  } else {
+    console.warn("[fred] ❌ FRED_API_KEY missing in Railway");
+  }
+}
+
 // Start learning 1 minute after server start
 setTimeout(() => {
   fetchAndLearn().catch(err =>
@@ -610,3 +763,8 @@ setInterval(() => {
     console.warn("[knowledge] Auto-learn failed:", err)
   );
 }, 6 * 60 * 60 * 1000);
+
+// Run verification 2 minutes after server start
+setTimeout(() => {
+  verifyFreeSourcesConnected().catch(console.warn);
+}, 2 * 60 * 1000);

@@ -90,6 +90,8 @@ const ACTION_STYLE: Record<string, string> = {
   HOLD: "bg-warning/15 text-warning border-warning/30",
 };
 const ACTION_AR: Record<string, string> = { BUY: "شراء", SELL: "بيع", HOLD: "انتظار", WAIT: "انتظار" };
+const TREND_AR: Record<string, string> = { up: "صاعد", down: "هابط", flat: "أفقي" };
+
 const REASON_PATCHES: [string, string][] = [
   ["Trend + news alignment:", "توافق الاتجاه والأخبار:"],
   ["Negative confluence:", "تعارض سلبي:"],
@@ -109,6 +111,27 @@ const REASON_PATCHES: [string, string][] = [
   ["stabilizing momentum", "استقرار الزخم"],
   ["supportive news flow.", "تدفق إخباري داعم."],
   ["neutral news flow.", "تدفق إخباري محايد."],
+  // Additional missing patterns
+  ["size only on confirmed break", "الحجم عند الاختراق المؤكد فقط"],
+  ["realized vol", "التقلب الفعلي"],
+  ["elevated participation", "مشاركة مرتفعة"],
+  ["continuation higher", "استمرار الصعود"],
+  ["stays directional", "يبقى اتجاهياً"],
+  ["macro print", "إشارة ماكرو"],
+  ["news bias +100", "تحيز إخباري +100"],
+  ["Cross-asset volatility is high", "تقلب متعدد الأصول: عالٍ"],
+  ["Cross-asset volatility is elevated", "تقلب متعدد الأصول: مرتفع"],
+  ["Cross-asset volatility is moderate", "تقلب متعدد الأصول: معتدل"],
+  ["Cross-asset volatility is low", "تقلب متعدد الأصول: منخفض"],
+  ["Cross-asset", "متعدد الأصول"],
+  ["Leaders:", "القادة:"],
+  ["Laggards:", "المتأخرون:"],
+  ["Highest-conviction setup:", "أعلى إعداد قناعة:"],
+  ["% confidence.", "% ثقة."],
+  ["% confidence)", "% ثقة)"],
+  ["with range", "مع نطاق"],
+  ["balanced range", "نطاق متوازن"],
+  ["mixed macro signals", "إشارات ماكرو متضاربة"],
 ];
 function translateReason(reason: string, ar: boolean): string {
   if (!ar) return reason;
@@ -142,7 +165,7 @@ function AIDashboardPage() {
   const ar = lang === "ar";
   const [alerts, setAlerts] = useState({ enabled: true, signals: true, news: true, highRisk: false });
 
-  const { data, isLoading, isFetching, refetch, dataUpdatedAt, isError } = useMarketIntel(undefined, 30_000);
+  const { data, isLoading, isFetching, refetch, dataUpdatedAt, isError } = useMarketIntel(undefined, 30_000, ar ? "ar" : "en");
   const aiAnalyst = useAIMarketAnalyst(data, ar ? "ar" : "en");
   const aiInsights = useAIMarketInsights(data, ar ? "ar" : "en");
   const analyst = aiAnalyst.data?.data ?? null;
@@ -375,7 +398,7 @@ function AIDashboardPage() {
                       {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                       {up ? "+" : ""}{q.changePct.toFixed(2)}%
                       <span className="ms-1 text-[10px] uppercase text-muted-foreground">
-                        · {q.trend}
+                        · {ar ? (TREND_AR[q.trend] ?? q.trend) : q.trend}
                       </span>
                     </div>
                   </div>

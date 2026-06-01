@@ -16,12 +16,17 @@ interface HistoricalSeries {
 }
 
 const FRED_SERIES = {
-  fedFunds:     { id: "FEDFUNDS",     name: "معدل الفائدة الفيدرالية" },
-  cpi:          { id: "CPIAUCSL",     name: "مؤشر أسعار المستهلك" },
-  unemployment: { id: "UNRATE",       name: "معدل البطالة" },
-  yield10y:     { id: "DGS10",        name: "عائد سندات 10 سنوات" },
-  yield2y:      { id: "DGS2",         name: "عائد سندات سنتين" },
-  dollarIndex:  { id: "DTWEXBGS",     name: "مؤشر الدولار" },
+  fedFunds:     { id: "FEDFUNDS",      name: "معدل الفائدة الفيدرالية" },
+  cpi:          { id: "CPIAUCSL",      name: "مؤشر أسعار المستهلك" },
+  unemployment: { id: "UNRATE",        name: "معدل البطالة" },
+  yield10y:     { id: "DGS10",         name: "عائد سندات 10 سنوات" },
+  yield2y:      { id: "DGS2",          name: "عائد سندات سنتين" },
+  dollarIndex:  { id: "DTWEXBGS",      name: "مؤشر الدولار" },
+  realGdp:      { id: "GDPC1",         name: "الناتج المحلي الحقيقي (ربعي)" },
+  yieldSpread:  { id: "T10Y2Y",        name: "فارق العائد 10Y-2Y" },
+  hySpread:     { id: "BAMLH0A0HYM2",  name: "فروقات السندات عالية العائد" },
+  vix:          { id: "VIXCLS",        name: "مؤشر التقلب VIX" },
+  mortgage30:   { id: "MORTGAGE30US",  name: "معدل الرهن العقاري 30 سنة" },
 };
 
 const CACHE_6H = 6 * 3600 * 1000;
@@ -52,78 +57,81 @@ async function fetchFREDSeries(
     return null;
   }
 
-  // Try limit=24 first (2 years monthly), fall back to limit=12 if that fails
+  // Try limit=24 first (2 years monthly), fall back to limit=12; retry up to 2 times per limit
   for (const limit of [24, 12]) {
-    try {
-      const url =
-        `https://api.stlouisfed.org/fred/series/observations` +
-        `?series_id=${seriesId}&api_key=${key}&limit=${limit}&sort_order=desc&file_type=json`;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        if (attempt > 0) await new Promise((r) => setTimeout(r, 2000));
+        const url =
+          `https://api.stlouisfed.org/fred/series/observations` +
+          `?series_id=${seriesId}&api_key=${key}&limit=${limit}&sort_order=desc&file_type=json`;
 
-      const res = await fetchWithAbort(url, 8000);
+        const res = await fetchWithAbort(url, 8000);
 
-      if (!res.ok) {
-        const body = await res.text().catch(() => "(unreadable)");
-        console.error(`[fred-historical] ${seriesId} HTTP ${res.status}: ${body.slice(0, 200)}`);
-        continue;
+        if (!res.ok) {
+          const body = await res.text().catch(() => "(unreadable)");
+          console.error(`[fred-historical] ${seriesId} HTTP ${res.status}: ${body.slice(0, 200)}`);
+          break; // non-recoverable HTTP error for this limit
+        }
+
+        const json = await res.json() as {
+          observations?: Array<{ date: string; value: string }>;
+          error_message?: string;
+        };
+
+        if (json.error_message) {
+          console.error(`[fred-historical] ${seriesId} FRED error: ${json.error_message}`);
+          break; // API error — skip this limit
+        }
+
+        const points: TimeSeriesPoint[] = (json.observations ?? [])
+          .filter((o) => o.value !== "." && o.value !== "" && !isNaN(Number(o.value)))
+          .map((o) => ({ date: o.date, value: Number(o.value) }))
+          .reverse(); // chronological order
+
+        if (points.length < 3) {
+          console.warn(`[fred-historical] ${seriesId} returned only ${points.length} valid points (limit=${limit})`);
+          break; // try smaller limit
+        }
+
+        const latest     = points[points.length - 1].value;
+        const yearAgoIdx = Math.max(0, points.length - 13);
+        const oneYearAgo = points[yearAgoIdx]?.value ?? latest;
+        const changeFrom1Y = Math.abs(oneYearAgo) > 0
+          ? ((latest - oneYearAgo) / Math.abs(oneYearAgo)) * 100
+          : 0;
+
+        // Linear regression over all available points
+        const n     = points.length;
+        const sumX  = points.reduce((s, _, i) => s + i, 0);
+        const sumY  = points.reduce((s, p) => s + p.value, 0);
+        const sumXY = points.reduce((s, p, i) => s + i * p.value, 0);
+        const sumX2 = points.reduce((s, _, i) => s + i * i, 0);
+        const denom = n * sumX2 - sumX * sumX;
+        const slope = denom !== 0 ? (n * sumXY - sumX * sumY) / denom : 0;
+
+        const avgValue        = sumY / n;
+        const normalizedSlope = avgValue !== 0 ? (slope / Math.abs(avgValue)) * 100 : 0;
+        const trend: HistoricalSeries["trend"] =
+          normalizedSlope > 0.5 ? "rising" : normalizedSlope < -0.5 ? "falling" : "stable";
+        const trendStrength = Math.min(100, Math.abs(normalizedSlope) * 10);
+
+        const result: HistoricalSeries = {
+          seriesId,
+          name,
+          data: points,
+          latestValue: latest,
+          changeFrom1YearAgo: changeFrom1Y,
+          trend,
+          trendStrength,
+        };
+
+        _cache.set(cacheKey, { data: result, ts: Date.now() });
+        console.info(`[fred-historical] ${seriesId} loaded: latest=${latest} trend=${trend} points=${points.length}`);
+        return result;
+      } catch (err) {
+        console.error(`[fred-historical] ${seriesId} fetch error (limit=${limit} attempt=${attempt}):`, err);
       }
-
-      const json = await res.json() as {
-        observations?: Array<{ date: string; value: string }>;
-        error_message?: string;
-      };
-
-      if (json.error_message) {
-        console.error(`[fred-historical] ${seriesId} FRED error: ${json.error_message}`);
-        continue;
-      }
-
-      const points: TimeSeriesPoint[] = (json.observations ?? [])
-        .filter((o) => o.value !== "." && o.value !== "" && !isNaN(Number(o.value)))
-        .map((o) => ({ date: o.date, value: Number(o.value) }))
-        .reverse(); // chronological order
-
-      if (points.length < 3) {
-        console.warn(`[fred-historical] ${seriesId} returned only ${points.length} valid points (limit=${limit})`);
-        continue;
-      }
-
-      const latest     = points[points.length - 1].value;
-      const yearAgoIdx = Math.max(0, points.length - 13);
-      const oneYearAgo = points[yearAgoIdx]?.value ?? latest;
-      const changeFrom1Y = Math.abs(oneYearAgo) > 0
-        ? ((latest - oneYearAgo) / Math.abs(oneYearAgo)) * 100
-        : 0;
-
-      // Linear regression over all available points
-      const n     = points.length;
-      const sumX  = points.reduce((s, _, i) => s + i, 0);
-      const sumY  = points.reduce((s, p) => s + p.value, 0);
-      const sumXY = points.reduce((s, p, i) => s + i * p.value, 0);
-      const sumX2 = points.reduce((s, _, i) => s + i * i, 0);
-      const denom = n * sumX2 - sumX * sumX;
-      const slope = denom !== 0 ? (n * sumXY - sumX * sumY) / denom : 0;
-
-      const avgValue        = sumY / n;
-      const normalizedSlope = avgValue !== 0 ? (slope / Math.abs(avgValue)) * 100 : 0;
-      const trend: HistoricalSeries["trend"] =
-        normalizedSlope > 0.5 ? "rising" : normalizedSlope < -0.5 ? "falling" : "stable";
-      const trendStrength = Math.min(100, Math.abs(normalizedSlope) * 10);
-
-      const result: HistoricalSeries = {
-        seriesId,
-        name,
-        data: points,
-        latestValue: latest,
-        changeFrom1YearAgo: changeFrom1Y,
-        trend,
-        trendStrength,
-      };
-
-      _cache.set(cacheKey, { data: result, ts: Date.now() });
-      console.info(`[fred-historical] ${seriesId} loaded: latest=${latest} trend=${trend} points=${points.length}`);
-      return result;
-    } catch (err) {
-      console.error(`[fred-historical] ${seriesId} fetch error (limit=${limit}):`, err);
     }
   }
   return null;
@@ -175,16 +183,28 @@ export async function buildRealEconomicForecast(): Promise<RealEconomicForecast>
     { id: FRED_SERIES.yield10y.id,     name: FRED_SERIES.yield10y.name },
     { id: FRED_SERIES.yield2y.id,      name: FRED_SERIES.yield2y.name },
     { id: FRED_SERIES.dollarIndex.id,  name: FRED_SERIES.dollarIndex.name },
+    { id: FRED_SERIES.realGdp.id,      name: FRED_SERIES.realGdp.name },
+    { id: FRED_SERIES.yieldSpread.id,  name: FRED_SERIES.yieldSpread.name },
+    { id: FRED_SERIES.hySpread.id,     name: FRED_SERIES.hySpread.name },
+    { id: FRED_SERIES.vix.id,          name: FRED_SERIES.vix.name },
+    { id: FRED_SERIES.mortgage30.id,   name: FRED_SERIES.mortgage30.name },
   ];
   const fetchedResults: Array<HistoricalSeries | null> = [];
   for (const s of seriesDefs) {
     fetchedResults.push(await fetchFREDSeries(s.id, s.name).catch(() => null));
-    await new Promise((r) => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 1000));
   }
-  const [fedFunds, cpi, unemployment, yield10y, yield2y, dollar] = fetchedResults;
+  const [fedFunds, cpi, unemployment, yield10y, yield2y, dollar, realGdp, yieldSpread, hySpread, vixSeries, mortgage30] = fetchedResults;
 
-  const loadedCount = [fedFunds, cpi, unemployment, yield10y, yield2y, dollar].filter(Boolean).length;
-  console.info(`[fred-historical] Loaded ${loadedCount}/6 FRED series`);
+  const loadedCount = fetchedResults.filter(Boolean).length;
+  console.info(`[fred-historical] Loaded ${loadedCount}/${seriesDefs.length} FRED series`);
+  if (realGdp) console.info(`[fred-historical] Real GDP: ${realGdp.latestValue?.toFixed(1)} trend=${realGdp.trend}`);
+  if (yieldSpread) console.info(`[fred-historical] T10Y2Y spread: ${yieldSpread.latestValue?.toFixed(2)}%`);
+  if (hySpread) console.info(`[fred-historical] HY spread: ${hySpread.latestValue?.toFixed(2)}%`);
+  if (vixSeries) console.info(`[fred-historical] VIX: ${vixSeries.latestValue?.toFixed(1)}`);
+  if (mortgage30) console.info(`[fred-historical] Mortgage 30Y: ${mortgage30.latestValue?.toFixed(2)}%`);
+  // suppress unused-var lint — these are logged above and available for future expansion
+  void [realGdp, yieldSpread, hySpread, vixSeries, mortgage30];
 
   // Fallback: use cached MacroContext values when FRED series are unavailable
   const cached = getCachedMacroContext();

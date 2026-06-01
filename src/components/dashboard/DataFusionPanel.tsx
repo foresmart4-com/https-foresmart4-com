@@ -70,7 +70,7 @@ export function DataFusionPanel() {
             <Badge variant="outline">DXY {macro.dxy.toFixed(2)}</Badge>
             <Badge variant="outline">10Y {macro.yields10y.toFixed(2)}%</Badge>
             <Badge variant={macro.riskOn >= 0 ? "default" : "destructive"}>
-              Risk {macro.riskOn >= 0 ? "ON" : "OFF"} {macro.riskOn.toFixed(2)}
+              {ar ? "مخاطرة:" : "Risk"} {ar ? (macro.riskOn >= 0 ? "مفعّلة" : "مغلقة") : (macro.riskOn >= 0 ? "ON" : "OFF")} {macro.riskOn.toFixed(2)}
             </Badge>
           </div>
         </CardHeader>
