@@ -11,6 +11,7 @@ import type { MarketIntel } from "@/services/analysis";
 import { useInstitutionalIntelligence } from "@/hooks/useInstitutionalIntelligence";
 import { memoryAgent, type RiskAppetite } from "@/services/agents/memoryAgent";
 import type { AgentId, Bias } from "@/services/agents/types";
+import { patchAr, tAgentLabel } from "@/lib/aiTranslate";
 
 interface Props { intel: MarketIntel | undefined; ar?: boolean }
 const T = (ar: boolean, en: string, arT: string) => (ar ? arT : en);
@@ -97,7 +98,7 @@ export function InstitutionalIntelligencePanel({ intel, ar = false }: Props) {
                       ? T(ar, "Defensive posture", "موقف دفاعي")
                       : T(ar, "Balanced posture", "موقف متوازن")}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">{composite!.reason}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{patchAr(composite!.reason, ar)}</p>
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-[10px] uppercase text-muted-foreground">
@@ -125,13 +126,13 @@ export function InstitutionalIntelligencePanel({ intel, ar = false }: Props) {
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <Icon className="w-4 h-4 text-primary shrink-0" />
-                          <span className="text-sm font-semibold truncate">{a.label}</span>
+                          <span className="text-sm font-semibold truncate">{tAgentLabel(a.label, ar)}</span>
                         </div>
                         <Badge variant="outline" className={`${BIAS_COLOR[a.bias]} shrink-0`}>
                           <BI className="w-3 h-3" />
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{a.headline}</p>
+                      <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{patchAr(a.headline, ar)}</p>
                       <div className="flex items-center justify-between text-[10px] mt-2 text-muted-foreground">
                         <span>{T(ar, "Confidence", "الثقة")} {a.confidence.toFixed(0)}%</span>
                         <span>{T(ar, "Weight", "الوزن")} {Math.round(a.weight * 100)}%</span>
@@ -140,7 +141,7 @@ export function InstitutionalIntelligencePanel({ intel, ar = false }: Props) {
                       {a.flags && a.flags.length > 0 && (
                         <div className="mt-2 text-[10px] text-amber-300 flex items-start gap-1">
                           <ShieldAlert className="w-3 h-3 mt-0.5 shrink-0" />
-                          <span className="truncate">{a.flags[0]}</span>
+                          <span className="truncate">{patchAr(a.flags[0], ar)}</span>
                         </div>
                       )}
                     </div>
@@ -163,7 +164,7 @@ export function InstitutionalIntelligencePanel({ intel, ar = false }: Props) {
                         {T(ar, "Size", "الحجم")} {r.sizePct}% · {T(ar, "Conf", "ثقة")} {r.confidence}%
                       </span>
                     </div>
-                    <p className="opacity-80 mt-1">{r.rationale}</p>
+                    <p className="opacity-80 mt-1">{patchAr(r.rationale, ar)}</p>
                   </div>
                 ))}
               </div>
@@ -200,7 +201,7 @@ export function InstitutionalIntelligencePanel({ intel, ar = false }: Props) {
                 {view.reasoningTree.children?.map((node) => (
                   <details key={node.id} className="border border-border/40 rounded p-1.5">
                     <summary className="cursor-pointer flex items-center justify-between gap-2">
-                      <span className="font-medium">{node.label}</span>
+                      <span className="font-medium">{tAgentLabel(node.label, ar)}</span>
                       <span className={node.contribution >= 0 ? "text-emerald-400" : "text-rose-400"}>
                         {node.contribution >= 0 ? "+" : ""}{node.contribution.toFixed(1)}
                       </span>

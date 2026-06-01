@@ -7,6 +7,7 @@ import {
   TrendingUp, TrendingDown, Minus, AlertTriangle,
 } from "lucide-react";
 import type { MarketIntel } from "@/services/analysis";
+import { patchAr } from "@/lib/aiTranslate";
 
 function Panel({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
@@ -95,7 +96,7 @@ export function AICommandCenter({ data, ar }: { data: MarketIntel; ar: boolean }
                 </div>
                 <Badge variant="outline" className="border-primary/30 text-[10px]">{o.entryBias}</Badge>
               </div>
-              <p className="mt-2 line-clamp-3 text-xs text-muted-foreground">{o.explanation}</p>
+              <p className="mt-2 line-clamp-3 text-xs text-muted-foreground">{patchAr(o.explanation, ar)}</p>
             </Panel>
           ))}
         </div>
@@ -125,13 +126,15 @@ export function AICommandCenter({ data, ar }: { data: MarketIntel; ar: boolean }
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={cn("font-mono text-xs tabular-nums", tone)}>{c.coefficient.toFixed(2)}</span>
-                      <Badge variant="outline" className={cn("border-current text-[10px]", tone)}>{c.kind}</Badge>
+                      <Badge variant="outline" className={cn("border-current text-[10px]", tone)}>
+                        {ar ? (c.kind === "positive" ? "إيجابي" : c.kind === "inverse" ? "عكسي" : "ضعيف") : c.kind}
+                      </Badge>
                     </div>
                   </div>
                   <div className="mt-2 max-w-[80%]">
                     <RiskHeat value={c.strength} />
                   </div>
-                  <p className="mt-1.5 text-xs text-muted-foreground">{c.explanation}</p>
+                  <p className="mt-1.5 text-xs text-muted-foreground">{patchAr(c.explanation, ar)}</p>
                 </div>
               );
             })}
@@ -156,7 +159,7 @@ export function AICommandCenter({ data, ar }: { data: MarketIntel; ar: boolean }
                       <span>· {e.duration}</span>
                     </div>
                     <h4 className="text-sm font-semibold leading-snug">{e.headline}</h4>
-                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{e.reasoning}</p>
+                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{patchAr(e.reasoning, ar)}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1 text-[11px]">
                     <Badge variant="outline" className="border-primary/30">{e.strength}</Badge>
@@ -219,7 +222,7 @@ export function AICommandCenter({ data, ar }: { data: MarketIntel; ar: boolean }
                     <AlertTriangle className={cn("mt-0.5 h-4 w-4", a.urgency === "Critical" ? "text-danger" : a.urgency === "High" ? "text-warning" : "text-primary")} />
                     <div>
                       <h4 className="text-sm font-semibold leading-snug">{a.title}</h4>
-                      <p className="mt-1 text-xs text-muted-foreground">{a.explanation}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{patchAr(a.explanation, ar)}</p>
                       <div className="mt-1.5 flex flex-wrap gap-1">
                         {a.affectedAssets.map((x) => (
                           <span key={x} className="rounded bg-muted/40 px-1.5 py-0.5 text-[9px] font-bold">{x}</span>

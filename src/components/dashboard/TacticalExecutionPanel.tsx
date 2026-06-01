@@ -6,6 +6,7 @@ import {
   Target, LogOut, Scale, Clock, Briefcase, ShieldAlert, TrendingUp, TrendingDown, Activity,
 } from "lucide-react";
 import type { MarketIntel } from "@/services/analysis";
+import { patchAr } from "@/lib/aiTranslate";
 
 function Panel({ className, children }: { className?: string; children?: React.ReactNode }) {
   return (
@@ -25,13 +26,21 @@ function BiasBadge({ bias }: { bias: "long" | "short" | "neutral" }) {
   return <span className={cn("rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", map[bias])}>{bias}</span>;
 }
 
-function QualityChip({ q }: { q: "excellent" | "good" | "fair" | "poor" }) {
+const QUALITY_AR: Record<string, string> = {
+  excellent: "ممتاز",
+  good: "جيد",
+  fair: "مقبول",
+  poor: "ضعيف",
+};
+
+function QualityChip({ q, ar = false }: { q: "excellent" | "good" | "fair" | "poor"; ar?: boolean }) {
   const tone =
     q === "excellent" ? "border-success/40 text-success" :
     q === "good"      ? "border-primary/40 text-primary" :
     q === "fair"      ? "border-warning/40 text-warning" :
                         "border-danger/40 text-danger";
-  return <Badge variant="outline" className={cn("text-[10px]", tone)}>{q}</Badge>;
+  const label = ar ? (QUALITY_AR[q] ?? q) : q;
+  return <Badge variant="outline" className={cn("text-[10px]", tone)}>{label}</Badge>;
 }
 
 function RecChip({ r }: { r: "execute-now" | "scale-in" | "wait" | "stand-aside" }) {
@@ -111,8 +120,8 @@ export function TacticalExecutionPanel({ data, ar }: { data: MarketIntel; ar: bo
                 <RecChip r={p.timing.recommendation} />
               </div>
               <ConfidenceBar value={p.confidence} className="mt-1.5" />
-              <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{p.reasoning}</p>
-              <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground/70">{p.regimeContext}</p>
+              <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{patchAr(p.reasoning, ar)}</p>
+              <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground/70">{patchAr(p.regimeContext, ar)}</p>
             </div>
           ))}
         </div>
@@ -134,7 +143,7 @@ export function TacticalExecutionPanel({ data, ar }: { data: MarketIntel; ar: bo
                     <BiasBadge bias={e.bias} />
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <QualityChip q={e.quality} />
+                    <QualityChip q={e.quality} ar={ar} />
                     <span className="text-[10px] text-muted-foreground">{ar ? "توقيت" : "T"} {e.timing}</span>
                   </div>
                 </div>
@@ -230,7 +239,7 @@ export function TacticalExecutionPanel({ data, ar }: { data: MarketIntel; ar: bo
                     </div>
                   </div>
                   <RiskHeat value={s.cautionScore} className="mt-1.5" />
-                  <p className="mt-1.5 text-[11px] text-muted-foreground">{s.rationale}</p>
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">{patchAr(s.rationale, ar)}</p>
                 </div>
               );
             })}
@@ -273,7 +282,7 @@ export function TacticalExecutionPanel({ data, ar }: { data: MarketIntel; ar: bo
                   </div>
                   <ConfidenceBar value={t.executionQuality} className="mt-1.5" />
                   <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
-                    <Activity className="h-3 w-3" /> {t.note}
+                    <Activity className="h-3 w-3" /> {patchAr(t.note, ar)}
                   </p>
                 </div>
               );

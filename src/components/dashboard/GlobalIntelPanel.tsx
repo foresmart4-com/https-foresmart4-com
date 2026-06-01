@@ -9,6 +9,7 @@ import { Loader2, RefreshCw, Globe2, Activity, AlertTriangle, CloudRain, Trendin
 import { useI18n } from "@/lib/i18n";
 import { runGlobalIntel, subscribeGlobalIntel, type GlobalIntelSnapshot, buildExplain } from "@/services/global-intel";
 import { aiGlobalNarrative } from "@/lib/global-intel.functions";
+import { patchAr } from "@/lib/aiTranslate";
 
 const sevColor: Record<string, string> = {
   low: "bg-emerald-500/10 text-emerald-500",
@@ -52,7 +53,9 @@ function tDriver(d: string, ar: boolean): string {
   if (macro) return `${macro[1]} إشارة ماكرو متوافقة`;
   if (d === "Geopolitical flow supportive") return "التدفق الجيوسياسي داعم";
   if (d === "Supply-chain stress detected") return "ضغط سلسلة الإمداد مرصود";
-  return d;
+  if (d === "Central bank stance aligns") return "موقف البنك المركزي متوافق";
+  if (d === "Institutional flow detected") return "تدفق مؤسسي مرصود";
+  return patchAr(d, ar);
 }
 
 export function GlobalIntelPanel() {
@@ -196,7 +199,7 @@ export function GlobalIntelPanel() {
                   <Progress value={o.confidence * 100} className="h-1.5" />
                   {exp && (
                     <div className="space-y-1 text-xs">
-                      <div className="text-muted-foreground">{exp.summary}</div>
+                      <div className="text-muted-foreground">{patchAr(exp.summary, ar)}</div>
                       <div className="flex flex-wrap gap-1">
                         {exp.scenarios.map((s, i) => (
                           <Badge key={i} variant="secondary" className="text-[10px]">

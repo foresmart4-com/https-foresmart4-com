@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { generateBrainSnapshot, type BrainSnapshot } from "@/services/intelligence/dynamicBrain";
+import { patchAr, tRegime } from "@/lib/aiTranslate";
 
 export function DynamicAIBrainPanel({ ar = false }: { ar?: boolean }) {
   const [snap, setSnap] = useState<BrainSnapshot | null>(null);
@@ -46,11 +47,11 @@ export function DynamicAIBrainPanel({ ar = false }: { ar?: boolean }) {
           <div className="rounded-lg border border-border/40 bg-muted/10 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold">{snap.summary.headline}</span>
-              <Badge variant="secondary" className="text-[10px] uppercase">{snap.summary.regime}</Badge>
+              <span className="text-sm font-semibold">{patchAr(snap.summary.headline, ar)}</span>
+              <Badge variant="secondary" className="text-[10px] uppercase">{tRegime(snap.summary.regime, ar)}</Badge>
             </div>
             <ul className="text-xs text-muted-foreground space-y-1 list-disc ps-5">
-              {snap.summary.bullets.map((b, i) => <li key={i}>{b}</li>)}
+              {snap.summary.bullets.map((b, i) => <li key={i}>{patchAr(b, ar)}</li>)}
             </ul>
           </div>
 
@@ -94,7 +95,7 @@ export function DynamicAIBrainPanel({ ar = false }: { ar?: boolean }) {
                       </Badge>
                       <span className="font-medium">{a.symbol}</span>
                     </div>
-                    <span className="text-muted-foreground">{a.detail}</span>
+                    <span className="text-muted-foreground">{patchAr(a.detail, ar)}</span>
                   </div>
                 ))}
               </div>

@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { useGlobalScanner } from "@/hooks/useGlobalScanner";
 import { useI18n } from "@/lib/i18n";
 import { RefreshCcw, Radar, Bell, ArrowUp, ArrowDown, Minus, Zap, ShieldAlert } from "lucide-react";
+import { patchAr } from "@/lib/aiTranslate";
 
 const L = {
   title:    { en: "Global Opportunity Scanner", ar: "ماسح الفرص العالمي" },
@@ -64,7 +65,7 @@ export function GlobalOpportunityScanner() {
             <Mini label={t("feedCount", ar)} value={String(snapshot.metrics.feedCount)} />
             <Mini label={t("highUrg", ar)} value={String(snapshot.metrics.highUrgency)} tone="warn" />
             <Mini label={t("risk", ar)} value={String(snapshot.metrics.riskAdjustedAvg)} />
-            <Mini label="Bull/Bear/Neut" value={`${snapshot.metrics.bullish}/${snapshot.metrics.bearish}/${snapshot.metrics.neutral}`} />
+            <Mini label={ar ? "صاعد/هابط/محايد" : "Bull/Bear/Neut"} value={`${snapshot.metrics.bullish}/${snapshot.metrics.bearish}/${snapshot.metrics.neutral}`} />
           </div>
 
           <Tabs defaultValue="opps">
@@ -94,12 +95,12 @@ export function GlobalOpportunityScanner() {
                     </div>
                   </div>
                   <Progress value={o.urgency} className="h-1.5" />
-                  <p className="text-sm"><span className="font-medium">{t("reasoning", ar)}:</span> {o.reasoning}</p>
+                  <p className="text-sm"><span className="font-medium">{t("reasoning", ar)}:</span> {patchAr(o.reasoning, ar)}</p>
                   <div className="grid sm:grid-cols-2 gap-3 text-xs">
                     <div>
                       <div className="font-medium mb-1">{t("scenarios", ar)}</div>
                       {o.scenarios.map((s) => (
-                        <div key={s.label} className="flex justify-between"><span>{s.label}</span><span className="text-muted-foreground">P {(s.probability * 100).toFixed(0)}% · R {s.payoff}</span></div>
+                        <div key={s.label} className="flex justify-between"><span>{patchAr(s.label, ar)}</span><span className="text-muted-foreground">P {(s.probability * 100).toFixed(0)}% · R {s.payoff}</span></div>
                       ))}
                     </div>
                     <div>
@@ -112,14 +113,14 @@ export function GlobalOpportunityScanner() {
                       <div>
                         <div className="font-medium mb-1">{t("corr", ar)}</div>
                         {o.correlations.map((c) => (
-                          <div key={c.partner} className="flex justify-between"><span>{c.partner}</span><span className="text-muted-foreground">ρ {c.correlation} · {c.meaning}</span></div>
+                          <div key={c.partner} className="flex justify-between"><span>{c.partner}</span><span className="text-muted-foreground">ρ {c.correlation} · {patchAr(c.meaning, ar)}</span></div>
                         ))}
                       </div>
                     )}
                     <div>
                       <div className="font-medium mb-1">{t("alloc", ar)} / {t("flow", ar)}</div>
                       <div className="flex justify-between"><span>{t("alloc", ar)}</span><span className="text-muted-foreground">{o.portfolioFit.suggestedAllocPct}%</span></div>
-                      <div className="flex justify-between"><span>diversifies</span><span className="text-muted-foreground">{o.portfolioFit.diversifies ? "yes" : "no"}</span></div>
+                      <div className="flex justify-between"><span>{ar ? "يُنوّع" : "diversifies"}</span><span className="text-muted-foreground">{o.portfolioFit.diversifies ? (ar ? "نعم" : "yes") : (ar ? "لا" : "no")}</span></div>
                       {o.flowAlignment && (
                         <div className="flex justify-between"><span>{t("flow", ar)}</span><span className="text-muted-foreground">{o.flowAlignment.netFlow > 0 ? "+" : ""}{o.flowAlignment.netFlow} ({o.flowAlignment.drivers.join(", ")})</span></div>
                       )}
@@ -151,7 +152,7 @@ export function GlobalOpportunityScanner() {
             <TabsContent value="feeds" className="mt-4 space-y-1">
               {snapshot.feedsSummary.map((f) => (
                 <div key={f.source} className="flex justify-between text-sm border-b py-1">
-                  <span>{f.source}</span><span className="text-muted-foreground">{f.events} events</span>
+                  <span>{f.source}</span><span className="text-muted-foreground">{f.events} {ar ? "أحداث" : "events"}</span>
                 </div>
               ))}
             </TabsContent>

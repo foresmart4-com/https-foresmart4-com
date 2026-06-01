@@ -10,6 +10,7 @@ import {
 import { ConfidenceBar, RiskHeat } from "@/components/dashboard/ConfidenceBar";
 import type { MarketIntel } from "@/services/analysis";
 import type { TimeframeReport } from "@/services/quant/multiTimeframeEngine";
+import { patchAr, tRegime, tStability } from "@/lib/aiTranslate";
 
 function Section({
   icon: Icon, title, subtitle, accent = "primary", children,
@@ -132,7 +133,7 @@ export function QuantPanel({ data, ar }: { data: MarketIntel; ar: boolean }) {
         >
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-display text-xl font-bold">{regime.regime}</div>
+              <div className="font-display text-xl font-bold">{tRegime(regime.regime, ar)}</div>
               <div className="text-[11px] text-muted-foreground">{ar ? "ثقة" : "Confidence"} {regime.confidence}%</div>
             </div>
             <Badge variant="outline" className="border-primary/40 text-[10px]">
@@ -140,12 +141,12 @@ export function QuantPanel({ data, ar }: { data: MarketIntel; ar: boolean }) {
             </Badge>
           </div>
           <div className="mt-3"><ConfidenceBar value={regime.confidence} /></div>
-          <p className="mt-3 text-xs text-muted-foreground">{regime.explanation}</p>
+          <p className="mt-3 text-xs text-muted-foreground">{patchAr(regime.explanation, ar)}</p>
           <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-2.5">
             <div className="text-[10px] font-bold uppercase tracking-wider text-primary">
               {ar ? "تكيّف الاستراتيجية" : "Strategy adaptation"}
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">{regime.strategyHint}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{patchAr(regime.strategyHint, ar)}</p>
           </div>
         </Section>
 
@@ -174,9 +175,9 @@ export function QuantPanel({ data, ar }: { data: MarketIntel; ar: boolean }) {
             <ConfidenceBar value={confidence.averageCalibrated} />
           </div>
           <div className={cn("mt-3 text-xs font-semibold uppercase tracking-wider", stabilityTone)}>
-            {ar ? "الاستقرار:" : "Stability:"} {confidence.stability}
+            {ar ? "الاستقرار:" : "Stability:"} {tStability(confidence.stability, ar)}
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">{confidence.reasoning}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{patchAr(confidence.reasoning, ar)}</p>
         </Section>
 
         {/* Portfolio risk monitor */}
@@ -225,7 +226,7 @@ export function QuantPanel({ data, ar }: { data: MarketIntel; ar: boolean }) {
             <div className="mt-3 space-y-1">
               {portfolio.warnings.map((w, i) => (
                 <div key={i} className="flex items-start gap-1.5 rounded border border-warning/30 bg-warning/5 p-1.5 text-[11px] text-warning">
-                  <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" /><span>{w}</span>
+                  <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" /><span>{patchAr(w, ar)}</span>
                 </div>
               ))}
             </div>
@@ -272,7 +273,7 @@ export function QuantPanel({ data, ar }: { data: MarketIntel; ar: boolean }) {
           </div>
           <div className="rounded border border-primary/30 bg-primary/5 p-2">
             <div className="text-[10px] uppercase text-primary">{ar ? "النظام" : "Regime"}</div>
-            <div className="font-display text-xs font-bold text-primary">{backtest.overall.regime}</div>
+            <div className="font-display text-xs font-bold text-primary">{tRegime(backtest.overall.regime, ar)}</div>
           </div>
         </div>
         <div className="overflow-hidden rounded-lg border border-border/40">
@@ -304,7 +305,7 @@ export function QuantPanel({ data, ar }: { data: MarketIntel; ar: boolean }) {
         </div>
         {backtest.observations.length > 0 && (
           <ul className="mt-3 space-y-0.5 text-[11px] text-muted-foreground">
-            {backtest.observations.map((o, i) => <li key={i}>· {o}</li>)}
+            {backtest.observations.map((o, i) => <li key={i}>· {patchAr(o, ar)}</li>)}
           </ul>
         )}
         {calibratedSignals.length > 0 && (
@@ -314,7 +315,7 @@ export function QuantPanel({ data, ar }: { data: MarketIntel; ar: boolean }) {
             </div>
             <ul className="space-y-0.5 text-[11px] text-muted-foreground">
               {calibratedSignals
-                .flatMap((c) => c.notes.map((n) => `${c.asset}: ${n}`))
+                .flatMap((c) => c.notes.map((n) => `${c.asset}: ${patchAr(n, ar)}`))
                 .slice(0, 5)
                 .map((n, i) => <li key={i}>· {n}</li>)}
             </ul>

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { MarketIntel } from "@/services/analysis";
 import { recordSignals, computeStats, getMemory } from "@/services/learning/signalMemory";
+import { patchAr } from "@/lib/aiTranslate";
 import { buildPerformanceLearning } from "@/services/learning/performanceLearning";
 import { adaptStrategy } from "@/services/learning/strategyAdaptation";
 import { profileAll, type AssetPersonality } from "@/services/learning/assetPersonality";
@@ -111,7 +112,7 @@ export function AdaptiveIntelligencePanel({ data, ar }: Props) {
         <Panel
           icon={<Activity className="h-4 w-4" />}
           title={ar ? "مراقب التعلم" : "AI Learning Monitor"}
-          subtitle={learning.hint}
+          subtitle={patchAr(learning.hint, ar)}
         >
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <StatTile label={ar ? "عينات" : "Samples"} value={stats.evaluated} />
@@ -210,7 +211,7 @@ export function AdaptiveIntelligencePanel({ data, ar }: Props) {
         <Panel
           icon={<Compass className="h-4 w-4" />}
           title={ar ? "تكيّف الاستراتيجية" : "Strategy Adaptation"}
-          subtitle={adaptation.focus}
+          subtitle={patchAr(adaptation.focus, ar)}
         >
           <div className="grid grid-cols-3 gap-2">
             <StatTile label={ar ? "الميل" : "Bias"} value={adaptation.bias}
@@ -225,13 +226,13 @@ export function AdaptiveIntelligencePanel({ data, ar }: Props) {
             </div>
             <Progress value={adaptation.cautionLevel} className="mt-1 h-1.5" />
           </div>
-          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{adaptation.recommendation}</p>
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{patchAr(adaptation.recommendation, ar)}</p>
           {adaptation.rules.length > 0 && (
             <ul className="mt-3 space-y-1">
               {adaptation.rules.map((r, i) => (
                 <li key={i} className="flex items-start gap-2 text-[11px] text-muted-foreground">
                   <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" />
-                  <span>{r}</span>
+                  <span>{patchAr(r, ar)}</span>
                 </li>
               ))}
             </ul>
@@ -287,7 +288,7 @@ export function AdaptiveIntelligencePanel({ data, ar }: Props) {
       <Panel
         icon={<ShieldCheck className="h-4 w-4" />}
         title={ar ? "التقييم الذاتي للذكاء الاصطناعي" : "AI Self-Evaluation"}
-        subtitle={selfEval.summary}
+        subtitle={patchAr(selfEval.summary, ar)}
       >
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
           <div className={cn(
@@ -326,7 +327,7 @@ export function AdaptiveIntelligencePanel({ data, ar }: Props) {
                 "border-border/40 bg-muted/10 text-muted-foreground",
               )}>
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                <span>{f.message}</span>
+                <span>{patchAr(f.message, ar)}</span>
               </div>
             ))}
           </div>
